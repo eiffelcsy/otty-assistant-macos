@@ -1,0 +1,22 @@
+appId: com.otty.assistant
+productName: Otty
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**
+  - package.json
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  # Unsigned MVP build. Set a Developer ID identity + notarize in phase 2.
+  identity: null
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    LSUIElement: true
+    NSAppleEventsUsageDescription: Otty uses this to copy the text you highlight and to add reminders when you ask.
+dmg:
+  title: Otty
