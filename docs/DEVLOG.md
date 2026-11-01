@@ -46,7 +46,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-2 (`define` / translate targets), D-3 (intent column), OCR helper | L (4–6 days) |
 | D-2 | Home-language help (English-first, 繁體中文（香港） on demand) | 🧪 | — | S–M (1–2 days) |
 | D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
-| D-4 | CI pipeline (GitHub Actions) | ⏳ | — | S (half a day) |
+| D-4 | CI pipeline (GitHub Actions) | 🔨 | — | S (half a day) |
 
 **Suggested build order: D-2 → D-3 → D-1.** D-1 is the top priority, but it builds on the other two. Its `translate` and `define` templates target the user's home language (D-2), and its predictions and corrections need somewhere to live (D-3). Both are small, so they unblock D-1 within about three days. **D-4 (CI) is independent and small, so do it first or alongside D-2**, so every later PR gets checked.
 
@@ -254,7 +254,12 @@ else                             → local clarify card (no LLM call): top-3 int
 
 ---
 
-## D-4 · CI pipeline (GitHub Actions) ⏳
+## D-4 · CI pipeline (GitHub Actions) 🔨
+
+**Progress.**
+- ✅ Stage 1 + 2: `.github/workflows/ci.yml` runs typecheck, `npm run test --if-present` and build (`--if-present` because `main` has no tests until D-2 merges), with Dependabot (`.github/dependabot.yml`), the lockfile no longer ignored, and a README badge.
+- ⏳ Make `ci` required on `main` (branch protection) once it's green.
+- ⏳ Stage 3 (`.dmg` artifact): a `workflow_dispatch` workflow can only be started once it exists on `main`, so add it in a follow-up PR.
 
 **Goal.** Every PR and every push to `main` is checked automatically, so nothing that fails typecheck or build gets merged. Later, CI also produces a downloadable `.dmg`.
 

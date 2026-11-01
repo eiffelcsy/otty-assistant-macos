@@ -12,6 +12,10 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 - Tool use is a quiet status line ("Searched …") instead of badges. The app tag is plain metadata. Tip cards are a soft straw fill with no border. The explain card has a quiet "Ask more about this →" link.
 - Dark mode uses its own deeper green for user bubbles. Scrollbars, key caps and the onboarding step dots were refined.
 - `tools/ui-preview` (dev only, `ui-preview` in `.claude/launch.json`) renders the real panel and quick view in a browser with a mock `window.otty`, for UI work without the Electron app.
+### CI (2026-11-01)
+- GitHub Actions `ci` runs on every PR and every push to `main`, on macOS with Node 24. It runs `npm ci`, then typecheck, then tests (when there are any), then build. The Electron binary is cached, and a newer push cancels the older run.
+- Dependabot opens weekly update PRs for npm (minor and patch dev-dependency bumps grouped into one) and for GitHub Actions.
+- `package-lock.json` is no longer listed in `.gitignore` (it was always tracked, and `npm ci` needs it). The README has a CI badge.
 
 ### Polish (2026-11-01)
 - Tool chips use UIcons (search, globe, copy, alarm clock) instead of emoji.
