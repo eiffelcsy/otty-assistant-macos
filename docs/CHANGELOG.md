@@ -4,6 +4,15 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Home-language help, 繁體中文（香港） (D-2, 2026-11-01)
+- **"My other language"** in Settings and on the welcome page: English only, or 繁體中文（香港）. Hong Kong and Macau Macs default to it; choosing English only is remembered.
+- **Answer language per turn:** an explicit pick, then a language the quick action implies, then the language you typed in (Han characters count against words, so "PDF 點樣 save?" is Chinese), otherwise English. Chinese answers use Hong Kong written Chinese, Traditional characters only, HK vocabulary (軟件, 打印, 電郵…), and keep on-screen English words like 「File」 as they are.
+- **EN / 中 pill** for the next message (panel and quick view), and an **In 中文 / In English** button on the latest answer.
+- **Quick actions are ids** resolved in main: Explain in 中文, Translate in either direction, and "What does it mean?" for a short phrase (also what ↵ does in the quick view for a single word).
+- **Explain cards** open in their answer's language, show a 中文 line, and have an EN / 中文 toggle.
+- Fix: with 中 picked and the question typed in English, answers came back in English, because the system-prompt note lost to the question's own language. The turn's user message now also carries a one-line language reminder (in the request only, never saved).
+- Smoke-tested on a Mac: no Simplified characters or Taiwan / Mainland vocabulary seen, so the `opencc-js` drift guard isn't needed for now (parked in BRAINSTORM).
+
 ### Visual refresh (2026-11-01)
 - A calmer, more polished look that keeps the otter's warmth. Neutrals do most of the work and meadow green is kept for actions. Outlines became soft hairlines, with two-layer shadows for depth. There's now a radius scale (6 / 10 / 14 / 18 / 24) so nested corners line up, and fewer type sizes and weights.
 - **Quick actions** are an even grid of quiet tiles with icons instead of outlined pills. The first tile is the ↵ default and shows a key cap.
