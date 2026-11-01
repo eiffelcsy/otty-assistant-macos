@@ -16,7 +16,9 @@ const DEFAULTS: StoredSettings = {
   showBubble: true,
   askHotkey: 'Alt+Space',
   snapHotkey: 'Alt+Shift+Space',
-  onboarded: false
+  onboarded: false,
+  shareAppContext: true,
+  rememberChats: true
 }
 
 let cache: StoredSettings | null = null

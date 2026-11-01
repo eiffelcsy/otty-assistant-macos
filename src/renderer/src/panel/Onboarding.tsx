@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Permissions, PublicSettings } from '../../../shared/types'
+import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { prettyKey } from '../lib/keys'
 
@@ -44,7 +45,7 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
       {step === 0 && (
         <div className="onboarding__page">
           <Otter state="happy" size={110} />
-          <h2>Hi! I’m Otty 🦦</h2>
+          <h2>Hi! I’m Otty</h2>
           <p>
             I float on your screen and help you understand things. Highlight some text or snap a picture of your screen,
             and I’ll explain it in plain words.
@@ -57,17 +58,17 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
 
       {step === 1 && (
         <div className="onboarding__page">
-          <h2>Give Otty a brain 🧠</h2>
+          <h2>Give Otty a brain</h2>
           <p>
             Otty uses DeepSeek to think. Paste your key below — it stays locked in your Mac’s Keychain.
           </p>
           <button className="link-btn" onClick={() => window.otty.openExternal('https://platform.deepseek.com/api_keys')}>
-            Don’t have a key? Get one here →
+            Don’t have a key? Get one here <Icon name="arrow-up-right-from-square" />
           </button>
           <input
             className="field"
             type="password"
-            placeholder={hasKey ? 'Key saved ✓ (paste to replace)' : 'sk-…'}
+            placeholder={hasKey ? 'Key saved (paste to replace)' : 'sk-…'}
             value={key}
             onChange={(e) => setKey(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && saveAndTest()}
@@ -112,7 +113,9 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
 function PermissionRow(props: { ok?: boolean; title: string; why: string; onOpen: () => void }) {
   return (
     <div className="perm-row">
-      <span className="perm-row__status">{props.ok ? '✅' : '⚪️'}</span>
+      <span className={`perm-row__status ${props.ok ? 'perm-row__status--ok' : ''}`}>
+        <Icon name={props.ok ? 'check-circle' : 'circle'} solid={props.ok} />
+      </span>
       <div className="perm-row__text">
         <b>{props.title}</b>
         <span>{props.why}</span>

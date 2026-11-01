@@ -94,8 +94,19 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-8.2 Settings: API key, base URL, model, "Think deeper (slower)" toggle, show/hide the floating otter, and shortcuts (P1).
 - FR-8.3 The API key is stored encrypted and is never sent to the renderer. The renderer only sees `hasApiKey`.
 
-### FR-9 Later (P2)
-Voice input · conversation history · choosing an answer language · inserting text back into the source app · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
+### FR-9 App awareness (P0)
+- FR-9.1 Each hotkey, bubble click or snip also notes the frontmost app's name and window title, and for Safari / Chromium browsers (Chrome, Arc, Brave, Edge, Vivaldi, Opera) the current page address with its query and fragment removed. This runs alongside the selection copy, so it adds no delay.
+- FR-9.2 It shows as a removable "In Safari · page title" tag in the composer and quick view, and on the sent message. It is added to the user message as a short `[I'm using …]` note.
+- FR-9.3 It never reports Otty itself, and it can be switched off in Settings → Privacy ("Tell Otty which app I'm using").
+
+### FR-10 Saved chats (P0)
+- FR-10.1 Every conversation is saved when a turn ends. A hotkey question or **New chat** starts a new conversation, and the old one stays saved instead of being wiped.
+- FR-10.2 **Recent chats** (clock button in the panel header) lists the last 50 chats with title, app and age. Clicking one reopens it and the conversation can continue. Each can be forgotten.
+- FR-10.3 Only text is saved (`userData/chats.json`, mode 600). Screen snips are replaced by a "not saved" placeholder.
+- FR-10.4 Settings → Privacy: "Remember my chats" (turning it off forgets them all) and **Forget all chats**.
+
+### FR-11 Later (P2)
+See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language · inserting text back into the source app · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
 
 ## 4. Non-functional requirements
 
@@ -105,7 +116,7 @@ Voice input · conversation history · choosing an answer language · inserting 
 | NFR-2 | First token is under 2 s on a normal connection with thinking off |
 | NFR-3 | Idle CPU is about 0% (CSS animations only, no polling except while dragging) |
 | NFR-4 | Security: `contextIsolation` on, `nodeIntegration` off, sandboxed renderer, a narrow typed preload API, all network calls from the main process |
-| NFR-5 | Privacy: nothing is sent anywhere until the user asks a question. Screenshots are deleted from disk right after encoding |
+| NFR-5 | Privacy: nothing is sent anywhere until the user asks a question. Screenshots are deleted from disk right after encoding and are never saved with chats. App context and chat saving can each be turned off |
 | NFR-6 | Accessibility: keyboard usable, 4.5:1 contrast, works in light and dark mode, respects `prefers-reduced-motion` |
 | NFR-7 | Supports macOS 12+ on Apple Silicon and Intel |
 
@@ -115,7 +126,7 @@ Voice input · conversation history · choosing an answer language · inserting 
 | --- | --- | --- |
 | Accessibility | Simulating ⌘C to read the selection | A friendly onboarding card, then the system prompt |
 | Screen Recording | Snips that include other apps' windows | A friendly onboarding card, with a deep link to System Settings |
-| Automation → Reminders / System Events | `create_reminder`, simulated copy | The system prompt on first use |
+| Automation → Reminders / System Events / browsers | `create_reminder`, simulated copy, frontmost app and page address | The system prompt on first use. If a browser is refused, Otty just leaves out the address |
 
 > In development (`npm run dev`), macOS grants these permissions to the **terminal app** that launched Electron, such as Terminal or iTerm.
 

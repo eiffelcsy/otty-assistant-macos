@@ -14,9 +14,13 @@ const api: OttyApi = {
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   openPermissionSettings: (kind) => ipcRenderer.invoke('permissions:open', kind),
 
-  sendMessage: (text, ctx) => ipcRenderer.invoke('chat:send', text, ctx),
+  sendMessage: (text, ctx, opts) => ipcRenderer.invoke('chat:send', text, ctx, opts),
   stop: () => ipcRenderer.invoke('chat:stop'),
   resetChat: () => ipcRenderer.invoke('chat:reset'),
+  listChats: () => ipcRenderer.invoke('chats:list'),
+  openChat: (id) => ipcRenderer.invoke('chats:open', id),
+  deleteChat: (id) => ipcRenderer.invoke('chats:delete', id),
+  clearChats: () => ipcRenderer.invoke('chats:clear'),
   respondConfirm: (id, allow) => ipcRenderer.invoke('chat:confirm', id, allow),
   explain: (term, around) => ipcRenderer.invoke('chat:explain', term, around),
 
@@ -26,12 +30,18 @@ const api: OttyApi = {
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
   copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
 
+  closeQuick: () => ipcRenderer.invoke('quick:close'),
+  expandQuick: () => ipcRenderer.invoke('quick:expand'),
+  quickResize: (height) => ipcRenderer.send('quick:resize', height),
+
   bubbleMenu: () => ipcRenderer.send('bubble:menu'),
   bubbleDrag: (phase) => ipcRenderer.send('bubble:drag', phase),
 
   onChatEvent: (cb) => listen('chat:event', cb),
   onPanelOpen: (cb) => listen('panel:open', cb),
-  onBubbleState: (cb) => listen('bubble:state', cb)
+  onQuickOpen: (cb) => listen('quick:open', cb),
+  onBubbleState: (cb) => listen('bubble:state', cb),
+  onBubbleBadge: (cb) => listen('bubble:badge', cb)
 }
 
 contextBridge.exposeInMainWorld('otty', api)

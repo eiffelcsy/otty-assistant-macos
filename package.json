@@ -13,8 +13,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "build:mac": "electron-vite build && electron-builder --mac"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@flaticon/flaticon-uicons": "^3.3.1",
     "@types/node": "^22.10.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

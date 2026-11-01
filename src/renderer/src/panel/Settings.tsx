@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import type { PublicSettings } from '../../../shared/types'
+import { Icon } from '../components/Icon'
 
 export function Settings({ settings, onSaved }: { settings: PublicSettings; onSaved: (s: PublicSettings) => void }) {
   const [form, setForm] = useState(settings)
   const [key, setKey] = useState('')
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [forgot, setForgot] = useState(false)
 
   const set = <K extends keyof PublicSettings>(k: K, v: PublicSettings[K]) => setForm((f) => ({ ...f, [k]: v }))
 
@@ -23,13 +25,15 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
   return (
     <div className="settings">
       <section>
-        <h3>🧠 AI connection</h3>
+        <h3>
+          <Icon name="brain" /> AI connection
+        </h3>
         <label className="label">
           API key
           <input
             className="field"
             type="password"
-            placeholder={settings.hasApiKey ? 'Saved ✓ (paste to replace)' : 'sk-…'}
+            placeholder={settings.hasApiKey ? 'Saved (paste to replace)' : 'sk-…'}
             value={key}
             onChange={(e) => setKey(e.target.value)}
           />
@@ -51,7 +55,9 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
       </section>
 
       <section>
-        <h3>🦦 Otty</h3>
+        <h3>
+          <Icon name="paw" /> Otty
+        </h3>
         <label className="toggle">
           <input type="checkbox" checked={form.showBubble} onChange={(e) => set('showBubble', e.target.checked)} />
           <span>Show the floating otter button</span>
@@ -65,6 +71,38 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
           <input className="field" value={form.snapHotkey} onChange={(e) => set('snapHotkey', e.target.value)} />
         </label>
         <p className="hint">Shortcuts use names like Alt, Shift, Command, Control and Space joined by “+”.</p>
+      </section>
+
+      <section>
+        <h3>
+          <Icon name="shield-check" /> Privacy
+        </h3>
+        <label className="toggle">
+          <input type="checkbox" checked={form.shareAppContext} onChange={(e) => set('shareAppContext', e.target.checked)} />
+          <span>
+            <b>Tell Otty which app I’m using</b> — sends the app’s name, window title and web page address (without
+            anything after “?”) with your question, so answers fit what you’re doing
+          </span>
+        </label>
+        <label className="toggle">
+          <input type="checkbox" checked={form.rememberChats} onChange={(e) => set('rememberChats', e.target.checked)} />
+          <span>
+            <b>Remember my chats</b> on this Mac, under Recent chats. Screen snips are never saved. Turning this off
+            forgets saved chats.
+          </span>
+        </label>
+        {settings.rememberChats && (
+          <button
+            className="btn btn--soft btn--small"
+            disabled={forgot}
+            onClick={async () => {
+              await window.otty.clearChats()
+              setForgot(true)
+            }}
+          >
+            {forgot ? 'All chats forgotten' : 'Forget all chats'}
+          </button>
+        )}
       </section>
 
       <button className="btn btn--primary btn--wide" disabled={saving} onClick={save}>

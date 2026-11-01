@@ -74,18 +74,19 @@ export const toolDefs = [
 
 type Args = Record<string, unknown>
 
-export function toolLabel(name: string, args: Args): string {
+/** Chip text plus a UIcon name (rounded set) for the renderer. */
+export function toolLabel(name: string, args: Args): { label: string; icon: string } {
   switch (name) {
     case 'search_web':
-      return `🔎 Looking up “${String(args.query ?? '')}”`
+      return { icon: 'search', label: `Looking up “${String(args.query ?? '')}”` }
     case 'open_url':
-      return `🌐 Opening ${hostOf(String(args.url ?? ''))}`
+      return { icon: 'globe', label: `Opening ${hostOf(String(args.url ?? ''))}` }
     case 'copy_to_clipboard':
-      return '📋 Copied to your clipboard'
+      return { icon: 'copy-alt', label: 'Copied to your clipboard' }
     case 'create_reminder':
-      return `⏰ Reminder: “${String(args.title ?? '')}”`
+      return { icon: 'alarm-clock', label: `Reminder: “${String(args.title ?? '')}”` }
     default:
-      return `🛠️ ${name}`
+      return { icon: 'tools', label: name }
   }
 }
 
