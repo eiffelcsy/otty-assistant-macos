@@ -4,7 +4,8 @@ import { promisify } from 'util'
 import { existsSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import type { PanelOpenPayload } from '../shared/types'
+import type { AppInfo, PanelOpenPayload } from '../shared/types'
+import { getStored } from './settings'
 
 const run = promisify(execFile)
 const isMac = process.platform === 'darwin'
@@ -111,5 +112,74 @@ export async function captureScreenshot(): Promise<PanelOpenPayload> {
     } catch {
       /* already gone */
     }
+  }
+}
+
+// Browsers whose current page address can be read over AppleScript. Firefox has no such dictionary.
+const BROWSERS: Record<string, string> = {
+  'com.apple.Safari': 'URL of front document',
+  'com.google.Chrome': 'URL of active tab of front window',
+  'com.brave.Browser': 'URL of active tab of front window',
+  'com.microsoft.edgemac': 'URL of active tab of front window',
+  'com.vivaldi.Vivaldi': 'URL of active tab of front window',
+  'com.operasoftware.Opera': 'URL of active tab of front window',
+  'company.thebrowser.Browser': 'URL of active tab of front window'
+}
+
+const FRONTMOST_SCRIPT = [
+  'tell application "System Events"',
+  'set p to first application process whose frontmost is true',
+  'set b to ""',
+  'try',
+  'set b to bundle identifier of p',
+  'end try',
+  'set t to ""',
+  'try',
+  'set t to name of front window of p',
+  'end try',
+  'return (unix id of p as text) & linefeed & name of p & linefeed & b & linefeed & t',
+  'end tell'
+]
+
+/** Page address without its query or fragment, which often carry tokens or personal details. */
+function cleanUrl(raw: string): string | undefined {
+  try {
+    const u = new URL(raw)
+    if (!/^https?:$/.test(u.protocol)) return undefined
+    return (u.origin + u.pathname).slice(0, 300)
+  } catch {
+    return undefined
+  }
+}
+
+async function browserUrl(bundle: string): Promise<string | undefined> {
+  const expr = BROWSERS[bundle]
+  if (!expr) return undefined
+  try {
+    // The bundle id comes from the fixed list above, never from the system.
+    const { stdout } = await run('osascript', ['-e', `tell application id "${bundle}" to return ${expr}`], { timeout: 600 })
+    return cleanUrl(stdout.trim())
+  } catch {
+    return undefined // Automation not allowed yet, no window open, or too slow
+  }
+}
+
+/**
+ * The app the user is working in (name, window title and, for browsers, the page address),
+ * so Otty can tailor its help. Null when it's Otty itself, when sharing is off, or off macOS.
+ */
+export async function frontmostApp(): Promise<AppInfo | null> {
+  if (!isMac || !getStored().shareAppContext) return null
+  try {
+    const { stdout } = await run('osascript', FRONTMOST_SCRIPT.flatMap((l) => ['-e', l]), { timeout: 800 })
+    const [pid, name, bundle, title] = stdout.replace(/\n$/, '').split('\n')
+    if (!name || Number(pid) === process.pid) return null
+    const info: AppInfo = { name }
+    if (title && title !== name) info.title = title.slice(0, 200)
+    const url = await browserUrl(bundle)
+    if (url) info.url = url
+    return info
+  } catch {
+    return null
   }
 }

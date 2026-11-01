@@ -5,12 +5,15 @@ import { getStored, saveBubblePosition } from './settings'
 const BUBBLE_SIZE = 84
 const PANEL_W = 420
 const PANEL_H = 580
+const QUICK_W = 420
+const QUICK_MAX_H = 560
 const GAP = 14
 
 let bubble: BrowserWindow | null = null
 let panel: BrowserWindow | null = null
+let quick: BrowserWindow | null = null
 
-function load(win: BrowserWindow, view: 'bubble' | 'panel'): void {
+function load(win: BrowserWindow, view: 'bubble' | 'panel' | 'quick'): void {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) win.loadURL(`${devUrl}?view=${view}`)
   else win.loadFile(join(__dirname, '../renderer/index.html'), { query: { view } })
@@ -86,8 +89,33 @@ export function createPanel(): BrowserWindow {
   return panel
 }
 
+export function createQuick(): BrowserWindow {
+  quick = new BrowserWindow({
+    width: QUICK_W,
+    height: 140,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    hasShadow: false, // the card draws its own soft shadow
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    fullscreenable: false,
+    show: false,
+    webPreferences
+  })
+  quick.setAlwaysOnTop(true, 'floating')
+  quick.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  secure(quick)
+  load(quick, 'quick')
+  // A popover: clicking anywhere else puts it away (the chat keeps going in the panel).
+  quick.on('blur', () => quick?.hide())
+  quick.on('closed', () => (quick = null))
+  return quick
+}
+
 export const getBubble = () => bubble
 export const getPanel = () => panel
+export const getQuick = () => quick
 
 function onSomeDisplay(p: { x: number; y: number }): boolean {
   return screen.getAllDisplays().some(({ workArea: a }) => p.x >= a.x && p.y >= a.y && p.x < a.x + a.width && p.y < a.y + a.height)
@@ -167,4 +195,49 @@ export function endBubbleDrag(): boolean {
   const moved = dragMoved
   dragMoved = false
   return moved
+}
+
+// --- Quick view: sized by its content, revealed once the renderer has laid out the new query.
+
+let quickAnchor: { x: number; y: number } | null = null
+let quickRevealTimer: NodeJS.Timeout | null = null
+
+function revealQuick(): void {
+  if (quickRevealTimer) clearTimeout(quickRevealTimer)
+  quickRevealTimer = null
+  quick?.show()
+  quick?.focus()
+}
+
+/** Anchor the quick view just under the cursor. It appears on the renderer's first size report. */
+export function prepareQuickAtCursor(): void {
+  if (!quick) return
+  const c = screen.getCursorScreenPoint()
+  quickAnchor = { x: c.x - 28, y: c.y + 10 }
+  if (quick.isVisible()) quick.hide()
+  placeQuick(quick.getSize()[1]) // move now, so even the fallback reveal lands at the cursor
+  quickRevealTimer = setTimeout(revealQuick, 400) // fallback if the renderer never reports
+}
+
+export function resizeQuick(height: number): void {
+  placeQuick(height)
+  if (quickRevealTimer) revealQuick()
+}
+
+function placeQuick(height: number): void {
+  if (!quick || !quickAnchor) return
+  const wa = screen.getDisplayNearestPoint(quickAnchor).workArea
+  const h = Math.round(Math.max(60, Math.min(height, QUICK_MAX_H, wa.height - GAP * 2)))
+  const x = Math.max(wa.x + GAP, Math.min(quickAnchor.x, wa.x + wa.width - QUICK_W - GAP))
+  // Grow downward from the cursor; slide up only when we'd run off the bottom of the screen.
+  const y = Math.max(wa.y + GAP, Math.min(quickAnchor.y, wa.y + wa.height - h - GAP))
+  quick.setBounds({ x: Math.round(x), y: Math.round(y), width: QUICK_W, height: h })
+}
+
+/** Swap the quick view for the full panel at the same spot. */
+export function expandQuickToPanel(): void {
+  if (!quick || !panel) return
+  const [x, y] = quick.getPosition()
+  quick.hide()
+  showPanelAt({ x: x - GAP, y: y - GAP })
 }

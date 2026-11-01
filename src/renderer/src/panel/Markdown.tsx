@@ -1,6 +1,7 @@
 import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { Icon } from '../components/Icon'
 
 /** Lets explain-term pop-ups send follow-up questions into the chat. */
 export const AskContext = createContext<(text: string) => void>(() => {})
@@ -19,6 +20,7 @@ function ExplainTerm({ term, around, children }: { term: string; around: string;
   const [open, setOpen] = useState(false)
   const [text, setText] = useState<string | null>(null)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
+  const [viewport, setViewport] = useState(0)
   const anchor = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
 
@@ -40,7 +42,15 @@ function ExplainTerm({ term, around, children }: { term: string; around: string;
     const below = r.bottom + 8
     const top = below + h > window.innerHeight - 12 ? Math.max(12, r.top - h - 8) : below
     setPos({ left, top })
-  }, [open, text])
+  }, [open, text, viewport])
+
+  // The quick view grows its window when a card opens; re-place the card once it has.
+  useLayoutEffect(() => {
+    if (!open) return
+    const onResize = () => setViewport(window.innerHeight)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [open])
 
   useLayoutEffect(() => {
     if (!open) return
@@ -49,10 +59,10 @@ function ExplainTerm({ term, around, children }: { term: string; around: string;
     }
     const closeOnScroll = () => setOpen(false)
     window.addEventListener('mousedown', close)
-    document.querySelector('.chat')?.addEventListener('scroll', closeOnScroll)
+    document.querySelector('.chat, .quick__answer')?.addEventListener('scroll', closeOnScroll)
     return () => {
       window.removeEventListener('mousedown', close)
-      document.querySelector('.chat')?.removeEventListener('scroll', closeOnScroll)
+      document.querySelector('.chat, .quick__answer')?.removeEventListener('scroll', closeOnScroll)
     }
   }, [open])
 
@@ -68,7 +78,9 @@ function ExplainTerm({ term, around, children }: { term: string; around: string;
           role="dialog"
           style={pos ? { left: pos.left, top: pos.top } : { visibility: 'hidden' }}
         >
-          <div className="explain-card__title">🐚 {term}</div>
+          <div className="explain-card__title">
+            <Icon name="book-alt" /> {term}
+          </div>
           <div className="explain-card__body">{text ?? <span className="dots">Otty is thinking</span>}</div>
           <button
             className="btn btn--soft btn--small"
@@ -112,11 +124,17 @@ export function Markdown({ text }: { text: string }) {
             )
           },
           blockquote({ children }) {
-            return <aside className="tip-card">{children}</aside>
+            return (
+              <aside className="tip-card">
+                <Icon name="bulb" solid />
+                <div className="tip-card__body">{children}</div>
+              </aside>
+            )
           }
         }}
       >
-        {text}
+        {/* Tips arrive as `> 💡 …`; the card draws its own icon, so drop the emoji. */}
+        {text.replace(/^(\s*>\s*)💡\s*/gm, '$1')}
       </ReactMarkdown>
     </div>
   )

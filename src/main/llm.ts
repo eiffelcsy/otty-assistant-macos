@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto'
-import type { ChatEvent, ScreenContext } from '../shared/types'
+import { nativeImage } from 'electron'
+import type { AppInfo, ChatEvent, ChatMessage, ScreenContext } from '../shared/types'
+import { getChat, saveChat, type Thread } from './chats'
 import { getApiKey, getStored } from './settings'
 import { explainPrompt, systemPrompt } from './prompts'
 import { runTool, toolDefs, toolLabel } from './tools'
@@ -14,7 +16,7 @@ interface ToolCall {
   function: { name: string; arguments: string }
 }
 
-type Message =
+export type Message =
   | { role: 'system'; content: string }
   | { role: 'user'; content: string | ContentPart[] }
   | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[]; reasoning_content?: string }
@@ -23,11 +25,13 @@ type Message =
 const MAX_TOOL_ROUNDS = 6
 
 export class FriendlyError extends Error {}
+/** The model rejected an image, i.e. it has no vision. */
+class NoVisionError extends FriendlyError {}
 
 function config() {
   const s = getStored()
   const key = getApiKey()
-  if (!key) throw new FriendlyError('Otty needs a DeepSeek key first — open Settings (⚙️) to add one.')
+  if (!key) throw new FriendlyError('Otty needs a DeepSeek key first — open Settings (the gear button) to add one.')
   return { baseUrl: s.baseUrl.replace(/\/+$/, ''), model: s.model, thinking: s.thinking, key }
 }
 
@@ -36,7 +40,9 @@ function friendlyHttp(status: number, body: string): FriendlyError {
   if (status === 402) return new FriendlyError('Your DeepSeek balance is empty. Top up at platform.deepseek.com, then try again.')
   if (status === 429) return new FriendlyError('Otty is getting lots of questions right now. Give it a few seconds and try again.')
   if (status >= 500) return new FriendlyError('The AI service is having a moment. Please try again shortly.')
-  if (status === 400 && /image/i.test(body)) return new FriendlyError('This model can’t look at pictures. Try a vision-capable model in Settings.')
+  if (status === 400 && /image|vision|multimodal/i.test(body)) {
+    return new NoVisionError('This model can’t look at pictures. Try a vision-capable model in Settings.')
+  }
   console.error('LLM error', status, body)
   return new FriendlyError(`Something went wrong (error ${status}). Please try again.`)
 }
@@ -91,27 +97,62 @@ async function* sse(res: Response): AsyncGenerator<any> {
   }
 }
 
-function userContent(text: string, ctx: ScreenContext | null): string | ContentPart[] {
-  if (!ctx) return text
+function appLine(app: AppInfo | null): string {
+  if (!app) return ''
+  const where = [app.title && `“${app.title}”`, app.url && `(${app.url})`].filter(Boolean).join(' ')
+  return `[I'm using ${app.name}${where ? `, on ${where}` : ''}.]\n\n`
+}
+
+function userContent(text: string, ctx: ScreenContext | null, app: AppInfo | null): string | ContentPart[] {
+  const prefix = appLine(app)
+  if (!ctx) return prefix + text
   if (ctx.kind === 'text') {
-    return `Here is the text I highlighted on my screen:\n"""\n${ctx.text}\n"""\n\n${text}`
+    return `${prefix}Here is the text I highlighted on my screen:\n"""\n${ctx.text}\n"""\n\n${text}`
   }
   return [
     { type: 'image_url', image_url: { url: ctx.dataUrl } },
-    { type: 'text', text: `This is a snip of part of my screen.\n\n${text}` }
+    { type: 'text', text: `${prefix}This is a snip of part of my screen.\n\n${text}` }
   ]
 }
 
+function titleFor(text: string, ctx: ScreenContext | null): string {
+  const q = text.trim().replace(/[.?!]$/, '')
+  const about = ctx?.kind === 'text' ? ` “${ctx.text.replace(/\s+/g, ' ').slice(0, 40).trim()}…”` : ''
+  const title = q + about
+  return title.length > 80 ? title.slice(0, 79) + '…' : title
+}
+
+function newThread(): Thread {
+  const now = Date.now()
+  return { id: randomUUID(), title: 'New chat', createdAt: now, updatedAt: now, messages: [], history: [] }
+}
+
 export class ChatSession {
-  private history: Message[] = []
+  private thread = newThread()
   private abort: AbortController | null = null
+  private running: Promise<void> = Promise.resolve()
   private confirms = new Map<string, (ok: boolean) => void>()
 
   constructor(private emit: (e: ChatEvent) => void) {}
 
+  get threadId(): string {
+    return this.thread.id
+  }
+
+  /** Starts a new conversation. The old one stays in Recent chats. */
   reset(): void {
     this.stop()
-    this.history = []
+    this.thread = newThread()
+  }
+
+  /** Reopens a saved chat and shows it. Returns false if it no longer exists. */
+  open(id: string): boolean {
+    const saved = getChat(id)
+    if (!saved) return false
+    this.stop()
+    this.thread = structuredClone(saved)
+    this.emit({ type: 'load', messages: this.thread.messages })
+    return true
   }
 
   stop(): void {
@@ -126,16 +167,35 @@ export class ChatSession {
     this.confirms.delete(id)
   }
 
-  async send(text: string, ctx: ScreenContext | null): Promise<void> {
+  send(text: string, ctx: ScreenContext | null, app: AppInfo | null): Promise<void> {
     this.stop()
+    const thread = this.thread
+    const userMsg: Extract<ChatMessage, { role: 'user' }> = { id: randomUUID(), role: 'user', text, context: ctx, app }
+    if (!thread.messages.length) {
+      thread.title = titleFor(text, ctx)
+      if (app) thread.app = app.name
+    }
+    thread.messages.push(userMsg)
+    this.emit({ type: 'user', ...userMsg })
+
+    // Let a stopped turn finish cleaning up its own history before this one adds to it.
+    const prev = this.running
+    this.running = prev.then(() => this.run(thread, text, ctx, app))
+    return this.running
+  }
+
+  private async run(thread: Thread, text: string, ctx: ScreenContext | null, app: AppInfo | null): Promise<void> {
     const id = randomUUID()
     const abort = new AbortController()
     this.abort = abort
+    const history = thread.history
+    const answer: Extract<ChatMessage, { role: 'assistant' }> = { id, role: 'assistant', text: '', tools: [] }
+    thread.messages.push(answer)
 
     // reasoning_content is only meaningful within the turn that produced it.
-    for (const m of this.history) if (m.role === 'assistant') delete m.reasoning_content
-    const turnStart = this.history.length
-    this.history.push({ role: 'user', content: userContent(text, ctx) })
+    for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
+    const turnStart = history.length
+    history.push({ role: 'user', content: userContent(text, ctx, app) })
     this.emit({ type: 'start', id })
 
     try {
@@ -143,7 +203,7 @@ export class ChatSession {
         const allowTools = round < MAX_TOOL_ROUNDS
         const res = await post(
           {
-            messages: [{ role: 'system', content: systemPrompt() }, ...this.history],
+            messages: [{ role: 'system', content: systemPrompt() }, ...history],
             stream: true,
             ...(allowTools ? { tools: toolDefs } : {})
           },
@@ -160,6 +220,7 @@ export class ChatSession {
           if (delta.reasoning_content) reasoning += delta.reasoning_content
           if (delta.content) {
             content += delta.content
+            answer.text += delta.content
             this.emit({ type: 'delta', id, text: delta.content })
           }
           for (const tc of delta.tool_calls ?? []) {
@@ -171,7 +232,7 @@ export class ChatSession {
         }
 
         const toolCalls = calls.filter(Boolean)
-        this.history.push({
+        history.push({
           role: 'assistant',
           content: content || null,
           ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
@@ -186,29 +247,37 @@ export class ChatSession {
           } catch {
             /* model sent bad JSON; tool will see empty args */
           }
-          const label = toolLabel(call.function.name, args)
-          this.emit({ type: 'tool', id, callId: call.id, label, status: 'running' })
+          const { label, icon } = toolLabel(call.function.name, args)
+          this.emit({ type: 'tool', id, callId: call.id, label, icon, status: 'running' })
           const out = await runTool(call.function.name, args, {
             confirm: (title, detail) => this.askConfirm(id, title, detail)
           })
           if (abort.signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
-          this.emit({ type: 'tool', id, callId: call.id, label, status: out.status })
-          this.history.push({ role: 'tool', tool_call_id: call.id, content: out.result })
+          answer.tools = [...answer.tools.filter((t) => t.callId !== call.id), { callId: call.id, label, icon, status: out.status }]
+          this.emit({ type: 'tool', id, callId: call.id, label, icon, status: out.status })
+          history.push({ role: 'tool', tool_call_id: call.id, content: out.result })
         }
       }
       this.emit({ type: 'done', id })
     } catch (err) {
       // Drop the unfinished turn so a dangling tool call can't break the next request.
-      this.history.length = turnStart
+      history.length = turnStart
       if ((err as Error).name === 'AbortError') {
         this.emit({ type: 'done', id })
       } else {
         const message = err instanceof FriendlyError ? err.message : 'Oops — something unexpected happened. Please try again.'
         if (!(err instanceof FriendlyError)) console.error(err)
+        answer.error = message
         this.emit({ type: 'error', id, message })
       }
     } finally {
       if (this.abort === abort) this.abort = null
+      thread.updatedAt = Date.now()
+      try {
+        saveChat(thread)
+      } catch (err) {
+        console.error('Could not save chat', err)
+      }
     }
   }
 
@@ -235,11 +304,41 @@ export async function explainTerm(term: string, around: string): Promise<string>
   }
 }
 
+/** Sends a small grey square. True = the model can see, false = it can't, null = couldn't tell. */
+async function canSeeImages(): Promise<boolean | null> {
+  const png = nativeImage.createFromBitmap(Buffer.alloc(32 * 32 * 4, 200), { width: 32, height: 32 }).toPNG()
+  try {
+    const res = await post({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: `data:image/png;base64,${png.toString('base64')}` } },
+            { type: 'text', text: 'What colour is this? One word.' }
+          ]
+        }
+      ],
+      stream: false,
+      max_tokens: 10
+    })
+    await res.json()
+    return true
+  } catch (err) {
+    return err instanceof NoVisionError ? false : null
+  }
+}
+
 export async function testConnection(): Promise<{ ok: boolean; message: string }> {
   try {
     const res = await post({ messages: [{ role: 'user', content: 'Say hi in 3 words.' }], stream: false, max_tokens: 20 })
-    await res.json()
-    return { ok: true, message: 'Connected! Otty is ready to help. 🦦' }
+    const json: any = await res.json()
+    const model = String(json.model || getStored().model)
+    const vision = await canSeeImages()
+    const message =
+      vision === false
+        ? `Connected to ${model}! Heads up: this model can’t look at screen snips, but questions about text work fine.`
+        : `Connected to ${model}! Otty is ready to help.`
+    return { ok: true, message }
   } catch (err) {
     return { ok: false, message: err instanceof FriendlyError ? err.message : 'Could not connect.' }
   }

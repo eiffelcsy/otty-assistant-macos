@@ -4,13 +4,15 @@ import { Otter } from '../components/Otter'
 
 export function Bubble() {
   const [state, setState] = useState<BubbleState>('idle')
+  const [badge, setBadge] = useState(false)
 
   useEffect(() => window.otty.onBubbleState(setState), [])
+  useEffect(() => window.otty.onBubbleBadge(setBadge), [])
 
   return (
     <div
       className={`bubble bubble--${state}`}
-      title="Click to ask Otty · Right-click for more"
+      title={badge ? 'Otty has an answer for you · Click to see it' : 'Click to ask Otty · Right-click for more'}
       onPointerDown={(e) => {
         if (e.button !== 0) return
         e.currentTarget.setPointerCapture(e.pointerId)
@@ -26,6 +28,7 @@ export function Bubble() {
       }}
     >
       <Otter state={state} size={62} />
+      {badge && <span className="bubble__badge" />}
     </div>
   )
 }

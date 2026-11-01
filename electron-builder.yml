@@ -17,6 +17,6 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     LSUIElement: true
-    NSAppleEventsUsageDescription: Otty uses this to copy the text you highlight and to add reminders when you ask.
+    NSAppleEventsUsageDescription: Otty uses this to copy the text you highlight, to see which app or web page you're asking about, and to add reminders when you ask.
 dmg:
   title: Otty

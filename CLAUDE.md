@@ -4,6 +4,10 @@
 - Electron 45 has an **async, W3C-style clipboard API** (`clipboard.read/readText/write/writeText` return Promises, plus `ClipboardItem`). The old sync `readHTML`/`readImage` APIs are gone.
 - Electron 45 no longer downloads its binary on install; the `postinstall: install-electron` script does it, so electron-vite can find `node_modules/electron/path.txt`. Don't remove it.
 - The main process owns the conversation history (`ChatSession` in `src/main/llm.ts`). The renderer only receives `ChatEvent`s. The API key never reaches the renderer.
+- Chats are saved as threads in `src/main/chats.ts` (text only; images stripped). Reopening one emits a `load` event. Each send captures the frontmost app (`frontmostApp()` in `capture.ts`) as `AppInfo`, sent separately from the `ScreenContext`.
 - Explain terms are markdown links `[term](#explain)`, and tips are `> 💡` blockquotes. Both are rendered in `src/renderer/src/panel/Markdown.tsx`. Keep `prompts.ts` in sync if you change either format.
 - UX for non-technical users comes first: friendly copy, no raw errors, and confirm cards for side-effecting tools.
-- Requirements: `docs/REQUIREMENTS.md`. Plan and smoke-test checklist: `docs/IMPLEMENTATION_PLAN.md`.
+- Docs: requirements `docs/REQUIREMENTS.md` · plan, roadmap and smoke test `docs/DEVLOG.md` · shipped work `docs/CHANGELOG.md` · ideas `docs/BRAINSTORM.md`.
+- Keep the docs moving: plan a feature as a DEVLOG entry before building it. When it ships, summarise it in CHANGELOG, delete the entry, add its smoke-test steps, and mark it `shipped` in BRAINSTORM. Add any feature or UX ideas you notice along the way to BRAINSTORM.
+- Hotkeys (highlight / snip) open the small **quick view** at the cursor (`src/renderer/src/quick/Quick.tsx`); the floating bubble opens the full panel. Both render the conversation from main's `ChatEvent`s through `useChat` (`lib/useChat.ts`), so ↵ "continue in chat" just swaps windows.
+- UI icons are Flaticon UIcons (rounded set) via `components/Icon.tsx` — no emoji in UI chrome. Colours are tokens at the top of `styles.css`.

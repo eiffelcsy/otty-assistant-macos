@@ -6,7 +6,7 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 - **⌥ ⇧ Space** to snap part of your screen and ask about it
 - Simple tools: look up facts, open links, copy text, add Apple Reminders (side effects always ask first)
 
-Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Implementation plan](docs/IMPLEMENTATION_PLAN.md)
+Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Dev log](docs/DEVLOG.md) · [Changelog](docs/CHANGELOG.md) · [Brainstorm](docs/BRAINSTORM.md)
 
 ## Run it (on a Mac)
 

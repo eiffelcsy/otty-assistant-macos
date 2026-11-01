@@ -1,37 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ChatEvent, PanelOpenPayload, PublicSettings, ScreenContext } from '../../../shared/types'
+import type { AppInfo, PanelOpenPayload, PublicSettings, ScreenContext } from '../../../shared/types'
+import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { prettyKey } from '../lib/keys'
-import { AskContext, Markdown } from './Markdown'
+import { useChat } from '../lib/useChat'
+import { AskContext } from './Markdown'
+import { History } from './History'
+import { AppTag, AssistantMessage, ContextPreview } from './Messages'
 import { Onboarding } from './Onboarding'
 import { Settings } from './Settings'
-
-interface ToolChip {
-  callId: string
-  label: string
-  status: 'running' | 'done' | 'denied' | 'error'
-}
-
-type UiMessage =
-  | { id: string; role: 'user'; text: string; context: ScreenContext | null }
-  | {
-      id: string
-      role: 'assistant'
-      text: string
-      tools: ToolChip[]
-      confirm?: { confirmId: string; title: string; detail: string }
-      error?: string
-      streaming: boolean
-    }
-
-type Assistant = Extract<UiMessage, { role: 'assistant' }>
 
 const TEXT_ACTIONS = ['Explain this simply', 'Summarize this', 'Translate this to English', 'What should I do here?']
 const IMAGE_ACTIONS = ['What is this?', 'Explain this simply', 'Read out the text', 'What should I do here?']
 
 const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibility' | 'screen' }> = {
   'needs-accessibility': {
-    title: 'Otty needs a little permission 🦦',
+    title: 'Otty needs a little permission',
     body: 'To read the text you highlight, macOS needs you to let Otty use “Accessibility”. It only copies what you highlight, when you ask.',
     kind: 'accessibility'
   },
@@ -43,16 +27,17 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
   'snip-mac-only': { title: 'Snipping works on macOS', body: 'Screen snips use the Mac’s built-in snipping tool.' }
 }
 
-let localId = 0
-const nextId = () => `local-${++localId}`
-
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
-  const [view, setView] = useState<'chat' | 'settings' | 'onboarding'>('chat')
-  const [messages, setMessages] = useState<UiMessage[]>([])
+  const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history'>('chat')
   const [context, setContext] = useState<ScreenContext | null>(null)
+  const [app, setApp] = useState<AppInfo | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const { messages, busy, setBusy, waitingFirstToken } = useChat(() => {
+    setContext(null)
+    setApp(null)
+    setNotice(null)
+  })
   const [input, setInput] = useState('')
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -69,44 +54,10 @@ export function Panel() {
       window.otty.onPanelOpen((p: PanelOpenPayload) => {
         if (p.notice === 'open-settings') return setView('settings')
         if (p.context) setContext(p.context)
+        if (p.app !== undefined) setApp(p.app)
         setNotice(p.notice ?? null)
+        setView((v) => (v === 'history' ? 'chat' : v))
         setTimeout(() => inputRef.current?.focus(), 50)
-      }),
-    []
-  )
-
-  useEffect(
-    () =>
-      window.otty.onChatEvent((e: ChatEvent) => {
-        const patch = (fn: (m: Assistant) => Assistant) =>
-          setMessages((ms) => ms.map((m) => (m.id === e.id && m.role === 'assistant' ? fn(m) : m)))
-
-        switch (e.type) {
-          case 'start':
-            setMessages((ms) => [...ms, { id: e.id, role: 'assistant', text: '', tools: [], streaming: true }])
-            break
-          case 'delta':
-            patch((m) => ({ ...m, text: m.text + e.text }))
-            break
-          case 'tool':
-            patch((m) => {
-              const others = m.tools.filter((t) => t.callId !== e.callId)
-              const confirm = e.status === 'running' ? m.confirm : undefined
-              return { ...m, confirm, tools: [...others, { callId: e.callId, label: e.label, status: e.status }] }
-            })
-            break
-          case 'confirm':
-            patch((m) => ({ ...m, confirm: { confirmId: e.confirmId, title: e.title, detail: e.detail } }))
-            break
-          case 'done':
-            patch((m) => ({ ...m, streaming: false, confirm: undefined }))
-            setBusy(false)
-            break
-          case 'error':
-            patch((m) => ({ ...m, streaming: false, confirm: undefined, error: e.message }))
-            setBusy(false)
-            break
-        }
       }),
     []
   )
@@ -127,29 +78,24 @@ export function Panel() {
     (raw: string, ctx: ScreenContext | null = context) => {
       const text = raw.trim() || (ctx ? 'Explain this simply.' : '')
       if (!text || busy) return
-      setMessages((ms) => [...ms, { id: nextId(), role: 'user', text, context: ctx }])
       setContext(null)
+      setApp(null)
       setNotice(null)
       setInput('')
       setBusy(true)
-      window.otty.sendMessage(text, ctx)
+      window.otty.sendMessage(text, ctx, { app })
     },
-    [busy, context]
+    [busy, context, app]
   )
 
   const snip = async () => {
     const p = await window.otty.captureScreenshot()
     if (p.context) setContext(p.context)
+    if (p.app !== undefined) setApp(p.app)
     setNotice(p.notice ?? null)
   }
 
-  const newChat = () => {
-    window.otty.resetChat()
-    setMessages([])
-    setContext(null)
-    setNotice(null)
-    setBusy(false)
-  }
+  const newChat = () => window.otty.resetChat()
 
   if (!settings) return <div className="panel" />
 
@@ -167,19 +113,25 @@ export function Panel() {
     )
   }
 
-  const last = messages[messages.length - 1]
-  const waitingFirstToken = busy && last?.role === 'assistant' && !last.text && !last.tools.length
-
   return (
     <AskContext.Provider value={(t) => send(t, null)}>
       <div className="panel">
         <header className="panel__header">
           <Otter state={busy ? 'thinking' : 'idle'} size={34} />
-          <div className="panel__title">Otty</div>
+          <div className="panel__title">{view === 'history' ? 'Recent chats' : 'Otty'}</div>
           <div className="panel__actions">
+            {settings.rememberChats && (
+              <button
+                className="icon-btn"
+                title={view === 'history' ? 'Back to chat' : 'Recent chats'}
+                onClick={() => setView(view === 'history' ? 'chat' : 'history')}
+              >
+                <Icon name={view === 'history' ? 'comment-alt' : 'time-past'} />
+              </button>
+            )}
             {view === 'chat' && messages.length > 0 && (
               <button className="icon-btn" title="New chat" onClick={newChat}>
-                ✨
+                <Icon name="comment-medical" />
               </button>
             )}
             <button
@@ -187,16 +139,18 @@ export function Panel() {
               title={view === 'settings' ? 'Back to chat' : 'Settings'}
               onClick={() => setView(view === 'settings' ? 'chat' : 'settings')}
             >
-              {view === 'settings' ? '💬' : '⚙️'}
+              <Icon name={view === 'settings' ? 'comment-alt' : 'settings'} />
             </button>
             <button className="icon-btn" title="Close (Esc)" onClick={() => window.otty.closePanel()}>
-              ✕
+              <Icon name="cross-small" />
             </button>
           </div>
         </header>
 
         {view === 'settings' ? (
           <Settings settings={settings} onSaved={setSettings} />
+        ) : view === 'history' ? (
+          <History onOpen={() => setView('chat')} />
         ) : (
           <>
             <div className="chat" ref={scrollRef}>
@@ -204,6 +158,7 @@ export function Panel() {
               {messages.map((m) =>
                 m.role === 'user' ? (
                   <div key={m.id} className="msg msg--user">
+                    {m.app && <AppTag app={m.app} />}
                     {m.context && <ContextPreview ctx={m.context} />}
                     <div className="msg__bubble">{m.text}</div>
                   </div>
@@ -221,12 +176,13 @@ export function Panel() {
 
             <footer className="composer">
               {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
+              {app && <AppTag app={app} onRemove={() => setApp(null)} />}
               {context && (
                 <>
                   <div className="context-chip">
                     <ContextPreview ctx={context} />
                     <button className="context-chip__x" title="Remove" onClick={() => setContext(null)}>
-                      ✕
+                      <Icon name="cross-small" />
                     </button>
                   </div>
                   <div className="quick-actions">
@@ -240,7 +196,7 @@ export function Panel() {
               )}
               <div className="composer__row">
                 <button className="icon-btn icon-btn--big" title="Snap part of my screen" onClick={snip} disabled={busy}>
-                  📸
+                  <Icon name="scissors" />
                 </button>
                 <textarea
                   ref={inputRef}
@@ -258,11 +214,11 @@ export function Panel() {
                 />
                 {busy ? (
                   <button className="send-btn send-btn--stop" title="Stop" onClick={() => window.otty.stop()}>
-                    ■
+                    <Icon name="stop" solid />
                   </button>
                 ) : (
                   <button className="send-btn" title="Send" disabled={!input.trim() && !context} onClick={() => send(input)}>
-                    ↑
+                    <Icon name="arrow-small-up" />
                   </button>
                 )}
               </div>
@@ -282,86 +238,30 @@ function EmptyState({ settings, onSnip }: { settings: PublicSettings; onSnip: ()
       <p>I can explain anything on your screen in plain words.</p>
       <div className="how-to">
         <div className="how-to__item">
-          <span className="how-to__icon">🖍️</span>
+          <span className="how-to__icon">
+            <Icon name="highlighter" />
+          </span>
           <span>
             <b>Highlight text</b> anywhere, then click me or press <kbd>{prettyKey(settings.askHotkey)}</kbd>
           </span>
         </div>
         <button className="how-to__item how-to__item--btn" onClick={onSnip}>
-          <span className="how-to__icon">📸</span>
+          <span className="how-to__icon">
+            <Icon name="scissors" />
+          </span>
           <span>
             <b>Snap part of your screen</b> — draw a box, or press <kbd>{prettyKey(settings.snapHotkey)}</kbd>
           </span>
         </button>
         <div className="how-to__item">
-          <span className="how-to__icon">💬</span>
+          <span className="how-to__icon">
+            <Icon name="comment-dots" />
+          </span>
           <span>
             Or just <b>type a question</b> below
           </span>
         </div>
       </div>
-    </div>
-  )
-}
-
-function ContextPreview({ ctx }: { ctx: ScreenContext }) {
-  if (ctx.kind === 'image') return <img className="context-img" src={ctx.dataUrl} alt="Your screen snip" />
-  return (
-    <div className="context-text">
-      <span className="context-text__label">🖍️ Highlighted</span>
-      <span className="context-text__body">{ctx.text.length > 160 ? ctx.text.slice(0, 160) + '…' : ctx.text}</span>
-    </div>
-  )
-}
-
-function AssistantMessage({ m }: { m: Assistant }) {
-  const [copied, setCopied] = useState(false)
-  return (
-    <div className="msg msg--otty">
-      {m.tools.length > 0 && (
-        <div className="tool-chips">
-          {m.tools.map((t) => (
-            <span key={t.callId} className={`tool-chip tool-chip--${t.status}`}>
-              {t.label}
-              {t.status === 'running' && '…'}
-              {t.status === 'denied' && ' (skipped)'}
-              {t.status === 'error' && ' (didn’t work)'}
-            </span>
-          ))}
-        </div>
-      )}
-      {m.text && (
-        <div className="msg__bubble">
-          <Markdown text={m.text} />
-        </div>
-      )}
-      {m.confirm && (
-        <div className="confirm-card">
-          <div className="confirm-card__title">{m.confirm.title}</div>
-          <div className="confirm-card__detail">{m.confirm.detail}</div>
-          <div className="confirm-card__row">
-            <button className="btn btn--primary" onClick={() => window.otty.respondConfirm(m.confirm!.confirmId, true)}>
-              Yes, go ahead
-            </button>
-            <button className="btn btn--soft" onClick={() => window.otty.respondConfirm(m.confirm!.confirmId, false)}>
-              No thanks
-            </button>
-          </div>
-        </div>
-      )}
-      {m.error && <div className="error-card">🦦💦 {m.error}</div>}
-      {!m.streaming && m.text && (
-        <button
-          className="copy-btn"
-          onClick={() => {
-            window.otty.copyText(m.text.replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
-            setCopied(true)
-            setTimeout(() => setCopied(false), 1500)
-          }}
-        >
-          {copied ? '✓ Copied' : 'Copy'}
-        </button>
-      )}
     </div>
   )
 }
