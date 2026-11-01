@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AppInfo, PanelOpenPayload, PublicSettings, ScreenContext } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
+import { actionsFor, QuickActions, type ActionItem } from '../components/QuickActions'
 import { prettyKey } from '../lib/keys'
 import { useChat } from '../lib/useChat'
 import { AskContext } from './Markdown'
@@ -9,9 +10,6 @@ import { History } from './History'
 import { AppTag, AssistantMessage, ContextPreview } from './Messages'
 import { Onboarding } from './Onboarding'
 import { Settings } from './Settings'
-
-const TEXT_ACTIONS = ['Explain this simply', 'Summarize this', 'Translate this to English', 'What should I do here?']
-const IMAGE_ACTIONS = ['What is this?', 'Explain this simply', 'Read out the text', 'What should I do here?']
 
 const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibility' | 'screen' }> = {
   'needs-accessibility': {
@@ -74,18 +72,22 @@ export function Panel() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages])
 
+  const actions = context && settings ? actionsFor(context, settings.homeLanguage) : []
+
+  /** An empty box with a capture runs the first quick action. */
   const send = useCallback(
-    (raw: string, ctx: ScreenContext | null = context) => {
-      const text = raw.trim() || (ctx ? 'Explain this simply.' : '')
+    (raw: string, ctx: ScreenContext | null = context, picked?: ActionItem) => {
+      const item = picked ?? (!raw.trim() && ctx && settings ? actionsFor(ctx, settings.homeLanguage)[0] : undefined)
+      const text = item ? item.label : raw.trim()
       if (!text || busy) return
       setContext(null)
       setApp(null)
       setNotice(null)
       setInput('')
       setBusy(true)
-      window.otty.sendMessage(text, ctx, { app })
+      window.otty.sendMessage(text, ctx, { app, action: item?.action })
     },
-    [busy, context, app]
+    [busy, context, app, settings]
   )
 
   const snip = async () => {
@@ -178,24 +180,16 @@ export function Panel() {
               {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
               {app && <AppTag app={app} onRemove={() => setApp(null)} />}
               {context && (
-                <>
-                  <div className="context-chip">
-                    <ContextPreview ctx={context} />
-                    <button className="context-chip__x" title="Remove" onClick={() => setContext(null)}>
-                      <Icon name="cross-small" />
-                    </button>
-                  </div>
-                  <div className="quick-actions">
-                    {(context.kind === 'image' ? IMAGE_ACTIONS : TEXT_ACTIONS).map((a) => (
-                      <button key={a} className="chip" disabled={busy} onClick={() => send(a)}>
-                        {a}
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <div className="context-card">
+                  <ContextPreview ctx={context} />
+                  <button className="context-card__x" title="Remove" onClick={() => setContext(null)}>
+                    <Icon name="cross-small" />
+                  </button>
+                  <QuickActions items={actions} disabled={busy} onPick={(a) => send('', context, a)} />
+                </div>
               )}
               <div className="composer__row">
-                <button className="icon-btn icon-btn--big" title="Snap part of my screen" onClick={snip} disabled={busy}>
+                <button className="composer__tool" title="Snap part of my screen" onClick={snip} disabled={busy}>
                   <Icon name="scissors" />
                 </button>
                 <textarea

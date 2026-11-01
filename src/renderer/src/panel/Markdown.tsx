@@ -15,6 +15,12 @@ function textOf(node: ReactNode): string {
   return ''
 }
 
+/** Splits the `中文：…` line that main's explain prompt puts first when a home language is set. */
+function splitGloss(text: string): { gloss: { lang: string; term: string } | null; body: string } {
+  const m = text.match(/^(中文)\s*[：:]\s*(.+?)\s*(?:\n+|$)([\s\S]*)$/)
+  return m ? { gloss: { lang: m[1], term: m[2] }, body: m[3].trim() } : { gloss: null, body: text }
+}
+
 function ExplainTerm({ term, around, children }: { term: string; around: string; children: ReactNode }) {
   const ask = useContext(AskContext)
   const [open, setOpen] = useState(false)
@@ -81,15 +87,34 @@ function ExplainTerm({ term, around, children }: { term: string; around: string;
           <div className="explain-card__title">
             <Icon name="book-alt" /> {term}
           </div>
-          <div className="explain-card__body">{text ?? <span className="dots">Otty is thinking</span>}</div>
+          {text === null ? (
+            <div className="explain-card__body">
+              <span className="dots">Otty is thinking</span>
+            </div>
+          ) : (
+            (() => {
+              const { gloss, body } = splitGloss(text)
+              return (
+                <>
+                  {gloss && (
+                    <div className="explain-card__gloss">
+                      <span className="explain-card__lang">{gloss.lang}</span>
+                      {gloss.term}
+                    </div>
+                  )}
+                  <div className="explain-card__body">{body}</div>
+                </>
+              )
+            })()
+          )}
           <button
-            className="btn btn--soft btn--small"
+            className="explain-card__more"
             onClick={() => {
               setOpen(false)
               ask(`Tell me more about "${term}".`)
             }}
           >
-            Ask more about this
+            Ask more about this <Icon name="arrow-small-right" />
           </button>
         </div>
       )}

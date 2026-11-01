@@ -22,7 +22,7 @@ const api: OttyApi = {
   deleteChat: (id) => ipcRenderer.invoke('chats:delete', id),
   clearChats: () => ipcRenderer.invoke('chats:clear'),
   respondConfirm: (id, allow) => ipcRenderer.invoke('chat:confirm', id, allow),
-  explain: (term, around) => ipcRenderer.invoke('chat:explain', term, around),
+  explain: (term, around, language) => ipcRenderer.invoke('chat:explain', term, around, language),
 
   captureSelection: () => ipcRenderer.invoke('capture:selection'),
   captureScreenshot: () => ipcRenderer.invoke('capture:screenshot'),

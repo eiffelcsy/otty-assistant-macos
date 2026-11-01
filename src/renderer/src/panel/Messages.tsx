@@ -97,17 +97,19 @@ export function AssistantMessage({ m }: { m: Assistant }) {
         </div>
       )}
       {!m.streaming && m.text && (
-        <button
-          className="copy-btn"
-          onClick={() => {
-            window.otty.copyText(m.text.replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
-            setCopied(true)
-            setTimeout(() => setCopied(false), 1500)
-          }}
-        >
-          <Icon name={copied ? 'check' : 'copy-alt'} />
-          {copied ? 'Copied' : 'Copy'}
-        </button>
+        <div className="msg__actions">
+          <button
+            className="copy-btn"
+            onClick={() => {
+              window.otty.copyText(m.text.replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
+              setCopied(true)
+              setTimeout(() => setCopied(false), 1500)
+            }}
+          >
+            <Icon name={copied ? 'check' : 'copy-alt'} />
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
       )}
     </div>
   )

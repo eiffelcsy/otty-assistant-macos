@@ -44,7 +44,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-2 (`define` / translate targets), D-3 (intent column), OCR helper | L (4–6 days) |
-| D-2 | Home-language help (English-first, 繁體中文（香港） on demand) | ⏳ | — | S–M (1–2 days) |
+| D-2 | Home-language help (English-first, 繁體中文（香港） on demand) | 🔨 | — | S–M (1–2 days) |
 | D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
 | D-4 | CI pipeline (GitHub Actions) | ⏳ | — | S (half a day) |
 
@@ -129,7 +129,7 @@ else                             → local clarify card (no LLM call): top-3 int
 
 ---
 
-## D-2 · Home-language help for English-first users ⏳
+## D-2 · Home-language help for English-first users 🔨
 
 **Who it's for.** Bilingual and multilingual people who **work in English**: their apps, documents, errors and screenshots are almost all in English. They're fluent, but now and then a word, phrase or process is easier to get in their native language. v1 supports **繁體中文（香港）**, Traditional Chinese as written in Hong Kong, as the home language. Taiwan usage comes next (see BRAINSTORM).
 
@@ -139,21 +139,22 @@ else                             → local clarify card (no LLM call): top-3 int
 
 1. **Setting: "My other language"** (Settings → Otty, and onboarding step 1): `homeLanguage: 'zh-HK' | null`. The picker reads 「繁體中文（香港）」.
    - Default: `zh-HK` if any of `app.getPreferredSystemLanguages()` is `zh-HK`, `zh-Hant-HK`, `zh-MO` or `zh-Hant-MO`; otherwise none. Taiwan (`zh-TW`) users aren't defaulted in, because HK vocabulary would feel off to them; they can still pick it by hand until the Taiwan variant ships.
+   - Worked out when the setting is missing (`undefined`). A stored `null` means the user picked "None" and is never overwritten.
    - With none set, Otty behaves exactly as it does today, and none of the features below appear.
 2. **Which language an answer uses** (decided in main, per turn, first rule that applies wins):
-   1. The user picked one for **this message** with the **EN / 中 pill** in the composer or quick view. The pill starts on Auto, applies only to the message being sent, then goes back to Auto, so one Chinese answer never quietly turns the rest of the chat Chinese.
-      - Each answer also gets a small **中文 / EN** button: "answer this again in the other language". It re-sends the same question with the pill set, which covers "I read that in English and want it in Chinese" without retyping.
-   2. The user *typed* their question mostly in the home language. Script check: Han characters make up ≥ 30% of the letters. Otty replies in kind, so a follow-up typed in Chinese gets a Chinese answer without touching the pill.
-   3. Otherwise **English**. That includes no-prompt captures of English text, even when a home language is set.
+   1. The turn asks for one explicitly: the **EN / 中 pill** in the composer or quick view, the "other language" button, or a quick action that implies a language (Explain in Chinese, Translate). The pill starts on Auto, applies only to the message being sent, then goes back to Auto, so one Chinese answer never quietly turns the rest of the chat Chinese.
+   2. The user *typed* their question mostly in the home language. Script check on the typed text only (not the selection, not a chip label): Han characters make up ≥ 30% of the text, counting each Han character and each English word as one unit. (Counting letters undercounts Chinese: "PDF 點樣 save?" would be 22%.) Otty replies in kind, so a follow-up typed in Chinese gets a Chinese answer without touching the pill.
+   3. Otherwise **English**. That includes no-prompt captures, **even of Chinese text**: our users work in English, and the pill or "Explain in Chinese" is one tap away.
+   - **"Other language" button (中文 / EN) on each finished answer.** It does *not* re-send the question (that would duplicate the user bubble and the screen content, and can't work for reopened chats whose snip is gone). It sends a short follow-up in the same chat, shown as a small user line ("In 中文, please"), with the language set; the model already has its last answer in history.
+   - Both user and assistant messages carry their resolved `language`, so the button knows which way to flip, explain cards inside an answer open in that answer's language, and reopened chats show it correctly. Chats saved before D-2 have no `language` and read as English.
 3. **Keep the screen's words in English.** This is the most important prompt rule. When answering in the home language, Otty keeps on-screen labels, menu and button names, code, commands, file names and error messages **exactly as shown in English**, adding the translation on first mention. That way the user can still find the button they're being told to press.
    - Example: 按「File」（檔案）→「Print」（打印），然後選「Save as PDF」（另存為 PDF）。
 4. **Word help (the "certain words / phrases" case):**
-   - **Explain-term cards** get a home-language line at the top when a home language is set, e.g. **中文：應用程式介面**, followed by the usual simple English explanation.
-   - A **中文** button on the card re-explains the term in Chinese. The cache key includes the language.
-   - **Short selections (≤ 5 words, English)** get a **"What does this mean?"** chip that returns a compact card: the meaning in plain English, the Chinese translation, and one example sentence. It becomes the `define` intent in D-1.
-5. **Quick actions, when a home language is set:**
-   - **用中文解釋 / Explain in Chinese**: the same explanation, in Chinese, with the "keep the screen's words" rule.
-   - **Translate**: the direction comes from a local script check of the selection. English goes to Chinese, Chinese goes to English, and the label says which ("Translate to 中文").
+   - **Explain-term cards** get a home-language line at the top when a home language is set, e.g. **中文：應用程式介面**, followed by the usual simple English explanation. One call: the prompt asks for a fixed first line `中文：…`, which the card splits off.
+   - A **中文 / EN** toggle on the card re-explains the term in the other language. The card opens in its answer's language; the cache key is `language + term`.
+   - **Short selections (≤ 5 words, English)** get a **"What does this mean?"** chip that returns a compact card: the meaning in plain English, the Chinese translation, and one example sentence. It is shown in the panel *and* the quick view (highlight a word → hotkey is the main path). It becomes the `define` intent in D-1.
+5. **Quick actions are ids, not prompt text.** `sendMessage` takes `opts.action?: QuickAction` (`'explain' | 'explain-home' | 'translate' | 'define' | …`). The renderer shows a label; main turns the id into the prompt and the language. This keeps prompts in `prompts.ts`, stops a Chinese chip label from tripping the script check, and gives D-1 its intent ids.
+   - When a home language is set: **Explain in 中文**, and **Translate** whose direction comes from a local script check of the selection (English → Chinese, Chinese → English; the label says which, "Translate to 中文"). With none set, today's chips stay as they are.
 6. **Hong Kong written Chinese: Traditional characters, HK vocabulary.** The system prompt asks for:
    - **Register:** standard written Chinese (書面語) as used in Hong Kong, not written Cantonese (no 係／唔／嘅). This is the default; see the open questions.
    - **Hong Kong character forms and vocabulary**, not Taiwan or Mainland usage. The prompt carries a short list of examples:
@@ -173,41 +174,35 @@ else                             → local clarify card (no LLM call): top-3 int
 
 ### Code changes
 
-- `src/shared/types.ts`:
-  - `PublicSettings.homeLanguage`
-  - `type AnswerLanguage = 'en' | 'zh-HK'` (Taiwan later adds `'zh-TW'`, so keep the code keyed by language, not by "Chinese")
-  - `sendMessage` opts gain `language?: AnswerLanguage` (the pill's choice)
-  - the `user` and `ChatMessage` user records carry the resolved `language`, so the "other language" button knows which way to flip, and so reopened chats show it correctly
-- `src/main/language.ts` (new):
-  - `defaultHomeLanguage()`
-  - `isMostlyHan(text)`
-  - `resolveLanguage(typed, pill, home)`
-  - `LANGUAGE_NAMES` and a per-language prompt block (`en` → "English", `zh-HK` → "Traditional Chinese as written in Hong Kong (繁體中文（香港）)" + the vocabulary list)
-- `src/main/prompts.ts`:
-  - `systemPrompt()` gains a per-turn **language block**, sent with the turn as a short system note, because one chat can switch languages: "Answer in X. Keep on-screen English labels…"
-  - `explainPrompt(term, around, home)` adds the translation line
-  - `defineWordPrompt`
-  - `translatePrompt(target)`
-- `src/main/llm.ts`: `ChatSession.send(..., language)` resolves the language per turn and injects the block.
-- Renderer:
-  - the language pill component (shown only with a home language; resets to Auto after each send)
-  - the "answer again in the other language" button on assistant messages
-  - quick-action list built from `homeLanguage` and the script check
-  - explain card: a translation line and a **中文** toggle
-  - Settings and onboarding picker
+- `src/shared/types.ts`: `PublicSettings.homeLanguage`; `type AnswerLanguage = 'en' | 'zh-HK'` (keyed by language, not "Chinese", so `'zh-TW'` slots in later); `type QuickAction`; `sendMessage` opts gain `language?` and `action?`; `language?` on the `user` and `start` events and on both `ChatMessage` kinds; `explain(term, around, language)`.
+- `src/main/language.ts` (new, no Electron imports so it can be unit-tested): `defaultHomeLanguage(systemLanguages)`, `isMostlyHan(text)`, `resolveLanguage({ typed, picked, home })`, `LANGUAGE_NAMES`, `languageBlock(lang)` (the per-turn prompt note with the HK vocabulary list).
+- `src/main/prompts.ts`: `systemPrompt(language)` appends the language block **at the end** for this request only. The system prompt is rebuilt every round and never stored in `history`, so nothing has to be stripped before saving. Also `explainPrompt(term, around, language, home)`, `actionPrompt(action, …)` for define / translate / explain-home.
+- `src/main/llm.ts`: `ChatSession.send(text, ctx, app, { language, action })` resolves the language per turn and passes it to `systemPrompt`.
+- `src/main/settings.ts`: the `homeLanguage` default at load.
+- Renderer: the language pill (only with a home language; resets after each send); the "other language" button on finished answers; quick-action list built from `homeLanguage` and the script check, in the panel and (define only) the quick view; explain card translation line and toggle; Settings and onboarding picker.
+- Tests: add `vitest` with unit tests for `language.ts` (mixed text like "PDF 點樣 save?" and "點樣 open Settings" near the 30% line). D-4 CI runs them.
+- `tools/lang-check` (dev only): flags Simplified characters and the TW / Mainland terms from the table in a batch of answers, for the 20-answer check and the drift-guard decision.
+
+### Build order
+
+1. ✅ Main core: types, `language.ts` + tests, settings default, prompts, per-turn language in `ChatSession`. Script checks (`isMostlyHan`, `isShortPhrase`) live in `src/shared/script.ts` so the renderer can use them too.
+2. Composer: the pill (panel + quick view) and the "other language" button (the `again` action is already wired in main).
+3. ✅ (panel) Quick actions as ids: `components/QuickActions.tsx` builds the tiles. Explain in 中文, two-way Translate and "What does it mean?" are done. In the quick view, ↵ with an empty box runs the first action, which is "What does it mean?" for a short phrase. The quick view has no tiles yet: decide after trying it.
+4. Explain card: the 中文 line is already split off and shown (`splitGloss` in `Markdown.tsx`). Still to do: pass the answer's language to the card, add the toggle, and add the language to the cache key.
+5. Settings and onboarding pickers.
+6. 20-answer check with `tools/lang-check`; decide on the drift guard; smoke test on a Mac.
 
 ### Done when
 
 - With no home language, nothing changes. Smoke steps 1–18 still pass.
 - With 繁體中文（香港） set:
-  - English captures with no prompt → English answers.
+  - Captures with no prompt → English answers.
   - Typing 「這是什麼意思？」 → a Chinese answer.
   - The pill set to 中 gives a Chinese answer for that message only; the next message is back on Auto.
-  - The 中文 button on an English answer re-answers the same question in Chinese.
+  - The 中文 button on an English answer gives the same answer in Chinese, also in a reopened chat.
 - "How do I save this as a PDF?" answered in Chinese keeps 「File」「Print」 in English with translations, and uses 打印, not 列印.
-- Explain cards show the 中文 line. Short selections offer "What does this mean?".
-- Across 20 test answers: no Simplified characters, and none of the TW / Mainland terms from the table above.
-- No Simplified characters across 20 test answers.
+- Explain cards show the 中文 line. Short selections offer "What does this mean?" in the panel and quick view.
+- Across 20 test answers: no Simplified characters, and none of the TW / Mainland terms from the table that differ from HK usage.
 
 ### Open questions (defaults chosen; revisit after a week of use)
 

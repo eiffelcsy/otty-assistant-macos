@@ -66,7 +66,9 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | `open_app` / simple app control ("open System Settings → Wi-Fi") | M | M | idea |
 | Voice input: hold the hotkey to talk (Whisper-compatible endpoint, or on-device speech) | H | M | idea |
 | Read answers aloud (system TTS), good for accessibility | M | S | idea |
-| Full computer-use actions (click / type for the user) | H | L | parked: a big trust and safety design is needed first |
+| **"Show me how" guided overlay**: Otty *demonstrates* the steps on screen (a ghost paw cursor moving to the right button, click ripples, ghost text typed into fields, keycap badges for shortcuts) while the user does them. See the concept notes below | H | L | considering (long-term) |
+| "Where is it?" spotlight: circle the one button or menu the answer mentions (a first step towards the overlay) | H | M | considering, reuses the D-1 OCR boxes |
+| Full computer-use actions (click / type for the user) | H | L | parked: the guided overlay gets most of the value without Otty acting |
 
 ## Language and accessibility
 
@@ -83,6 +85,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | More home languages after Taiwan (日本語, 한국어, Español, 简体中文…), mostly a prompt and picker change once D-2 is proven | M | S each | idea |
 | Pronunciation: speak the English word (system TTS) on the word-help card | M | S | idea |
 | UI copy translated (a tiny `t()` dictionary) | L | M | idea: our users work in an English UI, so this is low priority |
+| Quick-view action tiles: the panel's grid, but only 2–3 tiles, under the capture in the quick view | M | S | idea, after trying the ↵ default for a while |
 | Larger-text mode / adjustable panel font size | M | S | idea |
 | Full keyboard navigation audit and VoiceOver labels | M | M | idea |
 
@@ -125,4 +128,40 @@ Language users: **bilingual / multilingual people who work in English** and some
 ## Parked / rejected (with reasons)
 
 - **Open the panel without trying ⌘C when nothing is highlighted.** *Rejected:* Otty can only find out whether something is highlighted by trying to copy it, and showing the panel first would take focus and lose the selection. If the wait feels slow, shorten the clipboard poll instead (it currently waits up to about 420 ms).
-- **Full computer use.** *Parked:* it needs a careful safety and UX design (confirmations, undo, visibility) before it fits the trust pillar.
+- **Full computer use.** *Parked:* it needs a careful safety and UX design (confirmations, undo, visibility) before it fits the trust pillar. The **"Show me how" guided overlay** is the preferred direction: Otty shows the steps and the user stays the one who acts. Revisit real automation only for narrow, confirmable actions (e.g. "paste this for me") once the overlay has proven itself.
+
+---
+
+## Concept notes
+
+Longer sketches for big ideas, so the thinking isn't lost. Not plans: a sketch moves to DEVLOG when the idea is promoted.
+
+### "Show me how": guided overlay instead of computer use
+
+**Idea.** For "how do I…" questions, Otty doesn't just write steps; it *shows* them on the real screen, like a tutorial video played over your own apps.
+- A ghost cursor (an otter paw, clearly not your pointer) glides to the next button and pulses there.
+- Text the user should type appears as faint ghost text inside the right field, with a **Copy** button.
+- Shortcuts show as keycap badges (⌘ ⇧ E).
+- The user performs each step. Otty never moves the real mouse or sends keys.
+
+**Verdict: no blocker found, and it fits the trust pillar better than computer use**, because the worst outcome of a wrong guess is a wrong pointer, not a wrong action. Concerns and how they'd be handled:
+
+| Concern | Handling |
+| --- | --- |
+| **Finding the target precisely** (the hard part) | Layered grounding: (1) the macOS Accessibility tree, which gives exact frames for most native buttons and menus (Swift helper; Accessibility is already granted); (2) OCR text match from the D-1 Vision helper, for labelled buttons in web and Electron apps; (3) model-predicted coordinates from a screenshot, only as a last resort and shown with a softer "somewhere here" halo |
+| **The screen changes after each step** | Step by step, not a pre-recorded script: show one step, wait for the user (AX focus/value notifications, a screenshot diff, or a **Next** button), then re-capture and plan the next. If a window moves or scrolls, re-ground before animating |
+| **Privacy: it needs to see the screen repeatedly** | An explicit "Show me" session that the user starts; a visible "Otty is watching this window" badge; only the frontmost window is captured; **Stop** at any time; nothing saved (same rule as snips) |
+| **A wrong pointer still misleads** | Show confidence (exact frame vs. halo). Mark destructive targets (Delete, Erase, Pay, Send) in a warning style with a short caution. Say "I'm not sure, does your screen show X?" rather than guessing |
+| **Confusing the ghost cursor with the real one** | A distinct paw shape, translucent, labelled, and it never overlaps the real pointer's position |
+| **The overlay blocking the user's clicks** | A full-screen transparent overlay per display with `setIgnoreMouseEvents(true)` (click-through), plus a separate small interactive control (Next / Repeat / Stop). Window level above full-screen apps |
+| **Sensitive fields** | Never ghost-type into password or secure-input fields (AX reports secure text fields); just point at them |
+| **Latency and cost** | One vision call per step (seconds). Fine for tutorials; cache the plan and only re-ground locally (AX/OCR) when the screen hasn't changed much |
+| **Motion sensitivity** | With `prefers-reduced-motion`, use static highlights and numbered markers instead of animation |
+
+**Stepping stones** (each useful on its own):
+1. **"Where is it?" spotlight.** After an answer mentions a button, circle it on screen (OCR box, one-off, no session).
+2. **Static numbered markers** for a multi-step answer on the current screen.
+3. **The animated ghost paw with step-by-step waiting:** the full overlay.
+4. *(Much later, opt-in)* narrow "do this one step for me" actions with a confirm card, if users ask for them.
+
+**Depends on:** the D-1 OCR helper (text boxes), a Swift AX helper (also wanted for the selection observer), vision-capable models with decent grounding, and signed builds (so permissions survive updates).

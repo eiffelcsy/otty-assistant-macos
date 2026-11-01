@@ -1,5 +1,14 @@
 import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, shell, Tray } from 'electron'
-import type { AppInfo, BubbleState, ChatEvent, PanelOpenPayload, PermissionKind, ScreenContext, SettingsUpdate } from '../shared/types'
+import type {
+  AnswerLanguage,
+  BubbleState,
+  ChatEvent,
+  PanelOpenPayload,
+  PermissionKind,
+  ScreenContext,
+  SendOptions,
+  SettingsUpdate
+} from '../shared/types'
 import * as settings from './settings'
 import { captureScreenshot, captureSelection, frontmostApp } from './capture'
 import * as chats from './chats'
@@ -163,9 +172,9 @@ function registerIpc(): void {
 
   ipcMain.handle(
     'chat:send',
-    (_e, text: string, ctx: ScreenContext | null, opts?: { app?: AppInfo | null; fresh?: boolean }) => {
+    (_e, text: string, ctx: ScreenContext | null, opts?: SendOptions) => {
       if (opts?.fresh) resetChat()
-      void chat.send(text, ctx, opts?.app ?? null)
+      void chat.send(text, ctx, opts?.app ?? null, { language: opts?.language, action: opts?.action })
     }
   )
   ipcMain.handle('chat:stop', () => chat.stop())
@@ -181,7 +190,9 @@ function registerIpc(): void {
     resetChat()
   })
   ipcMain.handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))
-  ipcMain.handle('chat:explain', (_e, term: string, around: string) => explainTerm(term, around))
+  ipcMain.handle('chat:explain', (_e, term: string, around: string, language?: AnswerLanguage) =>
+    explainTerm(term, around, language)
+  )
 
   ipcMain.handle('capture:selection', async () => {
     // Invoked from the panel's button: hide first so the previous app regains focus.

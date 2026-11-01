@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AppInfo, ChatEvent, ScreenContext, ToolChipInfo } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, ChatEvent, ScreenContext, ToolChipInfo } from '../../../shared/types'
 
 export type ToolChip = ToolChipInfo
 
 export type UiMessage =
-  | { id: string; role: 'user'; text: string; context: ScreenContext | null; app: AppInfo | null }
+  | { id: string; role: 'user'; text: string; context: ScreenContext | null; app: AppInfo | null; language?: AnswerLanguage }
   | {
       id: string
       role: 'assistant'
@@ -13,6 +13,7 @@ export type UiMessage =
       confirm?: { confirmId: string; title: string; detail: string }
       error?: string
       streaming: boolean
+      language?: AnswerLanguage
     }
 
 export type Assistant = Extract<UiMessage, { role: 'assistant' }>
@@ -43,7 +44,7 @@ export function useChat(onReset?: () => void) {
           return
         }
         if (e.type === 'user') {
-          setMessages((ms) => [...ms, { id: e.id, role: 'user', text: e.text, context: e.context, app: e.app }])
+          setMessages((ms) => [...ms, { id: e.id, role: 'user', text: e.text, context: e.context, app: e.app, language: e.language }])
           setBusy(true)
           currentId.current = null
           return
@@ -55,7 +56,7 @@ export function useChat(onReset?: () => void) {
         switch (e.type) {
           case 'start':
             currentId.current = e.id
-            setMessages((ms) => [...ms, { id: e.id, role: 'assistant', text: '', tools: [], streaming: true }])
+            setMessages((ms) => [...ms, { id: e.id, role: 'assistant', text: '', tools: [], streaming: true, language: e.language }])
             break
           case 'delta':
             patch((m) => ({ ...m, text: m.text + e.text }))

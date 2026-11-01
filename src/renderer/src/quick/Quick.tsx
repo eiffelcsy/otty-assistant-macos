@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { AppInfo, PanelOpenPayload, ScreenContext } from '../../../shared/types'
+import type { AppInfo, HomeLanguage, PanelOpenPayload, ScreenContext } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
+import { actionsFor } from '../components/QuickActions'
 import { useChat } from '../lib/useChat'
 import { AskContext } from '../panel/Markdown'
 import { AppTag, AssistantMessage, ContextPreview } from '../panel/Messages'
@@ -19,6 +20,7 @@ export function Quick() {
   const [input, setInput] = useState('')
   const [popover, setPopover] = useState(false)
   const [opened, setOpened] = useState(0)
+  const [home, setHome] = useState<HomeLanguage | null>(null)
   const { messages, busy, waitingFirstToken, clear } = useChat()
   const cardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -28,6 +30,7 @@ export function Quick() {
     () =>
       window.otty.onQuickOpen((p: PanelOpenPayload) => {
         clear()
+        window.otty.getSettings().then((s) => setHome(s.homeLanguage))
         setContext(p.context)
         setApp(p.app ?? null)
         setQuestion(null)
@@ -41,11 +44,14 @@ export function Quick() {
   const asked = question !== null
   const answers = messages.filter((m) => m.role === 'assistant')
 
+  /** ↵ with an empty box runs the first quick action: the meaning for a single word, otherwise a simple explanation. */
+  const fallback = context ? actionsFor(context, home)[0] : undefined
   const ask = () => {
-    const text = input.trim() || (context ? 'Explain this simply.' : '')
+    const item = input.trim() ? undefined : fallback
+    const text = item ? item.label : input.trim()
     if (!text) return
     setQuestion(text)
-    window.otty.sendMessage(text, context, { app, fresh: true })
+    window.otty.sendMessage(text, context, { app, fresh: true, action: item?.action })
   }
 
   const close = () => window.otty.closeQuick()
@@ -110,7 +116,13 @@ export function Quick() {
                   ref={inputRef}
                   className="quick__input"
                   rows={1}
-                  placeholder={context ? 'Ask about this, or press ↵ to explain it' : 'Ask Otty anything…'}
+                  placeholder={
+                    fallback?.action === 'define'
+                      ? 'Ask about this, or press ↵ for its meaning'
+                      : context
+                        ? 'Ask about this, or press ↵ to explain it'
+                        : 'Ask Otty anything…'
+                  }
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {

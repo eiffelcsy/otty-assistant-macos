@@ -1,9 +1,10 @@
 import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
-import type { AppInfo, ChatEvent, ChatMessage, ScreenContext } from '../shared/types'
+import type { AnswerLanguage, AppInfo, ChatEvent, ChatMessage, ScreenContext, SendOptions } from '../shared/types'
 import { getChat, saveChat, type Thread } from './chats'
 import { getApiKey, getStored } from './settings'
-import { explainPrompt, systemPrompt } from './prompts'
+import { languageBlock, resolveLanguage } from './language'
+import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
 import { runTool, toolDefs, toolLabel } from './tools'
 
 // Minimal OpenAI-compatible chat client (works with DeepSeek and any /chat/completions provider).
@@ -167,10 +168,21 @@ export class ChatSession {
     this.confirms.delete(id)
   }
 
-  send(text: string, ctx: ScreenContext | null, app: AppInfo | null): Promise<void> {
+  /** `text` is what the user sees; a quick action swaps in its own prompt for the model. */
+  send(text: string, ctx: ScreenContext | null, app: AppInfo | null, opts: Pick<SendOptions, 'language' | 'action'> = {}): Promise<void> {
     this.stop()
     const thread = this.thread
-    const userMsg: Extract<ChatMessage, { role: 'user' }> = { id: randomUUID(), role: 'user', text, context: ctx, app }
+    const home = getStored().homeLanguage
+    const language = resolveLanguage({
+      typed: opts.action ? '' : text,
+      picked: opts.language,
+      action: opts.action,
+      selection: ctx?.kind === 'text' ? ctx.text : undefined,
+      home
+    })
+    const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
+    const note = languageBlock(language, home)
+    const userMsg: Extract<ChatMessage, { role: 'user' }> = { id: randomUUID(), role: 'user', text, context: ctx, app, language }
     if (!thread.messages.length) {
       thread.title = titleFor(text, ctx)
       if (app) thread.app = app.name
@@ -180,30 +192,37 @@ export class ChatSession {
 
     // Let a stopped turn finish cleaning up its own history before this one adds to it.
     const prev = this.running
-    this.running = prev.then(() => this.run(thread, text, ctx, app))
+    this.running = prev.then(() => this.run(thread, prompt, ctx, app, language, note))
     return this.running
   }
 
-  private async run(thread: Thread, text: string, ctx: ScreenContext | null, app: AppInfo | null): Promise<void> {
+  private async run(
+    thread: Thread,
+    text: string,
+    ctx: ScreenContext | null,
+    app: AppInfo | null,
+    language: AnswerLanguage,
+    note: string
+  ): Promise<void> {
     const id = randomUUID()
     const abort = new AbortController()
     this.abort = abort
     const history = thread.history
-    const answer: Extract<ChatMessage, { role: 'assistant' }> = { id, role: 'assistant', text: '', tools: [] }
+    const answer: Extract<ChatMessage, { role: 'assistant' }> = { id, role: 'assistant', text: '', tools: [], language }
     thread.messages.push(answer)
 
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
     const turnStart = history.length
     history.push({ role: 'user', content: userContent(text, ctx, app) })
-    this.emit({ type: 'start', id })
+    this.emit({ type: 'start', id, language })
 
     try {
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
         const allowTools = round < MAX_TOOL_ROUNDS
         const res = await post(
           {
-            messages: [{ role: 'system', content: systemPrompt() }, ...history],
+            messages: [{ role: 'system', content: systemPrompt(note) }, ...history],
             stream: true,
             ...(allowTools ? { tools: toolDefs } : {})
           },
@@ -290,10 +309,10 @@ export class ChatSession {
   }
 }
 
-export async function explainTerm(term: string, around: string): Promise<string> {
+export async function explainTerm(term: string, around: string, language: AnswerLanguage = 'en'): Promise<string> {
   try {
     const res = await post({
-      messages: [{ role: 'user', content: explainPrompt(term, around) }],
+      messages: [{ role: 'user', content: explainPrompt(term, around, language, getStored().homeLanguage) }],
       stream: false,
       max_tokens: 300
     })
