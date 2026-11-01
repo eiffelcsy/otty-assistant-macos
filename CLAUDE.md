@@ -7,6 +7,7 @@
 - Chats are saved as threads in `src/main/chats.ts` (text only; images stripped). Reopening one emits a `load` event. Each send captures the frontmost app (`frontmostApp()` in `capture.ts`) as `AppInfo`, sent separately from the `ScreenContext`.
 - Explain terms are markdown links `[term](#explain)`, and tips are `> 💡` blockquotes. Both are rendered in `src/renderer/src/panel/Markdown.tsx`. Keep `prompts.ts` in sync if you change either format.
 - UX for non-technical users comes first: friendly copy, no raw errors, and confirm cards for side-effecting tools.
+- CI (`.github/workflows/ci.yml`, macOS) runs `npm ci`, typecheck, `npm test` and build on every PR. Keep `package-lock.json` committed and in sync.
 - Docs: requirements `docs/REQUIREMENTS.md` · plan, roadmap and smoke test `docs/DEVLOG.md` · shipped work `docs/CHANGELOG.md` · ideas `docs/BRAINSTORM.md`.
 - Keep the docs moving: plan a feature as a DEVLOG entry before building it. When it ships, summarise it in CHANGELOG, delete the entry, add its smoke-test steps, and mark it `shipped` in BRAINSTORM. Add any feature or UX ideas you notice along the way to BRAINSTORM.
 - Hotkeys (highlight / snip) open the small **quick view** at the cursor (`src/renderer/src/quick/Quick.tsx`); the floating bubble opens the full panel. Both render the conversation from main's `ChatEvent`s through `useChat` (`lib/useChat.ts`), so ↵ "continue in chat" just swaps windows.
