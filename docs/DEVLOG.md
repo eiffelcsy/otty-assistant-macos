@@ -44,7 +44,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-2 (`define` / translate targets), D-3 (intent column), OCR helper | L (4–6 days) |
-| D-2 | Home-language help (English-first, 繁體中文（香港） on demand) | 🔨 | — | S–M (1–2 days) |
+| D-2 | Home-language help (English-first, 繁體中文（香港） on demand) | 🧪 | — | S–M (1–2 days) |
 | D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
 | D-4 | CI pipeline (GitHub Actions) | ⏳ | — | S (half a day) |
 
@@ -129,7 +129,7 @@ else                             → local clarify card (no LLM call): top-3 int
 
 ---
 
-## D-2 · Home-language help for English-first users 🔨
+## D-2 · Home-language help for English-first users 🧪
 
 **Who it's for.** Bilingual and multilingual people who **work in English**: their apps, documents, errors and screenshots are almost all in English. They're fluent, but now and then a word, phrase or process is easier to get in their native language. v1 supports **繁體中文（香港）**, Traditional Chinese as written in Hong Kong, as the home language. Taiwan usage comes next (see BRAINSTORM).
 
@@ -189,8 +189,8 @@ else                             → local clarify card (no LLM call): top-3 int
 2. ✅ Composer: `components/LanguagePill.tsx` (EN / 中, neither lit = Auto, pressing the lit one returns to Auto, resets after each send) in the panel's composer field and beside "ask Otty" in the quick view. The "In 中文" / "In English" button (`lib/again.ts`) is shown on the **latest** finished answer only, because `again` asks for "your previous answer"; on an older answer it would redo the wrong one. It sends "In 中文, please" as a user line.
 3. ✅ (panel) Quick actions as ids: `components/QuickActions.tsx` builds the tiles. Explain in 中文, two-way Translate and "What does it mean?" are done. In the quick view, ↵ with an empty box runs the first action, which is "What does it mean?" for a short phrase. The quick view has no tiles yet: decide after trying it.
 4. ✅ Explain card: opens in its answer's language (`Markdown` gets `language`; `HomeContext` carries the home language). An EN / 中文 toggle sits in the card's title row (only with a home language). The cache key is `language:term`, and a slow reply for a language the user already switched away from is ignored. "Ask more about this" is asked in the card's language (「請再詳細解釋「…」。」), so the typed-language rule answers in kind.
-5. Settings and onboarding pickers.
-6. 20-answer check with `tools/lang-check`; decide on the drift guard; smoke test on a Mac.
+5. ✅ Settings and onboarding pickers: `components/HomeLanguagePicker.tsx`, radio rows (English only / 繁體中文（香港）). It's a "My other language" section in Settings (applied on Save) and on the welcome page (saved on "Let's get started"). Picking English only stores `null`, so the system-language default never comes back.
+6. ⏳ 20-answer check with `tools/lang-check` (not built yet); decide on the drift guard; smoke test on a Mac. Then ship: CHANGELOG summary, smoke-test steps, BRAINSTORM `shipped`, and delete this entry.
 
 ### Done when
 
