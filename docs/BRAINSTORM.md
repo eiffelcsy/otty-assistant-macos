@@ -126,7 +126,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Customisable hotkeys with a key recorder (not a text field) | M | S | idea |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
-| Settle how Otty behaves across desktops (Spaces) and over full-screen apps; see the concept note below | M | S | considering |
+| Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | decided, not built; build with #13 |
 
 ## Parked / rejected (with reasons)
 
@@ -176,13 +176,19 @@ Longer sketches for big ideas, so the thinking isn't lost. Not plans: a sketch m
 - **The quick view** hides as soon as it loses focus, so switching desktops closes it.
 - **The panel**, once open, follows you to whichever desktop you switch to.
 
-**Proposal: keep most of it, add one setting.**
+**Decision: everything follows you; the quick view stops closing on a desktop switch.** One new setting for full-screen apps.
 
 | Window | Today | Proposed | Why |
 | --- | --- | --- | --- |
 | Otter | Every desktop and full-screen app | Keep. Add a setting, **"Show the otter over full-screen apps"** (on by default) | It's the entry point, so it should always be there. But it can get in the way of a full-screen presentation or video; the hotkeys still work when it's hidden |
-| Quick view | Closes when you switch desktops | Keep | It's a one-shot popover. The answer isn't lost: the unseen-answer dot and Recent chats catch it |
+| Quick view | Closes when you switch desktops (it hides on blur, and a switch blurs it) | **Follow you**, like the panel. Still closes on Esc, ↵ "continue in chat", or a click elsewhere on the same desktop | Collecting captures across apps (#13) often means switching desktops mid-question; closing on the switch throws that away |
 | Panel | Follows you while open | Keep | It's a companion to the work, not part of one desktop. Following you is also what makes "capture on one desktop, capture on another" (the capture tray, #13) work. Esc closes it |
+
+**Making the quick view follow (implementation notes)**
+- `quick.on('blur', hide)` can't tell a desktop switch from a click elsewhere. On macOS, subscribe to `NSWorkspaceActiveSpaceDidChangeNotification` (`systemPreferences.subscribeWorkspaceNotification`). On blur, wait a moment before hiding, and cancel the hide if the desktop just changed.
+- **Don't take focus back after the switch.** The hotkeys copy the selection with ⌘C in the frontmost app; if the quick view grabbed focus, the next capture would copy from Otty instead. So after a switch it stays visible but unfocused.
+- **That needs a new way to dismiss it.** Esc only reaches a focused window, so: a visible ✕ on the card, Esc once you click back into it, or closing it when you start typing or clicking in another app. Decide this alongside the capture tray, since they're one flow.
+- Check a full-screen app's desktop too: the quick view already has `visibleOnFullScreen`.
 
 **Open questions**
 - Would a "pin the panel to this desktop" toggle be useful, for people who keep one desktop for Otty? Wait until someone asks.
