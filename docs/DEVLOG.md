@@ -46,8 +46,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-2 (`define` / translate targets), D-3 (intent column), OCR helper | L (4–6 days) |
 | D-2 | Home-language help (English-first, 繁體中文（香港） on demand) | ⏳ | — | S–M (1–2 days) |
 | D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
+| D-4 | CI pipeline (GitHub Actions) | ⏳ | — | S (half a day) |
 
-**Suggested build order: D-2 → D-3 → D-1.** D-1 is the top priority, but it builds on the other two. Its `translate` and `define` templates target the user's home language (D-2), and its predictions and corrections need somewhere to live (D-3). Both are small, so they unblock D-1 within about three days.
+**Suggested build order: D-2 → D-3 → D-1.** D-1 is the top priority, but it builds on the other two. Its `translate` and `define` templates target the user's home language (D-2), and its predictions and corrections need somewhere to live (D-3). Both are small, so they unblock D-1 within about three days. **D-4 (CI) is independent and small, so do it first or alongside D-2**, so every later PR gets checked.
 
 ---
 
@@ -255,6 +256,38 @@ else                             → local clarify card (no LLM call): top-3 int
 - **Privacy unchanged:** no pixels are stored, and "Forget all chats" runs `delete` plus `VACUUM`.
 
 **Done when:** an existing `chats.json` imports cleanly; Recent chats, reopen and forget all still work; search finds both English and Chinese text; killing the app mid-answer keeps the question.
+
+---
+
+## D-4 · CI pipeline (GitHub Actions) ⏳
+
+**Goal.** Every PR and every push to `main` is checked automatically, so nothing that fails typecheck or build gets merged. Later, CI also produces a downloadable `.dmg`.
+
+**Stage 1: checks on every PR** (`.github/workflows/ci.yml`)
+- Trigger: `pull_request` and `push` to `main`. Cancel superseded runs per branch (`concurrency` with `cancel-in-progress`).
+- Runner: `macos-latest`. Otty is a macOS app, and the D-1 OCR helper will need `swiftc`. Everything except OCR could run on Linux, but one runner keeps it simple.
+- Steps: checkout → `actions/setup-node` (Node 24, npm cache) → `npm ci` → `npm run typecheck` → `npm run build`.
+- The `postinstall` downloads the Electron binary. Cache `~/Library/Caches/electron` keyed on the Electron version, so runs stay fast.
+- **Prerequisite: commit the lockfile properly.** `package-lock.json` is listed in `.gitignore`, on a line missing its trailing newline, yet it's still tracked. `npm ci` needs it, so remove that ignore line and keep the lockfile up to date.
+
+**Stage 2: tests** (once there's something to test)
+- Add `vitest` and an `npm test` step. First targets:
+  - `language.ts` (`isMostlyHan`, `resolveLanguage`) from D-2
+  - the store's migrations and import from D-3
+  - the intent head's softmax and decision rule from D-1
+  - `cleanUrl` and `titleFor`
+- Tests that need Electron APIs mock them. No UI or E2E tests yet.
+
+**Stage 3: unsigned build artifact** (manual trigger, or on tags `v*`)
+- `npm run build:mac` → upload `dist/*.dmg` as a workflow artifact, so testers can grab a build without a dev setup.
+- Signing and notarization stay a separate item (see BRAINSTORM). When they land, the secrets (Developer ID certificate, App Store Connect key) go into GitHub Actions secrets and this job signs the `.dmg`.
+
+**Also:**
+- Make the `ci` check required on `main` (branch protection) once it's green.
+- Add a CI status badge to the README.
+- Optional: Dependabot for npm and GitHub Actions, weekly.
+
+**Done when:** a PR shows a green `ci` check running typecheck and build in under about 5 minutes with a warm cache; a deliberate type error turns it red; `main` requires it.
 
 ---
 

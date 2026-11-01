@@ -102,6 +102,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Test names the model and warns about no vision | M | S | shipped |
+| CI: typecheck and build on every PR, then tests, then an unsigned `.dmg` artifact | H | S | → D-4 |
 | Sign and notarize (Developer ID) so permissions survive updates; custom `.icns` | H | M | considering, needed before sharing builds |
 | Launch at login | M | S | idea |
 | Auto-update (electron-updater) | M | M | idea |
