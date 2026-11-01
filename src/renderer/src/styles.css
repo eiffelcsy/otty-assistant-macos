@@ -464,6 +464,14 @@ html[data-view='bubble'] body {
   color: var(--brand);
   font-size: 13px;
 }
+.explain-card__term {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.explain-card__title .lang-pill {
+  margin: -3px -4px -3px 0;
+}
 .explain-card__gloss {
   display: flex;
   align-items: center;

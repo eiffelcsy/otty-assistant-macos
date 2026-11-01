@@ -7,7 +7,7 @@ import { actionsFor, QuickActions, type ActionItem } from '../components/QuickAc
 import { againOffer } from '../lib/again'
 import { prettyKey } from '../lib/keys'
 import { useChat } from '../lib/useChat'
-import { AskContext } from './Markdown'
+import { AskContext, HomeContext } from './Markdown'
 import { History } from './History'
 import { AppTag, AssistantMessage, ContextPreview } from './Messages'
 import { Onboarding } from './Onboarding'
@@ -123,112 +123,114 @@ export function Panel() {
 
   return (
     <AskContext.Provider value={(t) => send(t, null)}>
-      <div className="panel">
-        <header className="panel__header">
-          <Otter state={busy ? 'thinking' : 'idle'} size={34} />
-          <div className="panel__title">{view === 'history' ? 'Recent chats' : 'Otty'}</div>
-          <div className="panel__actions">
-            {settings.rememberChats && (
+      <HomeContext.Provider value={settings.homeLanguage}>
+        <div className="panel">
+          <header className="panel__header">
+            <Otter state={busy ? 'thinking' : 'idle'} size={34} />
+            <div className="panel__title">{view === 'history' ? 'Recent chats' : 'Otty'}</div>
+            <div className="panel__actions">
+              {settings.rememberChats && (
+                <button
+                  className="icon-btn"
+                  title={view === 'history' ? 'Back to chat' : 'Recent chats'}
+                  onClick={() => setView(view === 'history' ? 'chat' : 'history')}
+                >
+                  <Icon name={view === 'history' ? 'comment-alt' : 'time-past'} />
+                </button>
+              )}
+              {view === 'chat' && messages.length > 0 && (
+                <button className="icon-btn" title="New chat" onClick={newChat}>
+                  <Icon name="comment-medical" />
+                </button>
+              )}
               <button
                 className="icon-btn"
-                title={view === 'history' ? 'Back to chat' : 'Recent chats'}
-                onClick={() => setView(view === 'history' ? 'chat' : 'history')}
+                title={view === 'settings' ? 'Back to chat' : 'Settings'}
+                onClick={() => setView(view === 'settings' ? 'chat' : 'settings')}
               >
-                <Icon name={view === 'history' ? 'comment-alt' : 'time-past'} />
+                <Icon name={view === 'settings' ? 'comment-alt' : 'settings'} />
               </button>
-            )}
-            {view === 'chat' && messages.length > 0 && (
-              <button className="icon-btn" title="New chat" onClick={newChat}>
-                <Icon name="comment-medical" />
+              <button className="icon-btn" title="Close (Esc)" onClick={() => window.otty.closePanel()}>
+                <Icon name="cross-small" />
               </button>
-            )}
-            <button
-              className="icon-btn"
-              title={view === 'settings' ? 'Back to chat' : 'Settings'}
-              onClick={() => setView(view === 'settings' ? 'chat' : 'settings')}
-            >
-              <Icon name={view === 'settings' ? 'comment-alt' : 'settings'} />
-            </button>
-            <button className="icon-btn" title="Close (Esc)" onClick={() => window.otty.closePanel()}>
-              <Icon name="cross-small" />
-            </button>
-          </div>
-        </header>
-
-        {view === 'settings' ? (
-          <Settings settings={settings} onSaved={setSettings} />
-        ) : view === 'history' ? (
-          <History onOpen={() => setView('chat')} />
-        ) : (
-          <>
-            <div className="chat" ref={scrollRef}>
-              {messages.length === 0 && <EmptyState settings={settings} onSnip={snip} />}
-              {messages.map((m) =>
-                m.role === 'user' ? (
-                  <div key={m.id} className="msg msg--user">
-                    {m.app && <AppTag app={m.app} />}
-                    {m.context && <ContextPreview ctx={m.context} />}
-                    <div className="msg__bubble">{m.text}</div>
-                  </div>
-                ) : (
-                  <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} />
-                )
-              )}
-              {waitingFirstToken && (
-                <div className="thinking">
-                  <Otter state="thinking" size={40} />
-                  <span className="dots">Otty is thinking</span>
-                </div>
-              )}
             </div>
+          </header>
 
-            <footer className="composer">
-              {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
-              {app && <AppTag app={app} onRemove={() => setApp(null)} />}
-              {context && (
-                <div className="context-card">
-                  <ContextPreview ctx={context} />
-                  <button className="context-card__x" title="Remove" onClick={() => setContext(null)}>
-                    <Icon name="cross-small" />
-                  </button>
-                  <QuickActions items={actions} disabled={busy} onPick={(a) => send('', context, a)} />
-                </div>
-              )}
-              <div className="composer__row">
-                <button className="composer__tool" title="Snap part of my screen" onClick={snip} disabled={busy}>
-                  <Icon name="scissors" />
-                </button>
-                <textarea
-                  ref={inputRef}
-                  className="composer__input"
-                  rows={1}
-                  placeholder={context ? 'Ask about this…' : 'Ask Otty anything…'}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                      e.preventDefault()
-                      send(input)
-                    }
-                  }}
-                />
-                {settings.homeLanguage && (
-                  <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
+          {view === 'settings' ? (
+            <Settings settings={settings} onSaved={setSettings} />
+          ) : view === 'history' ? (
+            <History onOpen={() => setView('chat')} />
+          ) : (
+            <>
+              <div className="chat" ref={scrollRef}>
+                {messages.length === 0 && <EmptyState settings={settings} onSnip={snip} />}
+                {messages.map((m) =>
+                  m.role === 'user' ? (
+                    <div key={m.id} className="msg msg--user">
+                      {m.app && <AppTag app={m.app} />}
+                      {m.context && <ContextPreview ctx={m.context} />}
+                      <div className="msg__bubble">{m.text}</div>
+                    </div>
+                  ) : (
+                    <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} />
+                  )
                 )}
-                {busy ? (
-                  <button className="send-btn send-btn--stop" title="Stop" onClick={() => window.otty.stop()}>
-                    <Icon name="stop" solid />
-                  </button>
-                ) : (
-                  <button className="send-btn" title="Send" disabled={!input.trim() && !context} onClick={() => send(input)}>
-                    <Icon name="arrow-small-up" />
-                  </button>
+                {waitingFirstToken && (
+                  <div className="thinking">
+                    <Otter state="thinking" size={40} />
+                    <span className="dots">Otty is thinking</span>
+                  </div>
                 )}
               </div>
-            </footer>
-          </>
-        )}
-      </div>
+
+              <footer className="composer">
+                {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
+                {app && <AppTag app={app} onRemove={() => setApp(null)} />}
+                {context && (
+                  <div className="context-card">
+                    <ContextPreview ctx={context} />
+                    <button className="context-card__x" title="Remove" onClick={() => setContext(null)}>
+                      <Icon name="cross-small" />
+                    </button>
+                    <QuickActions items={actions} disabled={busy} onPick={(a) => send('', context, a)} />
+                  </div>
+                )}
+                <div className="composer__row">
+                  <button className="composer__tool" title="Snap part of my screen" onClick={snip} disabled={busy}>
+                    <Icon name="scissors" />
+                  </button>
+                  <textarea
+                    ref={inputRef}
+                    className="composer__input"
+                    rows={1}
+                    placeholder={context ? 'Ask about this…' : 'Ask Otty anything…'}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                        e.preventDefault()
+                        send(input)
+                      }
+                    }}
+                  />
+                  {settings.homeLanguage && (
+                    <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
+                  )}
+                  {busy ? (
+                    <button className="send-btn send-btn--stop" title="Stop" onClick={() => window.otty.stop()}>
+                      <Icon name="stop" solid />
+                    </button>
+                  ) : (
+                    <button className="send-btn" title="Send" disabled={!input.trim() && !context} onClick={() => send(input)}>
+                      <Icon name="arrow-small-up" />
+                    </button>
+                  )}
+                </div>
+              </footer>
+            </>
+          )}
+        </div>
+      </HomeContext.Provider>
     </AskContext.Provider>
   )
 }

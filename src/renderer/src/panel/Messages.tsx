@@ -79,7 +79,7 @@ export function AssistantMessage({ m, again }: { m: Assistant; again?: AgainOffe
       )}
       {m.text && (
         <div className="msg__bubble">
-          <Markdown text={m.text} />
+          <Markdown text={m.text} language={m.language} />
         </div>
       )}
       {m.confirm && (

@@ -47,7 +47,7 @@ const sample: ChatMessage[] = [
 
 1. 按右上角的「Account」（帳戶）。
 2. 選「Billing」（帳單）→「Change plan」（更改計劃）。
-3. 揀一個較大的計劃，然後按「Confirm」（確認）。`
+3. 揀一個較大的[計劃](#explain)，然後按「Confirm」（確認）。`
   }
 ]
 
