@@ -124,6 +124,15 @@ button:disabled {
   cursor: default;
   opacity: 0.5;
 }
+/* Square icon-only buttons size themselves. The browser's default button padding (1px 6px) would squeeze
+   their content box and push the glyph off-centre in the small ones. */
+.icon-btn,
+.composer__tool,
+.send-btn,
+.context-card__x,
+.app-tag__x {
+  padding: 0;
+}
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
