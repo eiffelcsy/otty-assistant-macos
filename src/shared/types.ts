@@ -12,6 +12,34 @@ export interface AppInfo {
   url?: string
 }
 
+/** The language an answer is written in. Keyed by language (not "Chinese") so zh-TW can slot in later. */
+export type AnswerLanguage = 'en' | 'zh-HK'
+
+/** A home language the user can pick under "My other language". */
+export type HomeLanguage = Exclude<AnswerLanguage, 'en'>
+
+/** Quick actions are ids: main turns each one into its prompt (and, for some, its language). */
+export type QuickAction =
+  | 'explain'
+  | 'summarize'
+  | 'translate'
+  | 'next-step'
+  | 'what-is'
+  | 'read-text'
+  | 'explain-home'
+  | 'define'
+  /** "Answer again in the other language": pair it with `language`. */
+  | 'again'
+
+export interface SendOptions {
+  app?: AppInfo | null
+  /** Start a new conversation first (used by the quick view); the old one stays in Recent chats. */
+  fresh?: boolean
+  /** The pill's choice for this message only. Absent = Auto. */
+  language?: AnswerLanguage
+  action?: QuickAction
+}
+
 export interface PublicSettings {
   hasApiKey: boolean
   baseUrl: string
@@ -25,6 +53,8 @@ export interface PublicSettings {
   shareAppContext: boolean
   /** Save chats (text only) to disk so they show under Recent chats. */
   rememberChats: boolean
+  /** "My other language". null = none, and Otty behaves as English-only. */
+  homeLanguage: HomeLanguage | null
 }
 
 export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey'>> {
@@ -52,8 +82,8 @@ export interface ToolChipInfo {
 
 /** A finished message as the UI shows it. Saved chats store these, so reopening one needs no model call. */
 export type ChatMessage =
-  | { id: string; role: 'user'; text: string; context: ScreenContext | null; app: AppInfo | null }
-  | { id: string; role: 'assistant'; text: string; tools: ToolChipInfo[]; error?: string }
+  | { id: string; role: 'user'; text: string; context: ScreenContext | null; app: AppInfo | null; language?: AnswerLanguage }
+  | { id: string; role: 'assistant'; text: string; tools: ToolChipInfo[]; error?: string; language?: AnswerLanguage }
 
 export interface ChatSummary {
   id: string
@@ -67,8 +97,8 @@ export type ChatEvent =
   | { type: 'reset' }
   /** A saved chat was reopened: replace everything shown with these messages. */
   | { type: 'load'; messages: ChatMessage[] }
-  | { type: 'user'; id: string; text: string; context: ScreenContext | null; app: AppInfo | null }
-  | { type: 'start'; id: string }
+  | { type: 'user'; id: string; text: string; context: ScreenContext | null; app: AppInfo | null; language?: AnswerLanguage }
+  | { type: 'start'; id: string; language?: AnswerLanguage }
   | { type: 'delta'; id: string; text: string }
   | ({ type: 'tool'; id: string } & ToolChipInfo)
   | { type: 'confirm'; id: string; confirmId: string; title: string; detail: string }
@@ -90,8 +120,7 @@ export interface OttyApi {
   getPermissions(): Promise<Permissions>
   openPermissionSettings(kind: PermissionKind): Promise<void>
 
-  /** `fresh` starts a new conversation first (used by the quick view); the old one stays in Recent chats. */
-  sendMessage(text: string, context: ScreenContext | null, opts?: { app?: AppInfo | null; fresh?: boolean }): Promise<void>
+  sendMessage(text: string, context: ScreenContext | null, opts?: SendOptions): Promise<void>
   stop(): Promise<void>
   resetChat(): Promise<void>
   listChats(): Promise<ChatSummary[]>
@@ -99,7 +128,8 @@ export interface OttyApi {
   deleteChat(id: string): Promise<void>
   clearChats(): Promise<void>
   respondConfirm(confirmId: string, allow: boolean): Promise<void>
-  explain(term: string, around: string): Promise<string>
+  /** Resolves to the explanation; with a home language it starts with a `中文：…` line. */
+  explain(term: string, around: string, language?: AnswerLanguage): Promise<string>
 
   captureSelection(): Promise<PanelOpenPayload>
   captureScreenshot(): Promise<PanelOpenPayload>

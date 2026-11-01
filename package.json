@@ -10,6 +10,7 @@
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "build:mac": "electron-vite build && electron-builder --mac"
   },
@@ -27,6 +28,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "typescript": "~5.9.3",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "vitest": "^4.1.12"
   }
 }

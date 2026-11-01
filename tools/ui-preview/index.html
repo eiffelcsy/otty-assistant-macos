@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Otty UI preview</title>
+    <style>
+      /* A desktop-ish backdrop so the transparent windows read like they do on a Mac. */
+      html body {
+        background: linear-gradient(135deg, #9fb3c8, #d9c9b0) fixed;
+        min-height: 100vh;
+        display: grid;
+        place-items: start center;
+        padding: 24px 0;
+      }
+      html body #root {
+        width: 420px;
+        height: auto;
+      }
+      html[data-view='panel'] body #root {
+        height: 580px;
+      }
+      @media (prefers-color-scheme: dark) {
+        html body {
+          background: linear-gradient(135deg, #1d2633, #3a3330) fixed;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./mock.ts"></script>
+  </body>
+</html>

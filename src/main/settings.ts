@@ -2,6 +2,7 @@ import { app, safeStorage } from 'electron'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import type { PublicSettings, SettingsUpdate } from '../shared/types'
+import { defaultHomeLanguage } from './language'
 
 interface StoredSettings extends Omit<PublicSettings, 'hasApiKey'> {
   apiKeyEnc?: string // base64 of safeStorage-encrypted key (or plain, if encryption unavailable)
@@ -9,7 +10,7 @@ interface StoredSettings extends Omit<PublicSettings, 'hasApiKey'> {
   bubblePosition?: { x: number; y: number }
 }
 
-const DEFAULTS: StoredSettings = {
+const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   baseUrl: 'https://api.deepseek.com',
   model: 'deepseek-flash',
   thinking: false,
@@ -29,12 +30,16 @@ function file(): string {
 
 function load(): StoredSettings {
   if (cache) return cache
+  let saved: Partial<StoredSettings> = {}
   try {
-    cache = { ...DEFAULTS, ...JSON.parse(readFileSync(file(), 'utf8')) }
+    saved = JSON.parse(readFileSync(file(), 'utf8'))
   } catch {
-    cache = { ...DEFAULTS }
+    /* first run */
   }
-  return cache!
+  // Missing means "never chosen", so follow the Mac's languages. A saved null means the user picked "None".
+  const homeLanguage = saved.homeLanguage !== undefined ? saved.homeLanguage : defaultHomeLanguage(app.getPreferredSystemLanguages())
+  cache = { ...DEFAULTS, ...saved, homeLanguage }
+  return cache
 }
 
 function persist(): void {

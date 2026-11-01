@@ -54,7 +54,13 @@ function hostOf(url: string): string {
   }
 }
 
-export function AssistantMessage({ m }: { m: Assistant }) {
+/** "In 中文, please": asks for the last answer again in the other language. Only offered on the latest answer. */
+export interface AgainOffer {
+  label: string
+  onClick: () => void
+}
+
+export function AssistantMessage({ m, again }: { m: Assistant; again?: AgainOffer }) {
   const [copied, setCopied] = useState(false)
   return (
     <div className="msg msg--otty">
@@ -73,7 +79,7 @@ export function AssistantMessage({ m }: { m: Assistant }) {
       )}
       {m.text && (
         <div className="msg__bubble">
-          <Markdown text={m.text} />
+          <Markdown text={m.text} language={m.language} />
         </div>
       )}
       {m.confirm && (
@@ -97,17 +103,25 @@ export function AssistantMessage({ m }: { m: Assistant }) {
         </div>
       )}
       {!m.streaming && m.text && (
-        <button
-          className="copy-btn"
-          onClick={() => {
-            window.otty.copyText(m.text.replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
-            setCopied(true)
-            setTimeout(() => setCopied(false), 1500)
-          }}
-        >
-          <Icon name={copied ? 'check' : 'copy-alt'} />
-          {copied ? 'Copied' : 'Copy'}
-        </button>
+        <div className="msg__actions">
+          <button
+            className="copy-btn"
+            onClick={() => {
+              window.otty.copyText(m.text.replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
+              setCopied(true)
+              setTimeout(() => setCopied(false), 1500)
+            }}
+          >
+            <Icon name={copied ? 'check' : 'copy-alt'} />
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+          {again && (
+            <button className="copy-btn" onClick={again.onClick}>
+              <Icon name="language" />
+              {again.label}
+            </button>
+          )}
+        </div>
       )}
     </div>
   )

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PublicSettings } from '../../../shared/types'
+import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
 import { Icon } from '../components/Icon'
 
 export function Settings({ settings, onSaved }: { settings: PublicSettings; onSaved: (s: PublicSettings) => void }) {
@@ -71,6 +72,14 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
           <input className="field" value={form.snapHotkey} onChange={(e) => set('snapHotkey', e.target.value)} />
         </label>
         <p className="hint">Shortcuts use names like Alt, Shift, Command, Control and Space joined by “+”.</p>
+      </section>
+
+      <section>
+        <h3>
+          <Icon name="language" /> My other language
+        </h3>
+        <p className="hint">For when a word or a step is easier in your own language. The app itself stays in English.</p>
+        <HomeLanguagePicker value={form.homeLanguage} onChange={(v) => set('homeLanguage', v)} />
       </section>
 
       <section>

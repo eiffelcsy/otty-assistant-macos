@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Permissions, PublicSettings } from '../../../shared/types'
+import type { HomeLanguage, Permissions, PublicSettings } from '../../../shared/types'
+import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { prettyKey } from '../lib/keys'
@@ -11,6 +12,7 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
   const [test, setTest] = useState<{ ok: boolean; message: string } | null>(null)
   const [testing, setTesting] = useState(false)
   const [perms, setPerms] = useState<Permissions | null>(null)
+  const [home, setHome] = useState<HomeLanguage | null>(settings.homeLanguage)
 
   // Live-refresh permission ticks while the user is in System Settings.
   useEffect(() => {
@@ -50,7 +52,17 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
             I float on your screen and help you understand things. Highlight some text or snap a picture of your screen,
             and I’ll explain it in plain words.
           </p>
-          <button className="btn btn--primary btn--wide" onClick={() => setStep(1)}>
+          <div className="onboarding__field">
+            <span className="label">Do you also speak another language?</span>
+            <HomeLanguagePicker value={home} onChange={setHome} />
+          </div>
+          <button
+            className="btn btn--primary btn--wide"
+            onClick={async () => {
+              await window.otty.saveSettings({ homeLanguage: home })
+              setStep(1)
+            }}
+          >
             Let’s get started
           </button>
         </div>

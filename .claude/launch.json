@@ -4,8 +4,26 @@
     {
       "name": "renderer-static",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["vite", "preview", "--outDir", "out/renderer", "--port", "4173", "--strictPort"],
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--outDir",
+        "out/renderer",
+        "--port",
+        "4173",
+        "--strictPort"
+      ],
       "port": 4173
+    },
+    {
+      "name": "ui-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        "tools/ui-preview/vite.config.mts"
+      ],
+      "port": 5199
     }
   ]
 }

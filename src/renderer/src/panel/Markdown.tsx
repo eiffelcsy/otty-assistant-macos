@@ -1,12 +1,24 @@
 import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import type { AnswerLanguage, HomeLanguage } from '../../../shared/types'
+import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { Icon } from '../components/Icon'
 
 /** Lets explain-term pop-ups send follow-up questions into the chat. */
 export const AskContext = createContext<(text: string) => void>(() => {})
 
+/** The user's home language, so explain cards can offer the other language. null = English only. */
+export const HomeContext = createContext<HomeLanguage | null>(null)
+
+/** Keyed by language + term, so each language is fetched once. */
 const cache = new Map<string, Promise<string>>()
+
+function explainCached(term: string, around: string, language: AnswerLanguage): Promise<string> {
+  const key = `${language}:${term.toLowerCase()}`
+  if (!cache.has(key)) cache.set(key, window.otty.explain(term, around, language))
+  return cache.get(key)!
+}
 
 function textOf(node: ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node)
@@ -15,21 +27,49 @@ function textOf(node: ReactNode): string {
   return ''
 }
 
-function ExplainTerm({ term, around, children }: { term: string; around: string; children: ReactNode }) {
+/** Splits the `中文：…` line that main's explain prompt puts first when a home language is set. */
+function splitGloss(text: string): { gloss: { lang: string; term: string } | null; body: string } {
+  const m = text.match(/^(中文)\s*[：:]\s*(.+?)\s*(?:\n+|$)([\s\S]*)$/)
+  return m ? { gloss: { lang: m[1], term: m[2] }, body: m[3].trim() } : { gloss: null, body: text }
+}
+
+function ExplainTerm({
+  term,
+  around,
+  language,
+  children
+}: {
+  term: string
+  around: string
+  /** The answer's language: the card opens in it. */
+  language: AnswerLanguage
+  children: ReactNode
+}) {
   const ask = useContext(AskContext)
+  const home = useContext(HomeContext)
   const [open, setOpen] = useState(false)
   const [text, setText] = useState<string | null>(null)
+  const [lang, setLang] = useState<AnswerLanguage>(language)
+  /** Ignores a slow reply for a language the user has already switched away from. */
+  const wanted = useRef(lang)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const [viewport, setViewport] = useState(0)
   const anchor = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
 
+  const load = (l: AnswerLanguage) => {
+    wanted.current = l
+    setLang(l)
+    setText(null)
+    explainCached(term, around, l).then((t) => {
+      if (wanted.current === l) setText(t)
+    })
+  }
+
   const toggle = () => {
     if (open) return setOpen(false)
     setOpen(true)
-    const key = term.toLowerCase()
-    if (!cache.has(key)) cache.set(key, window.otty.explain(term, around))
-    cache.get(key)!.then(setText)
+    load(lang)
   }
 
   // Position the card under the term, kept inside the window.
@@ -79,17 +119,54 @@ function ExplainTerm({ term, around, children }: { term: string; around: string;
           style={pos ? { left: pos.left, top: pos.top } : { visibility: 'hidden' }}
         >
           <div className="explain-card__title">
-            <Icon name="book-alt" /> {term}
+            <Icon name="book-alt" />
+            <span className="explain-card__term">{term}</span>
+            {home && (
+              <div className="lang-pill" role="group" aria-label="Explanation language">
+                {(['en', home] as AnswerLanguage[]).map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    className="lang-pill__opt"
+                    aria-pressed={lang === l}
+                    title={`Explain in ${LANGUAGE_SHORT[l]}`}
+                    onClick={() => lang !== l && load(l)}
+                  >
+                    {l === 'en' ? 'EN' : LANGUAGE_SHORT[l]}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          <div className="explain-card__body">{text ?? <span className="dots">Otty is thinking</span>}</div>
+          {text === null ? (
+            <div className="explain-card__body">
+              <span className="dots">Otty is thinking</span>
+            </div>
+          ) : (
+            (() => {
+              const { gloss, body } = splitGloss(text)
+              return (
+                <>
+                  {gloss && (
+                    <div className="explain-card__gloss">
+                      <span className="explain-card__lang">{gloss.lang}</span>
+                      {gloss.term}
+                    </div>
+                  )}
+                  <div className="explain-card__body">{body}</div>
+                </>
+              )
+            })()
+          )}
           <button
-            className="btn btn--soft btn--small"
+            className="explain-card__more"
             onClick={() => {
               setOpen(false)
-              ask(`Tell me more about "${term}".`)
+              // Asked in the card's language, so the typed-language rule answers in kind.
+              ask(lang === 'en' ? `Tell me more about "${term}".` : `請再詳細解釋「${term}」。`)
             }}
           >
-            Ask more about this
+            Ask more about this <Icon name="arrow-small-right" />
           </button>
         </div>
       )}
@@ -97,7 +174,7 @@ function ExplainTerm({ term, around, children }: { term: string; around: string;
   )
 }
 
-export function Markdown({ text }: { text: string }) {
+export function Markdown({ text, language = 'en' }: { text: string; language?: AnswerLanguage }) {
   return (
     <div className="md">
       <ReactMarkdown
@@ -106,7 +183,7 @@ export function Markdown({ text }: { text: string }) {
           a({ href, children }) {
             if (href === '#explain') {
               return (
-                <ExplainTerm term={textOf(children)} around={text}>
+                <ExplainTerm term={textOf(children)} around={text} language={language}>
                   {children}
                 </ExplainTerm>
               )
