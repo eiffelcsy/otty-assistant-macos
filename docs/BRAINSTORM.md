@@ -48,6 +48,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Learn from intent corrections on-device (retrain the head from `intent_feedback`) | M | M | idea |
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
 | Snip the whole window or screen, not just a box | M | S | idea |
+| **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | idea |
 | Read the current page's main text (Readability-style) when asked "summarize this page" | H | M | idea |
 | Proactive (opt-in) paw-raise when an error dialog appears: "Want me to explain this?" (AX notifications) | H | L | idea, careful about feeling watched |
 | Per-app tips: recognise Excel, Mail, Terminal… and offer app-specific quick actions | M | M | idea, D-1 may cover most of it |
@@ -125,6 +126,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Customisable hotkeys with a key recorder (not a text field) | M | S | idea |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
+| Settle how Otty behaves across desktops (Spaces) and over full-screen apps; see the concept note below | M | S | considering |
 
 ## Parked / rejected (with reasons)
 
@@ -166,3 +168,22 @@ Longer sketches for big ideas, so the thinking isn't lost. Not plans: a sketch m
 4. *(Much later, opt-in)* narrow "do this one step for me" actions with a confirm card, if users ask for them.
 
 **Depends on:** the D-1 OCR helper (text boxes), a Swift AX helper (also wanted for the selection observer), vision-capable models with decent grounding, and signed builds (so permissions survive updates).
+
+### Desktops (Spaces) and full-screen apps
+
+**Today.** All three windows are set to show on every desktop, including over full-screen apps (`setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })` in `windows.ts`). In practice:
+- **The otter** is on every desktop.
+- **The quick view** hides as soon as it loses focus, so switching desktops closes it.
+- **The panel**, once open, follows you to whichever desktop you switch to.
+
+**Proposal: keep most of it, add one setting.**
+
+| Window | Today | Proposed | Why |
+| --- | --- | --- | --- |
+| Otter | Every desktop and full-screen app | Keep. Add a setting, **"Show the otter over full-screen apps"** (on by default) | It's the entry point, so it should always be there. But it can get in the way of a full-screen presentation or video; the hotkeys still work when it's hidden |
+| Quick view | Closes when you switch desktops | Keep | It's a one-shot popover. The answer isn't lost: the unseen-answer dot and Recent chats catch it |
+| Panel | Follows you while open | Keep | It's a companion to the work, not part of one desktop. Following you is also what makes "capture on one desktop, capture on another" (the capture tray, #13) work. Esc closes it |
+
+**Open questions**
+- Would a "pin the panel to this desktop" toggle be useful, for people who keep one desktop for Otty? Wait until someone asks.
+- Should the otter step aside while the screen is shared or recording? macOS doesn't make this easy to detect; revisit with the native helper.
