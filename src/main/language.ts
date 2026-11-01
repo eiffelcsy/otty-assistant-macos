@@ -1,15 +1,14 @@
 import type { AnswerLanguage, HomeLanguage, QuickAction } from '../shared/types'
 import { isMostlyHan } from '../shared/script'
 
+export { LANGUAGE_SHORT } from '../shared/languages'
+
 // Which language each answer uses, and the prompt note that asks for it. No Electron imports, so it can be unit-tested.
 
 export const LANGUAGE_NAMES: Record<AnswerLanguage, string> = {
   en: 'English',
   'zh-HK': 'Traditional Chinese as written in Hong Kong (繁體中文（香港）)'
 }
-
-/** The short label used in buttons: "Translate to 中文", "In 中文, please". */
-export const LANGUAGE_SHORT: Record<AnswerLanguage, string> = { en: 'English', 'zh-HK': '中文' }
 
 const HK_LOCALES = new Set(['zh-hk', 'zh-hant-hk', 'zh-mo', 'zh-hant-mo'])
 

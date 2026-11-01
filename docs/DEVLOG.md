@@ -186,7 +186,7 @@ else                             → local clarify card (no LLM call): top-3 int
 ### Build order
 
 1. ✅ Main core: types, `language.ts` + tests, settings default, prompts, per-turn language in `ChatSession`. Script checks (`isMostlyHan`, `isShortPhrase`) live in `src/shared/script.ts` so the renderer can use them too.
-2. Composer: the pill (panel + quick view) and the "other language" button (the `again` action is already wired in main).
+2. ✅ Composer: `components/LanguagePill.tsx` (EN / 中, neither lit = Auto, pressing the lit one returns to Auto, resets after each send) in the panel's composer field and beside "ask Otty" in the quick view. The "In 中文" / "In English" button (`lib/again.ts`) is shown on the **latest** finished answer only, because `again` asks for "your previous answer"; on an older answer it would redo the wrong one. It sends "In 中文, please" as a user line.
 3. ✅ (panel) Quick actions as ids: `components/QuickActions.tsx` builds the tiles. Explain in 中文, two-way Translate and "What does it mean?" are done. In the quick view, ↵ with an empty box runs the first action, which is "What does it mean?" for a short phrase. The quick view has no tiles yet: decide after trying it.
 4. Explain card: the 中文 line is already split off and shown (`splitGloss` in `Markdown.tsx`). Still to do: pass the answer's language to the card, add the toggle, and add the language to the cache key.
 5. Settings and onboarding pickers.

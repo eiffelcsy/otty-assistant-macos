@@ -1,4 +1,4 @@
-import type { ChatEvent, ChatMessage, OttyApi, PanelOpenPayload, PublicSettings } from '../../src/shared/types'
+import type { AnswerLanguage, ChatEvent, ChatMessage, OttyApi, PanelOpenPayload, PublicSettings } from '../../src/shared/types'
 
 // ?view=panel|quick  ?scene=chat|empty|compose|settings  ?home=none
 
@@ -55,11 +55,15 @@ let chatCb: ((e: ChatEvent) => void) | null = null
 let openCb: ((p: PanelOpenPayload) => void) | null = null
 const emit = (e: ChatEvent) => chatCb?.(e)
 
-function fakeAnswer(text: string) {
+function fakeAnswer(text: string, language: AnswerLanguage = 'en') {
   const id = String(Math.random())
-  emit({ type: 'user', id: id + 'u', text, context: null, app: null })
-  setTimeout(() => emit({ type: 'start', id, language: 'en' }), 300)
-  const words = 'Sure! Here is a short, friendly answer so you can see how streaming looks in the panel.'.split(' ')
+  emit({ type: 'user', id: id + 'u', text, context: null, app: null, language })
+  setTimeout(() => emit({ type: 'start', id, language }), 300)
+  const words = (
+    language === 'zh-HK'
+      ? '當然！ 這是 一個 簡短 的 答案， 讓你 看看 串流 的 效果。'
+      : 'Sure! Here is a short, friendly answer so you can see how streaming looks in the panel.'
+  ).split(' ')
   words.forEach((w, i) => setTimeout(() => emit({ type: 'delta', id, text: (i ? ' ' : '') + w }), 600 + i * 60))
   setTimeout(() => emit({ type: 'done', id }), 700 + words.length * 60)
 }
@@ -71,7 +75,7 @@ const api: OttyApi = {
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
-  sendMessage: async (text) => fakeAnswer(text),
+  sendMessage: async (text, _ctx, opts) => fakeAnswer(text, opts?.language),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
   listChats: async () => [

@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { AppInfo, HomeLanguage, PanelOpenPayload, ScreenContext } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, HomeLanguage, PanelOpenPayload, ScreenContext } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
+import { LanguagePill } from '../components/LanguagePill'
 import { actionsFor } from '../components/QuickActions'
+import { againOffer } from '../lib/again'
 import { useChat } from '../lib/useChat'
 import { AskContext } from '../panel/Markdown'
 import { AppTag, AssistantMessage, ContextPreview } from '../panel/Messages'
@@ -21,6 +23,7 @@ export function Quick() {
   const [popover, setPopover] = useState(false)
   const [opened, setOpened] = useState(0)
   const [home, setHome] = useState<HomeLanguage | null>(null)
+  const [pick, setPick] = useState<AnswerLanguage | undefined>()
   const { messages, busy, waitingFirstToken, clear } = useChat()
   const cardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -35,6 +38,7 @@ export function Quick() {
         setApp(p.app ?? null)
         setQuestion(null)
         setInput('')
+        setPick(undefined)
         setOpened((n) => n + 1) // re-report our size even if it hasn't changed, so main can reveal us
         setTimeout(() => inputRef.current?.focus(), 30)
       }),
@@ -43,6 +47,7 @@ export function Quick() {
 
   const asked = question !== null
   const answers = messages.filter((m) => m.role === 'assistant')
+  const again = againOffer(messages, home, busy)
 
   /** ↵ with an empty box runs the first quick action: the meaning for a single word, otherwise a simple explanation. */
   const fallback = context ? actionsFor(context, home)[0] : undefined
@@ -51,7 +56,7 @@ export function Quick() {
     const text = item ? item.label : input.trim()
     if (!text) return
     setQuestion(text)
-    window.otty.sendMessage(text, context, { app, fresh: true, action: item?.action })
+    window.otty.sendMessage(text, context, { app, fresh: true, action: item?.action, language: pick })
   }
 
   const close = () => window.otty.closeQuick()
@@ -139,7 +144,7 @@ export function Quick() {
           {asked && (
             <div className="quick__answer" ref={answerRef}>
               {answers.map((m) => (
-                <AssistantMessage key={m.id} m={m} />
+                <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} />
               ))}
               {waitingFirstToken && (
                 <div className="thinking">
@@ -158,9 +163,12 @@ export function Quick() {
                 <kbd>↵</kbd> continue in chat <Icon name="arrow-small-right" />
               </button>
             ) : (
-              <button className="quick__key quick__key--go" onClick={ask} disabled={!input.trim() && !context}>
-                <kbd>↵</kbd> ask Otty
-              </button>
+              <span className="quick__go">
+                {home && <LanguagePill home={home} value={pick} onChange={setPick} />}
+                <button className="quick__key quick__key--go" onClick={ask} disabled={!input.trim() && !context}>
+                  <kbd>↵</kbd> ask Otty
+                </button>
+              </span>
             )}
           </div>
         </div>

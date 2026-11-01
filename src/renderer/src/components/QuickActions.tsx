@@ -1,4 +1,5 @@
 import type { HomeLanguage, QuickAction, ScreenContext } from '../../../shared/types'
+import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { isMostlyHan, isShortPhrase } from '../../../shared/script'
 import { Icon } from './Icon'
 
@@ -8,8 +9,6 @@ export interface ActionItem {
   label: string
   icon: string
 }
-
-const HOME_SHORT: Record<HomeLanguage, string> = { 'zh-HK': '中文' }
 
 /** The actions offered for this capture. The first one is what ↵ with an empty box does. */
 export function actionsFor(ctx: ScreenContext, home: HomeLanguage | null): ActionItem[] {
@@ -22,11 +21,11 @@ export function actionsFor(ctx: ScreenContext, home: HomeLanguage | null): Actio
     ]
   }
   const short = isShortPhrase(ctx.text)
-  const translateTo = home && !isMostlyHan(ctx.text) ? HOME_SHORT[home] : 'English'
+  const translateTo = home && !isMostlyHan(ctx.text) ? LANGUAGE_SHORT[home] : 'English'
   return [
     ...(short ? [{ action: 'define' as const, label: 'What does it mean?', icon: 'book-open-cover' }] : []),
     { action: 'explain', label: 'Explain simply', icon: 'sparkles' },
-    ...(home ? [{ action: 'explain-home' as const, label: `Explain in ${HOME_SHORT[home]}`, icon: 'comment-alt' }] : []),
+    ...(home ? [{ action: 'explain-home' as const, label: `Explain in ${LANGUAGE_SHORT[home]}`, icon: 'comment-alt' }] : []),
     ...(short ? [] : [{ action: 'summarize' as const, label: 'Summarize', icon: 'list' }]),
     { action: 'translate', label: `Translate to ${translateTo}`, icon: 'language' },
     ...(short ? [] : [{ action: 'next-step' as const, label: 'What should I do?', icon: 'interrogation' }])

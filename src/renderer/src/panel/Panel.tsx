@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AppInfo, PanelOpenPayload, PublicSettings, ScreenContext } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, PanelOpenPayload, PublicSettings, ScreenContext } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
+import { LanguagePill } from '../components/LanguagePill'
 import { actionsFor, QuickActions, type ActionItem } from '../components/QuickActions'
+import { againOffer } from '../lib/again'
 import { prettyKey } from '../lib/keys'
 import { useChat } from '../lib/useChat'
 import { AskContext } from './Markdown'
@@ -37,6 +39,8 @@ export function Panel() {
     setNotice(null)
   })
   const [input, setInput] = useState('')
+  /** The pill's choice for the next message only. */
+  const [pick, setPick] = useState<AnswerLanguage | undefined>()
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -84,10 +88,11 @@ export function Panel() {
       setApp(null)
       setNotice(null)
       setInput('')
+      setPick(undefined)
       setBusy(true)
-      window.otty.sendMessage(text, ctx, { app, action: item?.action })
+      window.otty.sendMessage(text, ctx, { app, action: item?.action, language: pick })
     },
-    [busy, context, app, settings]
+    [busy, context, app, settings, pick]
   )
 
   const snip = async () => {
@@ -98,6 +103,7 @@ export function Panel() {
   }
 
   const newChat = () => window.otty.resetChat()
+  const again = againOffer(messages, settings?.homeLanguage ?? null, busy)
 
   if (!settings) return <div className="panel" />
 
@@ -165,7 +171,7 @@ export function Panel() {
                     <div className="msg__bubble">{m.text}</div>
                   </div>
                 ) : (
-                  <AssistantMessage key={m.id} m={m} />
+                  <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} />
                 )
               )}
               {waitingFirstToken && (
@@ -206,6 +212,9 @@ export function Panel() {
                     }
                   }}
                 />
+                {settings.homeLanguage && (
+                  <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
+                )}
                 {busy ? (
                   <button className="send-btn send-btn--stop" title="Stop" onClick={() => window.otty.stop()}>
                     <Icon name="stop" solid />
