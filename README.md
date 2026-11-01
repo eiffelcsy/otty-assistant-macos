@@ -1,5 +1,7 @@
 # Otty 🦦
 
+[![ci](https://github.com/eiffelcsy/otty-assistant-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/eiffelcsy/otty-assistant-macos/actions/workflows/ci.yml)
+
 A cute otter AI assistant for macOS. It lives in a floating bubble and at your cursor. You can highlight text or snap part of your screen, and Otty explains it in plain words, with tap-to-learn pop-ups for tricky terms.
 
 - **Click the otter** or press **⌥ Space** to ask about highlighted text
