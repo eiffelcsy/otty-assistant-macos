@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isMostlyHan, isShortPhrase } from '../../shared/script'
-import { defaultHomeLanguage, languageBlock, resolveLanguage, translateTarget } from '../language'
+import { defaultHomeLanguage, languageBlock, languageReminder, resolveLanguage, translateTarget, withReminder } from '../language'
 
 describe('isMostlyHan', () => {
   it('counts Han characters against words', () => {
@@ -91,5 +91,34 @@ describe('languageBlock', () => {
 
   it('pins English back after a Chinese turn', () => {
     expect(languageBlock('en', 'zh-HK')).toContain('English')
+  })
+})
+
+describe('languageReminder', () => {
+  it('asks for Chinese even when the question is English', () => {
+    expect(languageReminder('zh-HK', 'zh-HK')).toContain('even if I wrote in English')
+  })
+
+  it('adds nothing for English-only users', () => {
+    expect(languageReminder('en', null)).toBe('')
+  })
+
+  it('pins English when a home language is set', () => {
+    expect(languageReminder('en', 'zh-HK')).toContain('English')
+  })
+})
+
+describe('withReminder', () => {
+  it('appends to text', () => {
+    expect(withReminder('What is a CDN?', '(Reply in X.)')).toBe('What is a CDN?\n\n(Reply in X.)')
+  })
+
+  it('adds a text part after a picture', () => {
+    const parts = [{ type: 'image_url' as const, image_url: { url: 'data:' } }]
+    expect(withReminder(parts, '(Reply in X.)')).toEqual([...parts, { type: 'text', text: '(Reply in X.)' }])
+  })
+
+  it('leaves content alone with no reminder', () => {
+    expect(withReminder('hi', '')).toBe('hi')
   })
 })

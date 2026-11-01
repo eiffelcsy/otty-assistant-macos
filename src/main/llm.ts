@@ -3,7 +3,7 @@ import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, ChatEvent, ChatMessage, ScreenContext, SendOptions } from '../shared/types'
 import { getChat, saveChat, type Thread } from './chats'
 import { getApiKey, getStored } from './settings'
-import { languageBlock, resolveLanguage } from './language'
+import { languageBlock, languageReminder, resolveLanguage, withReminder } from './language'
 import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
 import { runTool, toolDefs, toolLabel } from './tools'
 
@@ -182,6 +182,7 @@ export class ChatSession {
     })
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
     const note = languageBlock(language, home)
+    const reminder = languageReminder(language, home)
     const userMsg: Extract<ChatMessage, { role: 'user' }> = { id: randomUUID(), role: 'user', text, context: ctx, app, language }
     if (!thread.messages.length) {
       thread.title = titleFor(text, ctx)
@@ -192,7 +193,7 @@ export class ChatSession {
 
     // Let a stopped turn finish cleaning up its own history before this one adds to it.
     const prev = this.running
-    this.running = prev.then(() => this.run(thread, prompt, ctx, app, language, note))
+    this.running = prev.then(() => this.run(thread, prompt, ctx, app, language, note, reminder))
     return this.running
   }
 
@@ -202,7 +203,8 @@ export class ChatSession {
     ctx: ScreenContext | null,
     app: AppInfo | null,
     language: AnswerLanguage,
-    note: string
+    note: string,
+    reminder: string
   ): Promise<void> {
     const id = randomUUID()
     const abort = new AbortController()
@@ -222,7 +224,7 @@ export class ChatSession {
         const allowTools = round < MAX_TOOL_ROUNDS
         const res = await post(
           {
-            messages: [{ role: 'system', content: systemPrompt(note) }, ...history],
+            messages: [{ role: 'system', content: systemPrompt(note) }, ...remindTurn(history, turnStart, reminder)],
             stream: true,
             ...(allowTools ? { tools: toolDefs } : {})
           },
@@ -307,6 +309,13 @@ export class ChatSession {
       this.emit({ type: 'confirm', id, confirmId, title, detail })
     })
   }
+}
+
+/** History with this turn's user message carrying the language reminder. A copy: the reminder is never saved. */
+function remindTurn(history: Message[], index: number, reminder: string): Message[] {
+  const m = history[index]
+  if (!reminder || m?.role !== 'user') return history
+  return history.map((h, i) => (i === index ? { ...m, content: withReminder(m.content, reminder) } : h))
 }
 
 export async function explainTerm(term: string, around: string, language: AnswerLanguage = 'en'): Promise<string> {

@@ -51,6 +51,27 @@ const HK_BLOCK = `Answer language for THIS reply: ${LANGUAGE_NAMES['zh-HK']}.
 - Explain-links stay in the same format: [詞語](#explain).`
 
 /**
+ * A one-line reminder added to the end of this turn's user message, for the request only (never saved). The system
+ * note alone loses to the language of the question itself: with 中 picked and the question typed in English, models
+ * reply in English. Empty in the same cases as `languageBlock`.
+ */
+export function languageReminder(language: AnswerLanguage, home: HomeLanguage | null): string {
+  if (language === 'zh-HK')
+    return `(Please reply in ${LANGUAGE_NAMES['zh-HK']}, even if I wrote in English. Keep on-screen English words as they are.)`
+  if (!home) return ''
+  return '(Please reply in English.)'
+}
+
+type Part = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
+
+/** `content` with `line` appended: to the text, or as a last text part for a message with a picture. */
+export function withReminder<C extends string | Part[]>(content: C, line: string): C {
+  if (!line) return content
+  if (typeof content === 'string') return `${content}\n\n${line}` as C
+  return [...content, { type: 'text', text: line }] as C
+}
+
+/**
  * The per-turn note added to the end of the system prompt. Empty when the user has no home language and
  * nothing asked for another one, so English-only users get exactly today's prompt.
  */

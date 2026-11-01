@@ -76,12 +76,13 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Home-language help: English by default, **繁體中文（香港）** on demand (pill, typed-language detection, Explain in Chinese, keep on-screen English labels) | H | S–M | → D-2 |
-| Word help for short selections: meaning, home-language translation, example | H | S | → D-2 / D-1 `define` |
+| Home-language help: English by default, **繁體中文（香港）** on demand (pill, typed-language detection, Explain in Chinese, keep on-screen English labels) | H | S–M | shipped (D-2) |
+| Word help for short selections: meaning, home-language translation, example | H | S | shipped (D-2); D-1 will predict it |
 | "Bilingual mode": English answers gloss tricky terms inline, e.g. "latency (延遲)" | M | S | idea, an open question in D-2 |
 | Personal phrasebook: save word-help cards and review them later (lives in SQLite, D-3) | M | M | idea |
 | **Next language:** Taiwan 繁體中文 (`zh-TW`, Taiwan vocabulary such as 軟體／列印), defaulted for `zh-TW` Macs | M | S | considering, first after D-2 |
 | Casual written-Cantonese tone option for HK (係、唔、嘅) for chattier answers | M | S | idea |
+| Simplified / TW-term drift guard (`opencc-js`, cn → hk after each turn) and a `tools/lang-check` script | L | S | parked: none seen in D-2 testing; revisit if a model change brings slips |
 | More home languages after Taiwan (日本語, 한국어, Español, 简体中文…), mostly a prompt and picker change once D-2 is proven | M | S each | idea |
 | Pronunciation: speak the English word (system TTS) on the word-help card | M | S | idea |
 | UI copy translated (a tiny `t()` dictionary) | L | M | idea: our users work in an English UI, so this is low priority |
