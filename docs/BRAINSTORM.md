@@ -32,7 +32,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering |
 | Cursor-following mini otter or a "?" that pops up near a fresh text selection (needs an AX selection observer, Swift helper) | H | L | idea |
-| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | idea |
+| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | idea (future), tracked in issue #17 |
 | Daily greeting / gentle streaks ("3 things learned this week") | L | S | idea |
 | Seasonal or unlockable accessories (hat, scarf) | L | M | idea |
 | Sound effects (opt-in, soft squeak on pop-up) | L | S | idea |
@@ -50,6 +50,11 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Snip the whole window or screen, not just a box | M | S | idea |
 | **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | idea |
 | Read the current page's main text (Readability-style) when asked "summarize this page" | H | M | idea |
+| Attach files (PDF, Word, images, text) from the Mac and ask about them | H | M–L | → D-6 (#16) |
+| Attach the file selected in Finder with ⌥Space | M | S | → D-6 (bonus) |
+| Local retrieval for big documents: chunk, embed with the D-1 encoder, send only the relevant parts | M | M | → D-6 v2 |
+| OCR for scanned PDFs with the D-1 `otty-ocr` helper | M | S | idea, after D-1 + D-6 |
+| Excel / PowerPoint / Pages attachments | M | M | idea, after D-6 |
 | Proactive (opt-in) paw-raise when an error dialog appears: "Want me to explain this?" (AX notifications) | H | L | idea, careful about feeling watched |
 | Per-app tips: recognise Excel, Mail, Terminal… and offer app-specific quick actions | M | M | idea, D-1 may cover most of it |
 
@@ -96,7 +101,10 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Saved chats with Recent chats | H | M | shipped (JSON) |
-| SQLite storage, search, retention setting | H | M | → D-3 |
+| SQLite storage, retention setting | H | M | → D-3 |
+| Search across chats, the same contract on JSON, SQLite or an online database | H | M | → D-5 (#15) |
+| Search filters: by app ("chats from Excel"), by date, with/without files | M | S | idea, after D-5 |
+| Semantic search ("that chat about my visa") with the D-1 encoder's embeddings | M | M | idea, after D-1 + D-5 |
 | Pin a chat / pin the panel open | M | S | idea |
 | Export a chat (Markdown / PDF) | L | S | idea |
 | Optional encrypted iCloud sync between Macs | M | L | idea |
