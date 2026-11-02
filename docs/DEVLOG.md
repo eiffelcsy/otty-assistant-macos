@@ -46,8 +46,10 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-3 (intent column), OCR helper; D-2's quick-action ids (shipped) are its intent ids | L (4–6 days) |
 | D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
 | D-4 | CI pipeline (GitHub Actions) | 🔨 | — | S (half a day) |
+| D-5 | Search across chats (storage-agnostic) | ⏳ | — (JSON first); D-3 adds the SQLite backend | M (1–2 days) |
+| D-6 | Attach files (PDF, Word, images, text) | ⏳ | Shares the capture tray with issue #13; v2 retrieval uses the D-1 encoder | M–L (3–4 days) |
 
-**Suggested build order: D-3 → D-1.** D-2 (home language) has shipped, so D-1's `translate` and `define` intents can target the home language already. D-1 still needs somewhere to keep its predictions and corrections (D-3). D-4 (CI) is running; what's left of it is small and independent.
+**Suggested build order: D-5 → D-3 → D-6 → D-1.** D-5 introduces the `ChatStore` interface on today's JSON file, so D-3 becomes "write a second backend and pass the same tests". D-6 is independent of storage; build it together with (or after) issue #13's capture tray. D-2 (home language) has shipped, so D-1's `translate` and `define` intents can target the home language already. D-1 still needs somewhere to keep its predictions and corrections (D-3). D-4 (CI) is running; what's left of it is small and independent.
 
 ---
 
@@ -132,6 +134,7 @@ else                             → local clarify card (no LLM call): top-3 int
 
 **Goal.** Replace `chats.json`, which is rewritten in full on every save, with a real local database. It should allow incremental writes, search, and room for new tables such as intent feedback.
 
+- **Builds on D-5's `ChatStore` interface:** this is a second backend (`src/main/store/sqliteStore.ts`), not a rewrite of the callers.
 - **Engine:** Node's built-in **`node:sqlite`** (`DatabaseSync`). Verified on 2026-11-01 under Electron 45.2.1 / Node 24.22.1: SQLite 3.53.4, with FTS5 and the `trigram` tokenizer available. No native module or rebuild step is needed. Wrap it behind a small `ChatStore` interface so `better-sqlite3` could replace it if `node:sqlite`'s API changes.
 - **File:** `userData/otty.db`, mode 600, `journal_mode=WAL`, `foreign_keys=ON`. Migrations are keyed on `PRAGMA user_version`.
 - **Schema v1**
@@ -163,7 +166,7 @@ else                             → local clarify card (no LLM call): top-3 int
 - **`chats.ts` becomes the store**, with `createChat`, `appendMessage`, `finishTurn`, `listChats(query?)`, `getChat`, `deleteChat`, `clearChats`. `ChatSession` calls those instead of `saveChat(thread)`.
 - **Migration:** on first launch, if `chats.json` exists, import it in one transaction, then rename it to `chats.json.imported`.
 - **New UX it enables:**
-  - A search box in Recent chats (FTS; trigram works for Chinese, which has no spaces).
+  - Faster search in Recent chats: D-3 implements D-5's `ChatStore.search` with FTS5 (trigram works for Chinese, which has no spaces) and must pass D-5's search conformance suite.
   - A retention setting ("Keep chats: 30 days / 1 year / forever") that replaces the hard cap of 50.
 - **Privacy unchanged:** no pixels are stored, and "Forget all chats" runs `delete` plus `VACUUM`.
 
@@ -205,6 +208,136 @@ else                             → local clarify card (no LLM call): top-3 int
 - Optional: Dependabot for npm and GitHub Actions, weekly.
 
 **Done when:** a PR shows a green `ci` check running typecheck and build in under about 5 minutes with a warm cache; a deliberate type error turns it red; `main` requires it.
+
+---
+
+## D-5 · Search across chats (storage-agnostic) ⏳
+
+Issue: #15.
+
+**Goal.** A search box in Recent chats that finds any earlier chat by what was said in it, in English or Chinese. It works on today's `chats.json`, keeps working unchanged when D-3 swaps in SQLite, and could later run against an online database.
+
+### One contract, many backends
+
+- **A `ChatStore` interface** (`src/main/store/types.ts`) that `ChatSession` and the IPC handlers talk to, instead of importing `chats.ts` functions directly. D-3 already plans this interface; D-5 defines it first and adds search to it:
+
+  ```ts
+  interface ChatStore {
+    list(opts?: { limit?: number }): Promise<ChatSummary[]>
+    get(id: string): Promise<Thread | undefined>
+    save(t: Thread): Promise<void>        // D-3 splits this into appendMessage / finishTurn
+    delete(id: string): Promise<void>
+    clear(): Promise<void>
+    search(q: string, opts?: { limit?: number }): Promise<ChatSearchHit[]>
+  }
+  ```
+
+  - **Async on purpose**, even though JSON and `node:sqlite` are synchronous, so a network backend fits without changing callers.
+  - Backends: `jsonStore.ts` (today), `sqliteStore.ts` (D-3), and later a remote one. `store/index.ts` picks one at startup.
+- **Backend-neutral query semantics**, written down so every backend agrees:
+  - The query is normalised (NFKC, lower-case, trimmed, whitespace collapsed) and split on spaces into terms. Quotes keep a phrase together.
+  - A chat matches when **every term** appears as a **case-insensitive substring** somewhere in it (AND). Substring rather than words, because Chinese has no spaces.
+  - Searched: the chat title, user and assistant message text, and text captures. Not searched: tool JSON, hidden prompts, the `[I'm using …]` note, app names (a later filter).
+  - Ranking: a title match first, then more matching messages, then most recently updated. Backends may break ties differently.
+- **Backend-neutral result**, so the renderer never sees SQL or backend details:
+
+  ```ts
+  interface ChatSearchHit {
+    chatId: string; title: string; app?: string; updatedAt: number
+    messageId?: string                         // the best-matching message, to scroll to
+    snippet: { text: string; ranges: [number, number][] }   // ~120 chars around the match
+  }
+  ```
+
+  `ranges` are offsets into `snippet.text`. The renderer wraps them in `<mark>` itself, so a backend never returns HTML.
+
+### Backends
+
+- **JSON (ships first):** a linear scan over the cached threads. With 50 chats (or a few thousand after D-3's retention setting) this takes well under 10 ms. Build snippets in TypeScript.
+- **SQLite (D-3):** FTS5 with the `trigram` tokenizer, `snippet()` and `bm25()`, blended with recency. Trigram needs 3+ characters per term, and many Chinese searches are 2 characters (電腦, 打印), so a shorter term falls back to `LIKE '%…%'` on `messages.text`. Same result shape.
+- **Remote (future):** Postgres `ILIKE` with `pg_trgm`, or the provider's own full-text search. Search runs on the server and returns `ChatSearchHit`s.
+- **One conformance test suite** (`src/main/store/__tests__/search.contract.ts`): the same fixture chats and expected hits (English, Traditional Chinese, 1–2 character Chinese terms, mixed case, quoted phrases, no match) run against every backend. A new backend is done when it passes.
+
+### UX (`History.tsx`)
+
+- A search field at the top of Recent chats: magnifier icon, placeholder "Search your chats". It shows only when there are saved chats.
+- Results update as you type (150 ms debounce). A request id drops answers to older keystrokes.
+- Each result shows the title, the app and its age, and a one-line snippet with the matches highlighted.
+- Clicking a result opens the chat, scrolls to the matching message and briefly highlights it (the `load` event gains an optional `focusMessageId`).
+- Empty state: "No chats mention “…”". Esc clears the search; a second Esc closes the list as today.
+- ⌘F in the panel opens Recent chats with the search field focused.
+
+### Code changes
+
+- `src/shared/types.ts`: `ChatSearchHit`; `searchChats(q)` on the preload API; `focusMessageId?` on the `load` event.
+- `src/main/store/`: `types.ts`, `jsonStore.ts` (today's `chats.ts` logic moves here), `search.ts` (normalising, term matching and snippets, shared by the JSON and any in-memory backend), `index.ts`.
+- `src/main/llm.ts`, `src/main/index.ts`: use the store; add the `chats:search` IPC handler.
+- `History.tsx` and `styles.css`: the search field, result rows and `<mark>` style, using existing tokens.
+- `docs/REQUIREMENTS.md`: FR-10.5 for search.
+- `tools/ui-preview`: a `scene=history` with mock search results.
+
+**Done when:** searching "otter" and 「打印」 both find the right chats on the JSON backend; the conformance suite passes on JSON (and on SQLite once D-3 lands); clicking a hit scrolls to the message; with "Remember my chats" off there is no search field.
+
+**Risks:** keeping two backends' ranking roughly alike (the suite checks which chats match, not their exact order); trigram's 3-character floor for Chinese (handled by the `LIKE` fallback).
+
+---
+
+## D-6 · Attach files (PDF, Word, images, text) as context ⏳
+
+Issue: #16.
+
+**Goal.** Users can add files from their Mac (a PDF, a Word document, a photo, a text or CSV file) to a question and ask about what's inside: "summarise this report", "what does clause 4 mean?", "what's in this picture?".
+
+### Adding a file
+
+- **Paperclip button** in the panel composer → the native open dialog (`dialog.showOpenDialog` in main).
+- **Drag and drop** onto the panel or the quick view.
+- **Paste** a file copied in Finder (⌘C on a file puts a file URL on the clipboard).
+- **Finder selection + ⌥Space:** if Finder is frontmost and a file is selected, attach that file instead of copying its name. A small, high-value bonus; can come after v1.
+- Files show in the **same capture tray as issue #13** (multiple captures per message): one chip per item with a type icon (UIcons), the name, the page count and a ✕. While a file is being read, the chip says "Reading…". If #13 hasn't shipped, D-6 builds the tray and #13 later adds "hotkeys add to the tray".
+
+### Supported types (v1)
+
+| Type | How it's read | Notes |
+| --- | --- | --- |
+| PDF | `pdfjs-dist` text extraction, page by page | Page numbers kept, so answers can say "(page 4)". A PDF with no text layer (a scan): send page images to vision models, otherwise say Otty can't read scans yet. OCR via the D-1 `otty-ocr` helper later |
+| Word `.docx` | `mammoth` → plain text with headings | Pure JS, so it builds and tests on any OS. `.doc`, `.rtf` and `.odt` can come later via macOS `textutil` |
+| Images (PNG, JPEG, GIF, WebP, HEIC) | `nativeImage`, downscaled and re-encoded like snips (FR-4.2); HEIC via `sips` | Same "this model can't see pictures" warning as snips |
+| Text (`.txt`, `.md`, `.csv`, `.json`, code) | Read as UTF-8 | Binary or unknown files are turned away politely |
+
+Later: `.xlsx` and `.pptx` (`SheetJS`, PPTX XML), Pages and Keynote (export via AppleScript).
+
+### Reading and sending
+
+- **Parsing runs in main, inside a `utilityProcess`** (`src/main/files/worker.ts`) with no network access, so a big PDF never freezes the app. The renderer only ever gets metadata and a thumbnail, never file paths or bytes it didn't already have.
+- **Limits:** 5 files per message, 25 MB per file, and a check of a `.docx`'s unzipped size (zip bombs). Each limit has friendly copy ("That file is too big for Otty. Try one under 25 MB").
+- **Context budget:** estimate tokens (about 4 characters each for English, about 1 per CJK character) and keep the attached text under a budget, about half of the model's context window (a setting, since providers differ).
+  - **v1: send the whole text** when it fits. When it doesn't, send the first part and **tell the user** ("Otty read the first 40 of 120 pages"), and tell the model too.
+  - **v2: local retrieval** for big files: split into chunks, embed them with the D-1 encoder, and send only the chunks closest to each question. Everything stays on the Mac.
+- **Message shape:** the text goes into the user turn as a labelled block, `[File 1: report.pdf · 12 pages]` then the text with `--- page 3 ---` markers. Images go in as `image_url` parts like snips. `prompts.ts` asks the model to cite pages when it can, and to say when the answer isn't in the file.
+- **Later turns** carry the file text in history, so follow-ups work. Providers with prefix caching (DeepSeek does it automatically) keep the repeated cost low.
+
+### Saving and privacy
+
+- **The original file is never copied.** Otty only reads it.
+- Saved chats keep the attachment's name, type and page count. **The extracted text is saved with the chat** so a reopened chat can carry on (it's deleted with the chat). Pictures are stripped, as for snips: "Picture (not saved)".
+- Open question: should saving document text be a separate privacy toggle ("Remember files I attach")? Leaning to no toggle, but saying it plainly in Settings → Privacy.
+- The file name is searchable through D-5. Searching inside saved file text can come later.
+
+### Code changes
+
+- `src/shared/types.ts`: a `file` variant of `ScreenContext` (`{ kind: 'file'; id; name; mime; size; pages?; text?; truncatedAt?; images? }`), and contexts become a list (shared with #13).
+- `src/main/files/`: `worker.ts`, `pdf.ts`, `docx.ts`, `image.ts`, `text.ts`, `budget.ts` (token estimate and truncation).
+- `src/main/llm.ts`: `userContent()` builds the labelled blocks. `src/main/chats.ts` (or D-5's store): strip pictures, keep text.
+- `src/main/index.ts`: `files:pick` and `files:read` IPC; Finder-selection attach.
+- Renderer: the tray chips, drag-and-drop on `Panel.tsx` and `Quick.tsx`, the paperclip button, and quick actions for documents (**Summarise**, **Key points**, **Explain simply**).
+- `package.json`: `pdfjs-dist` (Apache-2.0) and `mammoth` (BSD-2). Keep `package-lock.json` in sync.
+- Tests: extraction on small fixture files (a 2-page PDF, a `.docx` with a heading, an empty scanned PDF, a CJK text file) and the budget and truncation rules.
+- `docs/REQUIREMENTS.md`: a new FR for attachments.
+
+**Done when:** dropping a PDF onto the panel and asking "summarise this" gives a summary that cites pages; a `.docx` and a photo both work; a 300-page PDF is cut to the budget with a visible note; a scanned PDF gives a friendly message on a text-only model; reopening the chat lets you ask a follow-up about the file; nothing freezes while a big file is read.
+
+**Risks:** `pdfjs-dist` worker setup inside a `utilityProcess` and asar packaging; token cost of large documents on every follow-up (v2 retrieval fixes it); layout-heavy PDFs (tables, columns) extracting in a jumbled order.
 
 ---
 
