@@ -4,6 +4,11 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Find in this chat (D-7, 2026-11-02)
+- **⌘F in a chat** (or the new search button in the header) opens a find bar above the conversation. It highlights every match, says "2 of 5", and steps with ↵ / ⇧↵ or the arrows. Explain terms are searched too, buttons aren't. Esc closes the bar first.
+- Same matching rules as chat search (English or Chinese, quotes keep a phrase), now shared from `src/shared/match.ts`. Highlights use the CSS Custom Highlight API, so answers keep streaming while the bar is open, and the view stays on the current match.
+- **Search across chats moved to ⇧⌘F.** ⌘F still opens it when no chat is open.
+
 ## 0.3 — Search across chats, attach files (2026-11-02)
 
 ### Attach files (D-6 v1, 2026-11-02)

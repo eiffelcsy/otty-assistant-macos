@@ -1668,3 +1668,64 @@ html[data-view='quick'] body {
     box-shadow: 0 0 0 3px transparent, 0 0 0 1px transparent;
   }
 }
+
+/* Find in this chat (D-7) */
+.find-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--surface);
+}
+.find-bar__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  margin-right: 4px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.find-bar__field:focus-within {
+  border-color: var(--brand-line);
+  box-shadow: var(--ring);
+}
+.find-bar__field input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 7px 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  user-select: text;
+}
+.find-bar__field input::placeholder {
+  color: var(--muted);
+}
+.find-bar__field input::-webkit-search-cancel-button {
+  display: none;
+}
+.find-bar__count {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+::highlight(otty-find) {
+  background-color: color-mix(in srgb, var(--straw) 40%, transparent);
+  color: var(--heading);
+}
+::highlight(otty-find-current) {
+  background-color: var(--straw);
+  color: var(--shadow-ink);
+}

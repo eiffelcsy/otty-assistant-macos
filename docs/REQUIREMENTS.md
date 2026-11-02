@@ -104,7 +104,8 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-10.2 **Recent chats** (clock button in the panel header) lists the last 50 chats with title, app and age. Clicking one reopens it and the conversation can continue. Each can be forgotten.
 - FR-10.3 Only text is saved (`userData/chats.json`, mode 600). Screen snips are replaced by a "not saved" placeholder.
 - FR-10.4 Settings → Privacy: "Remember my chats" (turning it off forgets them all) and **Forget all chats**.
-- FR-10.5 **Search** at the top of Recent chats (⌘F in the panel) finds chats by their title, messages and text captures, in English or Chinese. Every word must appear; quotes keep a phrase. Results show a highlighted snippet, and clicking one reopens the chat at the matching message.
+- FR-10.5 **Search** at the top of Recent chats (⇧⌘F in the panel, or ⌘F with no chat open) finds chats by their title, messages and text captures, in English or Chinese. Every word must appear; quotes keep a phrase. Results show a highlighted snippet, and clicking one reopens the chat at the matching message.
+- FR-10.6 **Find in this chat** (⌘F, or the search button in the header) highlights every match in the open conversation with the same matching rules, shows "2 of 5", and steps with ↵ / ⇧↵. Esc closes the bar before it closes the panel.
 
 ### FR-12 File attachments (P1)
 - FR-12.1 The panel's paperclip button, dragging files onto the panel, or pasting a file copied in Finder attaches up to 5 files (25 MB each) to the next message. Each shows as a chip with its type, name and page count, "Reading…" while it's read, and a friendly reason when it can't be.

@@ -108,6 +108,9 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Saved chats with Recent chats | H | M | shipped (JSON) |
 | SQLite storage, retention setting | H | M | → D-3 |
 | Search across chats, the same contract on JSON, SQLite or an online database | H | M | shipped (D-5, JSON) |
+| Find in this chat (⌘F), highlights and ↵ / ⇧↵ stepping | H | S | shipped (D-7) |
+| Find in the quick view too, and in an open explain card | L | S | idea, after D-7 |
+| Find bar: "match case" / whole-word toggles for code and English-heavy chats | L | S | idea |
 | Search filters: by app ("chats from Excel"), by date, with/without files | M | S | idea, after D-5 |
 | Semantic search ("that chat about my visa") with the D-1 encoder's embeddings | M | M | idea, after D-1 + D-5 |
 | Search results: forget a chat from the results list, "show more" past 20 hits, ↑/↓ + ↵ to open | L | S | idea |
