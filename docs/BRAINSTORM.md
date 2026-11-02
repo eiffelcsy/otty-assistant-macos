@@ -50,8 +50,13 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Snip the whole window or screen, not just a box | M | S | idea |
 | **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | idea |
 | Read the current page's main text (Readability-style) when asked "summarize this page" | H | M | idea |
-| Attach files (PDF, Word, images, text) from the Mac and ask about them | H | M–L | → D-6 (#16) |
-| Attach the file selected in Finder with ⌥Space | M | S | → D-6 (bonus) |
+| Attach files (PDF, Word, images, text) from the Mac and ask about them | H | M–L | shipped (D-6 v1) |
+| Attach the file selected in Finder with ⌥Space | M | S | idea (left out of D-6 v1) |
+| Attach files in the quick view: it hides on blur, so a drag from Finder closes it. Needs "don't hide while dragging" or a paperclip there | M | S | idea |
+| Scanned PDFs on vision models: render pages to images (needs a canvas in the utility process) | M | M | idea, D-6 v1 says "can't read scans yet" |
+| A token-budget setting for attachments, or derive it from the model (v1: fixed ~48K tokens per message) | L | S | idea |
+| `.doc`, `.rtf`, `.odt` via macOS `textutil` | L | S | idea |
+| File quick actions answer in the document's language (a Chinese PDF → a Chinese summary when 繁體中文 is the other language); today actions default to English | M | S | idea |
 | Local retrieval for big documents: chunk, embed with the D-1 encoder, send only the relevant parts | M | M | → D-6 v2 |
 | OCR for scanned PDFs with the D-1 `otty-ocr` helper | M | S | idea, after D-1 + D-6 |
 | Excel / PowerPoint / Pages attachments | M | M | idea, after D-6 |

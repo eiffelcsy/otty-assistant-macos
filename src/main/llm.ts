@@ -2,6 +2,8 @@ import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, ChatEvent, ChatMessage, ScreenContext, SendOptions } from '../shared/types'
 import { chatStore, type Thread } from './store'
+import { fitFiles, type FileOutput } from './files/budget'
+import { takeFiles } from './files'
 import { getApiKey, getStored } from './settings'
 import { languageBlock, languageReminder, resolveLanguage, withReminder } from './language'
 import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
@@ -104,21 +106,25 @@ function appLine(app: AppInfo | null): string {
   return `[I'm using ${app.name}${where ? `, on ${where}` : ''}.]\n\n`
 }
 
-function userContent(text: string, ctx: ScreenContext | null, app: AppInfo | null): string | ContentPart[] {
-  const prefix = appLine(app)
-  if (!ctx) return prefix + text
-  if (ctx.kind === 'text') {
-    return `${prefix}Here is the text I highlighted on my screen:\n"""\n${ctx.text}\n"""\n\n${text}`
+function userContent(text: string, ctx: ScreenContext | null, app: AppInfo | null, files: FileOutput[] = []): string | ContentPart[] {
+  const prefix = appLine(app) + files.map((f) => f.text + '\n\n').join('')
+  const pictures = files.flatMap((f) => (f.image ? [f.image] : []))
+  let body = prefix + text
+  if (ctx?.kind === 'text') {
+    body = `${prefix}Here is the text I highlighted on my screen:\n"""\n${ctx.text}\n"""\n\n${text}`
+  } else if (ctx?.kind === 'image') {
+    pictures.unshift(ctx.dataUrl)
+    const which = pictures.length > 1 ? 'The first picture' : 'This'
+    body = `${prefix}${which} is a snip of part of my screen.\n\n${text}`
   }
-  return [
-    { type: 'image_url', image_url: { url: ctx.dataUrl } },
-    { type: 'text', text: `${prefix}This is a snip of part of my screen.\n\n${text}` }
-  ]
+  if (!pictures.length) return body
+  return [...pictures.map((url): ContentPart => ({ type: 'image_url', image_url: { url } })), { type: 'text', text: body }]
 }
 
-function titleFor(text: string, ctx: ScreenContext | null): string {
+function titleFor(text: string, ctx: ScreenContext | null, fileName?: string): string {
   const q = text.trim().replace(/[.?!]$/, '')
-  const about = ctx?.kind === 'text' ? ` “${ctx.text.replace(/\s+/g, ' ').slice(0, 40).trim()}…”` : ''
+  const about =
+    ctx?.kind === 'text' ? ` “${ctx.text.replace(/\s+/g, ' ').slice(0, 40).trim()}…”` : fileName ? ` “${fileName}”` : ''
   const title = q + about
   return title.length > 80 ? title.slice(0, 79) + '…' : title
 }
@@ -169,7 +175,12 @@ export class ChatSession {
   }
 
   /** `text` is what the user sees; a quick action swaps in its own prompt for the model. */
-  send(text: string, ctx: ScreenContext | null, app: AppInfo | null, opts: Pick<SendOptions, 'language' | 'action'> = {}): Promise<void> {
+  send(
+    text: string,
+    ctx: ScreenContext | null,
+    app: AppInfo | null,
+    opts: Pick<SendOptions, 'language' | 'action' | 'files'> = {}
+  ): Promise<void> {
     this.stop()
     const thread = this.thread
     const home = getStored().homeLanguage
@@ -183,9 +194,20 @@ export class ChatSession {
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
     const note = languageBlock(language, home)
     const reminder = languageReminder(language, home)
-    const userMsg: Extract<ChatMessage, { role: 'user' }> = { id: randomUUID(), role: 'user', text, context: ctx, app, language }
+    const prepared = takeFiles(opts.files)
+    const fitted = fitFiles(prepared.map((p) => ({ name: p.meta.name, doc: p.doc, image: p.image?.dataUrl })))
+    const files = prepared.map((p, i) => ({ ...p.meta, note: fitted[i].note }))
+    const userMsg: Extract<ChatMessage, { role: 'user' }> = {
+      id: randomUUID(),
+      role: 'user',
+      text,
+      context: ctx,
+      app,
+      language,
+      ...(files.length ? { files } : {})
+    }
     if (!thread.messages.length) {
-      thread.title = titleFor(text, ctx)
+      thread.title = titleFor(text, ctx, files[0]?.name)
       if (app) thread.app = app.name
     }
     thread.messages.push(userMsg)
@@ -193,7 +215,7 @@ export class ChatSession {
 
     // Let a stopped turn finish cleaning up its own history before this one adds to it.
     const prev = this.running
-    this.running = prev.then(() => this.run(thread, prompt, ctx, app, language, note, reminder))
+    this.running = prev.then(() => this.run(thread, prompt, ctx, app, fitted, language, note, reminder))
     return this.running
   }
 
@@ -202,6 +224,7 @@ export class ChatSession {
     text: string,
     ctx: ScreenContext | null,
     app: AppInfo | null,
+    files: FileOutput[],
     language: AnswerLanguage,
     note: string,
     reminder: string
@@ -216,7 +239,7 @@ export class ChatSession {
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
     const turnStart = history.length
-    history.push({ role: 'user', content: userContent(text, ctx, app) })
+    history.push({ role: 'user', content: userContent(text, ctx, app, files) })
     this.emit({ type: 'start', id, language })
 
     try {

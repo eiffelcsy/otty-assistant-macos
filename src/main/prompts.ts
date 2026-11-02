@@ -11,6 +11,7 @@ How to answer:
 - Use plain, everyday words. Short paragraphs (1–3 sentences). Use numbered steps for anything "how do I…".
 - Lead with the answer, then the detail. Keep most answers under ~150 words unless the user asks for more.
 - When the user shares highlighted text or a screenshot, answer about THAT content specifically.
+- Attached files arrive as blocks like "[File 1: report.pdf · 12 pages]" with "--- page 3 ---" markers. Answer from them, cite pages like "(page 3)" when you can, and say plainly when the answer isn't in the file. If a note says only part of a file was included, mention it when the answer might be in the rest.
 - A message may start with a note like "[I'm using Excel, on “Budget.xlsx”.]". Use it to tailor your help: name that app's real menus and buttons, and assume questions are about what they're doing there. Don't repeat the note back.
 - Teaching: when you must use a term a beginner may not know, mark it as an explain-link exactly like this: [term](#explain). Mark at most 3 terms per answer, only the genuinely tricky ones, and only the first time each appears.
 - When an extra bit of background would really help, add ONE tip card at the end as a blockquote starting with "💡", e.g.:
@@ -31,6 +32,8 @@ export function actionPrompt(action: QuickAction, language: AnswerLanguage, home
       return 'Explain this simply.'
     case 'summarize':
       return 'Summarize this.'
+    case 'key-points':
+      return 'List the key points of this as short bullets, most important first.'
     case 'translate':
       return `Translate this into ${LANGUAGE_NAMES[language]}. Give the translation first, then (only if needed) one short line on anything that doesn't translate neatly.`
     case 'next-step':

@@ -43,7 +43,7 @@ export const fixtures = (): Thread[] => [
     otty('1. 按「File」（檔案）。\n2. 揀「Print」（打印）。\n3. 喺左下角揀「Save as PDF」。')
   ]),
   thread('wifi', 'My Wi-Fi keeps dropping', 4000, [
-    user('My Wi-Fi keeps dropping'),
+    { ...user('My Wi-Fi keeps dropping'), files: [{ id: 'f1', name: 'Router-Manual.docx', kind: 'docx' }] } as ChatMessage,
     otty('Try turning the router off and on again. If the Wi‑Fi still drops, forget the network and rejoin.')
   ])
 ]
@@ -83,6 +83,10 @@ export function searchContract(name: string, makeStore: () => Promise<ChatStore>
       expect(await ids('"hold paws"')).toEqual(['otters'])
       expect(await ids('"paws hold"')).toEqual([])
       expect(await ids('“save as pdf”')).toEqual(['print'])
+    })
+
+    it('searches attached file names', async () => {
+      expect(await ids('router-manual')).toEqual(['wifi'])
     })
 
     it('searches text captures but not markdown or link targets', async () => {

@@ -1,4 +1,13 @@
-import type { AnswerLanguage, ChatEvent, ChatMessage, OttyApi, PanelOpenPayload, PublicSettings } from '../../src/shared/types'
+import type {
+  AnswerLanguage,
+  AttachResult,
+  ChatEvent,
+  ChatMessage,
+  FileAttachment,
+  OttyApi,
+  PanelOpenPayload,
+  PublicSettings
+} from '../../src/shared/types'
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
@@ -72,9 +81,26 @@ let chatCb: ((e: ChatEvent) => void) | null = null
 let openCb: ((p: PanelOpenPayload) => void) | null = null
 const emit = (e: ChatEvent) => chatCb?.(e)
 
-function fakeAnswer(text: string, language: AnswerLanguage = 'en') {
+// The paperclip "picks" these: a PDF, a picture and one Otty turns away.
+const thumb =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60"><rect width="60" height="60" fill="#8c9b6a"/><circle cx="40" cy="20" r="8" fill="#f3dcc2"/></svg>')
+const mockFiles: Record<string, AttachResult> = {
+  f1: { ok: true, file: { id: 'f1', name: 'Tenancy agreement 2026.pdf', kind: 'pdf', pages: 12 } },
+  f2: { ok: true, file: { id: 'f2', name: 'IMG_0042.HEIC', kind: 'image', thumb } },
+  f3: { ok: false, message: 'Otty can’t read this kind of file yet. Try a PDF, a Word document, a picture or a text file.' }
+}
+const names: Record<string, string> = { f1: 'Tenancy agreement 2026.pdf', f2: 'IMG_0042.HEIC', f3: 'Budget.numbers' }
+
+function fakeAnswer(text: string, language: AnswerLanguage = 'en', fileIds: string[] = []) {
   const id = String(Math.random())
-  emit({ type: 'user', id: id + 'u', text, context: null, app: null, language })
+  const files = fileIds.flatMap((f) => {
+    const r = mockFiles[f]
+    if (!r?.ok) return []
+    const { thumb: _thumb, ...file } = r.file
+    return [f === 'f1' ? { ...file, note: 'Otty read the first 40 of 120 pages.' } : r.file] as FileAttachment[]
+  })
+  emit({ type: 'user', id: id + 'u', text, context: null, app: null, language, ...(files.length ? { files } : {}) })
   setTimeout(() => emit({ type: 'start', id, language }), 300)
   const words = (
     language === 'zh-HK'
@@ -92,7 +118,7 @@ const api: OttyApi = {
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
-  sendMessage: async (text, _ctx, opts) => fakeAnswer(text, opts?.language),
+  sendMessage: async (text, _ctx, opts) => fakeAnswer(text, opts?.language, opts?.files),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
   listChats: async () => saved.map(({ id, title, app, updatedAt }) => ({ id, title, app, updatedAt })),
@@ -116,6 +142,10 @@ const api: OttyApi = {
         500
       )
     ),
+  pickFiles: async () => Object.entries(names).map(([id, name]) => ({ id, name })),
+  dropFiles: async () => [],
+  readFile: (id) => new Promise((r) => setTimeout(() => r(mockFiles[id]), id === 'f1' ? 1200 : 400)),
+  discardFile: noop,
   captureSelection: async () => ({ context: highlighted, app }),
   captureScreenshot: async () => ({ context: null }),
   closePanel: noop,

@@ -1,7 +1,7 @@
 {
   "name": "otty-assistant",
   "productName": "Otty",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A cute otter AI assistant that lives at your cursor.",
   "main": "./out/main/index.js",
   "private": true,
@@ -30,5 +30,9 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.5",
     "vitest": "^4.1.12"
+  },
+  "dependencies": {
+    "mammoth": "^1.13.0",
+    "pdfjs-dist": "^6.5.438"
   }
 }

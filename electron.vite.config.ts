@@ -4,7 +4,13 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   main: {
-    build: { outDir: 'out/main' }
+    build: {
+      outDir: 'out/main',
+      // The file reader runs in its own utility process (src/main/files/index.ts forks fileWorker.js).
+      rollupOptions: {
+        input: { index: resolve(__dirname, 'src/main/index.ts'), fileWorker: resolve(__dirname, 'src/main/files/worker.ts') }
+      }
+    }
   },
   preload: {
     build: { outDir: 'out/preload' }
