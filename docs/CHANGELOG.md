@@ -4,8 +4,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Search across chats (D-5, 2026-11-02)
+- **Search box at the top of Recent chats**, and **⌘F** in the panel jumps straight to it. It finds chats by their title, anything said in them and text captures, in English or Chinese (substring matching, so 「打印」 works without spaces). Every word must appear; quotes keep a phrase together.
+- Results show a one-line snippet with the matches highlighted. Clicking one reopens the chat scrolled to the matching message, which glows briefly. Esc clears the search first.
+- Under the hood, saved chats moved behind a `ChatStore` interface (`src/main/store/`). The JSON file is its first backend; one conformance test suite defines search for every backend, so SQLite (D-3) only has to pass it.
+
 ### Fixes (2026-11-02)
 - **Quick view no longer looks frozen near the bottom of the screen** (#12). The card now always fits its window: when there isn't room, the answer shrinks and scrolls, so the esc / ↵ row stays visible. The card still asks main for the height it would like, so it grows back when there's space.
+
 ## 0.2 — Quick view, saved chats, home language (2026-11-02)
 
 ### Home-language help, 繁體中文（香港） (D-2, 2026-11-01)

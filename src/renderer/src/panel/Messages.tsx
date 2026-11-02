@@ -60,10 +60,10 @@ export interface AgainOffer {
   onClick: () => void
 }
 
-export function AssistantMessage({ m, again }: { m: Assistant; again?: AgainOffer }) {
+export function AssistantMessage({ m, again, found }: { m: Assistant; again?: AgainOffer; found?: boolean }) {
   const [copied, setCopied] = useState(false)
   return (
-    <div className="msg msg--otty">
+    <div className={`msg msg--otty${found ? ' msg--found' : ''}`} data-msg-id={m.id}>
       {m.tools.length > 0 && (
         <div className="tool-chips">
           {m.tools.map((t) => (

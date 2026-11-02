@@ -1482,3 +1482,71 @@ html[data-view='quick'] body {
   text-align: center;
   padding: 8px 0 2px;
 }
+.history__search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  margin-bottom: 4px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.history__search:focus-within {
+  border-color: var(--brand-line);
+  box-shadow: var(--ring);
+}
+.history__search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 9px 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  user-select: text;
+}
+.history__search input::placeholder {
+  color: var(--muted);
+}
+.history__search input::-webkit-search-cancel-button {
+  display: none;
+}
+.history__snippet {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.history__snippet mark {
+  background: var(--straw-soft);
+  color: var(--heading);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.history__none {
+  text-align: center;
+  padding: 24px 0 8px;
+}
+/* A message reopened from a search result glows briefly. */
+.msg--found .msg__bubble {
+  animation: found 1.6s ease-out;
+}
+@keyframes found {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--straw-soft), 0 0 0 1px var(--straw);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent, 0 0 0 1px transparent;
+  }
+}

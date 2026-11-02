@@ -1,6 +1,8 @@
 import type { AnswerLanguage, ChatEvent, ChatMessage, OttyApi, PanelOpenPayload, PublicSettings } from '../../src/shared/types'
+import { searchThreads } from '../../src/main/store/search'
+import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick  ?scene=chat|empty|compose|settings  ?home=none
+// ?view=panel|quick  ?scene=chat|empty|compose|settings|history  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -51,6 +53,21 @@ const sample: ChatMessage[] = [
   }
 ]
 
+// Saved chats for Recent chats; search runs the real in-memory search over them.
+const thread = (id: string, title: string, app: string, age: number, messages: ChatMessage[]): Thread => ({
+  id,
+  title,
+  app,
+  createdAt: 0,
+  updatedAt: Date.now() - age,
+  messages,
+  history: []
+})
+const saved = [
+  thread('1', 'Explain this simply “Requests beyond your plan…”', 'Safari', 6e5, sample.slice(0, 2)),
+  thread('2', '點樣 upgrade 我嘅 plan？', 'Safari', 864e5, sample.slice(2))
+]
+
 let chatCb: ((e: ChatEvent) => void) | null = null
 let openCb: ((p: PanelOpenPayload) => void) | null = null
 const emit = (e: ChatEvent) => chatCb?.(e)
@@ -78,11 +95,12 @@ const api: OttyApi = {
   sendMessage: async (text, _ctx, opts) => fakeAnswer(text, opts?.language),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
-  listChats: async () => [
-    { id: '1', title: 'Explain this simply “Requests beyond your plan…”', app: 'Safari', updatedAt: Date.now() - 6e5 },
-    { id: '2', title: 'How do I print to PDF', app: 'Preview', updatedAt: Date.now() - 864e5 }
-  ],
-  openChat: noop,
+  listChats: async () => saved.map(({ id, title, app, updatedAt }) => ({ id, title, app, updatedAt })),
+  openChat: async (id, focusMessageId) => {
+    const t = saved.find((c) => c.id === id)
+    if (t) emit({ type: 'load', messages: t.messages, focusMessageId })
+  },
+  searchChats: async (q) => searchThreads(saved, q),
   deleteChat: noop,
   clearChats: noop,
   respondConfirm: noop,
@@ -117,6 +135,7 @@ const api: OttyApi = {
     openCb = cb
     if (scene === 'compose' || scene === 'empty-compose') setTimeout(() => cb({ context: highlighted, app }), 80)
     if (scene === 'settings') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    if (scene === 'history') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 120)
     return () => {}
   },
   onQuickOpen: (cb) => {

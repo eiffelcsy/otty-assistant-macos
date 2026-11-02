@@ -22,6 +22,8 @@ export type Assistant = Extract<UiMessage, { role: 'assistant' }>
 export function useChat(onReset?: () => void) {
   const [messages, setMessages] = useState<UiMessage[]>([])
   const [busy, setBusy] = useState(false)
+  /** A message to scroll to, set when a search result reopens a chat. Cleared by the next question. */
+  const [focusId, setFocusId] = useState<string | null>(null)
   const resetRef = useRef(onReset)
   resetRef.current = onReset
   // Only the newest turn may end `busy`; a stopped turn's late 'done' must not.
@@ -33,18 +35,21 @@ export function useChat(onReset?: () => void) {
         if (e.type === 'reset') {
           setMessages([])
           setBusy(false)
+          setFocusId(null)
           currentId.current = null
           resetRef.current?.()
           return
         }
         if (e.type === 'load') {
           setMessages(e.messages.map((m) => (m.role === 'assistant' ? { ...m, streaming: false } : m)))
+          setFocusId(e.focusMessageId ?? null)
           setBusy(false)
           currentId.current = null
           return
         }
         if (e.type === 'user') {
           setMessages((ms) => [...ms, { id: e.id, role: 'user', text: e.text, context: e.context, app: e.app, language: e.language }])
+          setFocusId(null)
           setBusy(true)
           currentId.current = null
           return
@@ -92,5 +97,5 @@ export function useChat(onReset?: () => void) {
     setBusy(false)
   }
 
-  return { messages, busy, setBusy, waitingFirstToken, clear }
+  return { messages, busy, setBusy, waitingFirstToken, clear, focusId }
 }
