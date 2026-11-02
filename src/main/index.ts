@@ -12,6 +12,7 @@ import type {
 import * as settings from './settings'
 import { captureScreenshot, captureSelection, frontmostApp } from './capture'
 import { chatStore } from './store'
+import { discardFile, pickFiles, readFile, registerFiles } from './files'
 import { getPermissions, openPermissionSettings } from './permissions'
 import { ChatSession, explainTerm, testConnection } from './llm'
 import { trayIcon } from './trayIcon'
@@ -174,7 +175,7 @@ function registerIpc(): void {
     'chat:send',
     (_e, text: string, ctx: ScreenContext | null, opts?: SendOptions) => {
       if (opts?.fresh) resetChat()
-      void chat.send(text, ctx, opts?.app ?? null, { language: opts?.language, action: opts?.action })
+      void chat.send(text, ctx, opts?.app ?? null, { language: opts?.language, action: opts?.action, files: opts?.files })
     }
   )
   ipcMain.handle('chat:stop', () => chat.stop())
@@ -190,6 +191,10 @@ function registerIpc(): void {
     await chatStore().clear()
     resetChat()
   })
+  ipcMain.handle('files:pick', (e) => pickFiles(BrowserWindow.fromWebContents(e.sender)))
+  ipcMain.handle('files:register', (_e, paths: unknown) => registerFiles(paths))
+  ipcMain.handle('files:read', (_e, id: string) => readFile(String(id)))
+  ipcMain.handle('files:discard', (_e, id: string) => discardFile(String(id)))
   ipcMain.handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))
   ipcMain.handle('chat:explain', (_e, term: string, around: string, language?: AnswerLanguage) =>
     explainTerm(term, around, language)

@@ -1,4 +1,4 @@
-import type { HomeLanguage, QuickAction, ScreenContext } from '../../../shared/types'
+import type { FileAttachment, HomeLanguage, QuickAction, ScreenContext } from '../../../shared/types'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { isMostlyHan, isShortPhrase } from '../../../shared/script'
 import { Icon } from './Icon'
@@ -29,6 +29,22 @@ export function actionsFor(ctx: ScreenContext, home: HomeLanguage | null): Actio
     ...(short ? [] : [{ action: 'summarize' as const, label: 'Summarize', icon: 'list' }]),
     { action: 'translate', label: `Translate to ${translateTo}`, icon: 'language' },
     ...(short ? [] : [{ action: 'next-step' as const, label: 'What should I do?', icon: 'interrogation' }])
+  ]
+}
+
+/** The actions offered for attached files, when there's no capture. */
+export function actionsForFiles(files: FileAttachment[]): ActionItem[] {
+  if (files.every((f) => f.kind === 'image')) {
+    return [
+      { action: 'what-is', label: 'What is this?', icon: 'eye' },
+      { action: 'explain', label: 'Explain simply', icon: 'sparkles' },
+      { action: 'read-text', label: 'Read the text', icon: 'text' }
+    ]
+  }
+  return [
+    { action: 'summarize', label: 'Summarize', icon: 'list' },
+    { action: 'key-points', label: 'Key points', icon: 'list-check' },
+    { action: 'explain', label: 'Explain simply', icon: 'sparkles' }
   ]
 }
 

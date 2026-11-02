@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AnswerLanguage, AppInfo, PanelOpenPayload, PublicSettings, ScreenContext } from '../../../shared/types'
+import { FileList, FileTray } from '../components/FileChips'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { LanguagePill } from '../components/LanguagePill'
-import { actionsFor, QuickActions, type ActionItem } from '../components/QuickActions'
+import { actionsFor, actionsForFiles, QuickActions, type ActionItem } from '../components/QuickActions'
 import { againOffer } from '../lib/again'
 import { prettyKey } from '../lib/keys'
+import { useAttachments } from '../lib/useAttachments'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
 import { History } from './History'
@@ -39,6 +41,9 @@ export function Panel() {
     setApp(null)
     setNotice(null)
   })
+  const att = useAttachments()
+  const [dragging, setDragging] = useState(false)
+  const dragDepth = useRef(0)
   const [input, setInput] = useState('')
   /** The pill's choice for the next message only. */
   const [pick, setPick] = useState<AnswerLanguage | undefined>()
@@ -89,23 +94,54 @@ export function Panel() {
   }, [messages, focusId, view])
 
   const actions = context && settings ? actionsFor(context, settings.homeLanguage) : []
+  const fileActions = att.ready.length ? actionsForFiles(att.ready) : []
 
-  /** An empty box with a capture runs the first quick action. */
+  /** An empty box with a capture (or, failing that, attached files) runs the first quick action. */
   const send = useCallback(
     (raw: string, ctx: ScreenContext | null = context, picked?: ActionItem) => {
-      const item = picked ?? (!raw.trim() && ctx && settings ? actionsFor(ctx, settings.homeLanguage)[0] : undefined)
+      const defaults = ctx && settings ? actionsFor(ctx, settings.homeLanguage) : fileActions
+      const item = picked ?? (!raw.trim() ? defaults[0] : undefined)
       const text = item ? item.label : raw.trim()
-      if (!text || busy) return
+      if (!text || busy || att.reading) return
+      const files = att.take().map((f) => f.id)
       setContext(null)
       setApp(null)
       setNotice(null)
       setInput('')
       setPick(undefined)
       setBusy(true)
-      window.otty.sendMessage(text, ctx, { app, action: item?.action, language: pick })
+      window.otty.sendMessage(text, ctx, { app, action: item?.action, language: pick, files })
     },
-    [busy, context, app, settings, pick]
+    [busy, context, app, settings, pick, att, fileActions]
   )
+
+  // Drag files from Finder onto the chat to attach them.
+  const hasFiles = (e: React.DragEvent) => view === 'chat' && e.dataTransfer.types.includes('Files')
+  const drop = {
+    onDragEnter: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return
+      dragDepth.current++
+      setDragging(true)
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return
+      dragDepth.current = Math.max(0, dragDepth.current - 1)
+      if (!dragDepth.current) setDragging(false)
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+    },
+    onDrop: (e: React.DragEvent) => {
+      if (!hasFiles(e)) return
+      e.preventDefault()
+      dragDepth.current = 0
+      setDragging(false)
+      att.drop([...e.dataTransfer.files])
+      inputRef.current?.focus()
+    }
+  }
 
   const snip = async () => {
     const p = await window.otty.captureScreenshot()
@@ -136,7 +172,13 @@ export function Panel() {
   return (
     <AskContext.Provider value={(t) => send(t, null)}>
       <HomeContext.Provider value={settings.homeLanguage}>
-        <div className="panel">
+        <div className="panel" {...drop}>
+          {dragging && (
+            <div className="drop-veil">
+              <Icon name="clip" />
+              <span>Drop files to ask Otty about them</span>
+            </div>
+          )}
           <header className="panel__header">
             <Otter state={busy ? 'thinking' : 'idle'} size={34} />
             <div className="panel__title">{view === 'history' ? 'Recent chats' : 'Otty'}</div>
@@ -181,6 +223,7 @@ export function Panel() {
                     <div key={m.id} className={`msg msg--user${m.id === focusId ? ' msg--found' : ''}`} data-msg-id={m.id}>
                       {m.app && <AppTag app={m.app} />}
                       {m.context && <ContextPreview ctx={m.context} />}
+                      {m.files && <FileList files={m.files} />}
                       <div className="msg__bubble">{m.text}</div>
                     </div>
                   ) : (
@@ -212,17 +255,36 @@ export function Panel() {
                     <QuickActions items={actions} disabled={busy} onPick={(a) => send('', context, a)} />
                   </div>
                 )}
+                {att.chips.length > 0 && (
+                  <div className="context-card">
+                    <FileTray chips={att.chips} onRemove={att.remove} />
+                    {!context && fileActions.length > 0 && !att.reading && (
+                      <QuickActions items={fileActions} disabled={busy} onPick={(a) => send('', null, a)} />
+                    )}
+                  </div>
+                )}
                 <div className="composer__row">
                   <button className="composer__tool" title="Snap part of my screen" onClick={snip} disabled={busy}>
                     <Icon name="scissors" />
+                  </button>
+                  <button className="composer__tool" title="Attach files" onClick={att.pick} disabled={busy}>
+                    <Icon name="clip" />
                   </button>
                   <textarea
                     ref={inputRef}
                     className="composer__input"
                     rows={1}
-                    placeholder={context ? 'Ask about this…' : 'Ask Otty anything…'}
+                    placeholder={
+                      context ? 'Ask about this…' : att.chips.length ? 'Ask about your files…' : 'Ask Otty anything…'
+                    }
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onPaste={(e) => {
+                      // A file copied in Finder pastes as a file, not text.
+                      if (!e.clipboardData.files.length) return
+                      e.preventDefault()
+                      att.drop([...e.clipboardData.files])
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                         e.preventDefault()
@@ -238,7 +300,12 @@ export function Panel() {
                       <Icon name="stop" solid />
                     </button>
                   ) : (
-                    <button className="send-btn" title="Send" disabled={!input.trim() && !context} onClick={() => send(input)}>
+                    <button
+                      className="send-btn"
+                      title="Send"
+                      disabled={(!input.trim() && !context && !att.ready.length) || att.reading}
+                      onClick={() => send(input)}
+                    >
                       <Icon name="arrow-small-up" />
                     </button>
                   )}

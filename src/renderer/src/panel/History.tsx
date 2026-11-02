@@ -134,7 +134,7 @@ export function History({ onOpen, focusSearch }: { onOpen: () => void; focusSear
               </button>
             </div>
           ))}
-          <p className="hint history__note">Otty keeps your last 50 chats on this Mac. Screen snips are never saved.</p>
+          <p className="hint history__note">Otty keeps your last 50 chats on this Mac. Pictures are never saved.</p>
         </>
       )}
     </div>
