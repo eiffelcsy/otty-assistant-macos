@@ -5,6 +5,29 @@ export type ScreenContext =
   /** `dataUrl` is empty for snips in saved chats: pictures are never written to disk. */
   | { kind: 'image'; dataUrl: string; width: number; height: number }
 
+export type FileKind = 'pdf' | 'docx' | 'image' | 'text'
+
+/** A file the user added, before main has read it. Paths stay in main; the renderer gets an id. */
+export interface PendingFile {
+  id: string
+  name: string
+}
+
+/** A file attached to a question. Main keeps what's inside; the renderer only sees this. */
+export interface FileAttachment {
+  id: string
+  name: string
+  kind: FileKind
+  /** PDFs only. */
+  pages?: number
+  /** Set once sent, when only part of it fitted: "Otty read the first 40 of 120 pages." */
+  note?: string
+  /** A small preview for pictures. Never saved. */
+  thumb?: string
+}
+
+export type AttachResult = { ok: true; file: FileAttachment } | { ok: false; message: string }
+
 /** The app the user was working in when they asked. `url` has its query and fragment stripped. */
 export interface AppInfo {
   name: string
@@ -28,6 +51,8 @@ export type QuickAction =
   | 'read-text'
   | 'explain-home'
   | 'define'
+  /** For attached documents. */
+  | 'key-points'
   /** "Answer again in the other language": pair it with `language`. */
   | 'again'
 
@@ -38,6 +63,8 @@ export interface SendOptions {
   /** The pill's choice for this message only. Absent = Auto. */
   language?: AnswerLanguage
   action?: QuickAction
+  /** Ids of files read with `readFile`, sent with this message. */
+  files?: string[]
 }
 
 export interface PublicSettings {
@@ -82,7 +109,15 @@ export interface ToolChipInfo {
 
 /** A finished message as the UI shows it. Saved chats store these, so reopening one needs no model call. */
 export type ChatMessage =
-  | { id: string; role: 'user'; text: string; context: ScreenContext | null; app: AppInfo | null; language?: AnswerLanguage }
+  | {
+      id: string
+      role: 'user'
+      text: string
+      context: ScreenContext | null
+      app: AppInfo | null
+      language?: AnswerLanguage
+      files?: FileAttachment[]
+    }
   | { id: string; role: 'assistant'; text: string; tools: ToolChipInfo[]; error?: string; language?: AnswerLanguage }
 
 export interface ChatSummary {
@@ -109,7 +144,7 @@ export type ChatEvent =
   | { type: 'reset' }
   /** A saved chat was reopened: replace everything shown with these messages. */
   | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string }
-  | { type: 'user'; id: string; text: string; context: ScreenContext | null; app: AppInfo | null; language?: AnswerLanguage }
+  | ({ type: 'user' } & Omit<Extract<ChatMessage, { role: 'user' }>, 'role'>)
   | { type: 'start'; id: string; language?: AnswerLanguage }
   | { type: 'delta'; id: string; text: string }
   | ({ type: 'tool'; id: string } & ToolChipInfo)
@@ -144,6 +179,15 @@ export interface OttyApi {
   respondConfirm(confirmId: string, allow: boolean): Promise<void>
   /** Resolves to the explanation; with a home language it starts with a `中文：…` line. */
   explain(term: string, around: string, language?: AnswerLanguage): Promise<string>
+
+  /** The native open dialog. */
+  pickFiles(): Promise<PendingFile[]>
+  /** Files dropped or pasted onto a window. */
+  dropFiles(files: File[]): Promise<PendingFile[]>
+  /** Reads a picked or dropped file. Resolves with a friendly message when it can't. */
+  readFile(id: string): Promise<AttachResult>
+  /** Forgets a file that won't be sent. */
+  discardFile(id: string): Promise<void>
 
   captureSelection(): Promise<PanelOpenPayload>
   captureScreenshot(): Promise<PanelOpenPayload>

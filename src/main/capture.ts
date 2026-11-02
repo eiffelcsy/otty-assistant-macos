@@ -1,4 +1,4 @@
-import { clipboard, ClipboardItem, nativeImage, systemPreferences } from 'electron'
+import { clipboard, ClipboardItem, nativeImage, systemPreferences, type NativeImage } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { existsSync, unlinkSync } from 'fs'
@@ -13,6 +13,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 const MAX_TEXT = 12_000
 const MAX_IMAGE_SIDE = 1600
+
+/** Downscales a picture to at most 1600px on its long side and encodes it as a JPEG data URL (FR-4.2). */
+export function encodeImage(img: NativeImage): { dataUrl: string; width: number; height: number } {
+  const { width, height } = img.getSize()
+  const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(width, height))
+  if (scale < 1) {
+    img = img.resize({ width: Math.round(width * scale), height: Math.round(height * scale), quality: 'best' })
+  }
+  const size = img.getSize()
+  return { dataUrl: `data:image/jpeg;base64,${img.toJPEG(85).toString('base64')}`, width: size.width, height: size.height }
+}
 
 /** Eagerly copies every format on the clipboard so it survives being overwritten. */
 async function snapshot(): Promise<ClipboardItem[]> {
@@ -95,17 +106,10 @@ export async function captureScreenshot(): Promise<PanelOpenPayload> {
   if (!existsSync(path)) return { context: null }
 
   try {
-    let img = nativeImage.createFromPath(path)
+    const img = nativeImage.createFromPath(path)
     if (img.isEmpty()) return { context: null }
-    const { width, height } = img.getSize()
-    const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(width, height))
-    if (scale < 1) {
-      img = img.resize({ width: Math.round(width * scale), height: Math.round(height * scale), quality: 'best' })
-    }
-    const size = img.getSize()
-    const dataUrl = `data:image/jpeg;base64,${img.toJPEG(85).toString('base64')}`
     const notice = systemPreferences.getMediaAccessStatus('screen') === 'granted' ? undefined : 'needs-screen'
-    return { context: { kind: 'image', dataUrl, width: size.width, height: size.height }, notice }
+    return { context: { kind: 'image', ...encodeImage(img) }, notice }
   } finally {
     try {
       unlinkSync(path)

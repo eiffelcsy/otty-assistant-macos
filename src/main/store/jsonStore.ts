@@ -7,15 +7,18 @@ import type { ChatStore, Thread } from './types'
 // Saved chats as one JSON file of text-only threads. Screen snips are never written to disk.
 
 const MAX_CHATS = 50
-const SNIP_GONE = '(The user shared a screen snip here. It was not kept, so it can no longer be seen.)'
+const SNIP_GONE = '(The user shared a picture here: a screen snip or an image file. It was not kept, so it can no longer be seen.)'
 
 /** A copy of the thread with every picture removed. */
 export function withoutImages(t: Thread): Thread {
   return {
     ...t,
-    messages: t.messages.map((m) =>
-      m.role === 'user' && m.context?.kind === 'image' ? { ...m, context: { ...m.context, dataUrl: '' } } : m
-    ),
+    messages: t.messages.map((m) => {
+      if (m.role !== 'user') return m
+      const files = m.files?.map(({ thumb: _thumb, ...f }) => f)
+      const context = m.context?.kind === 'image' ? { ...m.context, dataUrl: '' } : m.context
+      return { ...m, context, ...(files ? { files } : {}) }
+    }),
     history: t.history.map((m) =>
       m.role === 'user' && Array.isArray(m.content)
         ? { ...m, content: m.content.map((p) => (p.type === 'image_url' ? { type: 'text' as const, text: SNIP_GONE } : p)) }

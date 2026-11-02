@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { OttyApi } from '../shared/types'
 
 function listen<T>(channel: string, cb: (v: T) => void): () => void {
@@ -24,6 +24,11 @@ const api: OttyApi = {
   clearChats: () => ipcRenderer.invoke('chats:clear'),
   respondConfirm: (id, allow) => ipcRenderer.invoke('chat:confirm', id, allow),
   explain: (term, around, language) => ipcRenderer.invoke('chat:explain', term, around, language),
+
+  pickFiles: () => ipcRenderer.invoke('files:pick'),
+  dropFiles: (files) => ipcRenderer.invoke('files:register', files.map((f) => webUtils.getPathForFile(f)).filter(Boolean)),
+  readFile: (id) => ipcRenderer.invoke('files:read', id),
+  discardFile: (id) => ipcRenderer.invoke('files:discard', id),
 
   captureSelection: () => ipcRenderer.invoke('capture:selection'),
   captureScreenshot: () => ipcRenderer.invoke('capture:screenshot'),

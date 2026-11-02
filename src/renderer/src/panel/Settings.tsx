@@ -96,8 +96,8 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
         <label className="toggle">
           <input type="checkbox" checked={form.rememberChats} onChange={(e) => set('rememberChats', e.target.checked)} />
           <span>
-            <b>Remember my chats</b> on this Mac, under Recent chats. Screen snips are never saved. Turning this off
-            forgets saved chats.
+            <b>Remember my chats</b> on this Mac, under Recent chats. This keeps the text Otty read from files you
+            attach, but never the files themselves or any pictures. Turning this off forgets saved chats.
           </span>
         </label>
         {settings.rememberChats && (
