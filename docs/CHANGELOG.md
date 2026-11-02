@@ -6,6 +6,7 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ### Fixes (2026-11-02)
 - **Quick view no longer looks frozen near the bottom of the screen** (#12). The card now always fits its window: when there isn't room, the answer shrinks and scrolls, so the esc / ↵ row stays visible. The card still asks main for the height it would like, so it grows back when there's space.
+## 0.2 — Quick view, saved chats, home language (2026-11-02)
 
 ### Home-language help, 繁體中文（香港） (D-2, 2026-11-01)
 - **"My other language"** in Settings and on the welcome page: English only, or 繁體中文（香港）. Hong Kong and Macau Macs default to it; choosing English only is remembered.
