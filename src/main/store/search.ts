@@ -3,7 +3,8 @@ import type { Thread } from './types'
 
 // Chat search rules shared by every backend:
 // - The query is NFKC-normalised, lower-cased and split on spaces into terms. Quotes ("…", “…”, 「…」) keep a phrase.
-// - A chat matches when every term is a case-insensitive substring of its title, its messages or a text capture.
+// - A chat matches when every term is a case-insensitive substring of its title, its messages, a text capture
+//   or an attached file's name.
 //   Substrings rather than words, because Chinese has no spaces.
 // - Ranking: a title match first, then more matching messages, then the most recently updated.
 // This file is the in-memory implementation, used by the JSON backend.
@@ -57,6 +58,7 @@ function fields(t: Thread): Field[] {
     if (m.role === 'user') {
       add(m.text, m.id)
       if (m.context?.kind === 'text') add(m.context.text, m.id)
+      for (const f of m.files ?? []) add(f.name, m.id)
     } else {
       add(plainText(m.text), m.id)
     }

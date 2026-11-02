@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Attach files (D-6 v1, 2026-11-02)
+- **Ask about files from your Mac:** the paperclip in the composer, dragging files onto the panel, or pasting a file copied in Finder. Up to 5 files per message, 25 MB each. PDFs (read page by page), Word `.docx`, pictures (PNG, JPEG, GIF, WebP, HEIC, TIFF) and text files.
+- Files show as chips with their name, page count or thumbnail, "Reading…" while Otty reads them, and a friendly reason when it can't (scanned PDFs, unsupported types, too big, too many). With files and an empty box, ↵ runs **Summarize**; **Key points** and **Explain simply** are one tap away.
+- Documents are read in a separate utility process (`pdfjs-dist`, `mammoth`), so a big PDF never freezes Otty. Answers cite pages. A message's documents share a budget of about 48K tokens; past it, Otty sends the first part and says so on the message ("Otty read the first 40 of 120 pages") and to the model.
+- Privacy: files are only read, never copied. Saved chats keep the file name and the text Otty read, so a reopened chat can carry on; pictures are never saved. File names are searchable. Settings → Privacy says this plainly (no separate toggle).
+- Not in v1 (in BRAINSTORM): attaching in the quick view, the Finder selection with ⌥Space, scanned PDFs on vision models, local retrieval for big files.
+
 ### Search across chats (D-5, 2026-11-02)
 - **Search box at the top of Recent chats**, and **⌘F** in the panel jumps straight to it. It finds chats by their title, anything said in them and text captures, in English or Chinese (substring matching, so 「打印」 works without spaces). Every word must appear; quotes keep a phrase together.
 - Results show a one-line snippet with the matches highlighted. Clicking one reopens the chat scrolled to the matching message, which glows briefly. Esc clears the search first.

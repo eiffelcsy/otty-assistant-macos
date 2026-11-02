@@ -17,6 +17,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ capture.ts     selection (⌘C trick), snip, frontmost   │
 │ llm.ts         ChatSession: SSE client + tool loop     │
 │ store/         ChatStore: saved chats + search (JSON)  │
+│ files/         attachments; fileWorker.js reads docs   │
 │ tools.ts       search_web, open_url, …                 │
 │ settings.ts    JSON + safeStorage API key              │
 │ permissions.ts macOS TCC checks                        │
@@ -46,9 +47,8 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-3 (intent column), OCR helper; D-2's quick-action ids (shipped) are its intent ids | L (4–6 days) |
 | D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
 | D-4 | CI pipeline (GitHub Actions) | 🔨 | — | S (half a day) |
-| D-6 | Attach files (PDF, Word, images, text) | ⏳ | Shares the capture tray with issue #13; v2 retrieval uses the D-1 encoder | M–L (3–4 days) |
 
-**Suggested build order: D-3 → D-6 → D-1.** D-5 (search, shipped) added the `ChatStore` interface on today's JSON file, so D-3 is "write a second backend and pass the same tests". D-6 is independent of storage; build it together with (or after) issue #13's capture tray. D-2 (home language) has shipped, so D-1's `translate` and `define` intents can target the home language already. D-1 still needs somewhere to keep its predictions and corrections (D-3). D-4 (CI) is running; what's left of it is small and independent.
+**Suggested build order: D-3 → D-1.** D-5 (search, shipped) added the `ChatStore` interface on today's JSON file, so D-3 is "write a second backend and pass the same tests". D-6 (file attachments v1) has shipped; issue #13's capture tray should fold the file chips and the capture into one list (today a message has one capture plus `files`). D-2 (home language) has shipped, so D-1's `translate` and `define` intents can target the home language already. D-1 still needs somewhere to keep its predictions and corrections (D-3). D-4 (CI) is running; what's left of it is small and independent.
 
 ---
 
@@ -210,65 +210,6 @@ else                             → local clarify card (no LLM call): top-3 int
 
 ---
 
-## D-6 · Attach files (PDF, Word, images, text) as context ⏳
-
-Issue: #16.
-
-**Goal.** Users can add files from their Mac (a PDF, a Word document, a photo, a text or CSV file) to a question and ask about what's inside: "summarise this report", "what does clause 4 mean?", "what's in this picture?".
-
-### Adding a file
-
-- **Paperclip button** in the panel composer → the native open dialog (`dialog.showOpenDialog` in main).
-- **Drag and drop** onto the panel or the quick view.
-- **Paste** a file copied in Finder (⌘C on a file puts a file URL on the clipboard).
-- **Finder selection + ⌥Space:** if Finder is frontmost and a file is selected, attach that file instead of copying its name. A small, high-value bonus; can come after v1.
-- Files show in the **same capture tray as issue #13** (multiple captures per message): one chip per item with a type icon (UIcons), the name, the page count and a ✕. While a file is being read, the chip says "Reading…". If #13 hasn't shipped, D-6 builds the tray and #13 later adds "hotkeys add to the tray".
-
-### Supported types (v1)
-
-| Type | How it's read | Notes |
-| --- | --- | --- |
-| PDF | `pdfjs-dist` text extraction, page by page | Page numbers kept, so answers can say "(page 4)". A PDF with no text layer (a scan): send page images to vision models, otherwise say Otty can't read scans yet. OCR via the D-1 `otty-ocr` helper later |
-| Word `.docx` | `mammoth` → plain text with headings | Pure JS, so it builds and tests on any OS. `.doc`, `.rtf` and `.odt` can come later via macOS `textutil` |
-| Images (PNG, JPEG, GIF, WebP, HEIC) | `nativeImage`, downscaled and re-encoded like snips (FR-4.2); HEIC via `sips` | Same "this model can't see pictures" warning as snips |
-| Text (`.txt`, `.md`, `.csv`, `.json`, code) | Read as UTF-8 | Binary or unknown files are turned away politely |
-
-Later: `.xlsx` and `.pptx` (`SheetJS`, PPTX XML), Pages and Keynote (export via AppleScript).
-
-### Reading and sending
-
-- **Parsing runs in main, inside a `utilityProcess`** (`src/main/files/worker.ts`) with no network access, so a big PDF never freezes the app. The renderer only ever gets metadata and a thumbnail, never file paths or bytes it didn't already have.
-- **Limits:** 5 files per message, 25 MB per file, and a check of a `.docx`'s unzipped size (zip bombs). Each limit has friendly copy ("That file is too big for Otty. Try one under 25 MB").
-- **Context budget:** estimate tokens (about 4 characters each for English, about 1 per CJK character) and keep the attached text under a budget, about half of the model's context window (a setting, since providers differ).
-  - **v1: send the whole text** when it fits. When it doesn't, send the first part and **tell the user** ("Otty read the first 40 of 120 pages"), and tell the model too.
-  - **v2: local retrieval** for big files: split into chunks, embed them with the D-1 encoder, and send only the chunks closest to each question. Everything stays on the Mac.
-- **Message shape:** the text goes into the user turn as a labelled block, `[File 1: report.pdf · 12 pages]` then the text with `--- page 3 ---` markers. Images go in as `image_url` parts like snips. `prompts.ts` asks the model to cite pages when it can, and to say when the answer isn't in the file.
-- **Later turns** carry the file text in history, so follow-ups work. Providers with prefix caching (DeepSeek does it automatically) keep the repeated cost low.
-
-### Saving and privacy
-
-- **The original file is never copied.** Otty only reads it.
-- Saved chats keep the attachment's name, type and page count. **The extracted text is saved with the chat** so a reopened chat can carry on (it's deleted with the chat). Pictures are stripped, as for snips: "Picture (not saved)".
-- Open question: should saving document text be a separate privacy toggle ("Remember files I attach")? Leaning to no toggle, but saying it plainly in Settings → Privacy.
-- The file name is searchable through chat search (`store/search.ts`). Searching inside saved file text can come later.
-
-### Code changes
-
-- `src/shared/types.ts`: a `file` variant of `ScreenContext` (`{ kind: 'file'; id; name; mime; size; pages?; text?; truncatedAt?; images? }`), and contexts become a list (shared with #13).
-- `src/main/files/`: `worker.ts`, `pdf.ts`, `docx.ts`, `image.ts`, `text.ts`, `budget.ts` (token estimate and truncation).
-- `src/main/llm.ts`: `userContent()` builds the labelled blocks. `src/main/store/`: strip pictures (`withoutImages`), keep text.
-- `src/main/index.ts`: `files:pick` and `files:read` IPC; Finder-selection attach.
-- Renderer: the tray chips, drag-and-drop on `Panel.tsx` and `Quick.tsx`, the paperclip button, and quick actions for documents (**Summarise**, **Key points**, **Explain simply**).
-- `package.json`: `pdfjs-dist` (Apache-2.0) and `mammoth` (BSD-2). Keep `package-lock.json` in sync.
-- Tests: extraction on small fixture files (a 2-page PDF, a `.docx` with a heading, an empty scanned PDF, a CJK text file) and the budget and truncation rules.
-- `docs/REQUIREMENTS.md`: a new FR for attachments.
-
-**Done when:** dropping a PDF onto the panel and asking "summarise this" gives a summary that cites pages; a `.docx` and a photo both work; a 300-page PDF is cut to the budget with a visible note; a scanned PDF gives a friendly message on a text-only model; reopening the chat lets you ask a follow-up about the file; nothing freezes while a big file is read.
-
-**Risks:** `pdfjs-dist` worker setup inside a `utilityProcess` and asar packaging; token cost of large documents on every follow-up (v2 retrieval fixes it); layout-heavy PDFs (tables, columns) extracting in a jumbled order.
-
----
-
 ## Smoke-test checklist
 
 Run on a Mac before every release. Keep it current: each shipped item adds its checks here.
@@ -300,3 +241,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 26. With a few saved chats, press **⌘F** in the panel → Recent chats opens with the search box focused. Type a word from an answer → matching chats show a snippet with the word highlighted.
 27. Search 「打印」 or another two-character Chinese term → the right chat. Search "platypus" → "No chats mention “platypus”". Esc clears the search; Esc again closes the panel.
 28. Click a search result → the chat opens scrolled to the matching message, which glows briefly. Ask a follow-up → the view follows the new answer.
+29. Panel → paperclip → pick a PDF, a `.docx` and a photo → three chips say "Reading…", then show pages / Word document / a thumbnail. Press ↵ with an empty box → **Summarize** runs, and the answer cites pages like "(page 2)".
+30. Drag a PDF from Finder onto the panel → the "Drop files" veil shows, then a chip. Copy a file in Finder and paste into the box → a chip.
+31. Attach a 300-page PDF and ask about it → the sent message says "Otty read the first … of 300 pages". Attach a scanned PDF, a `.numbers` file and a 30 MB file → each chip explains, kindly, why not. Attach 6 files → a chip says Otty takes up to 5.
+32. Reopen that chat from Recent chats → the file chips are there (no thumbnails), and a follow-up about the file still works. Search the file's name → the chat is found.
+33. While a big PDF is being read, drag the otter and type → nothing freezes.

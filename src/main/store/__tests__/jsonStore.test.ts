@@ -23,8 +23,13 @@ describe('JsonChatStore', () => {
     const file = tmpFile()
     const store = new JsonChatStore(file)
     const [t] = fixtures()
-    t.messages[0] = { ...t.messages[0], context: { kind: 'image', dataUrl: 'data:image/png;base64,AAAA', width: 1, height: 1 } } as never
+    t.messages[0] = {
+      ...t.messages[0],
+      context: { kind: 'image', dataUrl: 'data:image/png;base64,AAAA', width: 1, height: 1 },
+      files: [{ id: 'p', name: 'photo.jpg', kind: 'image', thumb: 'data:image/jpeg;base64,BBBB' }]
+    } as never
     await store.save(t)
+    expect(readFileSync(file, 'utf8')).toContain('photo.jpg')
     expect(readFileSync(file, 'utf8')).not.toContain('base64')
   })
 

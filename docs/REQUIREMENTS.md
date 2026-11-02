@@ -106,6 +106,13 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-10.4 Settings → Privacy: "Remember my chats" (turning it off forgets them all) and **Forget all chats**.
 - FR-10.5 **Search** at the top of Recent chats (⌘F in the panel) finds chats by their title, messages and text captures, in English or Chinese. Every word must appear; quotes keep a phrase. Results show a highlighted snippet, and clicking one reopens the chat at the matching message.
 
+### FR-12 File attachments (P1)
+- FR-12.1 The panel's paperclip button, dragging files onto the panel, or pasting a file copied in Finder attaches up to 5 files (25 MB each) to the next message. Each shows as a chip with its type, name and page count, "Reading…" while it's read, and a friendly reason when it can't be.
+- FR-12.2 Supported: PDF (text by page), Word `.docx`, pictures (PNG, JPEG, GIF, WebP, HEIC, TIFF) and text files (`.txt`, `.md`, `.csv`, `.json`, code). Scanned PDFs, other types, oversized or zip-bomb `.docx` files get a friendly message.
+- FR-12.3 Documents are read in a separate utility process, so the app never freezes. Their text goes into the question as `[File n: name · pages]` blocks with page markers, and answers cite pages. A message's documents share a budget of about 48K tokens; when a file doesn't fit, only the first part is sent and both the user ("Otty read the first 40 of 120 pages") and the model are told.
+- FR-12.4 With files and an empty box, ↵ runs the first file action (**Summarize**, **Key points**, **Explain simply**; for pictures **What is this?**).
+- FR-12.5 The original file is never copied. Saved chats keep the file's name, type and extracted text (so follow-ups work after reopening), never pictures. File names are searchable.
+
 ### FR-11 Later (P2)
 See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language · inserting text back into the source app · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
 
@@ -117,7 +124,7 @@ See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice
 | NFR-2 | First token is under 2 s on a normal connection with thinking off |
 | NFR-3 | Idle CPU is about 0% (CSS animations only, no polling except while dragging) |
 | NFR-4 | Security: `contextIsolation` on, `nodeIntegration` off, sandboxed renderer, a narrow typed preload API, all network calls from the main process |
-| NFR-5 | Privacy: nothing is sent anywhere until the user asks a question. Screenshots are deleted from disk right after encoding and are never saved with chats. App context and chat saving can each be turned off |
+| NFR-5 | Privacy: nothing is sent anywhere until the user asks a question. Screenshots are deleted from disk right after encoding and are never saved with chats; attached files are only read, never copied, and pictures from them are never saved. App context and chat saving can each be turned off |
 | NFR-6 | Accessibility: keyboard usable, 4.5:1 contrast, works in light and dark mode, respects `prefers-reduced-motion` |
 | NFR-7 | Supports macOS 12+ on Apple Silicon and Intel |
 

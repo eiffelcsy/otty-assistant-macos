@@ -1,10 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, ChatEvent, ScreenContext, ToolChipInfo } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, ChatEvent, FileAttachment, ScreenContext, ToolChipInfo } from '../../../shared/types'
 
 export type ToolChip = ToolChipInfo
 
 export type UiMessage =
-  | { id: string; role: 'user'; text: string; context: ScreenContext | null; app: AppInfo | null; language?: AnswerLanguage }
+  | {
+      id: string
+      role: 'user'
+      text: string
+      context: ScreenContext | null
+      app: AppInfo | null
+      language?: AnswerLanguage
+      files?: FileAttachment[]
+    }
   | {
       id: string
       role: 'assistant'
@@ -48,7 +56,8 @@ export function useChat(onReset?: () => void) {
           return
         }
         if (e.type === 'user') {
-          setMessages((ms) => [...ms, { id: e.id, role: 'user', text: e.text, context: e.context, app: e.app, language: e.language }])
+          const { type: _type, ...user } = e
+          setMessages((ms) => [...ms, { ...user, role: 'user' }])
           setFocusId(null)
           setBusy(true)
           currentId.current = null
