@@ -4,6 +4,8 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+## 0.3 — Search across chats, attach files (2026-11-02)
+
 ### Attach files (D-6 v1, 2026-11-02)
 - **Ask about files from your Mac:** the paperclip in the composer, dragging files onto the panel, or pasting a file copied in Finder. Up to 5 files per message, 25 MB each. PDFs (read page by page), Word `.docx`, pictures (PNG, JPEG, GIF, WebP, HEIC, TIFF) and text files.
 - Files show as chips with their name, page count or thumbnail, "Reading…" while Otty reads them, and a friendly reason when it can't (scanned PDFs, unsupported types, too big, too many). With files and an empty box, ↵ runs **Summarize**; **Key points** and **Explain simply** are one tap away.
