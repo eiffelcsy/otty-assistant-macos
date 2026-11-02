@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, ChatEvent, ChatMessage, ScreenContext, SendOptions } from '../shared/types'
-import { getChat, saveChat, type Thread } from './chats'
+import { chatStore, type Thread } from './store'
 import { getApiKey, getStored } from './settings'
 import { languageBlock, languageReminder, resolveLanguage, withReminder } from './language'
 import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
@@ -147,12 +147,12 @@ export class ChatSession {
   }
 
   /** Reopens a saved chat and shows it. Returns false if it no longer exists. */
-  open(id: string): boolean {
-    const saved = getChat(id)
+  async open(id: string, focusMessageId?: string): Promise<boolean> {
+    const saved = await chatStore().get(id)
     if (!saved) return false
     this.stop()
     this.thread = structuredClone(saved)
-    this.emit({ type: 'load', messages: this.thread.messages })
+    this.emit({ type: 'load', messages: this.thread.messages, focusMessageId })
     return true
   }
 
@@ -294,11 +294,7 @@ export class ChatSession {
     } finally {
       if (this.abort === abort) this.abort = null
       thread.updatedAt = Date.now()
-      try {
-        saveChat(thread)
-      } catch (err) {
-        console.error('Could not save chat', err)
-      }
+      if (getStored().rememberChats) chatStore().save(thread).catch((err) => console.error('Could not save chat', err))
     }
   }
 

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import type { ChatSummary } from '../../../shared/types'
+import { useEffect, useRef, useState } from 'react'
+import type { ChatSearchHit, ChatSummary } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 
@@ -15,13 +15,49 @@ function ago(t: number): string {
   return new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
 }
 
-/** Saved chats, newest first. Opening one swaps it into the chat view. */
-export function History({ onOpen }: { onOpen: () => void }) {
+/** The snippet with its matches wrapped in <mark>. */
+function Snippet({ snippet }: { snippet: ChatSearchHit['snippet'] }) {
+  const parts: React.ReactNode[] = []
+  let at = 0
+  snippet.ranges.forEach(([s, e], i) => {
+    parts.push(snippet.text.slice(at, s), <mark key={i}>{snippet.text.slice(s, e)}</mark>)
+    at = e
+  })
+  parts.push(snippet.text.slice(at))
+  return <span className="history__snippet">{parts}</span>
+}
+
+/** Saved chats, newest first, with a search box. Opening one swaps it into the chat view. */
+export function History({ onOpen, focusSearch }: { onOpen: () => void; focusSearch: number }) {
   const [chats, setChats] = useState<ChatSummary[] | null>(null)
+  const [query, setQuery] = useState('')
+  const [hits, setHits] = useState<ChatSearchHit[] | null>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const latest = useRef(0)
 
   useEffect(() => {
     window.otty.listChats().then(setChats)
   }, [])
+
+  useEffect(() => {
+    searchRef.current?.focus()
+  }, [focusSearch, chats !== null])
+
+  // Search as you type; an answer to an older keystroke is dropped.
+  useEffect(() => {
+    const id = ++latest.current
+    if (!query.trim()) return setHits(null)
+    const timer = setTimeout(async () => {
+      const found = await window.otty.searchChats(query)
+      if (id === latest.current) setHits(found)
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  const open = async (id: string, messageId?: string) => {
+    await window.otty.openChat(id, messageId)
+    onOpen()
+  }
 
   if (!chats) return <div className="history" />
 
@@ -37,36 +73,70 @@ export function History({ onOpen }: { onOpen: () => void }) {
     )
   }
 
+  const searching = query.trim() !== ''
+
   return (
     <div className="history">
-      {chats.map((c) => (
-        <div key={c.id} className="history__item">
-          <button
-            className="history__open"
-            onClick={async () => {
-              await window.otty.openChat(c.id)
-              onOpen()
-            }}
-          >
-            <span className="history__title">{c.title}</span>
-            <span className="history__meta">
-              {c.app && <>{c.app} · </>}
-              {ago(c.updatedAt)}
-            </span>
-          </button>
-          <button
-            className="icon-btn history__delete"
-            title="Forget this chat"
-            onClick={async () => {
-              await window.otty.deleteChat(c.id)
-              setChats((cs) => cs!.filter((x) => x.id !== c.id))
-            }}
-          >
-            <Icon name="trash" />
-          </button>
-        </div>
-      ))}
-      <p className="hint history__note">Otty keeps your last 50 chats on this Mac. Screen snips are never saved.</p>
+      <label className="history__search">
+        <Icon name="search" />
+        <input
+          ref={searchRef}
+          type="search"
+          placeholder="Search your chats"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && query) {
+              e.stopPropagation() // the first Esc only clears the search
+              setQuery('')
+            }
+          }}
+        />
+      </label>
+
+      {searching ? (
+        hits?.length === 0 ? (
+          <p className="hint history__none">No chats mention “{query.trim()}”</p>
+        ) : (
+          hits?.map((h) => (
+            <div key={h.chatId} className="history__item">
+              <button className="history__open" onClick={() => open(h.chatId, h.messageId)}>
+                <span className="history__title">{h.title}</span>
+                {h.snippet.text && <Snippet snippet={h.snippet} />}
+                <span className="history__meta">
+                  {h.app && <>{h.app} · </>}
+                  {ago(h.updatedAt)}
+                </span>
+              </button>
+            </div>
+          ))
+        )
+      ) : (
+        <>
+          {chats.map((c) => (
+            <div key={c.id} className="history__item">
+              <button className="history__open" onClick={() => open(c.id)}>
+                <span className="history__title">{c.title}</span>
+                <span className="history__meta">
+                  {c.app && <>{c.app} · </>}
+                  {ago(c.updatedAt)}
+                </span>
+              </button>
+              <button
+                className="icon-btn history__delete"
+                title="Forget this chat"
+                onClick={async () => {
+                  await window.otty.deleteChat(c.id)
+                  setChats((cs) => cs!.filter((x) => x.id !== c.id))
+                }}
+              >
+                <Icon name="trash" />
+              </button>
+            </div>
+          ))}
+          <p className="hint history__note">Otty keeps your last 50 chats on this Mac. Screen snips are never saved.</p>
+        </>
+      )}
     </div>
   )
 }

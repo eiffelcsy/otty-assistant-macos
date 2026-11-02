@@ -104,6 +104,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-10.2 **Recent chats** (clock button in the panel header) lists the last 50 chats with title, app and age. Clicking one reopens it and the conversation can continue. Each can be forgotten.
 - FR-10.3 Only text is saved (`userData/chats.json`, mode 600). Screen snips are replaced by a "not saved" placeholder.
 - FR-10.4 Settings → Privacy: "Remember my chats" (turning it off forgets them all) and **Forget all chats**.
+- FR-10.5 **Search** at the top of Recent chats (⌘F in the panel) finds chats by their title, messages and text captures, in English or Chinese. Every word must appear; quotes keep a phrase. Results show a highlighted snippet, and clicking one reopens the chat at the matching message.
 
 ### FR-11 Later (P2)
 See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language · inserting text back into the source app · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.

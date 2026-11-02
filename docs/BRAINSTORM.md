@@ -102,9 +102,10 @@ Language users: **bilingual / multilingual people who work in English** and some
 | --- | --- | --- | --- |
 | Saved chats with Recent chats | H | M | shipped (JSON) |
 | SQLite storage, retention setting | H | M | → D-3 |
-| Search across chats, the same contract on JSON, SQLite or an online database | H | M | → D-5 (#15) |
+| Search across chats, the same contract on JSON, SQLite or an online database | H | M | shipped (D-5, JSON) |
 | Search filters: by app ("chats from Excel"), by date, with/without files | M | S | idea, after D-5 |
 | Semantic search ("that chat about my visa") with the D-1 encoder's embeddings | M | M | idea, after D-1 + D-5 |
+| Search results: forget a chat from the results list, "show more" past 20 hits, ↑/↓ + ↵ to open | L | S | idea |
 | Pin a chat / pin the panel open | M | S | idea |
 | Export a chat (Markdown / PDF) | L | S | idea |
 | Optional encrypted iCloud sync between Macs | M | L | idea |

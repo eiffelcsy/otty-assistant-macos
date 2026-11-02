@@ -11,7 +11,7 @@ import type {
 } from '../shared/types'
 import * as settings from './settings'
 import { captureScreenshot, captureSelection, frontmostApp } from './capture'
-import * as chats from './chats'
+import { chatStore } from './store'
 import { getPermissions, openPermissionSettings } from './permissions'
 import { ChatSession, explainTerm, testConnection } from './llm'
 import { trayIcon } from './trayIcon'
@@ -152,7 +152,7 @@ function refreshTray(): void {
 
 function applySettings(u: SettingsUpdate) {
   const result = settings.update(u)
-  if (u.rememberChats === false) chats.clearChats()
+  if (u.rememberChats === false) void chatStore().clear()
   if (u.askHotkey !== undefined || u.snapHotkey !== undefined) registerHotkeys()
   if (u.showBubble !== undefined) {
     const b = getBubble()
@@ -179,14 +179,15 @@ function registerIpc(): void {
   )
   ipcMain.handle('chat:stop', () => chat.stop())
   ipcMain.handle('chat:reset', () => resetChat())
-  ipcMain.handle('chats:list', () => chats.listChats())
-  ipcMain.handle('chats:open', (_e, id: string) => chat.open(id))
-  ipcMain.handle('chats:delete', (_e, id: string) => {
-    chats.deleteChat(id)
+  ipcMain.handle('chats:list', () => chatStore().list())
+  ipcMain.handle('chats:open', (_e, id: string, focusMessageId?: string) => chat.open(id, focusMessageId))
+  ipcMain.handle('chats:search', (_e, q: string) => chatStore().search(String(q).slice(0, 200)))
+  ipcMain.handle('chats:delete', async (_e, id: string) => {
+    await chatStore().delete(id)
     if (chat.threadId === id) resetChat()
   })
-  ipcMain.handle('chats:clear', () => {
-    chats.clearChats()
+  ipcMain.handle('chats:clear', async () => {
+    await chatStore().clear()
     resetChat()
   })
   ipcMain.handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))

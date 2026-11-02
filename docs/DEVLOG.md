@@ -16,7 +16,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ windows.ts     bubble · quick view · panel windows     │
 │ capture.ts     selection (⌘C trick), snip, frontmost   │
 │ llm.ts         ChatSession: SSE client + tool loop     │
-│ chats.ts       saved chat threads (JSON for now)       │
+│ store/         ChatStore: saved chats + search (JSON)  │
 │ tools.ts       search_web, open_url, …                 │
 │ settings.ts    JSON + safeStorage API key              │
 │ permissions.ts macOS TCC checks                        │
@@ -46,10 +46,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-3 (intent column), OCR helper; D-2's quick-action ids (shipped) are its intent ids | L (4–6 days) |
 | D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
 | D-4 | CI pipeline (GitHub Actions) | 🔨 | — | S (half a day) |
-| D-5 | Search across chats (storage-agnostic) | ⏳ | — (JSON first); D-3 adds the SQLite backend | M (1–2 days) |
 | D-6 | Attach files (PDF, Word, images, text) | ⏳ | Shares the capture tray with issue #13; v2 retrieval uses the D-1 encoder | M–L (3–4 days) |
 
-**Suggested build order: D-5 → D-3 → D-6 → D-1.** D-5 introduces the `ChatStore` interface on today's JSON file, so D-3 becomes "write a second backend and pass the same tests". D-6 is independent of storage; build it together with (or after) issue #13's capture tray. D-2 (home language) has shipped, so D-1's `translate` and `define` intents can target the home language already. D-1 still needs somewhere to keep its predictions and corrections (D-3). D-4 (CI) is running; what's left of it is small and independent.
+**Suggested build order: D-3 → D-6 → D-1.** D-5 (search, shipped) added the `ChatStore` interface on today's JSON file, so D-3 is "write a second backend and pass the same tests". D-6 is independent of storage; build it together with (or after) issue #13's capture tray. D-2 (home language) has shipped, so D-1's `translate` and `define` intents can target the home language already. D-1 still needs somewhere to keep its predictions and corrections (D-3). D-4 (CI) is running; what's left of it is small and independent.
 
 ---
 
@@ -134,7 +133,7 @@ else                             → local clarify card (no LLM call): top-3 int
 
 **Goal.** Replace `chats.json`, which is rewritten in full on every save, with a real local database. It should allow incremental writes, search, and room for new tables such as intent feedback.
 
-- **Builds on D-5's `ChatStore` interface:** this is a second backend (`src/main/store/sqliteStore.ts`), not a rewrite of the callers.
+- **Builds on the `ChatStore` interface** (`src/main/store/types.ts`, shipped with search): this is a second backend (`src/main/store/sqliteStore.ts`) picked in `store/index.ts`, not a rewrite of the callers.
 - **Engine:** Node's built-in **`node:sqlite`** (`DatabaseSync`). Verified on 2026-11-01 under Electron 45.2.1 / Node 24.22.1: SQLite 3.53.4, with FTS5 and the `trigram` tokenizer available. No native module or rebuild step is needed. Wrap it behind a small `ChatStore` interface so `better-sqlite3` could replace it if `node:sqlite`'s API changes.
 - **File:** `userData/otty.db`, mode 600, `journal_mode=WAL`, `foreign_keys=ON`. Migrations are keyed on `PRAGMA user_version`.
 - **Schema v1**
@@ -163,10 +162,10 @@ else                             → local clarify card (no LLM call): top-3 int
   - Insert the user message as soon as it's sent, so a crash mid-answer keeps the question.
   - At the end of the turn, upsert the assistant message and replace that chat's `llm_history` rows, in one transaction.
   - Writes are sub-millisecond, so they can stay synchronous on main. Revisit only if profiling says otherwise.
-- **`chats.ts` becomes the store**, with `createChat`, `appendMessage`, `finishTurn`, `listChats(query?)`, `getChat`, `deleteChat`, `clearChats`. `ChatSession` calls those instead of `saveChat(thread)`.
+- **The interface grows incremental writes:** `save(thread)` splits into `appendMessage` and `finishTurn` (the JSON backend can keep rewriting the file). `ChatSession` calls those instead of `save(thread)`.
 - **Migration:** on first launch, if `chats.json` exists, import it in one transaction, then rename it to `chats.json.imported`.
 - **New UX it enables:**
-  - Faster search in Recent chats: D-3 implements D-5's `ChatStore.search` with FTS5 (trigram works for Chinese, which has no spaces) and must pass D-5's search conformance suite.
+  - Faster search in Recent chats: `ChatStore.search` with FTS5 `trigram`, `snippet()` and `bm25()` blended with recency. Trigram needs 3+ characters per term, and many Chinese searches are 2 characters (電腦, 打印), so a shorter term falls back to `LIKE '%…%'`. The query rules are in `store/search.ts`; the backend is done when `searchContract('sqlite', …)` from `store/__tests__/search.contract.ts` passes.
   - A retention setting ("Keep chats: 30 days / 1 year / forever") that replaces the hard cap of 50.
 - **Privacy unchanged:** no pixels are stored, and "Forget all chats" runs `delete` plus `VACUUM`.
 
@@ -211,77 +210,6 @@ else                             → local clarify card (no LLM call): top-3 int
 
 ---
 
-## D-5 · Search across chats (storage-agnostic) ⏳
-
-Issue: #15.
-
-**Goal.** A search box in Recent chats that finds any earlier chat by what was said in it, in English or Chinese. It works on today's `chats.json`, keeps working unchanged when D-3 swaps in SQLite, and could later run against an online database.
-
-### One contract, many backends
-
-- **A `ChatStore` interface** (`src/main/store/types.ts`) that `ChatSession` and the IPC handlers talk to, instead of importing `chats.ts` functions directly. D-3 already plans this interface; D-5 defines it first and adds search to it:
-
-  ```ts
-  interface ChatStore {
-    list(opts?: { limit?: number }): Promise<ChatSummary[]>
-    get(id: string): Promise<Thread | undefined>
-    save(t: Thread): Promise<void>        // D-3 splits this into appendMessage / finishTurn
-    delete(id: string): Promise<void>
-    clear(): Promise<void>
-    search(q: string, opts?: { limit?: number }): Promise<ChatSearchHit[]>
-  }
-  ```
-
-  - **Async on purpose**, even though JSON and `node:sqlite` are synchronous, so a network backend fits without changing callers.
-  - Backends: `jsonStore.ts` (today), `sqliteStore.ts` (D-3), and later a remote one. `store/index.ts` picks one at startup.
-- **Backend-neutral query semantics**, written down so every backend agrees:
-  - The query is normalised (NFKC, lower-case, trimmed, whitespace collapsed) and split on spaces into terms. Quotes keep a phrase together.
-  - A chat matches when **every term** appears as a **case-insensitive substring** somewhere in it (AND). Substring rather than words, because Chinese has no spaces.
-  - Searched: the chat title, user and assistant message text, and text captures. Not searched: tool JSON, hidden prompts, the `[I'm using …]` note, app names (a later filter).
-  - Ranking: a title match first, then more matching messages, then most recently updated. Backends may break ties differently.
-- **Backend-neutral result**, so the renderer never sees SQL or backend details:
-
-  ```ts
-  interface ChatSearchHit {
-    chatId: string; title: string; app?: string; updatedAt: number
-    messageId?: string                         // the best-matching message, to scroll to
-    snippet: { text: string; ranges: [number, number][] }   // ~120 chars around the match
-  }
-  ```
-
-  `ranges` are offsets into `snippet.text`. The renderer wraps them in `<mark>` itself, so a backend never returns HTML.
-
-### Backends
-
-- **JSON (ships first):** a linear scan over the cached threads. With 50 chats (or a few thousand after D-3's retention setting) this takes well under 10 ms. Build snippets in TypeScript.
-- **SQLite (D-3):** FTS5 with the `trigram` tokenizer, `snippet()` and `bm25()`, blended with recency. Trigram needs 3+ characters per term, and many Chinese searches are 2 characters (電腦, 打印), so a shorter term falls back to `LIKE '%…%'` on `messages.text`. Same result shape.
-- **Remote (future):** Postgres `ILIKE` with `pg_trgm`, or the provider's own full-text search. Search runs on the server and returns `ChatSearchHit`s.
-- **One conformance test suite** (`src/main/store/__tests__/search.contract.ts`): the same fixture chats and expected hits (English, Traditional Chinese, 1–2 character Chinese terms, mixed case, quoted phrases, no match) run against every backend. A new backend is done when it passes.
-
-### UX (`History.tsx`)
-
-- A search field at the top of Recent chats: magnifier icon, placeholder "Search your chats". It shows only when there are saved chats.
-- Results update as you type (150 ms debounce). A request id drops answers to older keystrokes.
-- Each result shows the title, the app and its age, and a one-line snippet with the matches highlighted.
-- Clicking a result opens the chat, scrolls to the matching message and briefly highlights it (the `load` event gains an optional `focusMessageId`).
-- Empty state: "No chats mention “…”". Esc clears the search; a second Esc closes the list as today.
-- ⌘F in the panel opens Recent chats with the search field focused.
-
-### Code changes
-
-- `src/shared/types.ts`: `ChatSearchHit`; `searchChats(q)` on the preload API; `focusMessageId?` on the `load` event.
-- `src/main/store/`: `types.ts`, `jsonStore.ts` (today's `chats.ts` logic moves here), `search.ts` (normalising, term matching and snippets, shared by the JSON and any in-memory backend), `index.ts`.
-- `src/main/llm.ts`, `src/main/index.ts`: use the store; add the `chats:search` IPC handler.
-- `History.tsx` and `styles.css`: the search field, result rows and `<mark>` style, using existing tokens.
-- `docs/REQUIREMENTS.md`: FR-10.5 for search.
-- `tools/ui-preview`: a `scene=history` with mock search results.
-
-**Done when:** searching "otter" and 「打印」 both find the right chats on the JSON backend; the conformance suite passes on JSON (and on SQLite once D-3 lands); clicking a hit scrolls to the message; with "Remember my chats" off there is no search field.
-
-**Risks:** keeping two backends' ranking roughly alike (the suite checks which chats match, not their exact order); trigram's 3-character floor for Chinese (handled by the `LIKE` fallback).
-
----
-
 ## D-6 · Attach files (PDF, Word, images, text) as context ⏳
 
 Issue: #16.
@@ -322,13 +250,13 @@ Later: `.xlsx` and `.pptx` (`SheetJS`, PPTX XML), Pages and Keynote (export via 
 - **The original file is never copied.** Otty only reads it.
 - Saved chats keep the attachment's name, type and page count. **The extracted text is saved with the chat** so a reopened chat can carry on (it's deleted with the chat). Pictures are stripped, as for snips: "Picture (not saved)".
 - Open question: should saving document text be a separate privacy toggle ("Remember files I attach")? Leaning to no toggle, but saying it plainly in Settings → Privacy.
-- The file name is searchable through D-5. Searching inside saved file text can come later.
+- The file name is searchable through chat search (`store/search.ts`). Searching inside saved file text can come later.
 
 ### Code changes
 
 - `src/shared/types.ts`: a `file` variant of `ScreenContext` (`{ kind: 'file'; id; name; mime; size; pages?; text?; truncatedAt?; images? }`), and contexts become a list (shared with #13).
 - `src/main/files/`: `worker.ts`, `pdf.ts`, `docx.ts`, `image.ts`, `text.ts`, `budget.ts` (token estimate and truncation).
-- `src/main/llm.ts`: `userContent()` builds the labelled blocks. `src/main/chats.ts` (or D-5's store): strip pictures, keep text.
+- `src/main/llm.ts`: `userContent()` builds the labelled blocks. `src/main/store/`: strip pictures (`withoutImages`), keep text.
 - `src/main/index.ts`: `files:pick` and `files:read` IPC; Finder-selection attach.
 - Renderer: the tray chips, drag-and-drop on `Panel.tsx` and `Quick.tsx`, the paperclip button, and quick actions for documents (**Summarise**, **Key points**, **Explain simply**).
 - `package.json`: `pdfjs-dist` (Apache-2.0) and `mammoth` (BSD-2). Keep `package-lock.json` in sync.
@@ -369,3 +297,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 22. On the latest English answer press **In 中文** → the same answer in Chinese. Reopen the chat from Recent chats → the button still works.
 23. Ask "How do I save this as a PDF?" in Chinese → 「File」「Print」 stay in English with translations, and it says 打印, not 列印.
 24. Highlight a single English word → ↵ → "What does it mean?" with a 中文 line. Open an explain term → the card shows the 中文 line; its EN / 中文 toggle switches the explanation.
+26. With a few saved chats, press **⌘F** in the panel → Recent chats opens with the search box focused. Type a word from an answer → matching chats show a snippet with the word highlighted.
+27. Search 「打印」 or another two-character Chinese term → the right chat. Search "platypus" → "No chats mention “platypus”". Esc clears the search; Esc again closes the panel.
+28. Click a search result → the chat opens scrolled to the matching message, which glows briefly. Ask a follow-up → the view follows the new answer.

@@ -92,11 +92,23 @@ export interface ChatSummary {
   updatedAt: number
 }
 
+/** A chat found by a search. Backends return plain text; the renderer marks `ranges` itself. */
+export interface ChatSearchHit {
+  chatId: string
+  title: string
+  app?: string
+  updatedAt: number
+  /** The best-matching message, to scroll to. Absent when only the title matched. */
+  messageId?: string
+  /** About 120 characters around the match. `ranges` are [start, end) offsets into `text`. */
+  snippet: { text: string; ranges: [number, number][] }
+}
+
 /** Events streamed from main to the panel and quick view. Both windows render the conversation from these. */
 export type ChatEvent =
   | { type: 'reset' }
   /** A saved chat was reopened: replace everything shown with these messages. */
-  | { type: 'load'; messages: ChatMessage[] }
+  | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string }
   | { type: 'user'; id: string; text: string; context: ScreenContext | null; app: AppInfo | null; language?: AnswerLanguage }
   | { type: 'start'; id: string; language?: AnswerLanguage }
   | { type: 'delta'; id: string; text: string }
@@ -124,7 +136,9 @@ export interface OttyApi {
   stop(): Promise<void>
   resetChat(): Promise<void>
   listChats(): Promise<ChatSummary[]>
-  openChat(id: string): Promise<void>
+  /** Reopens a chat; `focusMessageId` scrolls to (and briefly highlights) that message. */
+  openChat(id: string, focusMessageId?: string): Promise<void>
+  searchChats(q: string): Promise<ChatSearchHit[]>
   deleteChat(id: string): Promise<void>
   clearChats(): Promise<void>
   respondConfirm(confirmId: string, allow: boolean): Promise<void>

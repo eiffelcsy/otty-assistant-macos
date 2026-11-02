@@ -33,7 +33,8 @@ export function Panel() {
   const [context, setContext] = useState<ScreenContext | null>(null)
   const [app, setApp] = useState<AppInfo | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const { messages, busy, setBusy, waitingFirstToken } = useChat(() => {
+  const [searchFocus, setSearchFocus] = useState(0)
+  const { messages, busy, setBusy, waitingFirstToken, focusId } = useChat(() => {
     setContext(null)
     setApp(null)
     setNotice(null)
@@ -43,6 +44,8 @@ export function Panel() {
   const [pick, setPick] = useState<AnswerLanguage | undefined>()
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
 
   useEffect(() => {
     window.otty.getSettings().then((s) => {
@@ -67,14 +70,23 @@ export function Panel() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !document.querySelector('.explain-card')) window.otty.closePanel()
+      // ⌘F: Recent chats, with the search box focused.
+      if (e.key === 'f' && e.metaKey && settingsRef.current?.rememberChats && settingsRef.current.onboarded) {
+        e.preventDefault()
+        setView('history')
+        setSearchFocus((n) => n + 1)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Follow the conversation, unless a search result asked to show one message.
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages])
+    const found = focusId && scrollRef.current?.querySelector(`[data-msg-id="${CSS.escape(focusId)}"]`)
+    if (found) found.scrollIntoView({ block: 'center' })
+    else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+  }, [messages, focusId, view])
 
   const actions = context && settings ? actionsFor(context, settings.homeLanguage) : []
 
@@ -159,20 +171,25 @@ export function Panel() {
           {view === 'settings' ? (
             <Settings settings={settings} onSaved={setSettings} />
           ) : view === 'history' ? (
-            <History onOpen={() => setView('chat')} />
+            <History onOpen={() => setView('chat')} focusSearch={searchFocus} />
           ) : (
             <>
               <div className="chat" ref={scrollRef}>
                 {messages.length === 0 && <EmptyState settings={settings} onSnip={snip} />}
                 {messages.map((m) =>
                   m.role === 'user' ? (
-                    <div key={m.id} className="msg msg--user">
+                    <div key={m.id} className={`msg msg--user${m.id === focusId ? ' msg--found' : ''}`} data-msg-id={m.id}>
                       {m.app && <AppTag app={m.app} />}
                       {m.context && <ContextPreview ctx={m.context} />}
                       <div className="msg__bubble">{m.text}</div>
                     </div>
                   ) : (
-                    <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} />
+                    <AssistantMessage
+                      key={m.id}
+                      m={m}
+                      again={again?.id === m.id ? again.offer : undefined}
+                      found={m.id === focusId}
+                    />
                   )
                 )}
                 {waitingFirstToken && (
