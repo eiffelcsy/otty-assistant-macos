@@ -12,6 +12,7 @@ import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
 import { History } from './History'
 import { AppTag, AssistantMessage, ContextPreview } from './Messages'
+import { FindBar } from './FindBar'
 import { Onboarding } from './Onboarding'
 import { Settings } from './Settings'
 
@@ -36,6 +37,10 @@ export function Panel() {
   const [app, setApp] = useState<AppInfo | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [searchFocus, setSearchFocus] = useState(0)
+  /** Find in this chat: null when the bar is closed, otherwise bumped to refocus it. */
+  const [finding, setFinding] = useState<number | null>(null)
+  const findingRef = useRef(finding)
+  findingRef.current = finding
   const { messages, busy, setBusy, waitingFirstToken, focusId } = useChat(() => {
     setContext(null)
     setApp(null)
@@ -51,6 +56,8 @@ export function Panel() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef(settings)
   settingsRef.current = settings
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
 
   useEffect(() => {
     window.otty.getSettings().then((s) => {
@@ -74,9 +81,18 @@ export function Panel() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !document.querySelector('.explain-card')) window.otty.closePanel()
-      // ⌘F: Recent chats, with the search box focused.
-      if (e.key === 'f' && e.metaKey && settingsRef.current?.rememberChats && settingsRef.current.onboarded) {
+      if (e.key === 'Escape' && !document.querySelector('.explain-card')) {
+        // The first Esc only closes the find bar.
+        if (findingRef.current !== null) setFinding(null)
+        else window.otty.closePanel()
+      }
+      if (e.key.toLowerCase() !== 'f' || !e.metaKey || !settingsRef.current?.onboarded) return
+      // ⌘F in a chat: find in it. ⇧⌘F, or ⌘F with nothing to find: Recent chats, with the search box focused.
+      const inChat = document.querySelector('.chat') && messagesRef.current.length > 0
+      if (inChat && !e.shiftKey) {
+        e.preventDefault()
+        setFinding((n) => (n ?? 0) + 1)
+      } else if (settingsRef.current.rememberChats) {
         e.preventDefault()
         setView('history')
         setSearchFocus((n) => n + 1)
@@ -86,8 +102,14 @@ export function Panel() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  // Follow the conversation, unless a search result asked to show one message.
+  // A new chat, or leaving the chat view, closes the find bar.
   useEffect(() => {
+    if (view !== 'chat' || messages.length === 0) setFinding(null)
+  }, [view, messages.length])
+
+  // Follow the conversation, unless a search result asked to show one message or the find bar is open.
+  useEffect(() => {
+    if (findingRef.current !== null) return
     const found = focusId && scrollRef.current?.querySelector(`[data-msg-id="${CSS.escape(focusId)}"]`)
     if (found) found.scrollIntoView({ block: 'center' })
     else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -193,6 +215,15 @@ export function Panel() {
                 </button>
               )}
               {view === 'chat' && messages.length > 0 && (
+                <button
+                  className="icon-btn"
+                  title="Find in this chat (⌘F)"
+                  onClick={() => setFinding((n) => (n === null ? 1 : null))}
+                >
+                  <Icon name="search" />
+                </button>
+              )}
+              {view === 'chat' && messages.length > 0 && (
                 <button className="icon-btn" title="New chat" onClick={newChat}>
                   <Icon name="comment-medical" />
                 </button>
@@ -216,6 +247,9 @@ export function Panel() {
             <History onOpen={() => setView('chat')} focusSearch={searchFocus} />
           ) : (
             <>
+              {finding !== null && (
+                <FindBar chat={scrollRef} messages={messages} focus={finding} onClose={() => setFinding(null)} />
+              )}
               <div className="chat" ref={scrollRef}>
                 {messages.length === 0 && <EmptyState settings={settings} onSnip={snip} />}
                 {messages.map((m) =>

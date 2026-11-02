@@ -4,7 +4,12 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
-## 0.3 — Search across chats, attach files (2026-11-02)
+## 0.3 — Find in and across chats, attach files (2026-11-02)
+
+### Find in this chat (D-7, 2026-11-02)
+- **⌘F in a chat** (or the new search button in the header) opens a find bar above the conversation. It highlights every match, says "2 of 5", and steps with ↵ / ⇧↵ or the arrows. Explain terms are searched too, buttons aren't. Esc closes the bar first.
+- Same matching rules as chat search (English or Chinese, quotes keep a phrase), now shared from `src/shared/match.ts`. Highlights use the CSS Custom Highlight API, so answers keep streaming while the bar is open, and the view stays on the current match.
+- **Search across chats moved to ⇧⌘F.** ⌘F still opens it when no chat is open.
 
 ### Attach files (D-6 v1, 2026-11-02)
 - **Ask about files from your Mac:** the paperclip in the composer, dragging files onto the panel, or pasting a file copied in Finder. Up to 5 files per message, 25 MB each. PDFs (read page by page), Word `.docx`, pictures (PNG, JPEG, GIF, WebP, HEIC, TIFF) and text files.

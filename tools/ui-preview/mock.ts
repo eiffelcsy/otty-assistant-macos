@@ -11,7 +11,7 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick  ?scene=chat|empty|compose|settings|history  ?home=none
+// ?view=panel|quick  ?scene=chat|empty|compose|settings|history|find  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -158,13 +158,14 @@ const api: OttyApi = {
   bubbleDrag: () => {},
   onChatEvent: (cb) => {
     chatCb = cb
-    if (scene === 'chat' || scene === 'compose') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
+    if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}
   },
   onPanelOpen: (cb) => {
     openCb = cb
     if (scene === 'compose' || scene === 'empty-compose') setTimeout(() => cb({ context: highlighted, app }), 80)
     if (scene === 'settings') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)
     if (scene === 'history') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 120)
     return () => {}
   },
