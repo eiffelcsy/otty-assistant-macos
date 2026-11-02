@@ -28,6 +28,7 @@ export function Quick() {
   const cardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const answerRef = useRef<HTMLDivElement>(null)
+  const answerBodyRef = useRef<HTMLDivElement>(null)
 
   useEffect(
     () =>
@@ -85,16 +86,25 @@ export function Quick() {
     return () => mo.disconnect()
   }, [])
 
-  // Tell main how tall we are; main reveals the window on the first report after opening.
+  // Tell main how tall we'd like to be; main reveals the window on the first report after opening.
+  // The card is capped to the window, so a squeezed answer reports the height it wants, not the one it got.
   useLayoutEffect(() => {
     const card = cardRef.current
     if (!card) return
-    const report = () => window.otty.quickResize(Math.ceil(Math.max(card.offsetHeight, popover ? POPOVER_ROOM : 0)) + MARGIN * 2)
+    const report = () => {
+      const answer = answerRef.current
+      const body = answerBodyRef.current
+      const squeezed =
+        answer && body ? Math.min(body.offsetHeight, parseFloat(getComputedStyle(answer).maxHeight)) - answer.clientHeight : 0
+      const wanted = card.offsetHeight + Math.max(0, squeezed)
+      window.otty.quickResize(Math.ceil(Math.max(wanted, popover ? POPOVER_ROOM : 0)) + MARGIN * 2)
+    }
     report()
     const ro = new ResizeObserver(report)
     ro.observe(card)
+    if (answerBodyRef.current) ro.observe(answerBodyRef.current)
     return () => ro.disconnect()
-  }, [popover, opened])
+  }, [popover, opened, asked])
 
   useEffect(() => {
     answerRef.current?.scrollTo({ top: answerRef.current.scrollHeight })
@@ -144,14 +154,16 @@ export function Quick() {
 
             {asked && (
               <div className="quick__answer" ref={answerRef}>
-                {answers.map((m) => (
-                  <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} />
-                ))}
-                {waitingFirstToken && (
-                  <div className="thinking">
-                    <span className="dots">Otty is thinking</span>
-                  </div>
-                )}
+                <div className="quick__answer-body" ref={answerBodyRef}>
+                  {answers.map((m) => (
+                    <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} />
+                  ))}
+                  {waitingFirstToken && (
+                    <div className="thinking">
+                      <span className="dots">Otty is thinking</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
