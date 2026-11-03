@@ -135,8 +135,19 @@ export type ChatMessage =
       app: AppInfo | null
       language?: AnswerLanguage
       files?: FileAttachment[]
+      /** When it was sent (ms since epoch). Absent in chats saved before 0.4. */
+      at?: number
     }
-  | { id: string; role: 'assistant'; text: string; tools: ToolChipInfo[]; error?: string; language?: AnswerLanguage }
+  | {
+      id: string
+      role: 'assistant'
+      text: string
+      tools: ToolChipInfo[]
+      error?: string
+      language?: AnswerLanguage
+      /** When the answer started (ms since epoch). Absent in chats saved before 0.4. */
+      at?: number
+    }
 
 export interface ChatSummary {
   id: string

@@ -51,7 +51,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | idea, after D-9 |
 | Captures in the tray: drag to reorder, or a "replace" mode on ⌥Space for people who want one capture at a time | L | S | idea, after D-8 |
 | Local OCR (Apple Vision) for snips: classifier input and text for non-vision models | H | M | → D-1 (part) |
-| Learn from intent corrections on-device (retrain the head from `intent_feedback`) | M | M | idea |
+| Learn from intent corrections on-device (retrain the head from `intent_feedback`, which keeps embeddings, not text) | M | M | idea |
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
 | Snip the whole window or screen, not just a box | M | S | idea |
 | **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | shipped (D-8) |
@@ -124,7 +124,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Search filters: by app ("chats from Excel"), by date, with/without files | M | S | idea, after D-5 |
 | Semantic search ("that chat about my visa") with the D-1 encoder's embeddings | M | M | idea, after D-1 + D-5 |
 | Search results: forget a chat from the results list, "show more" past 20 hits, ↑/↓ + ↵ to open | L | S | idea |
-| Pin a chat / pin the panel open | M | S | idea |
+| Pin a chat (`chats.pinned` is in the schema, and retention already skips pinned chats) / pin the panel open | M | S | idea |
 | Export a chat (Markdown / PDF) | L | S | idea |
 | Optional encrypted iCloud sync between Macs | M | L | idea |
 | Encryption at rest for the database (SQLCipher or a safeStorage-wrapped key) | M | M | idea |
@@ -141,7 +141,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Provider presets in Settings (DeepSeek, OpenAI, local Ollama) with a model picker | M | S | idea |
 | Fully local mode (local LLM via an Ollama-compatible endpoint) for privacy-first users | M | S | idea, the base URL setting already almost allows it |
 | "What Otty sent" transparency view per message (context, app note) | M | S | idea |
-| Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call) | L | S | idea |
+| Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | idea |
 | Native Swift shell if Electron size or feel becomes a problem | M | L | parked until there's a reason |
 
 ## UX polish backlog
@@ -154,7 +154,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
 | Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | shipped (D-8, the quick view part); the full-screen setting is still an idea |
-| Memory suggestions inbox: suggestions the user didn't answer wait in Settings instead of being lost | L | S | idea, after D-10 |
+| Memory suggestions inbox: suggestions the user didn't answer wait in Settings instead of being lost (`memories.status = 'pending'`) | L | S | idea, after D-10 |
 
 ## Parked / rejected (with reasons)
 

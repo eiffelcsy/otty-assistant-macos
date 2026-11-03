@@ -11,7 +11,8 @@ import { DatabaseSync } from 'node:sqlite'
  * Never edit a shipped migration; add a new one.
  */
 const MIGRATIONS: string[] = [
-  // v1
+  // v1. Allowed values (roles, origins, statuses) are checked in TypeScript, not with CHECK constraints:
+  // SQLite can't alter a CHECK, so a new value would mean rebuilding the table.
   `
   create table chats(
     -- A number for the search index to point at: FTS5 finds rows by rowid in O(log n), and an
@@ -21,18 +22,25 @@ const MIGRATIONS: string[] = [
     title text not null,
     app text,
     created_at integer not null,
-    updated_at integer not null
+    updated_at integer not null,
+    -- Pinned chats are never forgotten by the "Keep chats for" setting.
+    pinned integer not null default 0,
+    -- 0 = "Don't learn from this chat" (D-10): no memories or habit counts come from it.
+    learn integer not null default 1
   );
   create index chats_updated on chats(updated_at desc);
 
-  -- Messages as the UI shows them. The JSON is a ChatMessage with pictures emptied; role and id are
-  -- columns so later features can query them without parsing.
+  -- Messages as the UI shows them. The JSON is a ChatMessage with pictures emptied; role, id and time are
+  -- columns so later features (date filters, sync) can query them without parsing.
   create table messages(
     chat_id text not null references chats(id) on delete cascade,
     seq integer not null,
     id text not null,
-    role text not null check (role in ('user', 'assistant')),
+    -- 'user' | 'assistant' today.
+    role text not null,
     json text not null,
+    -- When the message was sent or answered (ms since epoch).
+    created_at integer not null,
     primary key (chat_id, seq)
   );
 
@@ -60,24 +68,23 @@ const MIGRATIONS: string[] = [
     kind text not null default 'about',
     -- How Otty learned it: 'told' ("remember that…"), 'inferred' (from what they said, by the model),
     -- 'observed' (counted on-device: apps, languages, quick actions), 'settings' (typed there).
-    origin text not null check (origin in ('told', 'inferred', 'observed', 'settings')),
+    origin text not null,
+    -- 'active' (sent when relevant), 'paused' (kept, never sent), 'pending' (waiting for the user, e.g. an
+    -- unanswered suggestion).
+    status text not null default 'active',
     -- 0–1. Told and typed memories are 1; a weak inference is only sent when it matches the question.
     confidence real not null default 1,
     -- The language it was said in, or null for any.
     language text,
     source_chat_id text references chats(id) on delete set null,
     source_message_id text,
-    -- Paused memories are kept but never sent.
-    enabled integer not null default 1,
     created_at integer not null,
     updated_at integer not null,
+    -- For short-lived facts ("travelling to Japan next week"): forgotten after this time. Null = keep.
+    expires_at integer,
     -- Retrieval bookkeeping: once the list is too long to send whole, pick the relevant and recently useful ones.
     last_used_at integer,
     use_count integer not null default 0
-  );
-  -- Chats the user asked Otty not to learn from ("Don't learn from this chat").
-  create table memory_optouts(
-    chat_id text primary key references chats(id) on delete cascade
   );
   create virtual table memories_fts using fts5(text, content = 'memories', content_rowid = 'id', tokenize = 'trigram');
   insert into memories_fts(memories_fts, rank) values ('secure-delete', 1);
@@ -92,12 +99,30 @@ const MIGRATIONS: string[] = [
     insert into memories_fts(rowid, text) values (new.id, new.text);
   end;
 
+  -- Per-day counts kept on the Mac: D-10's habits (apps used, answer languages, quick actions) and a future
+  -- usage meter (web searches, tokens). Only counts, never content. Day = local date as YYYYMMDD.
+  create table counters(
+    kind text not null,
+    key text not null,
+    day integer not null,
+    count integer not null default 0,
+    primary key (kind, key, day)
+  ) without rowid;
+
   -- D-1: which intent Otty guessed and which the user picked, for retraining on-device. Nothing leaves the Mac.
+  -- The embedding (Float32 bytes) is what retraining needs, so the capture's text is never kept here, and
+  -- forgetting the chat forgets its feedback.
   create table intent_feedback(
     id integer primary key,
+    chat_id text references chats(id) on delete cascade,
+    message_id text,
+    app text,
     predicted text,
     chosen text,
     probs_json text,
+    -- Which classifier made the guess (encoder + head version), so old rows can be weighed or dropped.
+    model text,
+    embedding blob,
     created_at integer not null
   );
   `

@@ -13,7 +13,7 @@ On `main`, for 0.4.0. Not yet smoke-tested on a Mac (DEVLOG steps 38–48).
 - **Forgetting really forgets:** deleted chats are overwritten on disk (`secure_delete`, and FTS5 secure-delete while forgetting), and the write-ahead log is folded back in. "Forget all chats" rebuilds the search index, so it takes well under a second even for thousands of chats.
 - **Upgrading is automatic:** the first launch imports `chats.json` in one transaction, before anything is shown, then deletes the file. If the import fails, the file stays and the import runs again next time. A database that can't be opened falls back to keeping chats for that session only.
 - Search narrows with an FTS5 trigram index (`instr()` for 1–2 character terms such as 打印), then ranks the newest 200 candidates with the same rules as before (`store/search.ts`).
-- The schema already has room for what's next: `memories` (D-10) and `intent_feedback` (D-1). The JSON store is gone.
+- The schema already has room for what's planned, so those features need no migration: `memories` with status and expiry (D-10), per-day `counters` for habits and usage, `chats.pinned` (pinned chats are never forgotten by retention) and `chats.learn`, message times, and `intent_feedback` with embeddings (D-1). Allowed values are checked in code rather than with CHECK constraints, so adding one never rebuilds a table. The JSON store is gone.
 
 ### Web search and page reading (D-9, 2026-11-03)
 - With DeepSeek as the provider, **search_web is a real web search** (DeepSeek's Search API): five dated results with summaries, which Otty cites as links. Other providers, or a failed search, fall back to Wikipedia and DuckDuckGo as before.

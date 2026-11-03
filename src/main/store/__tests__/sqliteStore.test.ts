@@ -94,6 +94,28 @@ describe('SqliteChatStore', () => {
     expect(await store.prune(2500)).toBe(0)
   })
 
+  it('never prunes a pinned chat', async () => {
+    const db = openDatabase(':memory:')
+    const store = new SqliteChatStore(db)
+    for (const t of fixtures()) await store.write(t)
+    db.prepare("update chats set pinned = 1 where id = 'excel'").run()
+    expect(await store.prune(10_000)).toBe(3)
+    expect((await store.list()).map((c) => c.id)).toEqual(['excel'])
+    // A later write (a new turn) keeps the pin.
+    await store.write({ ...fixtures()[0], updatedAt: 20_000 })
+    expect(db.prepare("select pinned from chats where id = 'excel'").get()).toEqual({ pinned: 1 })
+  })
+
+  it('stores when each message was sent, or the chat’s time for older ones', async () => {
+    const db = openDatabase(':memory:')
+    const store = new SqliteChatStore(db)
+    const [t] = fixtures() // updated at 1000, messages without times
+    t.messages[1] = { ...t.messages[1], at: 1234 }
+    await store.write(t)
+    const times = db.prepare("select created_at from messages where chat_id = 'excel' order by seq").all()
+    expect(times).toEqual([{ created_at: 1000 }, { created_at: 1234 }])
+  })
+
   it('deleting one chat leaves nothing of it on disk', async () => {
     const file = join(tmpDir(), 'otty.db')
     const store = new SqliteChatStore(openDatabase(file))
@@ -127,6 +149,25 @@ describe('SqliteChatStore', () => {
     expect(db.prepare('select text, source_chat_id from memories').all()).toEqual([{ text: 'Is learning Spanish', source_chat_id: null }])
     await store.clear()
     expect(db.prepare("select text from memories_fts where memories_fts match 'spanish'").all()).toHaveLength(1)
+  })
+})
+
+describe('schema v1 for what comes next', () => {
+  it('forgets intent feedback with its chat, and counts per day without content', async () => {
+    const db = openDatabase(':memory:')
+    const store = new SqliteChatStore(db)
+    for (const t of fixtures()) await store.write(t)
+    db.prepare(
+      "insert into intent_feedback(chat_id, app, predicted, chosen, model, embedding, created_at) values ('excel', 'Excel', 'explain', 'fix_error', 'minilm+head-1', ?, 1)"
+    ).run(new Uint8Array(new Float32Array([0.1, 0.2]).buffer))
+    await store.delete('excel')
+    expect(db.prepare('select count(*) n from intent_feedback').get()).toEqual({ n: 0 })
+
+    const bump = db.prepare(
+      'insert into counters(kind, key, day, count) values (?, ?, ?, 1) on conflict do update set count = count + 1'
+    )
+    for (const day of [20261103, 20261103, 20261104]) bump.run('app', 'Excel', day)
+    expect(db.prepare("select sum(count) n from counters where kind = 'app' and key = 'Excel'").get()).toEqual({ n: 3 })
   })
 })
 

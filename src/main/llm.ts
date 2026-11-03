@@ -249,6 +249,7 @@ export class ChatSession {
       captures,
       app: captures.length ? null : app,
       language,
+      at: Date.now(),
       ...(files.length ? { files } : {})
     }
     if (!thread.messages.length) {
@@ -284,7 +285,14 @@ export class ChatSession {
     const abort = new AbortController()
     this.abort = abort
     const history = thread.history
-    const answer: Extract<ChatMessage, { role: 'assistant' }> = { id, role: 'assistant', text: '', tools: [], language }
+    const answer: Extract<ChatMessage, { role: 'assistant' }> = {
+      id,
+      role: 'assistant',
+      text: '',
+      tools: [],
+      language,
+      at: Date.now()
+    }
     const answerAt = thread.messages.push(answer) - 1
 
     // reasoning_content is only meaningful within the turn that produced it.

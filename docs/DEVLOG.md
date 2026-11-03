@@ -50,7 +50,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | --- | --- | --- | --- | --- |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ next | — (schema and `database()` are in) | M (2–3 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
-| D-1 | Context-aware intents (local encoder classifier) | ⏳ later | OCR helper (`intent_feedback` is in schema v1) | L (4–6 days) |
+| D-1 | Context-aware intents (local encoder classifier) | ⏳ later | OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
 **Where things stand (2026-11-03).** `main` has 0.3.2 plus, unreleased: the capture tray (D-8), web search and page reading (D-9), SQLite storage (D-3) and the `.dmg` workflow (D-4); see CHANGELOG → Unreleased. `main` requires a PR with a green `ci` check. None of the unreleased work has been run on a Mac yet.
 
@@ -71,15 +71,15 @@ The working plan: what's next, how we'll build it, and how to check it works.
 ### How Otty learns
 1. **Told.** "Remember that my manager is Sam", or "I'm a nurse" said in passing. The model calls `remember({ text, kind })` and the memory is saved at once (`origin: 'told'`, confidence 1).
 2. **Inferred from conversation.** When a turn reveals something lasting about the user ("I need this for my Spanish class" → *is learning Spanish*), the model calls `remember` with `origin: 'inferred'` and a confidence. The prompt allows at most two per answer, only for things likely to matter in a month.
-3. **Observed on the Mac, no model needed.** Main counts what the user already sends: apps in the app note, answer languages, which quick actions they pick, the "In 中文" button, how often they ask for shorter answers. Past a threshold it writes or refreshes a `habit` memory (`origin: 'observed'`): "Mostly works in Excel and Safari", "Often wants answers in 中文", "Prefers short answers". Counts stay in memory; only the resulting sentence is stored.
+3. **Observed on the Mac, no model needed.** Main counts what the user already sends: apps in the app note, answer languages, which quick actions they pick, the "In 中文" button, how often they ask for shorter answers. Past a threshold it writes or refreshes a `habit` memory (`origin: 'observed'`): "Mostly works in Excel and Safari", "Often wants answers in 中文", "Prefers short answers". Counts are kept per day in the `counters` table (kind, key, day, count: never content), so a habit builds over a week of use and across restarts, and old days can be ignored.
 4. **Tidying.** When a new memory overlaps an old one, `remember` takes `replaces: id`, and the old one is updated in place ("now uses Numbers instead of Excel"). Without that, near-duplicates are found with `memories_fts` (trigram overlap) and merged.
 
 ### What the user sees
 - **Under the answer**, a quiet line: *Noted: you're learning Spanish* · **Undo** · **Edit** (UIcon `bookmark`). Undo deletes it. Edit opens it in Settings. The line stays in the saved chat, so the source is never a mystery.
 - **On the otter**, observed habits appear as a speech-bubble micro-reply now and then ("I noticed you're in Excel a lot. I'll use its menus in examples."). This shares the "speech-bubble micro-replies" idea in BRAINSTORM.
-- **Settings → What Otty knows about you**: grouped by kind, each with its source ("From a chat on 3 Nov", which opens the chat, or "Noticed from how you use Otty"), and inline edit, pause and delete. **Add something**. **Forget everything Otty knows** (delete plus `VACUUM`).
+- **Settings → What Otty knows about you**: grouped by kind, each with its source ("From a chat on 3 Nov", which opens the chat, or "Noticed from how you use Otty"), and inline edit, pause and delete. **Add something**. **Forget everything Otty knows** (deleted and overwritten on disk, like forgotten chats).
 - **"Forget that…"** in chat calls `forget({ id })`, which deletes it straight away with an Undo line. Removing is always safe, so it never asks.
-- **"Don't learn from this chat"** in the panel's header (and the quick view's ⋯): this chat neither adds memories nor counts towards habits (`memory_optouts`). Memories are still used in the answers.
+- **"Don't learn from this chat"** in the panel's header (and the quick view's ⋯): this chat neither adds memories nor counts towards habits (`chats.learn = 0`). Memories are still used in the answers.
 - A master switch, "Let Otty learn about me" (on by default). Off: nothing is learned or sent, and the list is kept for when it's turned back on.
 
 ### What Otty never learns
@@ -93,7 +93,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - `use_count` and `last_used_at` are updated for memories that were sent.
 
 ### Build
-- Schema: `memories` (origins `told` / `inferred` / `observed` / `settings`, `confidence`, kinds `about` / `preference` / `habit` / `person` / `goal`), `memories_fts` and `memory_optouts` are in schema v1. v1 is unreleased until 0.4.0; after that, changes are a v2 migration.
+- Schema (all in v1, so D-10 needs no migration): `memories` with `origin` (`told` / `inferred` / `observed` / `settings`), `status` (`active` / `paused` / `pending`), `confidence`, `kind` (`about` / `preference` / `habit` / `person` / `goal`) and `expires_at` for short-lived facts ("travelling to Japan next week": `remember` takes an optional `until`, and expired memories are deleted with the retention pass); `memories_fts`; `chats.learn`; `counters` for habits. Allowed values are checked in TypeScript, not with CHECK constraints, so adding one never needs a table rebuild.
 - `src/main/memory/`: `MemoryStore` (`list`, `add`, `update`, `remove`, `clear`, `forPrompt`, `findSimilar`), `observe.ts` (habit counters and thresholds), `guard.ts` (sensitive-category and "came from a capture" checks, unit-tested).
 - `tools.ts`: `remember` and `forget`, both without confirm cards. A new `ChatEvent` `{ type: 'memory', id, memoryId, text, action: 'added' | 'updated' | 'forgotten' }` renders the Noted line; the assistant message keeps `memories?: { id, text, action }[]` so it survives reopening.
 - IPC `memory:list/add/update/remove/clear/optout`; `PublicSettings.learn: boolean`; `tools/ui-preview` `scene=memory`.
@@ -204,7 +204,7 @@ else                             → local clarify card (no LLM call): top-3 int
 ```
 
 - Tune the 0.60 threshold on the eval set: aim for less than 10% wrong auto-sends, while keeping the clarify rate under about 30%.
-- "Not that?" and the clarify chips record the user's choice locally (`intent_feedback` table, D-3). That gives free labels for retraining. Nothing leaves the Mac.
+- "Not that?" and the clarify chips record the user's choice locally in `intent_feedback` (schema v1): the app, the guess and the probabilities, the choice, the classifier version and the capture's embedding (Float32 bytes). Retraining needs only the embedding, so the capture's text is never kept there, and forgetting the chat forgets its feedback. That gives free labels for retraining. Nothing leaves the Mac.
 
 ### Data and training (`tools/intent/`, not shipped)
 

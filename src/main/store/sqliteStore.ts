@@ -53,7 +53,7 @@ export class SqliteChatStore implements ChatStore {
          returning num`
       ),
       clearMessagesFrom: p('delete from messages where chat_id = ? and seq >= ?'),
-      insertMessage: p('insert into messages(chat_id, seq, id, role, json) values (?, ?, ?, ?, ?)'),
+      insertMessage: p('insert into messages(chat_id, seq, id, role, json, created_at) values (?, ?, ?, ?, ?, ?)'),
       clearHistoryFrom: p('delete from llm_history where chat_id = ? and seq >= ?'),
       insertHistory: p('insert into llm_history(chat_id, seq, json) values (?, ?, ?)'),
       clearSearch: p('delete from chat_search where rowid = ?'),
@@ -63,7 +63,8 @@ export class SqliteChatStore implements ChatStore {
       getHistory: p('select json from llm_history where chat_id = ? order by seq'),
       list: p('select id, title, app, updated_at from chats order by updated_at desc limit ?'),
       deleteChat: p('delete from chats where id = ? returning num'),
-      pruneChats: p('delete from chats where updated_at < ? returning num')
+      // Pinned chats stay whatever their age.
+      pruneChats: p('delete from chats where updated_at < ? and pinned = 0 returning num')
     }
   }
 
@@ -163,7 +164,8 @@ export class SqliteChatStore implements ChatStore {
     this.q.clearMessagesFrom.run(t.id, from.messages)
     for (let i = from.messages; i < t.messages.length; i++) {
       const m = stripMessage(t.messages[i])
-      this.q.insertMessage.run(t.id, i, m.id, m.role, JSON.stringify(m))
+      // Chats saved before messages had times get the chat's own time.
+      this.q.insertMessage.run(t.id, i, m.id, m.role, JSON.stringify(m), m.at ?? t.updatedAt)
     }
     this.q.clearHistoryFrom.run(t.id, from.history)
     for (let i = from.history; i < t.history.length; i++) {
