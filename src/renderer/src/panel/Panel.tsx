@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, PanelOpenPayload, PublicSettings, ScreenContext } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, PanelOpenPayload, PublicSettings } from '../../../shared/types'
+import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { LanguagePill } from '../components/LanguagePill'
-import { actionsFor, actionsForFiles, QuickActions, type ActionItem } from '../components/QuickActions'
+import { actionsForTray, QuickActions, type ActionItem } from '../components/QuickActions'
 import { againOffer } from '../lib/again'
 import { prettyKey } from '../lib/keys'
 import { useAttachments } from '../lib/useAttachments'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
 import { History } from './History'
-import { AppTag, AssistantMessage, ContextPreview } from './Messages'
+import { AppTag, AssistantMessage, CaptureList } from './Messages'
 import { FindBar } from './FindBar'
 import { Onboarding } from './Onboarding'
 import { Settings } from './Settings'
@@ -27,13 +28,19 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
     body: 'To see other apps in your snip, allow Otty under “Screen Recording”, then restart Otty.',
     kind: 'screen'
   },
-  'snip-mac-only': { title: 'Snipping works on macOS', body: 'Screen snips use the Mac’s built-in snipping tool.' }
+  'snip-mac-only': { title: 'Snipping works on macOS', body: 'Screen snips use the Mac’s built-in snipping tool.' },
+  'tray-full': {
+    title: `Otty can look at ${MAX_CAPTURES} things at once`,
+    body: 'Remove one with its ✕ to add another, or ask about these first.'
+  }
 }
 
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
   const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history'>('chat')
-  const [context, setContext] = useState<ScreenContext | null>(null)
+  /** The capture tray: highlights and snips waiting to be asked about, each with its own app. */
+  const [captures, setCaptures] = useState<Capture[]>([])
+  /** The app the user was in, for a question without captures. */
   const [app, setApp] = useState<AppInfo | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [searchFocus, setSearchFocus] = useState(0)
@@ -42,7 +49,7 @@ export function Panel() {
   const findingRef = useRef(finding)
   findingRef.current = finding
   const { messages, busy, setBusy, waitingFirstToken, focusId } = useChat(() => {
-    setContext(null)
+    setCaptures([])
     setApp(null)
     setNotice(null)
   })
@@ -58,6 +65,8 @@ export function Panel() {
   settingsRef.current = settings
   const messagesRef = useRef(messages)
   messagesRef.current = messages
+  const capturesRef = useRef(captures)
+  capturesRef.current = captures
 
   useEffect(() => {
     window.otty.getSettings().then((s) => {
@@ -66,13 +75,28 @@ export function Panel() {
     })
   }, [])
 
+  /** Adds a capture to the tray, or starts a new tray with it. A full tray says so instead. */
+  const take = useCallback((p: PanelOpenPayload, add: boolean) => {
+    if (!p.context) {
+      // Nothing was highlighted: just note the app, unless the tray's captures already say where they're from.
+      if (p.app !== undefined && !(add && capturesRef.current.length)) setApp(p.app)
+      setNotice(p.notice ?? null)
+      return
+    }
+    const r = addCapture(add ? capturesRef.current : [], p.context, p.app ?? null, crypto.randomUUID())
+    if (r.ok) {
+      capturesRef.current = r.captures // two quick hotkeys in a row must both land
+      setCaptures(r.captures)
+      setApp(null)
+    }
+    setNotice(p.notice ?? (!r.ok && r.reason === 'full' ? 'tray-full' : null))
+  }, [])
+
   useEffect(
     () =>
       window.otty.onPanelOpen((p: PanelOpenPayload) => {
         if (p.notice === 'open-settings') return setView('settings')
-        if (p.context) setContext(p.context)
-        if (p.app !== undefined) setApp(p.app)
-        setNotice(p.notice ?? null)
+        take(p, !!p.add)
         setView((v) => (v === 'history' ? 'chat' : v))
         setTimeout(() => inputRef.current?.focus(), 50)
       }),
@@ -115,26 +139,25 @@ export function Panel() {
     else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, focusId, view])
 
-  const actions = context && settings ? actionsFor(context, settings.homeLanguage) : []
-  const fileActions = att.ready.length ? actionsForFiles(att.ready) : []
+  const actions = settings && !att.reading ? actionsForTray(captures, att.ready, settings.homeLanguage) : []
 
-  /** An empty box with a capture (or, failing that, attached files) runs the first quick action. */
+  /** An empty box with captures or attached files runs the first quick action. `tray` false sends the text alone. */
   const send = useCallback(
-    (raw: string, ctx: ScreenContext | null = context, picked?: ActionItem) => {
-      const defaults = ctx && settings ? actionsFor(ctx, settings.homeLanguage) : fileActions
-      const item = picked ?? (!raw.trim() ? defaults[0] : undefined)
+    (raw: string, tray = true, picked?: ActionItem) => {
+      const item = picked ?? (!raw.trim() && tray ? actions[0] : undefined)
       const text = item ? item.label : raw.trim()
       if (!text || busy || att.reading) return
-      const files = att.take().map((f) => f.id)
-      setContext(null)
+      const files = tray ? att.take().map((f) => f.id) : []
+      const sent = tray ? captures : []
+      if (tray) setCaptures([])
       setApp(null)
       setNotice(null)
       setInput('')
       setPick(undefined)
       setBusy(true)
-      window.otty.sendMessage(text, ctx, { app, action: item?.action, language: pick, files })
+      window.otty.sendMessage(text, sent, { app, action: item?.action, language: pick, files })
     },
-    [busy, context, app, settings, pick, att, fileActions]
+    [busy, captures, app, pick, att, actions]
   )
 
   // Drag files from Finder onto the chat to attach them.
@@ -165,12 +188,8 @@ export function Panel() {
     }
   }
 
-  const snip = async () => {
-    const p = await window.otty.captureScreenshot()
-    if (p.context) setContext(p.context)
-    if (p.app !== undefined) setApp(p.app)
-    setNotice(p.notice ?? null)
-  }
+  // The panel's own scissors always add to the tray.
+  const snip = async () => take(await window.otty.captureScreenshot(), true)
 
   const newChat = () => window.otty.resetChat()
   const again = againOffer(messages, settings?.homeLanguage ?? null, busy)
@@ -192,7 +211,7 @@ export function Panel() {
   }
 
   return (
-    <AskContext.Provider value={(t) => send(t, null)}>
+    <AskContext.Provider value={(t) => send(t, false)}>
       <HomeContext.Provider value={settings.homeLanguage}>
         <div className="panel" {...drop}>
           {dragging && (
@@ -256,7 +275,7 @@ export function Panel() {
                   m.role === 'user' ? (
                     <div key={m.id} className={`msg msg--user${m.id === focusId ? ' msg--found' : ''}`} data-msg-id={m.id}>
                       {m.app && <AppTag app={m.app} />}
-                      {m.context && <ContextPreview ctx={m.context} />}
+                      {m.captures.length > 0 && <CaptureList captures={m.captures} />}
                       {m.files && <FileList files={m.files} />}
                       <div className="msg__bubble">{m.text}</div>
                     </div>
@@ -280,21 +299,26 @@ export function Panel() {
               <footer className="composer">
                 {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
                 {app && <AppTag app={app} onRemove={() => setApp(null)} />}
-                {context && (
+                {(captures.length > 0 || att.chips.length > 0) && (
                   <div className="context-card">
-                    <ContextPreview ctx={context} />
-                    <button className="context-card__x" title="Remove" onClick={() => setContext(null)}>
-                      <Icon name="cross-small" />
-                    </button>
-                    <QuickActions items={actions} disabled={busy} onPick={(a) => send('', context, a)} />
-                  </div>
-                )}
-                {att.chips.length > 0 && (
-                  <div className="context-card">
-                    <FileTray chips={att.chips} onRemove={att.remove} />
-                    {!context && fileActions.length > 0 && !att.reading && (
-                      <QuickActions items={fileActions} disabled={busy} onPick={(a) => send('', null, a)} />
+                    {captures.length > 0 && (
+                      <CaptureList
+                        captures={captures}
+                        onRemove={(id) => {
+                          setCaptures((cs) => cs.filter((c) => c.id !== id))
+                          setNotice((n) => (n === 'tray-full' ? null : n))
+                        }}
+                        onForgetApp={(id) => setCaptures((cs) => cs.map((c) => (c.id === id ? { ...c, app: null } : c)))}
+                      />
                     )}
+                    {att.chips.length > 0 && <FileTray chips={att.chips} onRemove={att.remove} />}
+                    {captures.length > 0 && captures.length < MAX_CAPTURES && (
+                      <div className="tray-hint">
+                        <Icon name="plus" /> To add more, highlight or snip, then press{' '}
+                        <kbd>{prettyKey(settings.askHotkey)}</kbd>
+                      </div>
+                    )}
+                    {actions.length > 0 && <QuickActions items={actions} disabled={busy} onPick={(a) => send('', true, a)} />}
                   </div>
                 )}
                 <div className="composer__row">
@@ -309,7 +333,13 @@ export function Panel() {
                     className="composer__input"
                     rows={1}
                     placeholder={
-                      context ? 'Ask about this…' : att.chips.length ? 'Ask about your files…' : 'Ask Otty anything…'
+                      captures.length > 1
+                        ? 'Ask about these…'
+                        : captures.length
+                          ? 'Ask about this…'
+                          : att.chips.length
+                            ? 'Ask about your files…'
+                            : 'Ask Otty anything…'
                     }
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -337,7 +367,7 @@ export function Panel() {
                     <button
                       className="send-btn"
                       title="Send"
-                      disabled={(!input.trim() && !context && !att.ready.length) || att.reading}
+                      disabled={(!input.trim() && !captures.length && !att.ready.length) || att.reading}
                       onClick={() => send(input)}
                     >
                       <Icon name="arrow-small-up" />

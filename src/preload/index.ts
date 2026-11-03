@@ -14,7 +14,7 @@ const api: OttyApi = {
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   openPermissionSettings: (kind) => ipcRenderer.invoke('permissions:open', kind),
 
-  sendMessage: (text, ctx, opts) => ipcRenderer.invoke('chat:send', text, ctx, opts),
+  sendMessage: (text, captures, opts) => ipcRenderer.invoke('chat:send', text, captures, opts),
   stop: () => ipcRenderer.invoke('chat:stop'),
   resetChat: () => ipcRenderer.invoke('chat:reset'),
   listChats: () => ipcRenderer.invoke('chats:list'),
@@ -39,6 +39,7 @@ const api: OttyApi = {
   closeQuick: () => ipcRenderer.invoke('quick:close'),
   expandQuick: () => ipcRenderer.invoke('quick:expand'),
   quickResize: (height) => ipcRenderer.send('quick:resize', height),
+  quickState: (state) => ipcRenderer.send('quick:state', state),
 
   bubbleMenu: () => ipcRenderer.send('bubble:menu'),
   bubbleDrag: (phase) => ipcRenderer.send('bubble:drag', phase),

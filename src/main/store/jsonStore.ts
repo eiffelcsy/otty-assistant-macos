@@ -3,6 +3,7 @@ import { dirname } from 'path'
 import type { ChatSearchHit, ChatSummary } from '../../shared/types'
 import { searchThreads } from './search'
 import type { ChatStore, Thread } from './types'
+import { upgradeThread } from './upgrade'
 
 // Saved chats as one JSON file of text-only threads. Screen snips are never written to disk.
 
@@ -16,8 +17,10 @@ export function withoutImages(t: Thread): Thread {
     messages: t.messages.map((m) => {
       if (m.role !== 'user') return m
       const files = m.files?.map(({ thumb: _thumb, ...f }) => f)
-      const context = m.context?.kind === 'image' ? { ...m.context, dataUrl: '' } : m.context
-      return { ...m, context, ...(files ? { files } : {}) }
+      const captures = m.captures.map((c) =>
+        c.context.kind === 'image' ? { ...c, context: { ...c.context, dataUrl: '' } } : c
+      )
+      return { ...m, captures, ...(files ? { files } : {}) }
     }),
     history: t.history.map((m) =>
       m.role === 'user' && Array.isArray(m.content)
@@ -36,7 +39,7 @@ export class JsonChatStore implements ChatStore {
     if (this.cache) return this.cache
     try {
       const parsed = JSON.parse(readFileSync(this.file, 'utf8'))
-      this.cache = Array.isArray(parsed) ? parsed : []
+      this.cache = Array.isArray(parsed) ? parsed.map(upgradeThread) : []
     } catch {
       this.cache = []
     }

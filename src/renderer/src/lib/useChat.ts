@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, ChatEvent, FileAttachment, ScreenContext, ToolChipInfo } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, ToolChipInfo } from '../../../shared/types'
 
 export type ToolChip = ToolChipInfo
 
@@ -8,7 +8,7 @@ export type UiMessage =
       id: string
       role: 'user'
       text: string
-      context: ScreenContext | null
+      captures: Capture[]
       app: AppInfo | null
       language?: AnswerLanguage
       files?: FileAttachment[]

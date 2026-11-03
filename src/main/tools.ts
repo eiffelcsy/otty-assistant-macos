@@ -1,6 +1,8 @@
 import { clipboard, shell } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { getApiKey, getStored } from './settings'
+import { deepseekFetch, deepseekSearch, isDeepSeek, WebError, type WebConfig } from './web'
 
 const run = promisify(execFile)
 
@@ -14,20 +16,63 @@ export interface ToolOutcome {
   status: 'done' | 'denied' | 'error'
 }
 
-export const toolDefs = [
-  {
-    type: 'function',
-    function: {
-      name: 'search_web',
-      description:
-        'Look up facts about a topic. Returns short summaries from Wikipedia and DuckDuckGo instant answers. Best for "what is / who is" questions.',
-      parameters: {
-        type: 'object',
-        properties: { query: { type: 'string', description: 'What to look up, e.g. "photosynthesis"' } },
-        required: ['query']
-      }
+const searchWebDef = {
+  type: 'function',
+  function: {
+    name: 'search_web',
+    description:
+      'Search the web for current facts, news, prices, how-tos or anything you are unsure of. Returns up to 5 results with title, site, date, URL and a summary. Cite the ones you use as links.',
+    parameters: {
+      type: 'object',
+      properties: { query: { type: 'string', description: 'A short search query (at most 128 characters), in the language the sources are likely in' } },
+      required: ['query']
     }
-  },
+  }
+} as const
+
+/** The old, keyless search: for providers other than DeepSeek, and as a fallback. */
+const lookupDef = {
+  type: 'function',
+  function: {
+    name: 'search_web',
+    description:
+      'Look up facts about a topic. Returns short summaries from Wikipedia and DuckDuckGo instant answers. Best for "what is / who is" questions.',
+    parameters: {
+      type: 'object',
+      properties: { query: { type: 'string', description: 'What to look up, e.g. "photosynthesis"' } },
+      required: ['query']
+    }
+  }
+} as const
+
+const readPageDef = {
+  type: 'function',
+  function: {
+    name: 'read_page',
+    description:
+      'Read a web page and get its text as Markdown. Use it on the address in the app note when the user asks about "this page", or on a search result worth reading in full. It cannot see pages that need the user to be signed in.',
+    parameters: {
+      type: 'object',
+      properties: { url: { type: 'string', description: 'Full http(s) URL' } },
+      required: ['url']
+    }
+  }
+} as const
+
+/** DeepSeek's key and origin, when the user's provider is DeepSeek; null otherwise. */
+function webConfig(): WebConfig | null {
+  const { baseUrl } = getStored()
+  const key = getApiKey()
+  return key && isDeepSeek(baseUrl) ? { baseUrl, key } : null
+}
+
+/** The tools offered to the model. Real search and page reading need DeepSeek's endpoints. */
+export function toolDefs() {
+  const web = webConfig() ? [searchWebDef, readPageDef] : [lookupDef]
+  return [...web, ...otherDefs]
+}
+
+const otherDefs = [
   {
     type: 'function',
     function: {
@@ -79,6 +124,8 @@ export function toolLabel(name: string, args: Args): { label: string; icon: stri
   switch (name) {
     case 'search_web':
       return { icon: 'search', label: `Looking up “${String(args.query ?? '')}”` }
+    case 'read_page':
+      return { icon: 'book-open-reader', label: `Reading ${hostOf(String(args.url ?? ''))}` }
     case 'open_url':
       return { icon: 'globe', label: `Opening ${hostOf(String(args.url ?? ''))}` }
     case 'copy_to_clipboard':
@@ -103,6 +150,17 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
     switch (name) {
       case 'search_web':
         return { result: await searchWeb(String(args.query ?? '')), status: 'done' }
+
+      case 'read_page': {
+        const web = webConfig()
+        if (!web) return { result: 'Reading pages needs Otty to be connected to DeepSeek.', status: 'error' }
+        try {
+          return { result: await deepseekFetch(web, String(args.url ?? '')), status: 'done' }
+        } catch (err) {
+          if (err instanceof WebError) return { result: err.message, status: 'error' }
+          throw err
+        }
+      }
 
       case 'open_url': {
         const url = String(args.url ?? '')
@@ -143,7 +201,21 @@ async function getJson(url: string): Promise<any> {
   return res.json()
 }
 
+/** DeepSeek's real search when available; Wikipedia and DuckDuckGo otherwise, or when it fails. */
 async function searchWeb(query: string): Promise<string> {
+  const web = webConfig()
+  if (!web) return lookup(query)
+  try {
+    return await deepseekSearch(web, query)
+  } catch (err) {
+    if (!(err instanceof WebError)) throw err
+    if (!err.fallback) return err.message
+    console.warn('DeepSeek search failed, falling back:', err.message)
+    return `${err.message} Here is a simpler lookup instead:\n\n${await lookup(query)}`
+  }
+}
+
+async function lookup(query: string): Promise<string> {
   const q = encodeURIComponent(query)
   const parts: string[] = []
 

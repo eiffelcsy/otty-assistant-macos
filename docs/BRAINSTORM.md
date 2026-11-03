@@ -32,7 +32,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering |
 | Cursor-following mini otter or a "?" that pops up near a fresh text selection (needs an AX selection observer, Swift helper) | H | L | idea |
-| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | idea (future), tracked in issue #17 |
+| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | → D-10 (issue #17): learns on its own and shows a Noted line with Undo, no confirm cards |
 | Daily greeting / gentle streaks ("3 things learned this week") | L | S | idea |
 | Seasonal or unlockable accessories (hat, scarf) | L | M | idea |
 | Sound effects (opt-in, soft squeak on pop-up) | L | S | idea |
@@ -48,12 +48,14 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | --- | --- | --- | --- |
 | Frontmost app, window title and page URL as context | H | S | shipped |
 | Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | H | L | → D-1 |
+| A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | idea, after D-9 |
+| Captures in the tray: drag to reorder, or a "replace" mode on ⌥Space for people who want one capture at a time | L | S | idea, after D-8 |
 | Local OCR (Apple Vision) for snips: classifier input and text for non-vision models | H | M | → D-1 (part) |
 | Learn from intent corrections on-device (retrain the head from `intent_feedback`) | M | M | idea |
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
 | Snip the whole window or screen, not just a box | M | S | idea |
-| **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | idea |
-| Read the current page's main text (Readability-style) when asked "summarize this page" | H | M | idea |
+| **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | → D-8 |
+| Read the current page's main text when asked "summarize this page" | H | M | → D-9 (`read_page` on the app note's URL; signed-in pages can't be read) |
 | Attach files (PDF, Word, images, text) from the Mac and ask about them | H | M–L | shipped (D-6 v1) |
 | Attach the file selected in Finder with ⌥Space | M | S | idea (left out of D-6 v1) |
 | Attach files in the quick view: it hides on blur, so a drag from Finder closes it. Needs "don't hide while dragging" or a paperclip there | M | S | idea |
@@ -71,9 +73,11 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | considering |
-| Follow-up questions inside the quick view (don't force "continue in chat") | H | S | considering |
-| Better web search (Brave / Tavily, optional key) plus a `read_page` tool | H | M | considering |
+| Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | → D-11 |
+| Follow-up questions inside the quick view (don't force "continue in chat") | H | S | → D-11 |
+| Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | → D-9 |
+| **Sources row** under answers that searched: site icons, names and dates from the search results (`site_icon`, `site_name`, `date`), each opening the page | M | S | idea, after D-9 |
+| Search a site from the app note ("search this site for refunds" → `site:` operator) | L | S | idea, after D-9 |
 | Calendar events (EventKit / AppleScript) with a confirm card | M | S | idea |
 | `draft_email`: opens Mail with a pre-filled draft | M | S | idea |
 | Timers and alarms | L | S | idea |
@@ -110,7 +114,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Saved chats with Recent chats | H | M | shipped (JSON) |
-| SQLite storage, retention setting | H | M | → D-3 |
+| SQLite storage, retention setting | H | M | → D-3 (scaffold on PR #27, opt-in; default, incremental writes and retention next) |
 | Search across chats, the same contract on JSON, SQLite or an online database | H | M | shipped (D-5, JSON) |
 | Find in this chat (⌘F), highlights and ↵ / ⇧↵ stepping | H | S | shipped (D-7) |
 | Find in the quick view too, and in an open explain card | L | S | idea, after D-7 |
@@ -135,7 +139,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Provider presets in Settings (DeepSeek, OpenAI, local Ollama) with a model picker | M | S | idea |
 | Fully local mode (local LLM via an Ollama-compatible endpoint) for privacy-first users | M | S | idea, the base URL setting already almost allows it |
 | "What Otty sent" transparency view per message (context, app note) | M | S | idea |
-| Usage / cost meter for the user's own key | L | S | idea |
+| Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call) | L | S | idea |
 | Native Swift shell if Electron size or feel becomes a problem | M | L | parked until there's a reason |
 
 ## UX polish backlog
@@ -147,7 +151,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Customisable hotkeys with a key recorder (not a text field) | M | S | idea |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
-| Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | decided, not built; build with #13 |
+| Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | → D-8 (the quick view part; the full-screen setting is still an idea) |
+| Memory suggestions inbox: suggestions the user didn't answer wait in Settings instead of being lost | L | S | idea, after D-10 |
 
 ## Parked / rejected (with reasons)
 
@@ -183,6 +188,7 @@ Longer sketches for big ideas, so the thinking isn't lost. Not plans: a sketch m
 | **Motion sensitivity** | With `prefers-reduced-motion`, use static highlights and numbered markers instead of animation |
 
 **Stepping stones** (each useful on its own):
+0. **Step cards (D-11).** The answer's steps as a checklist whose buttons paste, open, click menus and press shortcuts in the source app, with "I'm stuck" re-snipping the window. No overlay yet, but the same step-by-step loop.
 1. **"Where is it?" spotlight.** After an answer mentions a button, circle it on screen (OCR box, one-off, no session).
 2. **Static numbered markers** for a multi-step answer on the current screen.
 3. **The animated ghost paw with step-by-step waiting:** the full overlay.

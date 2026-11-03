@@ -112,6 +112,10 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
             {forgot ? 'All chats forgotten' : 'Forget all chats'}
           </button>
         )}
+        <p className="hint">
+          When Otty searches the web or reads a page for you, the search words or the page address go to DeepSeek,
+          which fetches the page itself. It can’t see pages you’re signed in to.
+        </p>
       </section>
 
       <button className="btn btn--primary btn--wide" disabled={saving} onClick={save}>

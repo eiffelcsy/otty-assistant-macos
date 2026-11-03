@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
-import type { AnswerLanguage, AppInfo, ChatEvent, ChatMessage, ScreenContext, SendOptions } from '../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, SendOptions } from '../shared/types'
+import { capturedText } from '../shared/captures'
 import { chatStore, type Thread } from './store'
 import { fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
@@ -106,25 +107,53 @@ function appLine(app: AppInfo | null): string {
   return `[I'm using ${app.name}${where ? `, on ${where}` : ''}.]\n\n`
 }
 
-function userContent(text: string, ctx: ScreenContext | null, app: AppInfo | null, files: FileOutput[] = []): string | ContentPart[] {
-  const prefix = appLine(app) + files.map((f) => f.text + '\n\n').join('')
-  const pictures = files.flatMap((f) => (f.image ? [f.image] : []))
-  let body = prefix + text
-  if (ctx?.kind === 'text') {
-    body = `${prefix}Here is the text I highlighted on my screen:\n"""\n${ctx.text}\n"""\n\n${text}`
-  } else if (ctx?.kind === 'image') {
-    pictures.unshift(ctx.dataUrl)
-    const which = pictures.length > 1 ? 'The first picture' : 'This'
-    body = `${prefix}${which} is a snip of part of my screen.\n\n${text}`
+/** "from Safari (“Pricing”)", for labelling one of several captures. */
+function fromApp(app: AppInfo | null): string {
+  if (!app) return ''
+  return ` · from ${app.name}${app.title ? ` (“${app.title}”)` : ''}`
+}
+
+export function userContent(text: string, captures: Capture[], app: AppInfo | null, files: FileOutput[] = []): string | ContentPart[] {
+  const fileText = files.map((f) => f.text + '\n\n').join('')
+  const filePictures = files.flatMap((f) => (f.image ? [f.image] : []))
+  const snips = captures.flatMap((c) => (c.context.kind === 'image' ? [c.context.dataUrl] : []))
+  const pictures = [...snips, ...filePictures]
+  let body: string
+
+  if (captures.length <= 1) {
+    // One capture keeps the wording models have seen since the start.
+    const ctx = captures[0]?.context
+    const prefix = appLine(captures[0]?.app ?? app) + fileText
+    body = prefix + text
+    if (ctx?.kind === 'text') {
+      body = `${prefix}Here is the text I highlighted on my screen:\n"""\n${ctx.text}\n"""\n\n${text}`
+    } else if (ctx?.kind === 'image') {
+      const which = pictures.length > 1 ? 'The first picture' : 'This'
+      body = `${prefix}${which} is a snip of part of my screen.\n\n${text}`
+    }
+  } else {
+    let picture = 0
+    const blocks = captures.map((c, i) => {
+      const label = `[Capture ${i + 1}${fromApp(c.app)}]`
+      if (c.context.kind === 'text') return `${label} Text I highlighted:\n"""\n${c.context.text}\n"""`
+      picture++
+      return `${label} A snip of part of my screen: picture ${picture}.`
+    })
+    body = `I've collected ${captures.length} things from my screen:\n\n${blocks.join('\n\n')}\n\n${fileText}${text}`
   }
+
   if (!pictures.length) return body
   return [...pictures.map((url): ContentPart => ({ type: 'image_url', image_url: { url } })), { type: 'text', text: body }]
 }
 
-function titleFor(text: string, ctx: ScreenContext | null, fileName?: string): string {
+export function titleFor(text: string, captures: Capture[], fileName?: string): string {
   const q = text.trim().replace(/[.?!]$/, '')
-  const about =
-    ctx?.kind === 'text' ? ` “${ctx.text.replace(/\s+/g, ' ').slice(0, 40).trim()}…”` : fileName ? ` “${fileName}”` : ''
+  const highlighted = capturedText(captures.slice(0, 1))
+  const about = highlighted
+    ? ` “${highlighted.replace(/\s+/g, ' ').slice(0, 40).trim()}…”`
+    : fileName
+      ? ` “${fileName}”`
+      : ''
   const title = q + about
   return title.length > 80 ? title.slice(0, 79) + '…' : title
 }
@@ -177,7 +206,7 @@ export class ChatSession {
   /** `text` is what the user sees; a quick action swaps in its own prompt for the model. */
   send(
     text: string,
-    ctx: ScreenContext | null,
+    captures: Capture[],
     app: AppInfo | null,
     opts: Pick<SendOptions, 'language' | 'action' | 'files'> = {}
   ): Promise<void> {
@@ -188,7 +217,7 @@ export class ChatSession {
       typed: opts.action ? '' : text,
       picked: opts.language,
       action: opts.action,
-      selection: ctx?.kind === 'text' ? ctx.text : undefined,
+      selection: capturedText(captures) || undefined,
       home
     })
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
@@ -201,28 +230,29 @@ export class ChatSession {
       id: randomUUID(),
       role: 'user',
       text,
-      context: ctx,
-      app,
+      captures,
+      app: captures.length ? null : app,
       language,
       ...(files.length ? { files } : {})
     }
     if (!thread.messages.length) {
-      thread.title = titleFor(text, ctx, files[0]?.name)
-      if (app) thread.app = app.name
+      thread.title = titleFor(text, captures, files[0]?.name)
+      const where = captures[0]?.app ?? app
+      if (where) thread.app = where.name
     }
     thread.messages.push(userMsg)
     this.emit({ type: 'user', ...userMsg })
 
     // Let a stopped turn finish cleaning up its own history before this one adds to it.
     const prev = this.running
-    this.running = prev.then(() => this.run(thread, prompt, ctx, app, fitted, language, note, reminder))
+    this.running = prev.then(() => this.run(thread, prompt, captures, app, fitted, language, note, reminder))
     return this.running
   }
 
   private async run(
     thread: Thread,
     text: string,
-    ctx: ScreenContext | null,
+    captures: Capture[],
     app: AppInfo | null,
     files: FileOutput[],
     language: AnswerLanguage,
@@ -239,7 +269,7 @@ export class ChatSession {
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
     const turnStart = history.length
-    history.push({ role: 'user', content: userContent(text, ctx, app, files) })
+    history.push({ role: 'user', content: userContent(text, captures, app, files) })
     this.emit({ type: 'start', id, language })
 
     try {
@@ -249,7 +279,7 @@ export class ChatSession {
           {
             messages: [{ role: 'system', content: systemPrompt(note) }, ...remindTurn(history, turnStart, reminder)],
             stream: true,
-            ...(allowTools ? { tools: toolDefs } : {})
+            ...(allowTools ? { tools: toolDefs() } : {})
           },
           abort.signal
         )

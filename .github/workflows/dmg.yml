@@ -1,0 +1,72 @@
+name: dmg
+
+# An unsigned Otty.dmg (Apple Silicon + Intel) that testers can download without a dev setup.
+# - Actions tab → dmg → Run workflow: build any branch (once this file is on main).
+# - Push a tag like v0.4.0: build it and attach the .dmg to a draft GitHub Release.
+# - A PR that changes packaging builds it too, so a broken .dmg shows up before merging.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - .github/workflows/dmg.yml
+      - electron-builder.yml
+      - build/**
+      - package.json
+      - package-lock.json
+
+concurrency:
+  group: dmg-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  dmg:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # only used on tags, to create the draft release
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      # Electron itself (postinstall) and electron-builder's downloads (dmg tooling).
+      - name: Cache Electron and electron-builder downloads
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: electron-dmg-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-dmg-${{ runner.os }}-
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      # Unsigned until signing and notarization land (BRAINSTORM, "Trust"): don't let electron-builder
+      # go looking for a certificate in the runner's keychain.
+      - name: Build the .dmg
+        run: npm run build:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Otty-dmg-${{ github.sha }}
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Draft a release for the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.dmg --draft --generate-notes --title "Otty ${GITHUB_REF_NAME#v}"

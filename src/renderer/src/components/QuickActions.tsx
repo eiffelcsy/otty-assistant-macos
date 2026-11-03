@@ -1,4 +1,4 @@
-import type { FileAttachment, HomeLanguage, QuickAction, ScreenContext } from '../../../shared/types'
+import type { Capture, FileAttachment, HomeLanguage, QuickAction, ScreenContext } from '../../../shared/types'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { isMostlyHan, isShortPhrase } from '../../../shared/script'
 import { Icon } from './Icon'
@@ -46,6 +46,19 @@ export function actionsForFiles(files: FileAttachment[]): ActionItem[] {
     { action: 'key-points', label: 'Key points', icon: 'list-check' },
     { action: 'explain', label: 'Explain simply', icon: 'sparkles' }
   ]
+}
+
+/** The actions for everything in the tray. Several things together get Compare (the ↵ default) and friends. */
+export function actionsForTray(captures: Capture[], files: FileAttachment[], home: HomeLanguage | null): ActionItem[] {
+  if (captures.length + files.length > 1 && captures.length > 0) {
+    return [
+      { action: 'compare', label: 'Compare these', icon: 'balance-scale-left' },
+      { action: 'summarize-all', label: 'Summarize all', icon: 'list' },
+      { action: 'explain-each', label: 'Explain each', icon: 'sparkles' }
+    ]
+  }
+  if (captures.length === 1) return actionsFor(captures[0].context, home)
+  return files.length ? actionsForFiles(files) : []
 }
 
 /** A tidy grid of action tiles under a capture. The first tile is the ↵ default and says so. */

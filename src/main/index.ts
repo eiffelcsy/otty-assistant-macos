@@ -4,8 +4,9 @@ import type {
   BubbleState,
   ChatEvent,
   PanelOpenPayload,
+  Capture,
   PermissionKind,
-  ScreenContext,
+  QuickState,
   SendOptions,
   SettingsUpdate
 } from '../shared/types'
@@ -26,7 +27,9 @@ import {
   getPanel,
   getQuick,
   prepareQuickAtCursor,
+  quickIsCollecting,
   resizeQuick,
+  setQuickState,
   showPanelAtCursor,
   showPanelByBubble,
   startBubbleDrag
@@ -80,6 +83,29 @@ function openQuick(payload: PanelOpenPayload): void {
   getQuick()?.webContents.send('quick:open', payload)
 }
 
+/** The panel is open: add the capture to its tray, leaving the panel where it is. */
+function addToPanel(payload: PanelOpenPayload): void {
+  const panel = getPanel()
+  panel?.webContents.send('panel:open', { ...payload, add: true } satisfies PanelOpenPayload)
+  panel?.show()
+  panel?.focus()
+}
+
+/** The quick view is collecting: add the capture without moving or focusing it, so the next one still copies from the other app. */
+function addToQuick(payload: PanelOpenPayload): void {
+  if (payload.notice) return openPanel(payload, 'cursor')
+  const quick = getQuick()
+  if (payload.context) quick?.webContents.send('quick:open', { ...payload, add: true } satisfies PanelOpenPayload)
+  quick?.showInactive()
+}
+
+/** Where a new capture goes: the open panel's tray, a collecting quick view, or a fresh window. */
+function captureTarget(): 'panel' | 'quick' | null {
+  if (getPanel()?.isVisible()) return 'panel'
+  if (quickIsCollecting()) return 'quick'
+  return null
+}
+
 async function askAboutSelection(where: 'cursor' | 'bubble'): Promise<void> {
   const panel = getPanel()
   const quick = getQuick()
@@ -89,26 +115,35 @@ async function askAboutSelection(where: 'cursor' | 'bubble'): Promise<void> {
     if (where === 'cursor') ownWindow.hide()
     return
   }
+  const target = captureTarget()
   // The hotkey's modifiers may still be held; give the user a beat to release them.
   const [payload, app] = await Promise.all([captureSelection(where === 'cursor' ? 220 : 0), frontmostApp()])
   payload.app = app
-  if (where === 'cursor') openQuick(payload)
+  if (target === 'panel') addToPanel(payload)
+  else if (target === 'quick') addToQuick(payload)
+  else if (where === 'cursor') openQuick(payload)
   else openPanel(payload, where)
 }
 
 async function snipScreen(): Promise<void> {
   const panel = getPanel()
-  const wasVisible = panel?.isVisible() ?? false
+  const quick = getQuick()
+  const target = captureTarget()
+  // Out of the way of the crosshair; whichever was collecting comes back with the snip.
   panel?.hide()
-  getQuick()?.hide()
+  quick?.hide()
   const app = frontmostApp() // ask before the crosshair takes over the screen
   const payload = await captureScreenshot()
   payload.app = await app
   if (!payload.context && !payload.notice) {
-    if (wasVisible) panel?.show()
-    return // user pressed Esc
+    // The user pressed Esc.
+    if (target === 'panel') panel?.show()
+    if (target === 'quick') quick?.showInactive()
+    return
   }
-  openQuick(payload)
+  if (target === 'panel') addToPanel(payload)
+  else if (target === 'quick') addToQuick(payload)
+  else openQuick(payload)
 }
 
 function registerHotkeys(): void {
@@ -173,9 +208,9 @@ function registerIpc(): void {
 
   ipcMain.handle(
     'chat:send',
-    (_e, text: string, ctx: ScreenContext | null, opts?: SendOptions) => {
+    (_e, text: string, captures: Capture[], opts?: SendOptions) => {
       if (opts?.fresh) resetChat()
-      void chat.send(text, ctx, opts?.app ?? null, { language: opts?.language, action: opts?.action, files: opts?.files })
+      void chat.send(text, Array.isArray(captures) ? captures : [], opts?.app ?? null, { language: opts?.language, action: opts?.action, files: opts?.files })
     }
   )
   ipcMain.handle('chat:stop', () => chat.stop())
@@ -225,6 +260,7 @@ function registerIpc(): void {
     expandQuickToPanel()
   })
   ipcMain.on('quick:resize', (_e, height: number) => resizeQuick(height))
+  ipcMain.on('quick:state', (_e, state: QuickState) => setQuickState(state))
   ipcMain.handle('shell:open', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) return shell.openExternal(url)
   })
