@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ChatSearchHit, ChatSummary } from '../../../shared/types'
+import type { ChatSearchHit, ChatSummary, KeepChats } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 
@@ -28,7 +28,13 @@ function Snippet({ snippet }: { snippet: ChatSearchHit['snippet'] }) {
 }
 
 /** Saved chats, newest first, with a search box. Opening one swaps it into the chat view. */
-export function History({ onOpen, focusSearch }: { onOpen: () => void; focusSearch: number }) {
+const KEPT: Record<KeepChats, string> = {
+  '30d': 'Otty keeps chats for 30 days on this Mac.',
+  '1y': 'Otty keeps chats for a year on this Mac.',
+  forever: 'Otty keeps your chats on this Mac until you forget them.'
+}
+
+export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; focusSearch: number; keep: KeepChats }) {
   const [chats, setChats] = useState<ChatSummary[] | null>(null)
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<ChatSearchHit[] | null>(null)
@@ -134,7 +140,9 @@ export function History({ onOpen, focusSearch }: { onOpen: () => void; focusSear
               </button>
             </div>
           ))}
-          <p className="hint history__note">Otty keeps your last 50 chats on this Mac. Pictures are never saved.</p>
+          <p className="hint history__note">
+            {KEPT[keep]} Pictures are never saved.{chats.length >= 500 && ' Search finds older ones.'}
+          </p>
         </>
       )}
     </div>

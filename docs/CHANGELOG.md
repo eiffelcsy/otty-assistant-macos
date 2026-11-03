@@ -4,6 +4,31 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+On `main`, for 0.4.0. Not yet smoke-tested on a Mac (DEVLOG steps 38–48).
+
+### Saved chats on SQLite (D-3, 2026-11-03)
+- **Chats now live in a small database, `otty.db`**, using the SQLite built into Electron's Node (`node:sqlite`): no native module, nothing to rebuild. Every turn costs the same however long the chat: saving a normal turn takes about 0.5 ms, opening a chat under 1 ms, and searching 2,000 chats about 35 ms.
+- **The question is saved the moment it's sent**, just after the request goes out so it never delays the answer. If Otty is force-quit mid-answer, the question is still there.
+- **"Keep chats for" 30 days / 1 year / forever** (Settings → Privacy, default 1 year) replaces the cap of 50 chats. Old chats are forgotten at launch, after each answer and when the setting changes. Recent chats lists the newest 500, and search reaches the rest.
+- **Forgetting really forgets:** deleted chats are overwritten on disk (`secure_delete`, and FTS5 secure-delete while forgetting), and the write-ahead log is folded back in. "Forget all chats" rebuilds the search index, so it takes well under a second even for thousands of chats.
+- **Upgrading is automatic:** the first launch imports `chats.json` in one transaction, before anything is shown, then deletes the file. If the import fails, the file stays and the import runs again next time. A database that can't be opened falls back to keeping chats for that session only.
+- Search narrows with an FTS5 trigram index (`instr()` for 1–2 character terms such as 打印), then ranks the newest 200 candidates with the same rules as before (`store/search.ts`).
+- The schema already has room for what's planned, so those features need no migration: `memories` with status and expiry (D-10), per-day `counters` for habits and usage, `chats.pinned` (pinned chats are never forgotten by retention) and `chats.learn`, message times, and `intent_feedback` with embeddings (D-1). Allowed values are checked in code rather than with CHECK constraints, so adding one never rebuilds a table. The JSON store is gone.
+
+### Web search and page reading (D-9, 2026-11-03)
+- With DeepSeek as the provider, **search_web is a real web search** (DeepSeek's Search API): five dated results with summaries, which Otty cites as links. Other providers, or a failed search, fall back to Wikipedia and DuckDuckGo as before.
+- **New read_page tool** (DeepSeek's Fetch API): "summarize this page" reads the page in the app note, up to about 24,000 characters. Pages that need a sign-in can't be read; Otty says so and suggests highlighting instead.
+- Same key, no new setting. Search results and page text are treated as information, never instructions. Settings → Privacy says what goes to DeepSeek.
+
+### Capture tray (D-8, #13, 2026-11-03)
+- **One question can carry up to 4 highlights and snips**, each with the app it came from. With the panel open, ⌥Space, ⌥⇧Space, a click on the otter and the panel's scissors add to its tray; two or more things offer **Compare these**, **Summarize all** and **Explain each**.
+- **The quick view collects too:** **＋ add more** keeps it open while you highlight in other apps, and it no longer closes when you switch desktops.
+- Messages now carry `captures[]`; chats saved before keep opening as one-capture messages.
+
+### Builds and CI (D-4, 2026-11-03)
+- **`dmg` workflow:** an unsigned Apple Silicon + Intel `.dmg` from **Actions → dmg → Run workflow**, on every `v*` tag (attached to a draft release), and on PRs that change packaging.
+- `main` is protected by a ruleset: changes go through a PR, the `ci` check must pass, and force pushes and deletion are blocked.
+
 ## 0.3.2 — Painted Otty (2026-11-03)
 
 ### Painted Otty (2026-11-03)

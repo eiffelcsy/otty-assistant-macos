@@ -1,7 +1,13 @@
 import { useState } from 'react'
-import type { PublicSettings } from '../../../shared/types'
+import type { KeepChats, PublicSettings } from '../../../shared/types'
 import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
 import { Icon } from '../components/Icon'
+
+const KEEP: { value: KeepChats; label: string }[] = [
+  { value: '30d', label: '30 days' },
+  { value: '1y', label: '1 year' },
+  { value: 'forever', label: 'Forever' }
+]
 
 export function Settings({ settings, onSaved }: { settings: PublicSettings; onSaved: (s: PublicSettings) => void }) {
   const [form, setForm] = useState(settings)
@@ -100,6 +106,22 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
             attach, but never the files themselves or any pictures. Turning this off forgets saved chats.
           </span>
         </label>
+        {form.rememberChats && (
+          <div className="label">
+            Keep chats for
+            <div className="choices choices--row" role="radiogroup" aria-label="Keep chats for">
+              {KEEP.map((k) => (
+                <label key={k.value} className={`choice${form.keepChats === k.value ? ' choice--on' : ''}`}>
+                  <input type="radio" name="keep-chats" checked={form.keepChats === k.value} onChange={() => set('keepChats', k.value)} />
+                  <span className="choice__text">
+                    <b>{k.label}</b>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <span className="hint">Counted from a chat’s last message. Older chats are forgotten when you save.</span>
+          </div>
+        )}
         {settings.rememberChats && (
           <button
             className="btn btn--soft btn--small"

@@ -12,7 +12,7 @@ import type {
 } from '../shared/types'
 import * as settings from './settings'
 import { captureScreenshot, captureSelection, frontmostApp } from './capture'
-import { chatStore } from './store'
+import { chatStore, closeStore, pruneOldChats } from './store'
 import { discardFile, pickFiles, readFile, registerFiles } from './files'
 import { getPermissions, openPermissionSettings } from './permissions'
 import { ChatSession, explainTerm, testConnection } from './llm'
@@ -34,6 +34,9 @@ import {
   showPanelByBubble,
   startBubbleDrag
 } from './windows'
+
+/** Recent chats shows this many; search reaches the rest. */
+const RECENT_CHATS = 500
 
 let tray: Tray | null = null
 let happyTimer: NodeJS.Timeout | null = null
@@ -66,6 +69,13 @@ const chat = new ChatSession(forward)
 function resetChat(): void {
   chat.reset()
   forward({ type: 'reset' })
+}
+
+/** "Forget all chats", or turning off "Remember my chats": the open one goes too, even mid-answer. */
+async function forgetAllChats(): Promise<void> {
+  chat.forget(chat.threadId)
+  forward({ type: 'reset' })
+  await chatStore().clear()
 }
 
 function openPanel(payload: PanelOpenPayload, where: 'cursor' | 'bubble'): void {
@@ -188,7 +198,8 @@ function refreshTray(): void {
 
 function applySettings(u: SettingsUpdate) {
   const result = settings.update(u)
-  if (u.rememberChats === false) void chatStore().clear()
+  if (u.rememberChats === false) void forgetAllChats()
+  if (u.keepChats !== undefined) void pruneOldChats()
   if (u.askHotkey !== undefined || u.snapHotkey !== undefined) registerHotkeys()
   if (u.showBubble !== undefined) {
     const b = getBubble()
@@ -215,17 +226,16 @@ function registerIpc(): void {
   )
   ipcMain.handle('chat:stop', () => chat.stop())
   ipcMain.handle('chat:reset', () => resetChat())
-  ipcMain.handle('chats:list', () => chatStore().list())
+  ipcMain.handle('chats:list', () => chatStore().list({ limit: RECENT_CHATS }))
   ipcMain.handle('chats:open', (_e, id: string, focusMessageId?: string) => chat.open(id, focusMessageId))
   ipcMain.handle('chats:search', (_e, q: string) => chatStore().search(String(q).slice(0, 200)))
   ipcMain.handle('chats:delete', async (_e, id: string) => {
+    const open = chat.threadId === id
+    chat.forget(id)
     await chatStore().delete(id)
-    if (chat.threadId === id) resetChat()
+    if (open) forward({ type: 'reset' })
   })
-  ipcMain.handle('chats:clear', async () => {
-    await chatStore().clear()
-    resetChat()
-  })
+  ipcMain.handle('chats:clear', () => forgetAllChats())
   ipcMain.handle('files:pick', (e) => pickFiles(BrowserWindow.fromWebContents(e.sender)))
   ipcMain.handle('files:register', (_e, paths: unknown) => registerFiles(paths))
   ipcMain.handle('files:read', (_e, id: string) => readFile(String(id)))
@@ -286,6 +296,11 @@ if (!app.requestSingleInstanceLock()) {
     createQuick().on('show', () => setBadge(false))
     createBubble()
     registerHotkeys()
+    // Open the database (and import any chats.json) now, off the first click's path, then tidy old chats.
+    setImmediate(() => {
+      chatStore()
+      void pruneOldChats().catch((err) => console.error('Could not forget old chats', err))
+    })
 
     tray = new Tray(trayIcon())
     tray.setToolTip('Otty')
@@ -297,7 +312,10 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   app.on('second-instance', () => openPanel({ context: null }, 'bubble'))
-  app.on('will-quit', () => globalShortcut.unregisterAll())
+  app.on('will-quit', () => {
+    globalShortcut.unregisterAll()
+    closeStore()
+  })
   // Keep running with no windows focused; Otty quits only from its menu.
   app.on('window-all-closed', () => {
     if (BrowserWindow.getAllWindows().length === 0) app.quit()

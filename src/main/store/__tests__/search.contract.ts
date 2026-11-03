@@ -3,7 +3,7 @@ import type { ChatMessage } from '../../../shared/types'
 import type { ChatStore, Thread } from '../types'
 
 // The search contract every ChatStore backend must pass. Run it from a backend's own test file:
-//   searchContract('json', async () => new JsonChatStore(tmpFile()))
+//   searchContract('sqlite', async () => new SqliteChatStore(openDatabase(':memory:')))
 // It checks which chats match and what they point at, not the exact order of equally good hits.
 
 let n = 0
@@ -54,7 +54,7 @@ export function searchContract(name: string, makeStore: () => Promise<ChatStore>
 
     beforeEach(async () => {
       store = await makeStore()
-      for (const t of fixtures()) await store.save(t)
+      for (const t of fixtures()) await store.write(t)
     })
 
     const ids = async (q: string) => (await store.search(q)).map((h) => h.chatId).sort()
