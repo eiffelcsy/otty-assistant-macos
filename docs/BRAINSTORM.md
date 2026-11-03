@@ -53,7 +53,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
 | Snip the whole window or screen, not just a box | M | S | idea |
 | **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | → D-8 |
-| Read the current page's main text (Readability-style) when asked "summarize this page" | H | M | idea |
+| Read the current page's main text when asked "summarize this page" | H | M | → D-9 (`read_page` on the app note's URL; signed-in pages can't be read) |
 | Attach files (PDF, Word, images, text) from the Mac and ask about them | H | M–L | shipped (D-6 v1) |
 | Attach the file selected in Finder with ⌥Space | M | S | idea (left out of D-6 v1) |
 | Attach files in the quick view: it hides on blur, so a drag from Finder closes it. Needs "don't hide while dragging" or a paperclip there | M | S | idea |
@@ -73,7 +73,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | --- | --- | --- | --- |
 | Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | considering |
 | Follow-up questions inside the quick view (don't force "continue in chat") | H | S | considering |
-| Better web search (Brave / Tavily, optional key) plus a `read_page` tool | H | M | considering |
+| Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | → D-9 |
 | Calendar events (EventKit / AppleScript) with a confirm card | M | S | idea |
 | `draft_email`: opens Mail with a pre-filled draft | M | S | idea |
 | Timers and alarms | L | S | idea |

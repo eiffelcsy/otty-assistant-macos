@@ -279,7 +279,7 @@ export class ChatSession {
           {
             messages: [{ role: 'system', content: systemPrompt(note) }, ...remindTurn(history, turnStart, reminder)],
             stream: true,
-            ...(allowTools ? { tools: toolDefs } : {})
+            ...(allowTools ? { tools: toolDefs() } : {})
           },
           abort.signal
         )
