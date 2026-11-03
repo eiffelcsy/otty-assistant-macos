@@ -96,12 +96,23 @@ export function Quick() {
       const body = answerBodyRef.current
       const squeezed =
         answer && body ? Math.min(body.offsetHeight, parseFloat(getComputedStyle(answer).maxHeight)) - answer.clientHeight : 0
-      const wanted = card.offsetHeight + Math.max(0, squeezed)
+      // Measure to the last row, not offsetHeight: when the window is still the last (smaller) size,
+      // the rest of the card overflows the cap, and offsetHeight would only report the cap back.
+      // (offsetTop rather than getBoundingClientRect, which the opening pop animation scales.)
+      const last = card.lastElementChild as HTMLElement | null
+      const cs = getComputedStyle(card)
+      const lastTop = !last ? 0 : last.offsetParent === card ? last.offsetTop + card.clientTop : last.offsetTop - card.offsetTop
+      const natural = last
+        ? lastTop + last.offsetHeight + parseFloat(cs.paddingBottom) + parseFloat(cs.borderBottomWidth)
+        : card.offsetHeight
+      const wanted = natural + Math.max(0, squeezed)
       window.otty.quickResize(Math.ceil(Math.max(wanted, popover ? POPOVER_ROOM : 0)) + MARGIN * 2)
     }
     report()
     const ro = new ResizeObserver(report)
     ro.observe(card)
+    // A capped card keeps its size while its contents grow, so watch the rows themselves too.
+    for (const row of Array.from(card.children)) ro.observe(row)
     if (answerBodyRef.current) ro.observe(answerBodyRef.current)
     return () => ro.disconnect()
   }, [popover, opened, asked])
