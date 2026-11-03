@@ -51,6 +51,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | --- | --- | --- | --- | --- |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ next | — (schema and `database()` are in) | M (2–3 days) |
 | D-12 | Math that's right, and instant: stable prompt prefix (cache hits), local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
+| D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
@@ -60,8 +61,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 1. **Smoke-test steps 38–48 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
 3. **D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers. Its first step, a stable prompt prefix so DeepSeek can cache the history, speeds up every follow-up and tool round and should land before D-10 adds memories to the prompt. So consider doing D-12 first.
-4. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
-5. Then **D-1**. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
+4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
+5. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
+6. Then **D-1**. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
 
 ---
 
@@ -252,6 +254,88 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
 
 ---
 
+## D-14 · Otty's own snip: a paw cursor, a frozen screen, and a whole-screen shortcut ⏳
+
+**Goal.** Snipping should feel like Otty, not like a system tool, and be faster too. And the whole screen should be one shortcut away.
+
+**Today.** ⌥⇧Space runs `screencapture -i` (`capture.ts`): the macOS crosshair, a grey box and system styling. It can't be themed, it can't show Otty, and it can't pick a whole screen without extra keys. The floating otter also lands in the picture.
+
+### The snip overlay
+- **Freeze, then select.**
+  - On the hotkey, Otty first snapshots the display(s), with its own windows left out (below).
+  - It then shows its overlay over that frozen picture, softly dimmed. You select on the frozen image, and on release the crop happens locally: **instant**, with no second capture and no flash.
+  - Like macOS's own "freeze", it catches what was on screen at the moment of the hotkey: an open menu, a tooltip, a hover state that would vanish when focus changes.
+- **Look** (tokens from `styles.css`; no new hex values):
+  - a soft dim over the screen, with the selection clear;
+  - rounded corners (`--r-sm`) and a meadow hairline with a soft glow;
+  - a small size pill (`640 × 320`) under the selection;
+  - a one-line hint the first few times, then it gets out of the way: "Drag to snap · click for the whole screen · Esc to cancel".
+- **The cursor: Otty's paw.**
+  - It's a real CSS cursor (`cursor: image-set(paw.png 1x, paw@2x.png 2x) x y`), so it's drawn by the system with no lag, unlike a DOM element following the mouse.
+  - It's 32 pt (64 px @2x). The hotspot is a small, precise pad dot at the tip, so aiming stays exact.
+  - It has a dark outline and a soft light halo, so it's visible on white, black and busy backgrounds.
+  - Two states: **open paw** (aiming) and **pinched paw** (while dragging), switched by a class on mousedown.
+  - Faint full-width and full-height guide lines through the cursor help with precise edges. They're drawn in the overlay and disappear while dragging.
+- **Interaction:**
+  - drag to select, release to snap;
+  - **click without dragging snaps the whole display under the cursor**;
+  - Esc cancels;
+  - Space while dragging moves the selection;
+  - arrow keys nudge the selection 1 pt (⇧ for 10), and ↵ confirms, so it works from the keyboard.
+- **A small "snap!"** on release: the selection pulses once and the paw does a tiny boop, then the overlay closes. With `prefers-reduced-motion`, it just closes.
+
+### The whole-screen shortcut (⌘⌥⇧Space, `Command+Alt+Shift+Space`)
+- **No overlay:** it snaps the display under the cursor straight away, with Otty's windows left out. A soft shutter flash (none with reduced motion) and the bubble's happy face confirm it.
+- **Where it goes:** like any snip, it follows D-8's tray rules: added to an open panel or a collecting quick view, otherwise a new quick view. Its chip says **Whole screen** and the app note names the frontmost app.
+- **Size:** a whole screen is sent at up to 2048 px on the long side, not the usual 1600, so text stays readable, as JPEG q85. Its token cost is noted under FR-4.
+- **Privacy:** a whole screen can include notifications and other windows. Nothing is sent until the user asks, the preview sits in the tray with its ✕, and the welcome page and Settings say what "whole screen" captures.
+- **Everywhere else:**
+  - Settings gets a third shortcut field, "Capture the whole screen". `PublicSettings.screenHotkey` defaults to `Command+Alt+Shift+Space`.
+  - It's in the menu-bar menu, the bubble's right-click menu, and the empty chat's how-to list.
+  - `prettyKey` shows ⌘⌥⇧Space.
+- **When a shortcut is taken** by another app (registration fails), Settings shows "Another app is using this shortcut. Pick a different one.", not just a console warning. That covers all three shortcuts.
+
+### Build
+- **Windows** (`windows.ts`):
+  - One transparent, frameless overlay window per display, **created hidden at startup** so it appears within a frame of the snapshot being ready.
+  - Window level `screen-saver`, so it covers the menu bar and Dock. `setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })`.
+  - Bounds equal the display's `bounds`, rebuilt on `screen` display-added, display-removed and metrics-changed events.
+  - It takes focus while open (for Esc and the arrow keys). The frontmost app is recorded **before** the overlay opens, as today.
+- **Snapshot:**
+  - **Leaving Otty out:** for the moment of the snapshot, the bubble, panel and quick view get `setContentProtection(true)`, which keeps them out of the capture without hiding them, so there's no flicker. It's turned off right after, so Otty still shows up in the user's own screenshots and screen shares.
+  - **How:** whichever of `desktopCapturer.getSources({ types: ['screen'], thumbnailSize: <display size × scale> })` (in-process, no file) and `screencapture -x -D n` (one per display, in parallel) is faster on an M1 at full Retina size. Prototype both and keep the winner.
+  - **Budget: hotkey → overlay visible ≤ 150 ms, release → snip in the tray ≤ 50 ms.**
+- **Crop** in main: from the overlay's points to the display's pixels (`scaleFactor`), then `encodeImage` (the existing downscale and JPEG). Multi-display coordinates are unit-tested.
+- **Renderer:** a fourth view, `?view=snip` (`src/renderer/src/snip/Snip.tsx`), in the same bundle. IPC:
+  - `snip:open` (main → overlay: the frozen image as an object URL);
+  - `snip:done` (overlay → main: rect or "whole display");
+  - `snip:cancel`.
+- **Cursor art** goes through `tools/otty-art/prepare.py`, like the other frames:
+  - new sources `paw-open` and `paw-pinch`;
+  - outputs `cursor-paw.png`, `cursor-paw@2x.png`, `cursor-pinch.png` and `cursor-pinch@2x.png`, each with its hotspot written to a small JSON file;
+  - the script adds the outline and halo. Never hand-edited.
+- **Permissions:** both the snapshot and the whole-screen shortcut need Screen Recording, which snips already need. Without it, the existing "needs-screen" notice.
+- **Fallback:** if the overlay can't be shown (a display change mid-snip, for example), fall back to `screencapture -i`, so snipping always works.
+- **`tools/ui-preview`:** `?view=snip` with a sample frozen background, to tune the look and cursor in a browser.
+
+### Tests
+- Rect maths: normalising a drag in any direction, clamping to the display, points to pixels at scale 1 and 2, a second display at negative coordinates, a click becoming "whole display".
+- The size choice (2048 for whole screen, 1600 otherwise) and a JPEG under the size budget.
+- Settings: the third shortcut saves, re-registers, and reports a taken shortcut.
+- Timing, in a dev log: hotkey → overlay visible, release → chip.
+
+### Done when
+- ⌥⇧Space shows Otty's paw on a softly dimmed, frozen screen within a blink. Dragging shows the pinched paw, rounded selection and size pill; releasing adds the snip at once, with no grey macOS box.
+- Snipping an open menu keeps the menu in the picture.
+- Clicking without dragging snaps that whole display.
+- ⌘⌥⇧Space adds a "Whole screen" snip of the display under the cursor, with the floating otter not in it, and the chip readable.
+- The paw is easy to see on white, black and a photo.
+- With two displays, both work.
+- A shortcut taken by another app shows the friendly message.
+- Reduced motion turns off the flash and boop.
+
+---
+
 ## D-11 · Do it with me: step cards that act on the answer ⏳
 
 **Goal.** Most of Otty's answers are steps: "open System Settings → Privacy → Accessibility", "press ⌘⇧4", "paste this formula into B2", "choose File → Export → PDF". Today the user reads them and does all the work. Step cards turn those steps into a checklist under the answer, where each step can be **done for them with one click** or ticked off, in any app. It's the first, safe stage of "Show me how" (BRAINSTORM concept notes): Otty helps you through a task, but nothing happens until you click.
@@ -438,3 +522,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 53. Ask "What's 17.5% of 2,340 plus 8% tax?" → one "Calculated … = …" chip, no flicker, and the right total, with the answer starting about as fast as a normal question. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then rendered steps (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
 54. Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text, and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400 with Chinese working. Toggle dark mode → equations stay legible. Copy an answer → the pasted text has `$$…$$`.
 55. In a dev build, ask a follow-up in a long chat → the log shows `prompt_cache_hit_tokens` covering the history, on the follow-up and on the round after a tool call. Start a new chat → its first request hits the cache for the system prompt and tools. Switch EN / 中 between turns → still hits.
+56. Press **⌥⇧Space** → within a blink, the screen dims and freezes, with Otty's paw as the cursor. Drag → the paw pinches, and a rounded selection with a size pill follows. Release → a tiny snap, and the snip is in the quick view at once, without the floating otter in it. Open a menu in any app first, then ⌥⇧Space → the menu is in the snip.
+57. ⌥⇧Space, then click without dragging → the whole display is the snip. Esc → cancels quietly. Arrow keys and ↵ → nudge and confirm without the mouse. Check the paw on a white page, a black page and a photo: it's always easy to see.
+58. Press **⌘⌥⇧Space** → a soft flash, then a "Whole screen" snip of the display under the cursor, readable when opened. With the panel open, it's added to the tray. On a second display, it snaps that one.
+59. Settings → the third shortcut, "Capture the whole screen", shows ⌘⌥⇧Space. Set a shortcut another app uses → "Another app is using this shortcut". Turn on Reduce motion in macOS → no flash or boop.

@@ -61,6 +61,7 @@ Priority: **P0** = must ship in today's MVP, **P1** = should ship if time allows
 - FR-4.2 The image is downscaled (max 1600 px on the long side), converted to JPEG and sent to the model as an `image_url` content part (JPEG, PNG, GIF and WebP are supported).
 - FR-4.3 A thumbnail chip of the snip appears in the composer.
 - FR-4.4 If Screen Recording permission is missing, Otty shows the same friendly guide as FR-3.5.
+- FR-4.5 *(Planned, D-14.)* Otty draws its own snip overlay (paw cursor, frozen screen, instant crop), and **⌘⌥⇧Space** captures the whole display under the cursor. Both leave Otty's own windows out of the picture.
 
 ### FR-5 Chat panel (P0)
 - FR-5.1 Answers stream in token by token, with an "Otty is thinking…" otter animation before the first token.

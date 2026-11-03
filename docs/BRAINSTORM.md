@@ -53,7 +53,11 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Local OCR (Apple Vision) for snips: classifier input and text for non-vision models | H | M | → D-1 (part) |
 | Learn from intent corrections on-device (retrain the head from `intent_feedback`, which keeps embeddings, not text) | M | M | idea |
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
-| Snip the whole window or screen, not just a box | M | S | idea |
+| Snip the whole window or screen, not just a box | M | S | → D-14 (whole screen and whole display); a single window is below |
+| Otty's own snip overlay: paw cursor, frozen screen, rounded selection, instant crop | H | M | → D-14 |
+| Snip a single window: hover highlights the window under the paw, click snaps it (window list from a small Swift helper) | M | M | idea, after D-14 |
+| More cursor moods: a magnifier paw for tiny targets, a "wave" while waiting for a hotkey release | L | S | idea, after D-14 |
+| History budget for long chats (D-13, proposed): compact old pictures, page reads and documents in rare single steps; recover from a context-length error | M | S | considering |
 | **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | shipped (D-8) |
 | Read the current page's main text when asked "summarize this page" | H | M | shipped (D-9: `read_page` on the app note's URL; signed-in pages can't be read) |
 | Attach files (PDF, Word, images, text) from the Mac and ask about them | H | M–L | shipped (D-6 v1) |
