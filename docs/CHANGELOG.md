@@ -4,6 +4,12 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+## 0.3.1 — Quick view fixes (2026-11-03)
+
+### Fixes (2026-11-03)
+- **Quick view no longer opens cut off.** Opening it again after a shorter one could leave the card stuck at the old, smaller height, with the box and the esc / ↵ row spilling out of it. Since #12 the card is capped to its window, and it was reporting that capped height back, so the window never grew. It now reports the height its contents need.
+- **Explain terms open in the quick view again.** Tapping one closed its card straight away: the quick view re-renders to make room for the card, and `Markdown` built its link renderer inline, so every re-render remounted the terms. The renderers are now module-level, with the answer's text and language passed through context.
+
 ## 0.3 — Find in and across chats, attach files (2026-11-02)
 
 ### Find in this chat (D-7, 2026-11-02)

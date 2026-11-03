@@ -174,45 +174,54 @@ function ExplainTerm({
   )
 }
 
+/** The answer being rendered, for the explain terms inside it. */
+const AnswerContext = createContext<{ text: string; language: AnswerLanguage }>({ text: '', language: 'en' })
+
+function MarkdownLink({ href, children }: { href?: string; children?: ReactNode }) {
+  const { text, language } = useContext(AnswerContext)
+  if (href === '#explain') {
+    return (
+      <ExplainTerm term={textOf(children)} around={text} language={language}>
+        {children}
+      </ExplainTerm>
+    )
+  }
+  return (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault()
+        if (href) window.otty.openExternal(href)
+      }}
+    >
+      {children}
+    </a>
+  )
+}
+
+function TipCard({ children }: { children?: ReactNode }) {
+  return (
+    <aside className="tip-card">
+      <Icon name="bulb" solid />
+      <div className="tip-card__body">{children}</div>
+    </aside>
+  )
+}
+
+// Module-level, so a re-render doesn't hand react-markdown new component types and remount
+// every explain term (which closed an open card whenever the quick view re-rendered).
+const components = { a: MarkdownLink, blockquote: TipCard }
+const remarkPlugins = [remarkGfm]
+
 export function Markdown({ text, language = 'en' }: { text: string; language?: AnswerLanguage }) {
   return (
     <div className="md">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          a({ href, children }) {
-            if (href === '#explain') {
-              return (
-                <ExplainTerm term={textOf(children)} around={text} language={language}>
-                  {children}
-                </ExplainTerm>
-              )
-            }
-            return (
-              <a
-                href={href}
-                onClick={(e) => {
-                  e.preventDefault()
-                  if (href) window.otty.openExternal(href)
-                }}
-              >
-                {children}
-              </a>
-            )
-          },
-          blockquote({ children }) {
-            return (
-              <aside className="tip-card">
-                <Icon name="bulb" solid />
-                <div className="tip-card__body">{children}</div>
-              </aside>
-            )
-          }
-        }}
-      >
-        {/* Tips arrive as `> 💡 …`; the card draws its own icon, so drop the emoji. */}
-        {text.replace(/^(\s*>\s*)💡\s*/gm, '$1')}
-      </ReactMarkdown>
+      <AnswerContext.Provider value={{ text, language }}>
+        <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
+          {/* Tips arrive as `> 💡 …`; the card draws its own icon, so drop the emoji. */}
+          {text.replace(/^(\s*>\s*)💡\s*/gm, '$1')}
+        </ReactMarkdown>
+      </AnswerContext.Provider>
     </div>
   )
 }
