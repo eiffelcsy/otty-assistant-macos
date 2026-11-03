@@ -28,6 +28,7 @@ const settings: PublicSettings = {
   onboarded: scene !== 'onboarding',
   shareAppContext: true,
   rememberChats: true,
+  keepChats: '1y',
   homeLanguage: q.get('home') === 'none' ? null : 'zh-HK'
 }
 

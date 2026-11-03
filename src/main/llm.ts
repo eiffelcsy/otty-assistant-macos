@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, SendOptions } from '../shared/types'
 import { capturedText } from '../shared/captures'
-import { chatStore, type Thread } from './store'
+import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
 import { fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
 import { getApiKey, getStored } from './settings'
@@ -168,6 +168,8 @@ export class ChatSession {
   private abort: AbortController | null = null
   private running: Promise<void> = Promise.resolve()
   private confirms = new Map<string, (ok: boolean) => void>()
+  /** Chats the user deleted while a turn was still running: that turn must not write them back. */
+  private forgotten = new Set<string>()
 
   constructor(private emit: (e: ChatEvent) => void) {}
 
@@ -189,6 +191,20 @@ export class ChatSession {
     this.thread = structuredClone(saved)
     this.emit({ type: 'load', messages: this.thread.messages, focusMessageId })
     return true
+  }
+
+  /** The user deleted this chat (or all of them): stop and never save it again. */
+  forget(id: string): void {
+    this.forgotten.add(id)
+    if (this.thread.id === id) this.reset()
+  }
+
+  /** Saves a turn's rows, if the user keeps chats. Never throws: a failed save shouldn't break the answer. */
+  private persist(thread: Thread, from: WriteFrom): void {
+    if (!getStored().rememberChats || this.forgotten.has(thread.id)) return
+    chatStore()
+      .write(thread, from)
+      .catch((err) => console.error('Could not save chat', err))
   }
 
   stop(): void {
@@ -241,11 +257,16 @@ export class ChatSession {
       if (where) thread.app = where.name
     }
     thread.messages.push(userMsg)
+    thread.updatedAt = Date.now()
     this.emit({ type: 'user', ...userMsg })
 
     // Let a stopped turn finish cleaning up its own history before this one adds to it.
     const prev = this.running
     this.running = prev.then(() => this.run(thread, prompt, captures, app, fitted, language, note, reminder))
+    // Save the question now, so a crash mid-answer keeps it. setImmediate runs after the request has been sent,
+    // so the write is never on the way to the first token.
+    const at = thread.messages.length - 1
+    setImmediate(() => this.persist(thread, { messages: at, history: thread.history.length }))
     return this.running
   }
 
@@ -264,7 +285,7 @@ export class ChatSession {
     this.abort = abort
     const history = thread.history
     const answer: Extract<ChatMessage, { role: 'assistant' }> = { id, role: 'assistant', text: '', tools: [], language }
-    thread.messages.push(answer)
+    const answerAt = thread.messages.push(answer) - 1
 
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
@@ -347,7 +368,9 @@ export class ChatSession {
     } finally {
       if (this.abort === abort) this.abort = null
       thread.updatedAt = Date.now()
-      if (getStored().rememberChats) chatStore().save(thread).catch((err) => console.error('Could not save chat', err))
+      // Only this turn's rows: the cost doesn't grow with the length of the chat.
+      this.persist(thread, { messages: answerAt, history: turnStart })
+      void pruneOldChats().catch((err) => console.error('Could not forget old chats', err))
     }
   }
 

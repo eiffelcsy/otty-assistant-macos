@@ -1,48 +1,60 @@
 import { app } from 'electron'
-import { existsSync, renameSync } from 'fs'
 import type { DatabaseSync } from 'node:sqlite'
 import { join } from 'path'
-import { openDatabase } from './db'
-import { JsonChatStore } from './jsonStore'
+import { getStored } from '../settings'
+import { closeDatabase, openDatabase } from './db'
+import { importJsonFile } from './importJson'
+import { retentionCutoff } from './retention'
 import { SqliteChatStore } from './sqliteStore'
 import type { ChatStore } from './types'
 
-export type { ChatStore, Thread } from './types'
+export type { ChatStore, Thread, WriteFrom } from './types'
 
-let store: ChatStore | null = null
 let db: DatabaseSync | null = null
+let store: SqliteChatStore | null = null
 
 /**
- * SQLite (D-3) is scaffolded but opt-in until it has been smoke-tested on a Mac: start Otty with
- * `OTTY_STORE=sqlite`. Flip the default here once it has.
+ * Opens `otty.db` and imports any `chats.json` before returning, all synchronously, so the first read already
+ * sees every chat. Main calls it at startup, so the panel never waits for it.
  */
-const useSqlite = () => process.env.OTTY_STORE === 'sqlite'
-
-/** The local database, shared by saved chats and (later) memories and intent feedback. Opened on first use. */
-export function database(): DatabaseSync {
-  return (db ??= openDatabase(join(app.getPath('userData'), 'otty.db')))
-}
-
-/** The chat store in use. Created on first use, once `userData` is known. */
-export function chatStore(): ChatStore {
+function open(): SqliteChatStore {
   if (store) return store
-  const jsonFile = join(app.getPath('userData'), 'chats.json')
-  if (!useSqlite()) return (store = new JsonChatStore(jsonFile))
-  const sqlite = new SqliteChatStore(database())
-  store = sqlite
-  if (existsSync(jsonFile)) void importJson(sqlite, jsonFile)
-  return sqlite
+  const dir = app.getPath('userData')
+  try {
+    db = openDatabase(join(dir, 'otty.db'))
+  } catch (err) {
+    // A damaged file, or one from a newer Otty: keep working, with chats kept for this session only.
+    console.error('Could not open otty.db; chats will not be saved this session', err)
+    db = openDatabase(':memory:')
+  }
+  store = new SqliteChatStore(db)
+  try {
+    importJsonFile(store, join(dir, 'chats.json'))
+  } catch (err) {
+    console.error('Could not import chats.json; will try again next launch', err)
+  }
+  return store
 }
 
-/** Moves chats saved by the JSON store into SQLite once, then renames the file so it isn't imported again. */
-async function importJson(sqlite: SqliteChatStore, file: string): Promise<void> {
-  try {
-    const json = new JsonChatStore(file)
-    const summaries = await json.list()
-    const threads = (await Promise.all(summaries.map((s) => json.get(s.id)))).flatMap((t) => (t ? [t] : []))
-    await sqlite.importThreads(threads)
-    renameSync(file, `${file}.imported`)
-  } catch (err) {
-    console.error('Could not import saved chats into otty.db', err)
-  }
+/** The chat store. */
+export function chatStore(): ChatStore {
+  return open()
+}
+
+/** The local database, shared by saved chats and (later) memories and intent feedback. */
+export function database(): DatabaseSync {
+  open()
+  return db!
+}
+
+/** Forgets chats older than the "Keep chats" setting. Cheap when there's nothing to forget (an indexed range). */
+export async function pruneOldChats(): Promise<number> {
+  const cutoff = retentionCutoff(getStored().keepChats)
+  return cutoff === null ? 0 : open().prune(cutoff)
+}
+
+export function closeStore(): void {
+  if (db) closeDatabase(db)
+  db = null
+  store = null
 }

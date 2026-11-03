@@ -35,7 +35,7 @@ The build is unsigned for the MVP. To open it the first time, right-click the ap
 
 ## Stack
 
-Electron + electron-vite + React + TypeScript. The LLM is called from the main process with plain `fetch` to any OpenAI-compatible `/chat/completions` endpoint (default: DeepSeek `deepseek-flash`, with vision). With DeepSeek, web search and page reading use its Search & Fetch APIs with the same key. Chats are saved as JSON; SQLite (`otty.db`) can be tried with `OTTY_STORE=sqlite npm run dev`.
+Electron + electron-vite + React + TypeScript. The LLM is called from the main process with plain `fetch` to any OpenAI-compatible `/chat/completions` endpoint (default: DeepSeek `deepseek-flash`, with vision). With DeepSeek, web search and page reading use its Search & Fetch APIs with the same key. Chats are saved on the Mac in SQLite (`otty.db`, Electron's built-in `node:sqlite`).
 
 ```
 src/

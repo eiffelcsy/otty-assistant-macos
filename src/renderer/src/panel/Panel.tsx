@@ -263,7 +263,7 @@ export function Panel() {
           {view === 'settings' ? (
             <Settings settings={settings} onSaved={setSettings} />
           ) : view === 'history' ? (
-            <History onOpen={() => setView('chat')} focusSearch={searchFocus} />
+            <History onOpen={() => setView('chat')} focusSearch={searchFocus} keep={settings.keepChats} />
           ) : (
             <>
               {finding !== null && (

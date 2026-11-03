@@ -79,6 +79,9 @@ export interface SendOptions {
   files?: string[]
 }
 
+/** How long saved chats are kept, counted from their last message. */
+export type KeepChats = '30d' | '1y' | 'forever'
+
 export interface PublicSettings {
   hasApiKey: boolean
   baseUrl: string
@@ -92,6 +95,7 @@ export interface PublicSettings {
   shareAppContext: boolean
   /** Save chats (text only) to disk so they show under Recent chats. */
   rememberChats: boolean
+  keepChats: KeepChats
   /** "My other language". null = none, and Otty behaves as English-only. */
   homeLanguage: HomeLanguage | null
 }

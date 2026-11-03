@@ -19,7 +19,8 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   snapHotkey: 'Alt+Shift+Space',
   onboarded: false,
   shareAppContext: true,
-  rememberChats: true
+  rememberChats: true,
+  keepChats: '1y'
 }
 
 let cache: StoredSettings | null = null

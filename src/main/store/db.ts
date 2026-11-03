@@ -14,7 +14,10 @@ const MIGRATIONS: string[] = [
   // v1
   `
   create table chats(
-    id text primary key,
+    -- A number for the search index to point at: FTS5 finds rows by rowid in O(log n), and an
+    -- INTEGER PRIMARY KEY never changes, even on VACUUM.
+    num integer primary key,
+    id text not null unique,
     title text not null,
     app text,
     created_at integer not null,
@@ -41,9 +44,9 @@ const MIGRATIONS: string[] = [
     primary key (chat_id, seq)
   );
 
-  -- One row per chat: every searchable field, folded (NFKC, lower case) the way store/search.ts folds queries.
-  -- Trigram finds terms of 3+ characters; shorter ones (many Chinese searches) fall back to instr().
-  create virtual table chat_search using fts5(chat_id unindexed, text, tokenize = 'trigram');
+  -- One row per chat (rowid = chats.num): every searchable field, folded (NFKC, lower case) the way
+  -- store/search.ts folds queries. Trigram finds terms of 3+ characters; shorter ones fall back to instr().
+  create virtual table chat_search using fts5(text, tokenize = 'trigram');
 
   -- Things Otty has learned about the user (issue #17, D-10). Saved as Otty learns them, shown under the answer
   -- with an Undo, and listed in Settings where every one can be edited, paused or deleted. Kept apart from chats:
@@ -77,6 +80,7 @@ const MIGRATIONS: string[] = [
     chat_id text primary key references chats(id) on delete cascade
   );
   create virtual table memories_fts using fts5(text, content = 'memories', content_rowid = 'id', tokenize = 'trigram');
+  insert into memories_fts(memories_fts, rank) values ('secure-delete', 1);
   create trigger memories_ai after insert on memories begin
     insert into memories_fts(rowid, text) values (new.id, new.text);
   end;
@@ -101,14 +105,42 @@ const MIGRATIONS: string[] = [
 
 export const SCHEMA_VERSION = MIGRATIONS.length
 
-/** Opens (creating if needed) and migrates the database. `:memory:` works for tests. */
+/** The chat search index, as created by v1. `clear()` rebuilds it from scratch rather than deleting row by row. */
+export const CHAT_SEARCH_DDL = "create virtual table chat_search using fts5(text, tokenize = 'trigram')"
+
+/** Opens (creating if needed) and migrates the database. `:memory:` works for tests and as a fallback. */
 export function openDatabase(file: string): DatabaseSync {
   if (file !== ':memory:') mkdirSync(dirname(file), { recursive: true })
   const db = new DatabaseSync(file)
   if (file !== ':memory:') chmodSync(file, 0o600)
-  db.exec('pragma journal_mode = wal; pragma foreign_keys = on; pragma busy_timeout = 2000;')
+  db.exec(`
+    -- Only takes effect on a new, empty file: lets pruning hand pages back with a cheap incremental_vacuum.
+    pragma auto_vacuum = incremental;
+    -- WAL + normal sync: a write is a sub-millisecond append, and a crash of Otty (not of the Mac) loses nothing.
+    pragma journal_mode = wal;
+    pragma synchronous = normal;
+    pragma foreign_keys = on;
+    pragma busy_timeout = 2000;
+    pragma temp_store = memory;
+    -- Deleted chats are overwritten with zeros, not just unlinked.
+    pragma secure_delete = on;
+  `)
   migrate(db)
   return db
+}
+
+/** After deleting: return free pages to the OS and fold the WAL back in, so nothing deleted lingers in either. */
+export function compact(db: DatabaseSync): void {
+  db.exec('pragma incremental_vacuum; pragma wal_checkpoint(truncate);')
+}
+
+/** On quit: let SQLite refresh its query planner statistics (cheap, and only where they're stale). */
+export function closeDatabase(db: DatabaseSync): void {
+  try {
+    db.exec('pragma optimize')
+  } finally {
+    db.close()
+  }
 }
 
 function migrate(db: DatabaseSync): void {
