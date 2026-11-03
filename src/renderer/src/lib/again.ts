@@ -13,7 +13,7 @@ export function againOffer(messages: UiMessage[], home: HomeLanguage | null, bus
     id: last.id,
     offer: {
       label: `In ${LANGUAGE_SHORT[target]}`,
-      onClick: () => window.otty.sendMessage(text, null, { language: target, action: 'again' })
+      onClick: () => window.otty.sendMessage(text, [], { language: target, action: 'again' })
     }
   }
 }

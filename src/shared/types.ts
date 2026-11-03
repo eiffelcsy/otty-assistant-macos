@@ -5,6 +5,13 @@ export type ScreenContext =
   /** `dataUrl` is empty for snips in saved chats: pictures are never written to disk. */
   | { kind: 'image'; dataUrl: string; width: number; height: number }
 
+/** One highlight or snip, and the app it came from. A question can carry up to `MAX_CAPTURES`. */
+export interface Capture {
+  id: string
+  context: ScreenContext
+  app: AppInfo | null
+}
+
 export type FileKind = 'pdf' | 'docx' | 'image' | 'text'
 
 /** A file the user added, before main has read it. Paths stay in main; the renderer gets an id. */
@@ -55,8 +62,13 @@ export type QuickAction =
   | 'key-points'
   /** "Answer again in the other language": pair it with `language`. */
   | 'again'
+  /** For several captures (or captures plus files). */
+  | 'compare'
+  | 'summarize-all'
+  | 'explain-each'
 
 export interface SendOptions {
+  /** The app the user was in, for a question without captures (each capture carries its own). */
   app?: AppInfo | null
   /** Start a new conversation first (used by the quick view); the old one stays in Recent chats. */
   fresh?: boolean
@@ -113,7 +125,9 @@ export type ChatMessage =
       id: string
       role: 'user'
       text: string
-      context: ScreenContext | null
+      /** In the order they were added. Pictures are emptied in saved chats. */
+      captures: Capture[]
+      /** The app the user was in, when there are no captures. */
       app: AppInfo | null
       language?: AnswerLanguage
       files?: FileAttachment[]
@@ -158,6 +172,16 @@ export interface PanelOpenPayload {
   /** Set (possibly to null) whenever Otty looked at the frontmost app; absent when it didn't. */
   app?: AppInfo | null
   notice?: string
+  /** Add this capture to the tray instead of starting a new one: the window was already open. */
+  add?: boolean
+}
+
+/** What the quick view tells main, so main knows whether a hotkey should add to it and whether a blur hides it. */
+export interface QuickState {
+  /** Captures shown, no question asked yet. */
+  collecting: boolean
+  /** "＋ Add more" was pressed: stay open while the user clicks into other apps. */
+  pinned: boolean
 }
 
 export interface OttyApi {
@@ -167,7 +191,7 @@ export interface OttyApi {
   getPermissions(): Promise<Permissions>
   openPermissionSettings(kind: PermissionKind): Promise<void>
 
-  sendMessage(text: string, context: ScreenContext | null, opts?: SendOptions): Promise<void>
+  sendMessage(text: string, captures: Capture[], opts?: SendOptions): Promise<void>
   stop(): Promise<void>
   resetChat(): Promise<void>
   listChats(): Promise<ChatSummary[]>
@@ -200,6 +224,7 @@ export interface OttyApi {
   expandQuick(): Promise<void>
   /** Quick view reports its content height so main can size (and first reveal) the window. */
   quickResize(height: number): void
+  quickState(s: QuickState): void
 
   bubbleMenu(): void
   /** mousedown → 'start', mouseup → 'end'. Main treats an 'end' with no movement as a click. */

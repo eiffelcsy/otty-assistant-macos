@@ -46,7 +46,7 @@ function fields(t: Thread): Field[] {
   for (const m of t.messages) {
     if (m.role === 'user') {
       add(m.text, m.id)
-      if (m.context?.kind === 'text') add(m.context.text, m.id)
+      for (const c of m.captures) if (c.context.kind === 'text') add(c.context.text, m.id)
       for (const f of m.files ?? []) add(f.name, m.id)
     } else {
       add(plainText(m.text), m.id)

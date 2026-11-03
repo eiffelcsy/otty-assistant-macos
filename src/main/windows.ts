@@ -1,4 +1,5 @@
-import { BrowserWindow, screen, shell } from 'electron'
+import { BrowserWindow, screen, shell, systemPreferences } from 'electron'
+import type { QuickState } from '../shared/types'
 import { join } from 'path'
 import { getStored, saveBubblePosition } from './settings'
 
@@ -107,10 +108,60 @@ export function createQuick(): BrowserWindow {
   quick.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   secure(quick)
   load(quick, 'quick')
-  // A popover: clicking anywhere else puts it away (the chat keeps going in the panel).
-  quick.on('blur', () => quick?.hide())
+  // A popover: clicking anywhere else puts it away (the chat keeps going in the panel),
+  // unless it's pinned to collect more captures, or the blur was a switch to another desktop.
+  quick.on('blur', () => {
+    if (quickState.pinned) return
+    quickBlurAt = Date.now()
+    if (blurTimer) clearTimeout(blurTimer)
+    blurTimer = setTimeout(() => {
+      blurTimer = null
+      if (quick && !quick.isFocused()) quick.hide()
+    }, BLUR_HIDE_DELAY)
+  })
+  quick.on('focus', () => {
+    if (blurTimer) clearTimeout(blurTimer)
+    blurTimer = null
+  })
+  if (process.platform === 'darwin') {
+    systemPreferences.subscribeWorkspaceNotification('NSWorkspaceActiveSpaceDidChangeNotification', followToSpace)
+  }
   quick.on('closed', () => (quick = null))
   return quick
+}
+
+// --- Quick view across desktops and while collecting captures.
+
+/** How long a blur waits before hiding, so a desktop switch can cancel it. */
+const BLUR_HIDE_DELAY = 350
+/** A desktop switch this soon after a blur means the blur was the switch. */
+const SPACE_GRACE = 1200
+
+let quickState: QuickState = { collecting: false, pinned: false }
+let quickBlurAt = 0
+let blurTimer: NodeJS.Timeout | null = null
+
+export function setQuickState(s: QuickState): void {
+  quickState = { collecting: !!s.collecting, pinned: !!s.collecting && !!s.pinned }
+}
+
+/** True when a hotkey should add to the quick view: it's open, collecting, and another app has focus. */
+export function quickIsCollecting(): boolean {
+  return !!quick?.isVisible() && !quick.isFocused() && quickState.collecting
+}
+
+/**
+ * The user switched desktops. The quick view is on every desktop, so it only needs to not be hidden by the
+ * blur that came with the switch. It doesn't take focus back: the next capture must copy from the other app.
+ */
+function followToSpace(): void {
+  if (!quick || Date.now() - quickBlurAt > SPACE_GRACE) return
+  if (blurTimer) {
+    clearTimeout(blurTimer)
+    blurTimer = null
+  } else if (!quick.isVisible()) {
+    quick.showInactive()
+  }
 }
 
 export const getBubble = () => bubble

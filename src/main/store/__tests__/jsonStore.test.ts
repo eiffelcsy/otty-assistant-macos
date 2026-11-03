@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from 'fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
@@ -25,12 +25,38 @@ describe('JsonChatStore', () => {
     const [t] = fixtures()
     t.messages[0] = {
       ...t.messages[0],
-      context: { kind: 'image', dataUrl: 'data:image/png;base64,AAAA', width: 1, height: 1 },
+      captures: [
+        { id: 'a', context: { kind: 'image', dataUrl: 'data:image/png;base64,AAAA', width: 1, height: 1 }, app: null },
+        { id: 'b', context: { kind: 'image', dataUrl: 'data:image/png;base64,CCCC', width: 1, height: 1 }, app: null }
+      ],
       files: [{ id: 'p', name: 'photo.jpg', kind: 'image', thumb: 'data:image/jpeg;base64,BBBB' }]
     } as never
     await store.save(t)
     expect(readFileSync(file, 'utf8')).toContain('photo.jpg')
     expect(readFileSync(file, 'utf8')).not.toContain('base64')
+  })
+
+  it('reads chats saved before the capture tray as one-capture messages', async () => {
+    const file = tmpFile()
+    const app = { name: 'Safari', title: 'Pricing' }
+    const legacy = {
+      id: 'old',
+      title: 'Explain this',
+      createdAt: 1,
+      updatedAt: 1,
+      history: [],
+      messages: [
+        { id: 'u1', role: 'user', text: 'Explain this', context: { kind: 'text', text: 'Annual plans save 20%' }, app },
+        { id: 'u2', role: 'user', text: 'And this?', context: null, app: null }
+      ]
+    }
+    writeFileSync(file, JSON.stringify([legacy]))
+    const store = new JsonChatStore(file)
+    const [first, second] = (await store.get('old'))!.messages
+    expect(first).toMatchObject({ app: null, captures: [{ context: { kind: 'text', text: 'Annual plans save 20%' }, app }] })
+    expect(first).not.toHaveProperty('context')
+    expect(second).toMatchObject({ captures: [], app: null })
+    expect((await store.search('annual')).map((h) => h.chatId)).toEqual(['old'])
   })
 
   it('skips empty threads', async () => {

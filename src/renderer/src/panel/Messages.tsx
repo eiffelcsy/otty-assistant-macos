@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { AppInfo, ScreenContext } from '../../../shared/types'
+import type { AppInfo, Capture, ScreenContext } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import type { Assistant } from '../lib/useChat'
 import { Markdown } from './Markdown'
@@ -23,6 +23,38 @@ export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; c
         <Icon name="highlighter" /> Highlighted
       </span>
       <span className="context-text__body">{ctx.text.length > max ? ctx.text.slice(0, max) + '…' : ctx.text}</span>
+    </div>
+  )
+}
+
+/**
+ * Captures with the app each came from: in the tray (removable, when `onRemove` is set) and on a sent message.
+ * `onForgetApp` lets the user stop Otty being told about one capture's app.
+ */
+export function CaptureList({
+  captures,
+  compact = false,
+  onRemove,
+  onForgetApp
+}: {
+  captures: Capture[]
+  compact?: boolean
+  onRemove?: (id: string) => void
+  onForgetApp?: (id: string) => void
+}) {
+  return (
+    <div className={`captures${captures.length > 1 ? ' captures--many' : ''}`}>
+      {captures.map((c) => (
+        <div key={c.id} className="capture">
+          {c.app && <AppTag app={c.app} onRemove={onForgetApp && (() => onForgetApp(c.id))} />}
+          <ContextPreview ctx={c.context} compact={compact} />
+          {onRemove && (
+            <button className="context-card__x" title="Remove" onClick={() => onRemove(c.id)}>
+              <Icon name="cross-small" />
+            </button>
+          )}
+        </div>
+      ))}
     </div>
   )
 }

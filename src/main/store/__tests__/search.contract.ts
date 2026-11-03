@@ -22,7 +22,7 @@ const user = (text: string, captured?: string): ChatMessage => ({
   id: '',
   role: 'user',
   text,
-  context: captured ? { kind: 'text', text: captured } : null,
+  captures: captured ? [{ id: 'c', context: { kind: 'text', text: captured }, app: null }] : [],
   app: null
 })
 const otty = (text: string): ChatMessage => ({ id: '', role: 'assistant', text, tools: [] })

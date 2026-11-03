@@ -52,7 +52,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Learn from intent corrections on-device (retrain the head from `intent_feedback`) | M | M | idea |
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
 | Snip the whole window or screen, not just a box | M | S | idea |
-| **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | idea |
+| **Several captures in one question** (a capture tray, across apps): "compare these two charts", "this error vs. these docs". While the panel is open a hotkey adds instead of replacing, up to 4, each with its own app tag; Compare / Summarise all actions. [Issue #13](https://github.com/eiffelcsy/otty-assistant-macos/issues/13) | H | M | → D-8 |
 | Read the current page's main text (Readability-style) when asked "summarize this page" | H | M | idea |
 | Attach files (PDF, Word, images, text) from the Mac and ask about them | H | M–L | shipped (D-6 v1) |
 | Attach the file selected in Finder with ⌥Space | M | S | idea (left out of D-6 v1) |
@@ -147,7 +147,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Customisable hotkeys with a key recorder (not a text field) | M | S | idea |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
-| Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | decided, not built; build with #13 |
+| Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | → D-8 (the quick view part; the full-screen setting is still an idea) |
 
 ## Parked / rejected (with reasons)
 

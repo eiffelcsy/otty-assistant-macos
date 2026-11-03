@@ -890,6 +890,51 @@ html[data-view='bubble'] body {
 .context-card > .context-img {
   margin: 2px 26px 0 2px;
 }
+/* The capture tray: one or more captures, each under the app it came from. */
+.captures {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  max-width: 100%;
+}
+.capture {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.context-card .capture > .context-text,
+.context-card .capture > .context-img {
+  margin: 2px 26px 0 2px;
+}
+.context-card .capture > .app-tag {
+  margin-right: 26px;
+}
+.context-card .capture > .context-card__x {
+  top: -4px;
+  right: -4px;
+}
+.context-card .captures--many > .capture + .capture {
+  padding-top: 9px;
+  border-top: 1px solid var(--hairline);
+}
+.context-card .captures--many > .capture + .capture > .context-card__x {
+  top: 5px;
+}
+.tray-hint {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tray-hint .icon {
+  font-size: 10px;
+}
 /* Attached files: in the composer's tray, and under a sent message. */
 .file-tray {
   display: flex;
@@ -1062,12 +1107,19 @@ html[data-view='bubble'] body {
 .msg--user .context-text {
   text-align: left;
 }
-.msg--user > .context-text {
+.msg--user .captures,
+.msg--user .capture {
+  align-items: flex-end;
+}
+.msg--user .capture > .context-text {
   max-width: 100%;
   padding: 0 2px;
 }
-.msg--user > .context-text .context-text__body {
+.msg--user .capture > .context-text .context-text__body {
   color: var(--muted);
+}
+.msg--user .capture > .app-tag {
+  align-self: flex-end;
 }
 
 /* "In Safari · page title": quiet metadata, not a badge. */
@@ -1549,6 +1601,23 @@ html[data-view='quick'] body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.quick__key--on {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.quick__key--on:hover:not(:disabled) {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+}
+.quick__box .capture > .context-card__x {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+}
+.quick__box .captures--many .capture > .context-text,
+.quick__box .captures--many .capture > .context-img {
+  margin-right: 22px;
 }
 .quick__key--go {
   color: var(--brand);

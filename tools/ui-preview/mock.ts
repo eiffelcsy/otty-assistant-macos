@@ -1,6 +1,7 @@
 import type {
   AnswerLanguage,
   AttachResult,
+  Capture,
   ChatEvent,
   ChatMessage,
   FileAttachment,
@@ -11,7 +12,7 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick  ?scene=chat|empty|compose|settings|history|find  ?home=none
+// ?view=panel|quick  ?scene=chat|empty|compose|tray|settings|history|find  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -32,9 +33,16 @@ const settings: PublicSettings = {
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
 const highlighted = { kind: 'text' as const, text: 'Requests beyond your plan are subject to rate limiting and may return HTTP 429.' }
+const terminal = { name: 'Terminal', title: 'deploy — zsh' }
+const snipUrl =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="360" height="90"><rect width="360" height="90" fill="#1f1c1d"/><text x="12" y="30" font-family="monospace" font-size="13" fill="#e6e3dc">$ acme deploy</text><text x="12" y="56" font-family="monospace" font-size="13" fill="#e08a7a">Error: 429 Too Many Requests</text></svg>'
+  )
+const snip = { kind: 'image' as const, dataUrl: snipUrl, width: 360, height: 90 }
 
 const sample: ChatMessage[] = [
-  { id: 'u1', role: 'user', text: 'Explain this simply', context: highlighted, app, language: 'en' },
+  { id: 'u1', role: 'user', text: 'Explain this simply', captures: [{ id: 'c1', context: highlighted, app }], app: null, language: 'en' },
   {
     id: 'a1',
     role: 'assistant',
@@ -48,7 +56,7 @@ const sample: ChatMessage[] = [
 
 > 💡 **Good to know:** waiting a minute and trying again usually fixes it.`
   },
-  { id: 'u2', role: 'user', text: '點樣 upgrade 我嘅 plan？', context: null, app: null, language: 'zh-HK' },
+  { id: 'u2', role: 'user', text: '點樣 upgrade 我嘅 plan？', captures: [], app: null, language: 'zh-HK' },
   {
     id: 'a2',
     role: 'assistant',
@@ -92,7 +100,7 @@ const mockFiles: Record<string, AttachResult> = {
 }
 const names: Record<string, string> = { f1: 'Tenancy agreement 2026.pdf', f2: 'IMG_0042.HEIC', f3: 'Budget.numbers' }
 
-function fakeAnswer(text: string, language: AnswerLanguage = 'en', fileIds: string[] = []) {
+function fakeAnswer(text: string, captures: Capture[], language: AnswerLanguage = 'en', fileIds: string[] = []) {
   const id = String(Math.random())
   const files = fileIds.flatMap((f) => {
     const r = mockFiles[f]
@@ -100,7 +108,7 @@ function fakeAnswer(text: string, language: AnswerLanguage = 'en', fileIds: stri
     const { thumb: _thumb, ...file } = r.file
     return [f === 'f1' ? { ...file, note: 'Otty read the first 40 of 120 pages.' } : r.file] as FileAttachment[]
   })
-  emit({ type: 'user', id: id + 'u', text, context: null, app: null, language, ...(files.length ? { files } : {}) })
+  emit({ type: 'user', id: id + 'u', text, captures, app: null, language, ...(files.length ? { files } : {}) })
   setTimeout(() => emit({ type: 'start', id, language }), 300)
   const words = (
     language === 'zh-HK'
@@ -112,13 +120,14 @@ function fakeAnswer(text: string, language: AnswerLanguage = 'en', fileIds: stri
 }
 
 const noop = async () => {}
+const trayed = { panel: false, quick: false }
 const api: OttyApi = {
   getSettings: async () => settings,
   saveSettings: async (u) => Object.assign(settings, u),
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
-  sendMessage: async (text, _ctx, opts) => fakeAnswer(text, opts?.language, opts?.files),
+  sendMessage: async (text, captures, opts) => fakeAnswer(text, captures, opts?.language, opts?.files),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
   listChats: async () => saved.map(({ id, title, app, updatedAt }) => ({ id, title, app, updatedAt })),
@@ -147,13 +156,14 @@ const api: OttyApi = {
   readFile: (id) => new Promise((r) => setTimeout(() => r(mockFiles[id]), id === 'f1' ? 1200 : 400)),
   discardFile: noop,
   captureSelection: async () => ({ context: highlighted, app }),
-  captureScreenshot: async () => ({ context: null }),
+  captureScreenshot: async () => ({ context: snip, app: terminal }),
   closePanel: noop,
   openExternal: noop,
   copyText: noop,
   closeQuick: noop,
   expandQuick: noop,
   quickResize: () => {},
+  quickState: () => {},
   bubbleMenu: () => {},
   bubbleDrag: () => {},
   onChatEvent: (cb) => {
@@ -163,7 +173,10 @@ const api: OttyApi = {
   },
   onPanelOpen: (cb) => {
     openCb = cb
-    if (scene === 'compose' || scene === 'empty-compose') setTimeout(() => cb({ context: highlighted, app }), 80)
+    if (scene === 'compose' || scene === 'empty-compose' || scene === 'tray') setTimeout(() => cb({ context: highlighted, app }), 80)
+    // Once only: StrictMode subscribes twice, and a second snip would land in the tray.
+    if (scene === 'tray' && !trayed.panel) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 160)
+    trayed.panel = true
     if (scene === 'settings') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
     if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)
     if (scene === 'history') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 120)
@@ -171,6 +184,8 @@ const api: OttyApi = {
   },
   onQuickOpen: (cb) => {
     setTimeout(() => cb({ context: q.get('ctx') === 'word' ? { kind: 'text', text: 'idempotent' } : highlighted, app }), 50)
+    if (scene === 'tray' && !trayed.quick) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 150)
+    trayed.quick = true
     return () => {}
   },
   onBubbleState: () => () => {},

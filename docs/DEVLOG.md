@@ -47,8 +47,34 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-3 (intent column), OCR helper; D-2's quick-action ids (shipped) are its intent ids | L (4–6 days) |
 | D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
 | D-4 | CI pipeline (GitHub Actions) | 🔨 | — | S (half a day) |
+| D-8 | Capture tray: several captures in one question, across apps and desktops (#13) | 🧪 | — | M |
 
 **Suggested build order: D-3 → D-1.** D-5 (search, shipped) added the `ChatStore` interface on today's JSON file, so D-3 is "write a second backend and pass the same tests". D-6 (file attachments v1) has shipped; issue #13's capture tray should fold the file chips and the capture into one list (today a message has one capture plus `files`). D-2 (home language) has shipped, so D-1's `translate` and `define` intents can target the home language already. D-1 still needs somewhere to keep its predictions and corrections (D-3). D-4 (CI) is running; what's left of it is small and independent.
+
+---
+
+## D-8 · Capture tray: several captures, across apps and desktops (#13) 🧪
+
+**Status.** Built on `feat/capture-tray`; checked in `tools/ui-preview` (`?scene=tray`) and by unit tests. Still needs smoke steps 38–42 on a Mac: hotkeys, the ⌘C capture into an unfocused quick view, and desktop switches can't be exercised outside Electron.
+
+**Goal.** One question can carry up to 4 highlights or snips, each from its own app: "compare these two charts", "why doesn't this error (Terminal) match these docs (Safari)?". Collecting them can cross apps and desktops without losing what's already collected. Files and captures sit in one tray.
+
+**Model.** A `Capture` is `{ id, context: ScreenContext, app: AppInfo | null }`. A user message has `captures: Capture[]` instead of `context`; its `app` is only the app for a message without captures. Chats saved before this have `context`; `store/upgrade.ts` reads them as a one-item list, for every backend.
+
+**When a hotkey adds instead of replacing**
+- **Panel open:** ⌥Space, ⌥⇧Space or a click on the otter adds to the panel's tray, and the panel stays where it is. The panel's own scissors add too. With the panel closed, a capture starts a new tray (today's behaviour).
+- **Quick view, still collecting** (no question asked yet) and not focused: the hotkey adds to it, without moving or focusing it, so the next highlight still copies from the other app.
+  - It becomes "not focused but open" in two ways: **＋ Add more** on the card (keeps it open when you click into other apps), or a **desktop switch** (it follows you instead of closing).
+  - It still closes on Esc, the **esc close** key, asking and then clicking elsewhere, or a click elsewhere when you haven't pressed ＋ Add more.
+- **Limit 4.** A fifth capture shows a friendly note instead. The same text twice is ignored.
+
+**Actions.** One capture: its actions as today. Files only: the file actions. Two or more things (captures plus files, at least one capture): **Compare** (the ↵ default), **Summarise all**, **Explain each**.
+
+**Sending.** One capture keeps today's wording. With several, each is labelled `Capture 2 · from Safari (“Pricing”)`, with text in `"""` blocks and pictures in order, then the question. The system prompt explains the labels. The answer language follows the joined text captures.
+
+**Desktop switches (macOS).** `windows.ts` subscribes to `NSWorkspaceActiveSpaceDidChangeNotification`. On blur the quick view waits a moment and stays if the desktop just changed. It doesn't take focus back, so captures keep copying from the frontmost app.
+
+**Done when:** snip in Terminal, highlight in Safari, ask "why don't these match?" in the panel, and get one answer that uses both, with both app tags on the message; the same works in the quick view with ＋ Add more, and across two desktops; an old chat with one capture still reopens and searches; a fifth capture is refused kindly.
 
 ---
 
@@ -251,3 +277,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 35. Press ↵ and ⇧↵ → the current match moves and wraps around. Search a Chinese term such as 「計劃」, including one that is an explain term → it is found. Type nonsense → "No matches".
 36. With the bar open, ask a follow-up → the view stays on the current match while the answer streams in, and new matches are counted. Esc closes the bar and clears the highlights; Esc again closes the panel.
 37. Watch the otter in the bubble and the panel header for 10 seconds → it blinks every ~5 s with no flicker or jump around the face. Ask something → it bobs with bubbles while thinking, then shows its eyes-closed smile. On a dark background its edges have no white fringe.
+38. Open the panel. Highlight text in Safari → **⌥Space** → it's added to the panel's tray with "In Safari", and the panel doesn't move. Snip part of a Terminal window with **⌥⇧Space** → a second item, "In Terminal". The tiles are now **Compare these**, **Summarize all**, **Explain each**.
+39. Press ↵ with an empty box → the sent message shows both captures with their app tags, and the answer talks about both. Reopen the chat from Recent chats → both are there (the snip as "Screen snip (not saved)"). Search a word from the Safari text → the chat is found.
+40. Add four captures, then a fifth → "Otty can look at 4 things at once"; remove one with its ✕ → the note goes away. Highlight the same text twice → only one copy.
+41. Highlight text → **⌥Space** → in the quick view press **＋ add more** → click into another app (it stays open), highlight → **⌥Space** → the capture is added without the card moving or taking focus. ↵ → Compare runs. Click elsewhere → it closes.
+42. Open the quick view, then switch to another desktop (Ctrl→) → it's still there, unfocused. Highlight something there → **⌥Space** → added. Click **esc close** → it closes. A chat saved by 0.3.2 still opens.
