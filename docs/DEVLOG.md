@@ -49,6 +49,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ next | — (schema and `database()` are in) | M (2–3 days) |
+| D-12 | Math that's right: a calculator tool, thinking on math turns, rendered equations | ⏳ | — | S–M (1 day) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
@@ -57,8 +58,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Build order**
 1. **Smoke-test steps 38–48 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
-3. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
-4. Then **D-1**. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
+3. **D-12 math.** About a day, and it fixes something people notice straight away: wrong sums and raw `\frac` in answers. It can also go first, before D-10, as a quick win.
+4. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
+5. Then **D-1**. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
 
 ---
 
@@ -99,6 +101,64 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - IPC `memory:list/add/update/remove/clear/optout`; `PublicSettings.learn: boolean`; `tools/ui-preview` `scene=memory`.
 
 **Done when:** "I'm learning Spanish for a trip" shows *Noted* without a card, and a later "how do I say thank you?" leans Spanish without being told; Undo removes it; after a week of mostly Excel, Settings shows an Excel habit and answers name Excel's menus; a health detail mentioned in passing is not noted, but "remember I'm diabetic" is; a pasted email from someone else teaches nothing; "Don't learn from this chat" learns nothing; Settings edits change the next answer.
+
+---
+
+## D-12 · Math that's right: calculator, thinking on math turns, rendered equations ⏳
+
+**Goal.** Otty gets numbers right and shows math the way a textbook does. Today it often slips. Three causes, all fixable:
+1. **Thinking is off by default** (`settings.thinking: false`), so multi-step problems are answered in one pass.
+2. **There's no calculator.** Every number comes from the model's memory, which slips on long numbers, chained percentages and compound interest.
+3. **Math notation shows raw.** `Markdown.tsx` only has `remark-gfm`, so `\frac{a}{b}` and `x^2` appear as noise, and even right answers look broken.
+
+### 1. A `calculate` tool
+- **Engine:** mathjs in main, on a locked-down instance: `import`, `createUnit`, `evaluate`, `parse`, `simplify`, `derivative` and `resolve` are replaced with functions that throw (as the mathjs security notes recommend). A 50 ms time cap, and expressions of at most 500 characters. No access to anything outside the expression.
+- **Input:** `calculate({ expression })` handles arithmetic, percentages (`12% of 340`, `340 * 1.12`), powers and roots, fractions, rounding, units and conversions (`5 km to mi`, `38 degC to degF`, `2.5 hours to minutes`), and statistics on a list (`mean([…])`, `median`, `std`). Dates stay out of v1.
+- **Output:** the exact result, plus a rounded form for display (`= 0.1 + 0.2 → 0.3`, not `0.30000000000000004`). On a bad expression, a short error the model can fix and retry.
+- **UI:** a quiet chip like search, "Calculated 12% of 340" (UIcon `calculator`). No confirm card, since it has no side effects.
+- `toolLabel`, `runTool` and `toolDefs()` in `tools.ts`; the engine in `src/main/math.ts`, unit-tested without Electron.
+
+### 2. Think on math turns only
+- `looksLikeMath(text, captures)` in `src/shared/script.ts` (next to `isMostlyHan`) is a rules check, so it's free and instant:
+  - digits with operators (`+ − × ÷ * / ^ =`), `%`, fractions or exponents;
+  - words like solve / calculate / how much / how many / percent / average / equation / interest, and 計 / 算 / 幾多 / 百分之;
+  - a text capture that is mostly numbers and symbols;
+  - the `solve` intent once D-1 exists.
+- When it fires, that turn is sent with `thinking: enabled`, whatever the setting. The "Think deeper" setting becomes "always". `post()` takes a per-turn override; `reasoning_content` handling (echoed within a turn, stripped between turns) already works.
+- Snips: vision questions with math words in the typed text count. A snip with no text uses the default until D-1's OCR can read it.
+- Cost: math answers start a few seconds later. The thinking line already shows ("Otty is thinking"); nothing else changes.
+
+### 3. Render math
+- Add `remark-math` and `rehype-katex` (with KaTeX's CSS, imported once in the renderer) to `Markdown.tsx`, in the panel, the quick view and explain cards.
+- **Only `$$…$$` counts as math** (`singleDollarTextMath: false`). With single dollars, "it costs $5 and $10 later" would turn into an equation, and Otty talks about prices all the time. `$$…$$` inline in a sentence renders inline; on its own line it renders as a centred block.
+- KaTeX errors render as the source text, never a red error box (`throwOnError: false`, `errorColor` from the tokens).
+- Check: find-in-chat (D-7) highlights still match text inside KaTeX output (it searches rendered text nodes, so the TeX source won't match; acceptable, and note it). The copy button copies the markdown, so pasted math stays `$$…$$`.
+- Dark mode: KaTeX inherits `color`, so no new tokens.
+
+### 4. Math rules in the prompt (`prompts.ts`)
+- Compute every number with `calculate`; never do arithmetic from memory, even "easy" sums.
+- For "how do I solve…" and homework questions: numbered steps, one idea each, working shown, then the answer in bold with units.
+- Check before answering: put the answer back into the equation, or estimate the size, and fix it if it doesn't fit.
+- Round sensibly for the question (money to 2 places, people to whole numbers), and say what the answer means in plain words ("so you'd pay about $43 a month").
+- Write math as `$$…$$`. Keep plain prices as "$5".
+- An explain term on a tricky concept is fine (`[median](#explain)`); keep `prompts.ts` and `Markdown.tsx` in sync, as CLAUDE.md says.
+
+### Tests
+- `math.test.ts`: arithmetic, percentages, units, statistics, float display, rejected functions (`import`, `evaluate`), the length cap, a bad expression.
+- `looksLikeMath`: English and Chinese positives; prices in prose, dates, phone numbers and version numbers ("macOS 15.1") as negatives.
+- `Markdown`: `$$…$$` renders KaTeX; "$5 and $10" stays text; a KaTeX error shows the source.
+- `tools/ui-preview`: a `scene=math` answer with inline and block math, in light and dark.
+
+### Done when
+- "What's 17.5% of 2,340 plus 8% tax?" shows a Calculated chip and the right number.
+- "Solve 3x + 7 = 25" shows numbered steps with rendered math and a check line.
+- "Convert 38 °C to °F" is exact.
+- "I earn $3,200 a month and spend $1,150 on rent, what share is that?" renders the dollars as text and answers 35.9%.
+- A non-math question isn't slower than before.
+- In 中文, 「3,000 蚊打八折係幾多？」 gets 2,400, with the working in Chinese.
+
+### Later (in BRAINSTORM)
+A sandboxed code runner for data in attached CSVs and tables; recomputing the final answer of a worked solution and flagging a mismatch; dates in `calculate`; a "show working" toggle.
 
 ---
 
@@ -284,3 +344,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 49. Snip a page with a very long window title, then send it → the app tag above the snip ends in "…" and stays inside the chat, in the panel and the quick view.
 50. Ask "Read https://example.com" → Otty reads it with no card. Search for something and ask it to read a result → no card. Ask it to read an address nobody gave it → a "Read this page?" card shows the full address, and **No** sends nothing.
 51. In a built app, ask Otty to reply with exactly `![test](https://example.com/p.png)` → the word "test" appears, and no picture loads. Snips, file thumbnails, icons and painted Otty still show.
+52. Ask "What's 17.5% of 2,340 plus 8% tax?" → a "Calculated …" chip and the right total. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then numbered steps with rendered math (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
+53. Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400, with the working in Chinese.
+54. Toggle dark mode on an answer with math → equations stay legible. Copy it → the pasted text has `$$…$$`.

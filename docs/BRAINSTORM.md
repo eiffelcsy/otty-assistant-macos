@@ -78,6 +78,10 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | shipped (D-9) |
 | **Sources row** under answers that searched: site icons, names and dates from the search results (`site_icon`, `site_name`, `date`), each opening the page | M | S | idea, after D-9 |
 | Search a site from the app note ("search this site for refunds" → `site:` operator) | L | S | idea, after D-9 |
+| Math that's right: a `calculate` tool (mathjs), thinking on math turns only, KaTeX-rendered equations | H | S–M | → D-12 |
+| Sandboxed code runner for data questions on attached CSVs or pasted tables ("which month had the most sales?"): a sealed-off process with no files or network | M | M | idea, after D-12 |
+| Check a worked solution: recompute the final answer with `calculate` and flag a mismatch before showing it | M | S | idea, if D-12 isn't enough |
+| Dates in `calculate` ("how many days until 24 Dec", "what date is 90 days after 3 Nov") | M | S | idea, after D-12 |
 | Calendar events (EventKit / AppleScript) with a confirm card | M | S | idea |
 | `draft_email`: opens Mail with a pre-filled draft | M | S | idea |
 | Timers and alarms | L | S | idea |
