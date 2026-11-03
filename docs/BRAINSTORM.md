@@ -37,6 +37,10 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Seasonal or unlockable accessories (hat, scarf) | L | M | idea |
 | Sound effects (opt-in, soft squeak on pop-up) | L | S | idea |
 | Respect `prefers-reduced-motion` across every new animation | M | S | idea (rule for all motion work) |
+| Painted Otty frames with a blink (idle + eyes-closed) | H | S | shipped |
+| More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
+| A simplified small-size head for the 34px header and quick view, where painted fur gets soft | M | S | idea |
+| Desktop-pet Otty: full-body sprite or Rive rig that swims around the desktop, floats on its back, peeks from screen edges, and paw-presses buttons (pairs with the "Show me how" ghost cursor) | H | L | idea |
 
 ## Aware: understanding the screen and intent
 

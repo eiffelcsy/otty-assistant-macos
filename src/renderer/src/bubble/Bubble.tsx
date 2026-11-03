@@ -27,7 +27,9 @@ export function Bubble() {
         window.otty.bubbleMenu()
       }}
     >
-      <Otter state={state} size={62} />
+      <span className="bubble__avatar">
+        <Otter state={state} size={70} />
+      </span>
       {badge && <span className="bubble__badge" />}
     </div>
   )
