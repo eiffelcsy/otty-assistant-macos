@@ -78,7 +78,8 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | shipped (D-9) |
 | **Sources row** under answers that searched: site icons, names and dates from the search results (`site_icon`, `site_name`, `date`), each opening the page | M | S | idea, after D-9 |
 | Search a site from the app note ("search this site for refunds" → `site:` operator) | L | S | idea, after D-9 |
-| Math that's right: a `calculate` tool (mathjs), thinking on math turns only, KaTeX-rendered equations | H | S–M | → D-12 |
+| Math that's right: instant local answers, a one-request batched `calculate` tool, thinking only for real problems, KaTeX-rendered equations | H | M | → D-12 |
+| Instant answers beyond math: unit and currency conversion, time zones ("3 pm London in HK"), computed locally Spotlight-style before any model call | M | S | idea, after D-12 (currency needs a rates source) |
 | Sandboxed code runner for data questions on attached CSVs or pasted tables ("which month had the most sales?"): a sealed-off process with no files or network | M | M | idea, after D-12 |
 | Check a worked solution: recompute the final answer with `calculate` and flag a mismatch before showing it | M | S | idea, if D-12 isn't enough |
 | Dates in `calculate` ("how many days until 24 Dec", "what date is 90 days after 3 Nov") | M | S | idea, after D-12 |

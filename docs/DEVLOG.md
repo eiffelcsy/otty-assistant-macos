@@ -42,6 +42,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - The bubble is a non-activating `type: 'panel'` window, so clicking it keeps the other app's selection.
 - Pictures never touch disk beyond the moment of encoding.
 - A user message carries `captures[]` (each with its app) plus `files`; saved chats are read through `store/upgrade.ts`, so old shapes keep loading.
+- **Prompt layout for the cache (from D-12):** the system prompt and tool list are static. Everything that varies per turn (time, language reminder, memories, intent hints) rides on the latest user message, so DeepSeek can reuse everything before it.
 - Saved chats live in `userData/otty.db` (built-in `node:sqlite`, no native module). Calls are synchronous on main and sub-millisecond for a normal turn: the question is written as it's sent (after the request is under way), and the end of a turn writes only that turn's rows. Schema changes are new migrations in `store/db.ts`, never edits to a released one.
 
 ## Roadmap
@@ -49,7 +50,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ next | — (schema and `database()` are in) | M (2–3 days) |
-| D-12 | Math that's right: a calculator tool, thinking on math turns, rendered equations | ⏳ | — | S–M (1 day) |
+| D-12 | Math that's right, and instant: stable prompt prefix (cache hits), local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
@@ -58,7 +59,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Build order**
 1. **Smoke-test steps 38–48 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
-3. **D-12 math.** About a day, and it fixes something people notice straight away: wrong sums and raw `\frac` in answers. It can also go first, before D-10, as a quick win.
+3. **D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers. Its first step, a stable prompt prefix so DeepSeek can cache the history, speeds up every follow-up and tool round and should land before D-10 adds memories to the prompt. So consider doing D-12 first.
 4. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
 5. Then **D-1**. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
 
@@ -90,7 +91,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - Everything stays in `otty.db` on the Mac. Memories reach the model only as the prompt block below.
 
 ### How memories are used
-- Each turn, `MemoryStore.forPrompt(question, app)` builds a "What you know about the user" block of up to about 1,500 characters. The order: everything told or set in Settings, then habits and inferences that match the question or the current app (`memories_fts`, app name), then the most used. Inferences under confidence 0.6 are only sent when they match.
+- Each turn, `MemoryStore.forPrompt(question, app)` builds a "What you know about the user" block of up to about 1,500 characters. It goes on the **latest user message**, not the system prompt, because it changes per question and would otherwise stop DeepSeek caching the history (see D-12 step 0). The order: everything told or set in Settings, then habits and inferences that match the question or the current app (`memories_fts`, app name), then the most used. Inferences under confidence 0.6 are only sent when they match.
 - The prompt asks Otty to *use* memories quietly (pick examples from their apps, answer in their language, keep it short if they like short), never to recite them, and at most one light reference when it helps ("Since you're learning Spanish…").
 - `use_count` and `last_used_at` are updated for memories that were sent.
 
@@ -104,61 +105,123 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 ---
 
-## D-12 · Math that's right: calculator, thinking on math turns, rendered equations ⏳
+## D-12 · Math that's right, and instant: calculator, tiered thinking, rendered equations ⏳
 
-**Goal.** Otty gets numbers right and shows math the way a textbook does. Today it often slips. Three causes, all fixable:
-1. **Thinking is off by default** (`settings.thinking: false`), so multi-step problems are answered in one pass.
-2. **There's no calculator.** Every number comes from the model's memory, which slips on long numbers, chained percentages and compound interest.
-3. **Math notation shows raw.** `Markdown.tsx` only has `remark-gfm`, so `\frac{a}{b}` and `x^2` appear as noise, and even right answers look broken.
+**Goal.** Otty gets numbers right, shows math the way a textbook does, and is **never slower for it**. Today it slips, for three fixable reasons:
+1. **Thinking is off by default** (`settings.thinking: false`), so multi-step problems get one pass.
+2. **There's no calculator**, so numbers come from the model's memory.
+3. **Math notation shows raw.** `Markdown.tsx` only has `remark-gfm`.
 
-### 1. A `calculate` tool
-- **Engine:** mathjs in main, on a locked-down instance: `import`, `createUnit`, `evaluate`, `parse`, `simplify`, `derivative` and `resolve` are replaced with functions that throw (as the mathjs security notes recommend). A 50 ms time cap, and expressions of at most 500 characters. No access to anything outside the expression.
-- **Input:** `calculate({ expression })` handles arithmetic, percentages (`12% of 340`, `340 * 1.12`), powers and roots, fractions, rounding, units and conversions (`5 km to mi`, `38 degC to degF`, `2.5 hours to minutes`), and statistics on a list (`mean([…])`, `median`, `std`). Dates stay out of v1.
-- **Output:** the exact result, plus a rounded form for display (`= 0.1 + 0.2 → 0.3`, not `0.30000000000000004`). On a bad expression, a short error the model can fix and retry.
-- **UI:** a quiet chip like search, "Calculated 12% of 340" (UIcon `calculator`). No confirm card, since it has no side effects.
-- `toolLabel`, `runTool` and `toolDefs()` in `tools.ts`; the engine in `src/main/math.ts`, unit-tested without Electron.
+**The latency rule.** Running the math takes microseconds. What costs time is everything around it:
+- each tool call is **another model request**: the stream pauses, the result goes back, and the model needs time before its next word (0.5–2 s);
+- thinking adds seconds before the first word;
+- a cold mathjs load adds about 100 ms.
 
-### 2. Think on math turns only
-- `looksLikeMath(text, captures)` in `src/shared/script.ts` (next to `isMostlyHan`) is a rules check, so it's free and instant:
-  - digits with operators (`+ − × ÷ * / ^ =`), `%`, fractions or exponents;
-  - words like solve / calculate / how much / how many / percent / average / equation / interest, and 計 / 算 / 幾多 / 百分之;
-  - a text capture that is mostly numbers and symbols;
-  - the `solve` intent once D-1 exists.
-- When it fires, that turn is sent with `thinking: enabled`, whatever the setting. The "Think deeper" setting becomes "always". `post()` takes a per-turn override; `reasoning_content` handling (echoed within a turn, stripped between turns) already works.
-- Snips: vision questions with math words in the typed text count. A snip with no text uses the default until D-1's OCR can read it.
-- Cost: math answers start a few seconds later. The thinking line already shows ("Otty is thinking"); nothing else changes.
+So the design aims for **zero extra requests where possible, at most one otherwise, and cache hits on that one**.
+
+### Latency budget (targets, measured on an M1)
+| Path | Target |
+| --- | --- |
+| Instant answer (the whole question is a calculation) | ↵ → result on screen ≤ 50 ms, no model call |
+| `calculate` execution, p95 | ≤ 2 ms, whatever the expression |
+| Calculations inside an answer | at most **one** extra model request per answer, with the history cached |
+| Non-math questions | no slower than today: no thinking, no added work beyond a check of under a millisecond |
+| mathjs ready | warmed at startup in idle time, so the first math question never waits for it |
+
+### 0. Keep the prompt prefix stable (a fix for every turn, not just math)
+- Today `systemPrompt(note)` is rebuilt on **every tool round** (`llm.ts`), and it ends with the current time to the second (`prompts.ts`). DeepSeek's context cache only reuses a request's matching start, so the history after the system prompt is **never** cached. That's true across turns, and also between the request that calls a tool and the one that continues after it.
+- Fix:
+  - The system prompt becomes static: same text for every request, built once.
+  - Everything that varies goes on the **latest user message**, next to the language reminder and in the same way (`withReminder`): the time (to the minute), the language note, and later D-10's memory block.
+  - The tool list stays in a stable order.
+- Measure with `stream_options: { include_usage: true }`: log `prompt_cache_hit_tokens` and time to first token per round, dev builds only. Expected: round 2 of a tool turn, and every follow-up turn, reads its history from the cache, starting sooner and costing less.
+- **Rule for later features (D-10 memories, D-1 intents):** nothing that changes per question goes in the system prompt.
+
+### 1. Three tiers, decided locally in under a millisecond
+`mathTier(text, captures)` in `src/shared/math.ts` (next to `script.ts`) returns one of four values:
+
+| Tier | Example | What happens | Extra latency |
+| --- | --- | --- | --- |
+| `expression` | `2340*1.175`, `17.5% of 2,340`, `38°C to °F`, `sqrt(2)`, `mean(3, 7, 9)` | **Instant answer:** computed locally and shown at once as a result card (`= 2,749.5`) with **Copy** and **Explain the working**. No model call | none (≤ 50 ms) |
+| `calculation` | "what's 17.5% of 2,340 plus 8% tax?", "split $86.40 between 3" | Model with `calculate`, **thinking off**. The calculator gives the accuracy, and these don't need reasoning | one request, cached |
+| `problem` | "solve 3x + 7 = 25", "a train leaves at…", a homework snip with typed math words, 「解方程」 | Model with `calculate`, **thinking on** for this turn only | thinking plus one request, cached |
+| `none` | everything else | as today | none |
+
+- **`expression`** means the whole typed question parses as an allowlisted mathjs expression after normalising (below), with nothing left over but number words like "of", "to", "in" and units. Anything else falls through to the model.
+- **`problem`** means equations with unknowns, solve / prove / word-problem cues, or a snip with typed math words. **`calculation`** is the other math cues: numbers with operators, %, money splits, how much / how many / average, and 計 / 算 / 幾多 / 百分之 / 打…折.
+- The instant result card is local, so it also works offline and costs nothing. **Explain the working** sends the question to the model as a `problem` turn.
+- It's saved in the chat like any answer: an assistant message with `calc: { expression, result }`, rendered as the card. Search finds it.
+- Settings "Think deeper" becomes "always think", overriding the tiers.
+
+### 2. The `calculate` tool, built for one request
+- **Batch, with names:** `calculate({ steps: string[] })` evaluates the steps in order in one shared scope:
+  ```
+  ["base = 2340 * 17.5%", "tax = base * 8%", "total = base + tax"]
+  ```
+  It returns every named result in one go. The prompt says to plan all the numbers first, then call `calculate` once. Several calls in one model message (parallel tool calls) are also run together.
+- **Exact decimals:** mathjs configured with `number: 'BigNumber'`, `precision: 34`, so `0.1 + 0.2 = 0.3` and money sums are exact without display tricks. Results are formatted to 14 significant digits, with thousands separators in the display text only.
+- **Forgiving input, so a retry is rare** (a retry costs a whole request):
+  - NFKC normalisation (full-width digits);
+  - `×` and `·` → `*`, `÷` → `/`, `−` → `-`, `²` → `^2`;
+  - `%` and "x% of y";
+  - `°C`, `°F`, `km/h` and similar → mathjs unit names;
+  - thousands separators accepted when unambiguous (`2,340` with exactly 3 digits after the comma and no function call around it).
+  
+  Errors are one line with the fix ("unknown unit 'kms', did you mean 'km'?").
+- **Safety without a second process:**
+  - The expression is parsed to an AST and walked against an **allowlist** of node types and functions: arithmetic, `sqrt`, `round`, `abs`, `log`, trig, `min` / `max` / `mean` / `median` / `std` / `sum`, `to` / `in` units, assignments.
+  - Arrays are capped at 1,000 items, the length at 500 characters, and big factorials and powers are capped.
+  - `import`, `createUnit`, `evaluate`, `parse`, `range`, matrices beyond the cap and every function not on the allowlist are rejected before evaluation.
+  
+  So evaluation is bounded and synchronous, and there's **no utility-process round trip**. A worker would add more latency than it could ever save.
+- **Lean and warm:**
+  - `src/main/math.ts` builds the mathjs instance from only the factories the allowlist needs (`create({ …dependencies })`), not `all`, which cuts load and init time.
+  - It's created in `setImmediate` after the windows open, beside the database.
+  - Target: init ≤ 30 ms off the critical path; evaluate ≤ 2 ms p95.
+- **UI with no flicker:** the chip appears already done ("Calculated 2,340 × 17.5% = 409.5"), with no "running" state, since it's faster than a frame. Tap it to copy the result. The text written before the call stays on screen, and the stream picks up again after a single cached request.
 
 ### 3. Render math
-- Add `remark-math` and `rehype-katex` (with KaTeX's CSS, imported once in the renderer) to `Markdown.tsx`, in the panel, the quick view and explain cards.
-- **Only `$$…$$` counts as math** (`singleDollarTextMath: false`). With single dollars, "it costs $5 and $10 later" would turn into an equation, and Otty talks about prices all the time. `$$…$$` inline in a sentence renders inline; on its own line it renders as a centred block.
-- KaTeX errors render as the source text, never a red error box (`throwOnError: false`, `errorColor` from the tokens).
-- Check: find-in-chat (D-7) highlights still match text inside KaTeX output (it searches rendered text nodes, so the TeX source won't match; acceptable, and note it). The copy button copies the markdown, so pasted math stays `$$…$$`.
-- Dark mode: KaTeX inherits `color`, so no new tokens.
+- `remark-math` and `rehype-katex` in `Markdown.tsx`: panel, quick view, explain cards.
+- **Only `$$…$$` counts as math** (`singleDollarTextMath: false`), so "$5 and $10" stays text. `$$…$$` inside a sentence is inline; on its own line it's a block.
+- `throwOnError: false`, so bad TeX shows as source text. KaTeX inherits `color`, so dark mode works with no new tokens.
+- **Load cost:**
+  - KaTeX and its CSS are imported once with the renderer bundle (the windows are created at startup, so they're already loaded when an answer arrives).
+  - Rendering only runs on messages that contain `$$`; a quick check skips the plugin otherwise, so streaming non-math answers costs nothing extra.
+  - While a math answer streams, an unclosed `$$` renders as text until it closes, so the layout doesn't jump.
+- Find-in-chat (D-7) searches rendered text, so TeX source inside KaTeX won't match; acceptable. Copy keeps `$$…$$`.
 
-### 4. Math rules in the prompt (`prompts.ts`)
-- Compute every number with `calculate`; never do arithmetic from memory, even "easy" sums.
-- For "how do I solve…" and homework questions: numbered steps, one idea each, working shown, then the answer in bold with units.
-- Check before answering: put the answer back into the equation, or estimate the size, and fix it if it doesn't fit.
-- Round sensibly for the question (money to 2 places, people to whole numbers), and say what the answer means in plain words ("so you'd pay about $43 a month").
-- Write math as `$$…$$`. Keep plain prices as "$5".
-- An explain term on a tricky concept is fine (`[median](#explain)`); keep `prompts.ts` and `Markdown.tsx` in sync, as CLAUDE.md says.
+### 4. Prompt rules (`prompts.ts`, in the static system prompt)
+- Plan every number first, then **one** `calculate` call with all the steps. Never do arithmetic from memory, even "easy" sums.
+- Homework and "how do I solve": numbered steps, then the answer in bold with units, then a check line (put the answer back in, or estimate the size).
+- Round for the question (money to 2 places, people to whole numbers), then say what it means in plain words.
+- Write math as `$$…$$`; prices stay "$5".
 
-### Tests
-- `math.test.ts`: arithmetic, percentages, units, statistics, float display, rejected functions (`import`, `evaluate`), the length cap, a bad expression.
-- `looksLikeMath`: English and Chinese positives; prices in prose, dates, phone numbers and version numbers ("macOS 15.1") as negatives.
-- `Markdown`: `$$…$$` renders KaTeX; "$5 and $10" stays text; a KaTeX error shows the source.
-- `tools/ui-preview`: a `scene=math` answer with inline and block math, in light and dark.
+### Tests and measurement
+- `math.test.ts` (no Electron):
+  - exact decimals, percentages, units, statistics;
+  - the batch scope;
+  - normalising `×`, `÷`, `−`, `²`, full-width digits and `2,340`;
+  - the allowlist rejecting `import`, `evaluate`, `range(1,1e9)`, `factorial(1e6)` and long input;
+  - **a timing test**: 1,000 mixed expressions with p95 ≤ 2 ms.
+- `mathTier`: about 60 labelled examples in English and 中文 across the four tiers, including prices in prose, dates, phone numbers and "macOS 15.1" as `none`.
+- **A latency eval** (`tools/math-eval/`, not shipped):
+  - 40 real-style questions run against the API, recording correctness, time to first token, total time, tool rounds and cache-hit tokens;
+  - compared before D-12, D-12 with thinking on every math turn, and D-12 tiered;
+  - the tier thresholds are tuned on this.
+  - Target: **≥ 95% correct, and `calculation`-tier answers no slower to start than today's.**
+- `tools/ui-preview` `scene=math`: an instant result card, inline and block math, light and dark.
 
 ### Done when
-- "What's 17.5% of 2,340 plus 8% tax?" shows a Calculated chip and the right number.
-- "Solve 3x + 7 = 25" shows numbered steps with rendered math and a check line.
-- "Convert 38 °C to °F" is exact.
-- "I earn $3,200 a month and spend $1,150 on rent, what share is that?" renders the dollars as text and answers 35.9%.
-- A non-math question isn't slower than before.
-- In 中文, 「3,000 蚊打八折係幾多？」 gets 2,400, with the working in Chinese.
+- Typing `17.5% of 2,340` shows **409.5** instantly with no model call; **Explain the working** then explains it.
+- "What's 17.5% of 2,340 plus 8% tax?" shows one Calculated chip and the right total, with the second request reading its history from the cache (dev log).
+- "Solve 3x + 7 = 25" thinks, then shows rendered steps and a check.
+- "What's the capital of France?" starts as fast as before.
+- "$3,200 a month, $1,150 rent, what share?" keeps the dollars as text and answers 35.9%.
+- 「3,000 蚊打八折係幾多？」 gets 2,400 with Chinese working.
+- Follow-up turns in any chat show cache hits in the dev log.
 
 ### Later (in BRAINSTORM)
-A sandboxed code runner for data in attached CSVs and tables; recomputing the final answer of a worked solution and flagging a mismatch; dates in `calculate`; a "show working" toggle.
+A sandboxed code runner for data in CSVs and tables; recomputing a worked solution's final answer; dates in `calculate`; instant answers also in the quick view's empty state ("type a sum").
 
 ---
 
@@ -344,6 +407,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 49. Snip a page with a very long window title, then send it → the app tag above the snip ends in "…" and stays inside the chat, in the panel and the quick view.
 50. Ask "Read https://example.com" → Otty reads it with no card. Search for something and ask it to read a result → no card. Ask it to read an address nobody gave it → a "Read this page?" card shows the full address, and **No** sends nothing.
 51. In a built app, ask Otty to reply with exactly `![test](https://example.com/p.png)` → the word "test" appears, and no picture loads. Snips, file thumbnails, icons and painted Otty still show.
-52. Ask "What's 17.5% of 2,340 plus 8% tax?" → a "Calculated …" chip and the right total. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then numbered steps with rendered math (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
-53. Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400, with the working in Chinese.
-54. Toggle dark mode on an answer with math → equations stay legible. Copy it → the pasted text has `$$…$$`.
+52. Type `17.5% of 2,340` and press ↵ → **409.5** appears at once (no "thinking", works with Wi-Fi off), with **Copy** and **Explain the working**. Explain → the model explains it.
+53. Ask "What's 17.5% of 2,340 plus 8% tax?" → one "Calculated … = …" chip, no flicker, and the right total, with the answer starting about as fast as a normal question. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then rendered steps (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
+54. Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text, and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400 with Chinese working. Toggle dark mode → equations stay legible. Copy an answer → the pasted text has `$$…$$`.
+55. In a dev build, ask a follow-up in a long chat → the log shows `prompt_cache_hit_tokens` covering the history, on the follow-up and on the round after a tool call.
