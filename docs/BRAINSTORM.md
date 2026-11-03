@@ -32,7 +32,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering |
 | Cursor-following mini otter or a "?" that pops up near a fresh text selection (needs an AX selection observer, Swift helper) | H | L | idea |
-| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | → D-10 (issue #17; its `memories` table is already in `otty.db`) |
+| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | → D-10 (issue #17): learns on its own and shows a Noted line with Undo, no confirm cards |
 | Daily greeting / gentle streaks ("3 things learned this week") | L | S | idea |
 | Seasonal or unlockable accessories (hat, scarf) | L | M | idea |
 | Sound effects (opt-in, soft squeak on pop-up) | L | S | idea |
@@ -188,6 +188,7 @@ Longer sketches for big ideas, so the thinking isn't lost. Not plans: a sketch m
 | **Motion sensitivity** | With `prefers-reduced-motion`, use static highlights and numbered markers instead of animation |
 
 **Stepping stones** (each useful on its own):
+0. **Step cards (D-11).** The answer's steps as a checklist whose buttons paste, open, click menus and press shortcuts in the source app, with "I'm stuck" re-snipping the window. No overlay yet, but the same step-by-step loop.
 1. **"Where is it?" spotlight.** After an answer mentions a button, circle it on screen (OCR box, one-off, no session).
 2. **Static numbered markers** for a multi-step answer on the current screen.
 3. **The animated ghost paw with step-by-step waiting:** the full overlay.

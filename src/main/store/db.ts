@@ -45,18 +45,22 @@ const MIGRATIONS: string[] = [
   -- Trigram finds terms of 3+ characters; shorter ones (many Chinese searches) fall back to instr().
   create virtual table chat_search using fts5(chat_id unindexed, text, tokenize = 'trigram');
 
-  -- Things Otty remembers about the user (issue #17). The user sees, edits, pauses and deletes every one in
-  -- Settings; nothing is stored silently. Kept apart from chats: "Forget all chats" leaves these, and
-  -- forgetting the chat a memory came from only drops the link.
+  -- Things Otty has learned about the user (issue #17, D-10). Saved as Otty learns them, shown under the answer
+  -- with an Undo, and listed in Settings where every one can be edited, paused or deleted. Kept apart from chats:
+  -- "Forget all chats" leaves these, and forgetting the chat a memory came from only drops the link.
   create table memories(
     id integer primary key,
     -- One plain sentence, written to be shown back to the user: "Is learning Spanish".
     text text not null,
-    -- For grouping in Settings: 'about' (who they are), 'preference' (how they like answers), 'person', 'goal'.
+    -- For grouping in Settings: 'about' (who they are), 'preference' (how they like answers), 'habit' (how they
+    -- work: apps, languages), 'person' (people they mention), 'goal' (what they're working towards).
     kind text not null default 'about',
-    -- How it got here: 'told' ("remember that…"), 'suggested' (Otty asked and the user said yes), 'settings' (typed there).
-    origin text not null check (origin in ('told', 'suggested', 'settings')),
-    -- The language it was said in, or null for any. Lets a 中文 memory be phrased for 中文 answers.
+    -- How Otty learned it: 'told' ("remember that…"), 'inferred' (from what they said, by the model),
+    -- 'observed' (counted on-device: apps, languages, quick actions), 'settings' (typed there).
+    origin text not null check (origin in ('told', 'inferred', 'observed', 'settings')),
+    -- 0–1. Told and typed memories are 1; a weak inference is only sent when it matches the question.
+    confidence real not null default 1,
+    -- The language it was said in, or null for any.
     language text,
     source_chat_id text references chats(id) on delete set null,
     source_message_id text,
@@ -67,6 +71,10 @@ const MIGRATIONS: string[] = [
     -- Retrieval bookkeeping: once the list is too long to send whole, pick the relevant and recently useful ones.
     last_used_at integer,
     use_count integer not null default 0
+  );
+  -- Chats the user asked Otty not to learn from ("Don't learn from this chat").
+  create table memory_optouts(
+    chat_id text primary key references chats(id) on delete cascade
   );
   create virtual table memories_fts using fts5(text, content = 'memories', content_rowid = 'id', tokenize = 'trigram');
   create trigger memories_ai after insert on memories begin

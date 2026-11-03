@@ -50,19 +50,19 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-8 | Capture tray: several captures in one question, across apps and desktops (#13) | 🧪 on PR #27 | — | M |
 | D-9 | Real web search and page reading with DeepSeek Search & Fetch | 🧪 on PR #27 | — | S |
 | D-3 | SQLite chat storage: scaffold 🧪 on PR #27; make it the default, incremental writes, retention | ⏳ next | #27 merged | S–M (1 day) |
-| D-10 | Otty remembers you: an editable memory list (#17) | ⏳ | D-3 default on | M (2 days) |
-| D-11 | Act on the answer: paste back into the app, follow-ups in the quick view | ⏳ | — | M (1–2 days) |
+| D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | D-3 default on | M (2–3 days) |
+| D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | D-3 (`intent_feedback` is in schema v1), OCR helper | L (4–6 days) |
-| D-4 | CI pipeline: what's left is branch protection and a `.dmg` workflow | 🔨 | — | S |
+| D-4 | CI pipeline: `.dmg` workflow 🧪 on PR #27; branch protection is the owner's repo setting | 🔨 | — | S |
 
 **Where things stand (2026-11-03).** 0.3.2 is on `main`. PR #27 (`feat/capture-tray`) holds D-8, the D-3 scaffold and D-9, with CI green. It hasn't been run on a Mac yet.
 
 **Build order**
 1. **Run smoke steps 38–46 on a Mac, fix what they find, merge #27, release 0.4.0.** Then move D-8 and D-9 to CHANGELOG and REQUIREMENTS out of "built".
 2. **Finish D-3.** Small, and it unblocks the rest: memories live in `otty.db`, the 50-chat cap goes, and a crash mid-answer stops losing the question.
-3. **D-10 memory.** The biggest step towards Otty feeling like *your* otter, and the schema is already there.
-4. **D-11 act on the answer.** Two "considering" quick wins that turn answers into done things: paste the rewrite back, ask a follow-up without leaving the cursor.
-5. Then **D-1**. It has the most moving parts (model, OCR helper, eval set), and its feedback table is ready once D-3 is the default. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people, alongside D-4's `.dmg` workflow.
+3. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned, and the schema is already there.
+4. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
+5. Then **D-1**. It has the most moving parts (model, OCR helper, eval set), and its feedback table is ready once D-3 is the default. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `.dmg` workflow (D-4) can then sign with secrets.
 
 --- | --- | --- | --- | --- |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-3 (intent column), OCR helper; D-2's quick-action ids (shipped) are its intent ids | L (4–6 days) |
@@ -120,41 +120,93 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 ---
 
-## D-10 · Otty remembers you: an editable memory list (#17) ⏳
+## D-10 · Otty learns about you: memory that just works, in the open (#17) ⏳
 
-**Goal.** Otty keeps a short list of things about the user that make answers fit ("prefers short answers", "is learning Spanish", "works in Excel a lot", "my manager is Sam"). The user can see, edit, pause and delete every item, and nothing is saved without them saying yes.
+**Goal.** Otty gets to know the user the way a good assistant does, without being asked: their apps, their languages, the projects they keep coming back to, how they like answers. It uses that knowledge on its own, so answers feel written for *them* (examples from their apps, Spanish in mind, short answers without being told again). That's what separates Otty from a generic chatbot.
 
-**Decisions** (the open questions in #17)
-- **Saved only with a yes, always.** One tool, `remember({ text, kind })`, and every call shows a confirm card: "Remember this about you? *Is learning Spanish*" with **Remember** / **No thanks**. `origin` is `told` when the user's message asked ("remember that…", 記住, 記得), otherwise `suggested`. The prompt allows at most one suggestion per answer, only for lasting facts, never sensitive ones (health, money, passwords, other people's private details) unless the user asked.
-- **The whole list goes in the system prompt while it's small.** Up to about 1,500 characters of enabled memories go in a "What you know about the user (they can see and edit this list)" block. Past that, pick the ones matching the question (`memories_fts`), then the most used and most recent. Only memories that were sent count as used (`use_count`, `last_used_at`).
-- **Language:** a memory keeps the language it was said in; the model handles mixing. Nothing per-language in v1.
-- **Separate from chats:** "Forget all chats" keeps memories; forgetting a chat only drops the link (`on delete set null`, already in schema v1).
+**Principle: trust from visibility and control, not from asking first.** A confirm card for every memory would make learning a chore, and people would say no out of habit. So Otty saves memories on its own and **always shows what it saved**, with **Undo** one click away. Nothing is hidden, everything can be edited, and some things are off limits.
 
-**Build**
-- `src/main/memory/`: a `MemoryStore` interface (`list`, `add`, `update`, `remove`, `clear`, `forPrompt(question)`) and a SQLite implementation on `database()`. With no database (`OTTY_STORE=json`) memory is unavailable, and Settings says so.
-- `tools.ts`: `remember`, with a chip "Remembered: Is learning Spanish" (UIcon `bookmark`). `prompts.ts`: the memory block and the rules above. `llm.ts`: include `forPrompt(text)` each turn.
-- Settings → **What Otty remembers**: the list with inline edit, a pause toggle and delete for each; **Add** (origin `settings`); **Forget everything Otty remembers** (delete plus `VACUUM`); and a master switch "Let Otty remember things about me" (on: it can ask; off: nothing is sent or suggested, and the list is kept).
-- `PublicSettings.memory: boolean`; IPC `memory:list/add/update/remove/clear`; `tools/ui-preview` gets `scene=memory`.
-- Tests: `forPrompt` budgeting and ranking, the confirm path (declined → nothing saved), a deleted chat leaves its memory.
+### How Otty learns
+1. **Told.** "Remember that my manager is Sam", or "I'm a nurse" said in passing. The model calls `remember({ text, kind })` and the memory is saved at once (`origin: 'told'`, confidence 1).
+2. **Inferred from conversation.** When a turn reveals something lasting about the user ("I need this for my Spanish class" → *is learning Spanish*), the model calls `remember` with `origin: 'inferred'` and a confidence. The prompt allows at most two per answer, only for things likely to matter in a month.
+3. **Observed on the Mac, no model needed.** Main counts what the user already sends: apps in the app note, answer languages, which quick actions they pick, the "In 中文" button, how often they ask for shorter answers. Past a threshold it writes or refreshes a `habit` memory (`origin: 'observed'`): "Mostly works in Excel and Safari", "Often wants answers in 中文", "Prefers short answers". Counts stay in memory; only the resulting sentence is stored.
+4. **Tidying.** When a new memory overlaps an old one, `remember` takes `replaces: id`, and the old one is updated in place ("now uses Numbers instead of Excel"). Without that, near-duplicates are found with `memories_fts` (trigram overlap) and merged.
 
-**Done when:** "remember that I'm learning Spanish" shows the confirm card, then a later "how do I say thank you?" answers with Spanish in mind; Otty suggests at most one memory per answer and none for a health detail; editing or pausing one in Settings changes the next answer; forgetting all chats keeps memories, and "Forget everything" empties the list.
+### What the user sees
+- **Under the answer**, a quiet line: *Noted: you're learning Spanish* · **Undo** · **Edit** (UIcon `bookmark`). Undo deletes it. Edit opens it in Settings. The line stays in the saved chat, so the source is never a mystery.
+- **On the otter**, observed habits appear as a speech-bubble micro-reply now and then ("I noticed you're in Excel a lot. I'll use its menus in examples."). This shares the "speech-bubble micro-replies" idea in BRAINSTORM.
+- **Settings → What Otty knows about you**: grouped by kind, each with its source ("From a chat on 3 Nov", which opens the chat, or "Noticed from how you use Otty"), and inline edit, pause and delete. **Add something**. **Forget everything Otty knows** (delete plus `VACUUM`).
+- **"Forget that…"** in chat calls `forget({ id })`, which deletes it straight away with an Undo line. Removing is always safe, so it never asks.
+- **"Don't learn from this chat"** in the panel's header (and the quick view's ⋯): this chat neither adds memories nor counts towards habits (`memory_optouts`). Memories are still used in the answers.
+- A master switch, "Let Otty learn about me" (on by default). Off: nothing is learned or sent, and the list is kept for when it's turned back on.
+
+### What Otty never learns
+- **Sensitive things are only remembered when the user explicitly says "remember"**, never inferred or observed: health, money and debts, religion, politics, sexuality, exact addresses, ID numbers. Passwords, keys and codes are never stored, even when asked. Otty says so kindly instead.
+- **The screen isn't the user.** Captures, files and web pages are other people's words: an email from Sam doesn't teach Otty about Sam. Only what the user says about themself, plus their own observed habits, becomes a memory. The prompt says this, and `remember` rejects text that only appears inside a capture or file of that turn (a substring check in main).
+- Everything stays in `otty.db` on the Mac. Memories reach the model only as the prompt block below.
+
+### How memories are used
+- Each turn, `MemoryStore.forPrompt(question, app)` builds a "What you know about the user" block of up to about 1,500 characters. The order: everything told or set in Settings, then habits and inferences that match the question or the current app (`memories_fts`, app name), then the most used. Inferences under confidence 0.6 are only sent when they match.
+- The prompt asks Otty to *use* memories quietly (pick examples from their apps, answer in their language, keep it short if they like short), never to recite them, and at most one light reference when it helps ("Since you're learning Spanish…").
+- `use_count` and `last_used_at` are updated for memories that were sent.
+
+### Build
+- Schema: `memories` (origins `told` / `inferred` / `observed` / `settings`, `confidence`, kinds `about` / `preference` / `habit` / `person` / `goal`) and `memory_optouts` are in schema v1 on PR #27. v1 hasn't shipped, so it was changed in place.
+- `src/main/memory/`: `MemoryStore` (`list`, `add`, `update`, `remove`, `clear`, `forPrompt`, `findSimilar`), `observe.ts` (habit counters and thresholds), `guard.ts` (sensitive-category and "came from a capture" checks, unit-tested).
+- `tools.ts`: `remember` and `forget`, both without confirm cards. A new `ChatEvent` `{ type: 'memory', id, memoryId, text, action: 'added' | 'updated' | 'forgotten' }` renders the Noted line; the assistant message keeps `memories?: { id, text, action }[]` so it survives reopening.
+- IPC `memory:list/add/update/remove/clear/optout`; `PublicSettings.learn: boolean`; `tools/ui-preview` `scene=memory`.
+
+**Done when:** "I'm learning Spanish for a trip" shows *Noted* without a card, and a later "how do I say thank you?" leans Spanish without being told; Undo removes it; after a week of mostly Excel, Settings shows an Excel habit and answers name Excel's menus; a health detail mentioned in passing is not noted, but "remember I'm diabetic" is; a pasted email from someone else teaches nothing; "Don't learn from this chat" learns nothing; Settings edits change the next answer.
 
 ---
 
-## D-11 · Act on the answer: paste back, and follow-ups in the quick view ⏳
+## D-11 · Do it with me: step cards that act on the answer ⏳
 
-**Goal.** Fewer steps between Otty's answer and getting the thing done. A rewritten email or a translation goes straight back where it came from, and a quick follow-up doesn't need the full panel.
+**Goal.** Most of Otty's answers are steps: "open System Settings → Privacy → Accessibility", "press ⌘⇧4", "paste this formula into B2", "choose File → Export → PDF". Today the user reads them and does all the work. Step cards turn those steps into a checklist under the answer, where each step can be **done for them with one click** or ticked off, in any app. It's the first, safe stage of "Show me how" (BRAINSTORM concept notes): Otty helps you through a task, but nothing happens until you click.
 
-**Paste back**
-- A new tool, `offer_paste({ text, mode: 'replace' | 'insert' })`, which the model uses when the answer is text meant to go into the app (a rewrite, a translation, a reply draft). It renders a card under the answer with the exact text and **Paste into Mail** (or **Replace in Mail** when the question had a highlight from that app) and **Copy**. Clicking it is the consent, so there is no extra confirm.
-- Mechanism (main): put the text on the clipboard, hide Otty's windows, activate the source app (`AppInfo` gains `bundleId` from `frontmostApp()`; `tell application id … to activate`), send ⌘V through System Events, and restore the previous clipboard after about 600 ms with the same save/restore the capture uses. "Replace" relies on the selection still being there; if the app has changed since the capture, fall back to Copy with "Copied — paste it where you want it".
-- Never into Otty itself, and never into secure input fields (paste is refused there by macOS anyway; say so kindly if nothing changed). Accessibility is already granted for capture.
+### The step card
+- When an answer has 2+ steps the user will carry out on the Mac, the model calls `show_steps({ title, steps })` instead of writing a numbered list. Each step is `{ text, action? }`. The card shows under the answer: numbered steps, the current one highlighted, a **Done** tick on each, and "2 of 5" progress.
+- A step with an `action` gets a button. Actions are the general verbs of using a Mac, not app integrations:
 
-**Follow-ups in the quick view**
-- After an answer, the quick view keeps a slim input under it: type and ↵ asks a follow-up in the same chat (not `fresh`). With an empty box, ↵ still means "continue in chat", as today. The answer area shows the latest question and answer, with earlier turns collapsed to "2 earlier questions · open in chat".
-- It grows up to `QUICK_MAX_H`; past that the answer scrolls, as today.
+| Action | Button | What happens | Example |
+| --- | --- | --- | --- |
+| `paste { text, mode: 'replace' \| 'insert' }` | **Paste into Excel** / **Replace in Pages** | Clipboard save → activate the source app → ⌘V → clipboard restore | A formula, a rewritten paragraph, a translated reply, a Terminal command (pasted, never run: no Return is sent) |
+| `open { target }` | **Open** | Opens a web page, an app (by name), a System Settings pane (an allowlist of `x-apple.systempreferences:` links), or reveals a file or folder in Finder | "Privacy & Security → Accessibility", "Open Disk Utility" |
+| `menu { path: ['File', 'Export', 'PDF…'] }` | **Click File › Export › PDF…** | Clicks that menu item in the source app through System Events (Accessibility is already granted) | Any app's menu bar, which is where most "how do I" answers lead |
+| `keys { combo: '⌘⇧4' }` | Keycaps, plus **Press for me** | Sends the shortcut to the source app | Screenshots, find, undo, app shortcuts |
+| `copy { text }` | **Copy** | Clipboard only | A value to put somewhere Otty can't reach |
+| (none) | — | A manual step: read, then tick | "Sign in to your bank" |
 
-**Done when:** highlight a paragraph in Mail → ⌥Space → "make this friendlier" → **Replace in Mail** swaps the text and the clipboard holds what it held before; a translation in the quick view offers **Paste into Safari**; in the quick view a follow-up answers in place, and ↵ on an empty box still opens the panel with the whole chat.
+- **"I'm stuck on this step"** under the current step snips the frontmost window, adds it to a follow-up with the step's text ("I'm on step 3 and don't see Export"), and asks. This is the seed of the "teach me how to…" loop: Otty looks again and adjusts the remaining steps (`show_steps` with `replaces` updates the card in place).
+- When a `menu` path doesn't exist (renamed in this version), the button says "I couldn't find that menu", the step becomes manual, and Otty is told so it can suggest the real name on the next turn.
+- Step progress (done ticks, which actions ran) is saved with the chat and shown when it's reopened.
+
+### Where it acts, and what keeps it safe
+- **Only in the app the question came from** (`AppInfo` gains `bundleId` and `pid` from `frontmostApp()`), or the app an `open` step opened. Never in Otty itself.
+- **Every action is the user's click.** The model proposes; nothing runs on its own.
+- **Risky targets get a second click.** A `menu` or `keys` step whose label or path contains words like Delete, Erase, Empty Trash, Format, Send, Pay, Purchase, Sign Out or Reset shows a warning style and asks "Sure?" first.
+- **Paste** never sends Return, and never goes into a secure (password) field. If the focused field is secure, macOS blocks it, and Otty says "That's a password field. Copy it instead?".
+- **`open`** accepts only http(s), app names that exist in `/Applications` or `/System/Applications`, the System Settings allowlist, and paths in the user's home folder (reveal only, never open documents).
+- **The step cards' rules apply to web pages too.** A `show_steps` from a turn that read a web page is fine, but the page's text never becomes an action without the model choosing it, and the user's click.
+
+### Quick view
+- Step cards render compactly in the quick view, and the card stays open while you work through the steps: it's pinned like **＋ add more** (D-8), so clicking into the app to do step 2 doesn't close it.
+- **Follow-ups in the quick view:** after an answer, a slim input lets you ask a follow-up in the same chat. ↵ on an empty box still means "continue in chat". "I'm stuck" uses this.
+
+### Build
+- `tools.ts`: `show_steps` (returns "Shown to the user" at once). A new `ChatEvent` `{ type: 'steps', id, card }`; the assistant message keeps `steps?: StepCard`.
+- `src/main/act/`: `paste.ts` (clipboard save/restore shared with `capture.ts`), `menu.ts` (System Events menu click by path, with a "not found" result), `keys.ts`, `open.ts` (with the allowlists), and `risk.ts` (risky-word check, unit-tested). IPC `steps:run(messageId, stepIndex)` and `steps:done`.
+- `components/StepCard.tsx` with step icons from UIcons; `Quick.tsx` pinning while a card is active; the follow-up input.
+- `prompts.ts`: when to use `show_steps` (things the user does on their Mac, 2+ steps) and when not (explanations, one-liners); use real menu names for the app in the note; prefer an action whenever one fits.
+- REQUIREMENTS: a new FR for step cards; FR-7's table gains `show_steps`.
+
+**Done when:**
+- In Excel, "add up column B" gives a step card whose **Paste into Excel** puts `=SUM(B:B)` in the selected cell, and the clipboard is back as it was.
+- "How do I let Otty read my screen?" → **Open** lands on Screen Recording in System Settings.
+- In Pages, "export as PDF" → **Click File › Export To › PDF…** opens the dialog.
+- "I'm stuck" on a step snips, asks, and updates the card.
+- A Delete step asks "Sure?" first.
+- In the quick view you can work through all the steps without it closing.
 
 ---
 
@@ -260,8 +312,19 @@ else                             → local clarify card (no LLM call): top-3 int
 
 **Progress.**
 - ✅ Stage 1 + 2: `.github/workflows/ci.yml` runs typecheck, `npm test` and build on every PR (about 40 s), with Dependabot (`.github/dependabot.yml`), the lockfile committed, and a README badge.
-- ⏳ Make `ci` required on `main` (branch protection). It has been green since 0.2, but `main` is still unprotected (checked 2026-11-03). This is a repository setting for the owner to change.
-- ⏳ Stage 3 (`.dmg` artifact): a `workflow_dispatch` workflow can only be started once it exists on `main`, so add it in a follow-up PR.
+- ⏳ Make `ci` required on `main`. It has been green since 0.2, but `main` is still unprotected (checked 2026-11-03). This is a repository setting for the owner to change:
+  1. On GitHub: the repo → **Settings** → **Rules** → **Rulesets** → **New ruleset** → **New branch ruleset**.
+  2. Name it `main`, set **Enforcement status** to **Active**.
+  3. **Target branches** → **Add target** → **Include default branch**.
+  4. Tick **Require a pull request before merging** (approvals can stay at 0 for a solo repo) and **Require status checks to pass**. Under the latter, **Add checks** → type `ci` → pick it (it is listed once it has run in the last week). Tick **Require branches to be up to date before merging** if you want every PR re-tested on top of the latest `main`.
+  5. Tick **Block force pushes** (on by default). Leave `dmg` out of the required checks: it only runs when packaging changes.
+  6. Optional: under **Bypass list**, add yourself (Repository admin) for emergencies, with **For pull requests only**.
+  7. **Create**. Check: a PR's merge button now waits for `ci`.
+- 🧪 Stage 3: `.github/workflows/dmg.yml` builds an unsigned arm64 + x64 `.dmg` (about 150 MB each; `npm run build:mac` checked locally on 2026-11-03). It runs:
+  - on **Run workflow** in the Actions tab (any branch, once it's on `main`),
+  - on a `v*` tag, where it also attaches the `.dmg` to a **draft** GitHub Release,
+  - on PRs that change packaging (`electron-builder.yml`, `build/`, `package.json`, the lockfile or the workflow), so a broken `.dmg` shows before merging. PR #27 is its first run.
+  The `.dmg` is kept as a run artifact for 14 days. Signing comes with the Developer ID work.
 
 **Goal.** Every PR and every push to `main` is checked automatically, so nothing that fails typecheck or build gets merged. Later, CI also produces a downloadable `.dmg`.
 
