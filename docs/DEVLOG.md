@@ -45,7 +45,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-3 (intent column), OCR helper; D-2's quick-action ids (shipped) are its intent ids | L (4–6 days) |
-| D-3 | SQLite chat storage | ⏳ | — | M (1–2 days) |
+| D-3 | SQLite chat storage (scaffolded, opt-in) | 🔨 | — | M (1–2 days) |
 | D-4 | CI pipeline (GitHub Actions) | 🔨 | — | S (half a day) |
 | D-8 | Capture tray: several captures in one question, across apps and desktops (#13) | 🧪 | — | M |
 
@@ -155,7 +155,22 @@ else                             → local clarify card (no LLM call): top-3 int
 
 ---
 
-## D-3 · SQLite chat storage ⏳
+## D-3 · SQLite chat storage 🔨
+
+**Progress (scaffold, on `feat/capture-tray`).**
+- ✅ `store/db.ts`: opens `userData/otty.db` (mode 600, WAL, foreign keys), migrations keyed on `PRAGMA user_version`, schema v1 below. `store/sqliteStore.ts`: `SqliteChatStore` passes the shared search contract and its own tests (pictures never stored, reopen, import order, re-save replaces).
+- ✅ Opt-in: start Otty with `OTTY_STORE=sqlite`. The first start imports `chats.json` and renames it `chats.json.imported`. JSON stays the default until smoke step 43 passes on a Mac; then flip `useSqlite()` in `store/index.ts`.
+- ✅ The schema has the **memories** table for issue #17 and `intent_feedback` for D-1, so neither needs a migration of its own to start.
+- ⏳ Incremental writes (`appendMessage` / `finishTurn`), so a crash mid-answer keeps the question. `save(thread)` still rewrites one chat's rows in a transaction, which is fast at this size.
+- ⏳ The retention setting replacing the cap of 50 (SQLite has no cap today; JSON keeps 50).
+
+**Schema v1 as built** (differs from the sketch below):
+- Messages are stored as their `ChatMessage` JSON (pictures emptied), with `id` and `role` as columns. Message shapes keep changing (captures replaced `context` in D-8); `store/upgrade.ts` reads old shapes for both backends, so the database needs no migration when a message gains a field.
+- Search uses a `chat_search` FTS5 trigram table, one row per chat holding `searchableText()` (the same folded fields `store/search.ts` matches). SQL narrows to candidate chats (FTS5 for 3+ characters, `instr()` for 1–2), then `searchThreads` ranks them, so both backends answer identically. A `content='messages'` table keyed on `rowid` was dropped: `VACUUM` may renumber rowids of a table without an `INTEGER PRIMARY KEY`, which breaks an external-content index.
+- `memories`: `id integer primary key`, `text` (one plain sentence to show back: "Is learning Spanish"), `kind` (about / preference / person / goal), `origin` (`told`, `suggested` and confirmed, or typed in `settings`), `language`, `source_chat_id` (`on delete set null`: forgetting a chat keeps the memory but drops the link), `enabled` (paused, never sent), `created_at`, `updated_at`, `last_used_at`, `use_count` (for picking the relevant few once the list is too long to send whole), plus `memories_fts` (trigram, kept in sync by triggers). "Forget all chats" leaves memories; forgetting memories is its own action.
+- `database()` in `store/index.ts` hands the same connection to a future `MemoryStore`.
+
+**The original sketch:**
 
 **Goal.** Replace `chats.json`, which is rewritten in full on every save, with a real local database. It should allow incremental writes, search, and room for new tables such as intent feedback.
 
@@ -282,3 +297,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 40. Add four captures, then a fifth → "Otty can look at 4 things at once"; remove one with its ✕ → the note goes away. Highlight the same text twice → only one copy.
 41. Highlight text → **⌥Space** → in the quick view press **＋ add more** → click into another app (it stays open), highlight → **⌥Space** → the capture is added without the card moving or taking focus. ↵ → Compare runs. Click elsewhere → it closes.
 42. Open the quick view, then switch to another desktop (Ctrl→) → it's still there, unfocused. Highlight something there → **⌥Space** → added. Click **esc close** → it closes. A chat saved by 0.3.2 still opens.
+43. Quit Otty, start it with `OTTY_STORE=sqlite npm run dev` → Recent chats shows the same chats as before, `chats.json` is now `chats.json.imported`, and `otty.db` is in the app's data folder. Search English and 「打印」 → the same results as with JSON. Ask something, quit, relaunch → it's saved. Settings → Privacy → forget all chats → the list is empty.

@@ -11,7 +11,8 @@ export { findRanges, parseQuery }
 //   Substrings rather than words, because Chinese has no spaces.
 // - Ranking: a title match first, then more matching messages, then the most recently updated.
 // The matching itself (fold, parseQuery, findRanges) is in shared/match.ts, which find-in-chat uses too.
-// This file is the in-memory implementation, used by the JSON backend.
+// This file is the in-memory implementation. The JSON backend uses it directly; SQLite narrows the chats with its
+// index first, then ranks the candidates here, so both behave the same.
 
 const SNIPPET_WIDTH = 120
 const SNIPPET_LEAD = 40
@@ -53,6 +54,16 @@ function fields(t: Thread): Field[] {
     }
   }
   return out
+}
+
+/**
+ * Every searchable field of a chat, folded, one per line. A backend with its own index (SQLite) indexes this,
+ * so its candidates are always a superset of what `searchThreads` would match.
+ */
+export function searchableText(t: Thread): string {
+  return fields(t)
+    .map((f) => f.folded)
+    .join('\n')
 }
 
 const isLowSurrogate = (s: string, i: number) => i > 0 && i < s.length && (s.charCodeAt(i) & 0xfc00) === 0xdc00

@@ -32,7 +32,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering |
 | Cursor-following mini otter or a "?" that pops up near a fresh text selection (needs an AX selection observer, Swift helper) | H | L | idea |
-| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | idea (future), tracked in issue #17 |
+| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | idea (future), tracked in issue #17; its `memories` table is in `otty.db` (D-3 schema v1) |
 | Daily greeting / gentle streaks ("3 things learned this week") | L | S | idea |
 | Seasonal or unlockable accessories (hat, scarf) | L | M | idea |
 | Sound effects (opt-in, soft squeak on pop-up) | L | S | idea |
@@ -110,7 +110,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Saved chats with Recent chats | H | M | shipped (JSON) |
-| SQLite storage, retention setting | H | M | → D-3 |
+| SQLite storage, retention setting | H | M | → D-3 (scaffolded, opt-in) |
 | Search across chats, the same contract on JSON, SQLite or an online database | H | M | shipped (D-5, JSON) |
 | Find in this chat (⌘F), highlights and ↵ / ⇧↵ stepping | H | S | shipped (D-7) |
 | Find in the quick view too, and in an open explain card | L | S | idea, after D-7 |
