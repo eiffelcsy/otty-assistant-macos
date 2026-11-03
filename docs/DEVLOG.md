@@ -42,7 +42,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - The bubble is a non-activating `type: 'panel'` window, so clicking it keeps the other app's selection.
 - Pictures never touch disk beyond the moment of encoding.
 - A user message carries `captures[]` (each with its app) plus `files`; saved chats are read through `store/upgrade.ts`, so old shapes keep loading.
-- **Prompt layout for the cache (from D-12):** the system prompt and tool list are static. Everything that varies per turn (time, language reminder, memories, intent hints) rides on the latest user message, so DeepSeek can reuse everything before it.
+- **Prompt layout for the cache (from D-12):** the system prompt and tool list depend only on settings. Per-turn context (time, answer language, memories, intent hints) is a note at the end of that turn's user message and is stored and resent as sent. The history only ever grows at the end, so every request starts byte-for-byte with the previous one and DeepSeek's cache serves it. A test guards this.
 - Saved chats live in `userData/otty.db` (built-in `node:sqlite`, no native module). Calls are synchronous on main and sub-millisecond for a normal turn: the question is written as it's sent (after the request is under way), and the end of a turn writes only that turn's rows. Schema changes are new migrations in `store/db.ts`, never edits to a released one.
 
 ## Roadmap
@@ -91,7 +91,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - Everything stays in `otty.db` on the Mac. Memories reach the model only as the prompt block below.
 
 ### How memories are used
-- Each turn, `MemoryStore.forPrompt(question, app)` builds a "What you know about the user" block of up to about 1,500 characters. It goes on the **latest user message**, not the system prompt, because it changes per question and would otherwise stop DeepSeek caching the history (see D-12 step 0). The order: everything told or set in Settings, then habits and inferences that match the question or the current app (`memories_fts`, app name), then the most used. Inferences under confidence 0.6 are only sent when they match.
+- Each turn, `MemoryStore.forPrompt(question, app)` builds a "What you know about the user" block of up to about 1,500 characters. It goes in that turn's note at the end of the user message (and stays there), not in the system prompt, because it changes per question and would otherwise stop DeepSeek caching the history (see D-12 step 0). The order: everything told or set in Settings, then habits and inferences that match the question or the current app (`memories_fts`, app name), then the most used. Inferences under confidence 0.6 are only sent when they match.
 - The prompt asks Otty to *use* memories quietly (pick examples from their apps, answer in their language, keep it short if they like short), never to recite them, and at most one light reference when it helps ("Since you're learning Spanish…").
 - `use_count` and `last_used_at` are updated for memories that were sent.
 
@@ -128,14 +128,41 @@ So the design aims for **zero extra requests where possible, at most one otherwi
 | Non-math questions | no slower than today: no thinking, no added work beyond a check of under a millisecond |
 | mathjs ready | warmed at startup in idle time, so the first math question never waits for it |
 
-### 0. Keep the prompt prefix stable (a fix for every turn, not just math)
-- Today `systemPrompt(note)` is rebuilt on **every tool round** (`llm.ts`), and it ends with the current time to the second (`prompts.ts`). DeepSeek's context cache only reuses a request's matching start, so the history after the system prompt is **never** cached. That's true across turns, and also between the request that calls a tool and the one that continues after it.
-- Fix:
-  - The system prompt becomes static: same text for every request, built once.
-  - Everything that varies goes on the **latest user message**, next to the language reminder and in the same way (`withReminder`): the time (to the minute), the language note, and later D-10's memory block.
-  - The tool list stays in a stable order.
-- Measure with `stream_options: { include_usage: true }`: log `prompt_cache_hit_tokens` and time to first token per round, dev builds only. Expected: round 2 of a tool turn, and every follow-up turn, reads its history from the cache, starting sooner and costing less.
-- **Rule for later features (D-10 memories, D-1 intents):** nothing that changes per question goes in the system prompt.
+### 0. Keep the prompt prefix stable, and the history append-only (a fix for every turn, not just math)
+**How DeepSeek's cache works** (Context Caching docs):
+- Every request leaves two cached "prefix units": one ending at the end of the user input, one ending at the end of the model's output.
+- Long inputs are also cut into units at fixed intervals, and a start shared by many requests becomes a unit of its own.
+- A later request only hits a unit it matches **completely, byte for byte, from the first token**. A difference anywhere, even inside an old message, misses everything after it.
+- Units take seconds to build and expire after hours to days. `usage.prompt_cache_hit_tokens` and `usage.prompt_cache_miss_tokens` report what happened.
+
+So the rule is: **each request is the previous request, plus the previous output, plus new messages at the end.** Nothing already sent is ever changed.
+
+**Where Otty breaks it today**
+1. **The system prompt changes every second**: it ends with the time to the second (`prompts.ts`) and is rebuilt every tool round (`llm.ts`). It also changes with the answer language (`languageBlock`). Every request misses from the first message, across turns and between tool rounds.
+2. **The language reminder is added and then taken away:** `remindTurn` adds it to the current question only ("never saved"). On the next turn that question is sent without it, so the history no longer matches the unit the last request left. It misses from that message on.
+3. **The model's thinking is dropped from earlier replies** between turns. DeepSeek requires this in thinking mode, so it stays. The cost is small: the unit at the end of the last user input still matches, and only the last reply is re-read.
+
+**Fix**
+- **A static system prompt** that depends only on settings, not on the turn:
+  - the persona and rules;
+  - every language guide the user might need (the 繁體中文（香港） style guide is included whenever that home language is set, rather than only on Chinese turns);
+  - the tool list in a stable order.
+  
+  Changing a setting misses once; nothing else does.
+- **Per-turn context goes in a short note at the end of that turn's user message, and stays there.** The history stores the content exactly as sent, note included, and it's sent the same way on every later request.
+  - The note: the time (to the minute), "Reply in 繁體中文（香港）" or "Reply in English" (a line, since the guide is in the system prompt), and later D-10's memory block and D-1's intent hint.
+  - It's short (tens of tokens; the memory block up to about 1,500 characters), so keeping it costs little, and the cache serves it after the first time.
+  - `remindTurn` and the "never saved" copy are removed. The saved `llm_history` is the exact sent history.
+  - The visible message in the chat stays the user's own words: notes live only in `llm_history`.
+- **Tool rounds within a turn** already send back the assistant's `tool_calls` (arguments exactly as received) and `reasoning_content`. With a stable system prompt, round 2 matches round 1's input-plus-output unit.
+- **Changes that are meant to happen** each miss once and are rare: D-13's compaction of old turns, stripping pictures when a chat is reopened, a settings change.
+- **New chats share a cached start:** with a static system prompt and tool list, the common-prefix rule makes that start a unit of its own. The **first** question of every new chat (quick view questions included) then reads the whole system prompt and tool schemas from the cache.
+- **Measure:**
+  - `stream_options: { include_usage: true }`; log `prompt_cache_hit_tokens`, `prompt_cache_miss_tokens` and time to first token per request, in dev builds only.
+  - Test: build the request messages for turns 1, 2 and 3 of a chat, with a tool round, and assert each one starts with the previous request's messages plus output, **byte for byte** (`llm.test.ts`). This is the guard that keeps later features from breaking caching.
+  - Expected: misses only on the new messages, so a long chat's follow-up starts sooner and its input costs a fraction.
+- **Rule for later features (D-10 memories, D-1 intents, D-13 compaction):** nothing per-turn in the system prompt, and nothing already sent is rewritten except by a deliberate, rare compaction.
+- Small and independent of the math work, so it can ship on its own first (an hour or two plus the test).
 
 ### 1. Three tiers, decided locally in under a millisecond
 `mathTier(text, captures)` in `src/shared/math.ts` (next to `script.ts`) returns one of four values:
@@ -410,4 +437,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 52. Type `17.5% of 2,340` and press ↵ → **409.5** appears at once (no "thinking", works with Wi-Fi off), with **Copy** and **Explain the working**. Explain → the model explains it.
 53. Ask "What's 17.5% of 2,340 plus 8% tax?" → one "Calculated … = …" chip, no flicker, and the right total, with the answer starting about as fast as a normal question. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then rendered steps (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
 54. Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text, and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400 with Chinese working. Toggle dark mode → equations stay legible. Copy an answer → the pasted text has `$$…$$`.
-55. In a dev build, ask a follow-up in a long chat → the log shows `prompt_cache_hit_tokens` covering the history, on the follow-up and on the round after a tool call.
+55. In a dev build, ask a follow-up in a long chat → the log shows `prompt_cache_hit_tokens` covering the history, on the follow-up and on the round after a tool call. Start a new chat → its first request hits the cache for the system prompt and tools. Switch EN / 中 between turns → still hits.
