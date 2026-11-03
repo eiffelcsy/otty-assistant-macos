@@ -26,6 +26,8 @@ Otty is a cute otter assistant for macOS. It floats on screen as a small button,
 | Screen capture | macOS built-in `screencapture -i` | The native crosshair box-drawing UX Mac users already know |
 | Selected text | Copy-and-restore clipboard trick (simulated ⌘C via `osascript`) | Works in nearly every app; needs Accessibility permission |
 | Secrets | Electron `safeStorage` (backed by the macOS Keychain) | The API key never touches the renderer or plain disk |
+| Storage | `chats.json` today; SQLite (`otty.db`, built-in `node:sqlite`) being phased in by D-3 | No native module to rebuild; full-text search; room for memories and intent feedback |
+| Web | DeepSeek Search & Fetch APIs when the provider is DeepSeek; Wikipedia + DuckDuckGo otherwise | Same key as the model, no extra account |
 | Packaging | electron-builder → `.dmg` | Unsigned for the MVP; signing and notarization come later |
 
 ## 3. Functional requirements
@@ -80,7 +82,8 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 
 | Tool | Behavior | Confirmation |
 | --- | --- | --- |
-| `search_web` | Wikipedia search + summary, plus DuckDuckGo instant answers. No API key needed | No |
+| `search_web` | With DeepSeek: real web search, 5 dated results with summaries to cite. Otherwise (or if it fails): Wikipedia + DuckDuckGo instant answers | No |
+| `read_page` | With DeepSeek only: reads one web page as Markdown (about 24K characters max), e.g. the page in the app note. Can't see signed-in pages | No |
 | `open_url` | Opens an http(s) link in the default browser | **Yes**: an "Allow / No thanks" card |
 | `copy_to_clipboard` | Puts text (such as a rewritten email) on the clipboard | No |
 | `create_reminder` | Adds an item to Apple Reminders, with an optional due date | **Yes** |
@@ -88,6 +91,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-7.1 At most 6 tool round-trips per question, to prevent loops.
 - FR-7.2 Tool failures go back to the model as text, so it can apologise and carry on.
 - FR-7.3 Actions with side effects always need an explicit user click.
+- FR-7.4 Search results and page text are information for the answer, never instructions; side-effecting tools keep their confirmation whatever a page says. *(FR-7 table rows for `search_web` with DeepSeek and `read_page`: built on PR #27, awaiting the Mac smoke test.)*
 
 ### FR-8 Onboarding & settings (P0)
 - FR-8.1 First run shows a 3-step welcome: (1) meet Otty, (2) paste your DeepSeek key, with a link to get one and a **Test** button, (3) grant permissions, with live status ticks.
@@ -102,7 +106,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 ### FR-10 Saved chats (P0)
 - FR-10.1 Every conversation is saved when a turn ends. A hotkey question or **New chat** starts a new conversation, and the old one stays saved instead of being wiped.
 - FR-10.2 **Recent chats** (clock button in the panel header) lists the last 50 chats with title, app and age. Clicking one reopens it and the conversation can continue. Each can be forgotten.
-- FR-10.3 Only text is saved (`userData/chats.json`, mode 600). Screen snips are replaced by a "not saved" placeholder.
+- FR-10.3 Only text is saved (`userData/chats.json`, mode 600; `otty.db` once D-3 is the default). Screen snips are replaced by a "not saved" placeholder.
 - FR-10.4 Settings → Privacy: "Remember my chats" (turning it off forgets them all) and **Forget all chats**.
 - FR-10.5 **Search** at the top of Recent chats (⇧⌘F in the panel, or ⌘F with no chat open) finds chats by their title, messages and text captures, in English or Chinese. Every word must appear; quotes keep a phrase. Results show a highlighted snippet, and clicking one reopens the chat at the matching message.
 - FR-10.6 **Find in this chat** (⌘F, or the search button in the header) highlights every match in the open conversation with the same matching rules, shows "2 of 5", and steps with ↵ / ⇧↵. Esc closes the bar before it closes the panel.
@@ -114,8 +118,15 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-12.4 With files and an empty box, ↵ runs the first file action (**Summarize**, **Key points**, **Explain simply**; for pictures **What is this?**).
 - FR-12.5 The original file is never copied. Saved chats keep the file's name, type and extracted text (so follow-ups work after reopening), never pictures. File names are searchable.
 
+### FR-13 Capture tray (P1) — built on PR #27, awaiting the Mac smoke test
+- FR-13.1 One question can carry up to 4 captures (highlights and snips), each with its own app tag, in the order collected. The same text twice is ignored; a fifth gets a friendly note.
+- FR-13.2 While the panel is open, ⌥Space, ⌥⇧Space, a click on the otter and the panel's scissors add to its tray instead of replacing. With the panel closed, a capture starts a new tray.
+- FR-13.3 The quick view can collect too: **＋ add more** keeps it open while the user works in other apps, and a hotkey then adds without moving or focusing it. It stays open across a desktop (Space) switch.
+- FR-13.4 Two or more things (captures plus files) offer **Compare these** (the ↵ default), **Summarize all** and **Explain each**.
+- FR-13.5 Sent messages show every capture with its app; saved chats keep text captures and mark snips "not saved", and chats saved before the tray still open.
+
 ### FR-11 Later (P2)
-See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language · inserting text back into the source app · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
+See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language (shipped, D-2) · inserting text back into the source app (planned, D-11) · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
 
 ## 4. Non-functional requirements
 
@@ -125,7 +136,7 @@ See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice
 | NFR-2 | First token is under 2 s on a normal connection with thinking off |
 | NFR-3 | Idle CPU is about 0% (CSS animations only, no polling except while dragging) |
 | NFR-4 | Security: `contextIsolation` on, `nodeIntegration` off, sandboxed renderer, a narrow typed preload API, all network calls from the main process |
-| NFR-5 | Privacy: nothing is sent anywhere until the user asks a question. Screenshots are deleted from disk right after encoding and are never saved with chats; attached files are only read, never copied, and pictures from them are never saved. App context and chat saving can each be turned off |
+| NFR-5 | Privacy: nothing is sent anywhere until the user asks a question. Screenshots are deleted from disk right after encoding and are never saved with chats; attached files are only read, never copied, and pictures from them are never saved. App context and chat saving can each be turned off. Web searches and page reads send only the query or the page address, to the same provider as the model, and never the user's IP or cookies |
 | NFR-6 | Accessibility: keyboard usable, 4.5:1 contrast, works in light and dark mode, respects `prefers-reduced-motion` |
 | NFR-7 | Supports macOS 12+ on Apple Silicon and Intel |
 

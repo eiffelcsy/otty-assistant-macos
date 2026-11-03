@@ -16,9 +16,11 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ windows.ts     bubble · quick view · panel windows     │
 │ capture.ts     selection (⌘C trick), snip, frontmost   │
 │ llm.ts         ChatSession: SSE client + tool loop     │
-│ store/         ChatStore: saved chats + search (JSON)  │
+│ store/         ChatStore: chats + search (JSON;        │
+│                SQLite otty.db opt-in, D-3)             │
 │ files/         attachments; fileWorker.js reads docs   │
-│ tools.ts       search_web, open_url, …                 │
+│ tools.ts       search_web, read_page, open_url, …      │
+│ web.ts         DeepSeek Search & Fetch (D-9)           │
 │ settings.ts    JSON + safeStorage API key              │
 │ permissions.ts macOS TCC checks                        │
 └────────────────▲──────────────┬────────────────────────┘
@@ -39,11 +41,30 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - Explain terms are `[term](#explain)` and tips are `> 💡` blockquotes (see `Markdown.tsx` and `prompts.ts`).
 - The bubble is a non-activating `type: 'panel'` window, so clicking it keeps the other app's selection.
 - Pictures never touch disk beyond the moment of encoding.
+- A user message carries `captures[]` (each with its app) plus `files`; saved chats are read through `store/upgrade.ts`, so old shapes keep loading.
 
 ## Roadmap
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
+| D-8 | Capture tray: several captures in one question, across apps and desktops (#13) | 🧪 on PR #27 | — | M |
+| D-9 | Real web search and page reading with DeepSeek Search & Fetch | 🧪 on PR #27 | — | S |
+| D-3 | SQLite chat storage: scaffold 🧪 on PR #27; make it the default, incremental writes, retention | ⏳ next | #27 merged | S–M (1 day) |
+| D-10 | Otty remembers you: an editable memory list (#17) | ⏳ | D-3 default on | M (2 days) |
+| D-11 | Act on the answer: paste back into the app, follow-ups in the quick view | ⏳ | — | M (1–2 days) |
+| D-1 | Context-aware intents (local encoder classifier) | ⏳ later | D-3 (`intent_feedback` is in schema v1), OCR helper | L (4–6 days) |
+| D-4 | CI pipeline: what's left is branch protection and a `.dmg` workflow | 🔨 | — | S |
+
+**Where things stand (2026-11-03).** 0.3.2 is on `main`. PR #27 (`feat/capture-tray`) holds D-8, the D-3 scaffold and D-9, with CI green. It hasn't been run on a Mac yet.
+
+**Build order**
+1. **Run smoke steps 38–46 on a Mac, fix what they find, merge #27, release 0.4.0.** Then move D-8 and D-9 to CHANGELOG and REQUIREMENTS out of "built".
+2. **Finish D-3.** Small, and it unblocks the rest: memories live in `otty.db`, the 50-chat cap goes, and a crash mid-answer stops losing the question.
+3. **D-10 memory.** The biggest step towards Otty feeling like *your* otter, and the schema is already there.
+4. **D-11 act on the answer.** Two "considering" quick wins that turn answers into done things: paste the rewrite back, ask a follow-up without leaving the cursor.
+5. Then **D-1**. It has the most moving parts (model, OCR helper, eval set), and its feedback table is ready once D-3 is the default. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people, alongside D-4's `.dmg` workflow.
+
+--- | --- | --- | --- | --- |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ | D-3 (intent column), OCR helper; D-2's quick-action ids (shipped) are its intent ids | L (4–6 days) |
 | D-3 | SQLite chat storage (scaffolded, opt-in) | 🔨 | — | M (1–2 days) |
 | D-4 | CI pipeline (GitHub Actions) | 🔨 | — | S (half a day) |
@@ -56,7 +77,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 ## D-9 · Real web search and page reading (DeepSeek Search & Fetch) 🧪
 
-**Status.** Built on `feat/capture-tray` (`web.ts` unit-tested against a fake API). Not yet called against the live API: run smoke steps 44–46 with a real key.
+**Status.** Built on PR #27 (`web.ts` unit-tested against a fake API, CI green). Not yet called against the live API: run smoke steps 44–46 with a real key.
 
 **Goal.** Otty can look things up on the real web, fresh and in any language, and read a web page, starting with the one the user is on ("summarize this page", "what does this site say about refunds?"). Today `search_web` only gets DuckDuckGo instant answers and English Wikipedia summaries, and Otty can't read pages at all.
 
@@ -76,7 +97,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 ## D-8 · Capture tray: several captures, across apps and desktops (#13) 🧪
 
-**Status.** Built on `feat/capture-tray`; checked in `tools/ui-preview` (`?scene=tray`) and by unit tests. Still needs smoke steps 38–42 on a Mac: hotkeys, the ⌘C capture into an unfocused quick view, and desktop switches can't be exercised outside Electron.
+**Status.** Built on PR #27; checked in `tools/ui-preview` (`?scene=tray`) and by unit tests, CI green. Still needs smoke steps 38–42 on a Mac: hotkeys, the ⌘C capture into an unfocused quick view, and desktop switches can't be exercised outside Electron.
 
 **Goal.** One question can carry up to 4 highlights or snips, each from its own app: "compare these two charts", "why doesn't this error (Terminal) match these docs (Safari)?". Collecting them can cross apps and desktops without losing what's already collected. Files and captures sit in one tray.
 
@@ -96,6 +117,44 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Desktop switches (macOS).** `windows.ts` subscribes to `NSWorkspaceActiveSpaceDidChangeNotification`. On blur the quick view waits a moment and stays if the desktop just changed. It doesn't take focus back, so captures keep copying from the frontmost app.
 
 **Done when:** snip in Terminal, highlight in Safari, ask "why don't these match?" in the panel, and get one answer that uses both, with both app tags on the message; the same works in the quick view with ＋ Add more, and across two desktops; an old chat with one capture still reopens and searches; a fifth capture is refused kindly.
+
+---
+
+## D-10 · Otty remembers you: an editable memory list (#17) ⏳
+
+**Goal.** Otty keeps a short list of things about the user that make answers fit ("prefers short answers", "is learning Spanish", "works in Excel a lot", "my manager is Sam"). The user can see, edit, pause and delete every item, and nothing is saved without them saying yes.
+
+**Decisions** (the open questions in #17)
+- **Saved only with a yes, always.** One tool, `remember({ text, kind })`, and every call shows a confirm card: "Remember this about you? *Is learning Spanish*" with **Remember** / **No thanks**. `origin` is `told` when the user's message asked ("remember that…", 記住, 記得), otherwise `suggested`. The prompt allows at most one suggestion per answer, only for lasting facts, never sensitive ones (health, money, passwords, other people's private details) unless the user asked.
+- **The whole list goes in the system prompt while it's small.** Up to about 1,500 characters of enabled memories go in a "What you know about the user (they can see and edit this list)" block. Past that, pick the ones matching the question (`memories_fts`), then the most used and most recent. Only memories that were sent count as used (`use_count`, `last_used_at`).
+- **Language:** a memory keeps the language it was said in; the model handles mixing. Nothing per-language in v1.
+- **Separate from chats:** "Forget all chats" keeps memories; forgetting a chat only drops the link (`on delete set null`, already in schema v1).
+
+**Build**
+- `src/main/memory/`: a `MemoryStore` interface (`list`, `add`, `update`, `remove`, `clear`, `forPrompt(question)`) and a SQLite implementation on `database()`. With no database (`OTTY_STORE=json`) memory is unavailable, and Settings says so.
+- `tools.ts`: `remember`, with a chip "Remembered: Is learning Spanish" (UIcon `bookmark`). `prompts.ts`: the memory block and the rules above. `llm.ts`: include `forPrompt(text)` each turn.
+- Settings → **What Otty remembers**: the list with inline edit, a pause toggle and delete for each; **Add** (origin `settings`); **Forget everything Otty remembers** (delete plus `VACUUM`); and a master switch "Let Otty remember things about me" (on: it can ask; off: nothing is sent or suggested, and the list is kept).
+- `PublicSettings.memory: boolean`; IPC `memory:list/add/update/remove/clear`; `tools/ui-preview` gets `scene=memory`.
+- Tests: `forPrompt` budgeting and ranking, the confirm path (declined → nothing saved), a deleted chat leaves its memory.
+
+**Done when:** "remember that I'm learning Spanish" shows the confirm card, then a later "how do I say thank you?" answers with Spanish in mind; Otty suggests at most one memory per answer and none for a health detail; editing or pausing one in Settings changes the next answer; forgetting all chats keeps memories, and "Forget everything" empties the list.
+
+---
+
+## D-11 · Act on the answer: paste back, and follow-ups in the quick view ⏳
+
+**Goal.** Fewer steps between Otty's answer and getting the thing done. A rewritten email or a translation goes straight back where it came from, and a quick follow-up doesn't need the full panel.
+
+**Paste back**
+- A new tool, `offer_paste({ text, mode: 'replace' | 'insert' })`, which the model uses when the answer is text meant to go into the app (a rewrite, a translation, a reply draft). It renders a card under the answer with the exact text and **Paste into Mail** (or **Replace in Mail** when the question had a highlight from that app) and **Copy**. Clicking it is the consent, so there is no extra confirm.
+- Mechanism (main): put the text on the clipboard, hide Otty's windows, activate the source app (`AppInfo` gains `bundleId` from `frontmostApp()`; `tell application id … to activate`), send ⌘V through System Events, and restore the previous clipboard after about 600 ms with the same save/restore the capture uses. "Replace" relies on the selection still being there; if the app has changed since the capture, fall back to Copy with "Copied — paste it where you want it".
+- Never into Otty itself, and never into secure input fields (paste is refused there by macOS anyway; say so kindly if nothing changed). Accessibility is already granted for capture.
+
+**Follow-ups in the quick view**
+- After an answer, the quick view keeps a slim input under it: type and ↵ asks a follow-up in the same chat (not `fresh`). With an empty box, ↵ still means "continue in chat", as today. The answer area shows the latest question and answer, with earlier turns collapsed to "2 earlier questions · open in chat".
+- It grows up to `QUICK_MAX_H`; past that the answer scrolls, as today.
+
+**Done when:** highlight a paragraph in Mail → ⌥Space → "make this friendlier" → **Replace in Mail** swaps the text and the clipboard holds what it held before; a translation in the quick view offers **Paste into Safari**; in the quick view a follow-up answers in place, and ↵ on an empty box still opens the panel with the whole chat.
 
 ---
 
@@ -176,70 +235,32 @@ else                             → local clarify card (no LLM call): top-3 int
 
 ---
 
-## D-3 · SQLite chat storage 🔨
+## D-3 · SQLite chat storage ⏳ next
 
-**Progress (scaffold, on `feat/capture-tray`).**
-- ✅ `store/db.ts`: opens `userData/otty.db` (mode 600, WAL, foreign keys), migrations keyed on `PRAGMA user_version`, schema v1 below. `store/sqliteStore.ts`: `SqliteChatStore` passes the shared search contract and its own tests (pictures never stored, reopen, import order, re-save replaces).
-- ✅ Opt-in: start Otty with `OTTY_STORE=sqlite`. The first start imports `chats.json` and renames it `chats.json.imported`. JSON stays the default until smoke step 43 passes on a Mac; then flip `useSqlite()` in `store/index.ts`.
-- ✅ The schema has the **memories** table for issue #17 and `intent_feedback` for D-1, so neither needs a migration of its own to start.
-- ⏳ Incremental writes (`appendMessage` / `finishTurn`), so a crash mid-answer keeps the question. `save(thread)` still rewrites one chat's rows in a transaction, which is fast at this size.
-- ⏳ The retention setting replacing the cap of 50 (SQLite has no cap today; JSON keeps 50).
+**Built (scaffold, on PR #27).**
+- `store/db.ts` opens `userData/otty.db` (mode 600, WAL, foreign keys; `node:sqlite`, checked under Electron 45.2.1 / Node 24.22.1, SQLite 3.53.4 with FTS5 trigram). Migrations are keyed on `PRAGMA user_version`.
+- `store/sqliteStore.ts` passes the shared search contract and its own tests (pictures never stored, reopen, import order, re-save replaces). SQL narrows candidate chats (FTS5 trigram for 3+ characters, `instr()` for shorter terms) and `searchThreads` ranks them, so both backends answer identically.
+- Opt-in with `OTTY_STORE=sqlite`; the first start imports `chats.json` and renames it `chats.json.imported`.
+- **Schema v1:**
+  - Messages are stored as `ChatMessage` JSON (pictures emptied), with `id` and `role` as columns. Message shapes change (D-8 replaced `context` with `captures`); `store/upgrade.ts` reads old shapes for both backends, so a new field needs no migration.
+  - `chat_search` is one FTS row per chat holding `searchableText()`. An external-content index on `messages` keyed by `rowid` was dropped: `VACUUM` can renumber the rowids of a table without an `INTEGER PRIMARY KEY`.
+  - `memories` + `memories_fts` (for D-10) and `intent_feedback` (for D-1) are already there. `database()` in `store/index.ts` shares one connection.
 
-**Schema v1 as built** (differs from the sketch below):
-- Messages are stored as their `ChatMessage` JSON (pictures emptied), with `id` and `role` as columns. Message shapes keep changing (captures replaced `context` in D-8); `store/upgrade.ts` reads old shapes for both backends, so the database needs no migration when a message gains a field.
-- Search uses a `chat_search` FTS5 trigram table, one row per chat holding `searchableText()` (the same folded fields `store/search.ts` matches). SQL narrows to candidate chats (FTS5 for 3+ characters, `instr()` for 1–2), then `searchThreads` ranks them, so both backends answer identically. A `content='messages'` table keyed on `rowid` was dropped: `VACUUM` may renumber rowids of a table without an `INTEGER PRIMARY KEY`, which breaks an external-content index.
-- `memories`: `id integer primary key`, `text` (one plain sentence to show back: "Is learning Spanish"), `kind` (about / preference / person / goal), `origin` (`told`, `suggested` and confirmed, or typed in `settings`), `language`, `source_chat_id` (`on delete set null`: forgetting a chat keeps the memory but drops the link), `enabled` (paused, never sent), `created_at`, `updated_at`, `last_used_at`, `use_count` (for picking the relevant few once the list is too long to send whole), plus `memories_fts` (trigram, kept in sync by triggers). "Forget all chats" leaves memories; forgetting memories is its own action.
-- `database()` in `store/index.ts` hands the same connection to a future `MemoryStore`.
+**Left to do**
+1. **Default on.** After smoke step 43 passes, `useSqlite()` becomes true unless `OTTY_STORE=json`. Keep that escape hatch for one release, then drop the JSON backend from `store/index.ts` (its tests stay as the contract's reference).
+2. **Import before first use.** Today the import runs in the background, so a very early `list()` could come back empty. `chatStore()` should hold a ready promise that every call awaits (import is sub-second for 50 chats).
+3. **Incremental writes.** `ChatStore` gains `appendMessage(thread, message)` (insert the user message as it's sent, creating the chat row) and `finishTurn(thread)` (upsert the answer, replace `llm_history` and the search row, in one transaction). The JSON store implements both with `save`. `ChatSession.send` calls `appendMessage`; `run`'s `finally` calls `finishTurn`.
+4. **Retention.** A "Keep chats" setting in Settings → Privacy: 30 days / 1 year / forever, default 1 year. It replaces the cap of 50, prunes on launch and after each turn, and runs `VACUUM` when it removed anything.
 
-**The original sketch:**
-
-**Goal.** Replace `chats.json`, which is rewritten in full on every save, with a real local database. It should allow incremental writes, search, and room for new tables such as intent feedback.
-
-- **Builds on the `ChatStore` interface** (`src/main/store/types.ts`, shipped with search): this is a second backend (`src/main/store/sqliteStore.ts`) picked in `store/index.ts`, not a rewrite of the callers.
-- **Engine:** Node's built-in **`node:sqlite`** (`DatabaseSync`). Verified on 2026-11-01 under Electron 45.2.1 / Node 24.22.1: SQLite 3.53.4, with FTS5 and the `trigram` tokenizer available. No native module or rebuild step is needed. Wrap it behind a small `ChatStore` interface so `better-sqlite3` could replace it if `node:sqlite`'s API changes.
-- **File:** `userData/otty.db`, mode 600, `journal_mode=WAL`, `foreign_keys=ON`. Migrations are keyed on `PRAGMA user_version`.
-- **Schema v1**
-
-  ```sql
-  create table chats(
-    id text primary key, title text not null, app text,
-    language text, created_at integer not null, updated_at integer not null);
-  create table messages(
-    id text primary key, chat_id text not null references chats(id) on delete cascade,
-    seq integer not null, role text not null, text text not null,
-    context_kind text, context_text text,          -- images: kind only, never pixels
-    app_json text, tools_json text, error text, intent text,
-    created_at integer not null);
-  create table llm_history(                        -- what the model sees, to resume a chat
-    chat_id text not null references chats(id) on delete cascade,
-    seq integer not null, json text not null, primary key(chat_id, seq));
-  create table intent_feedback(                    -- used by D-1
-    id integer primary key, predicted text, chosen text, probs_json text, created_at integer);
-  create virtual table messages_fts using fts5(text, content='messages', content_rowid='rowid', tokenize='trigram');
-  create index messages_chat on messages(chat_id, seq);
-  create index chats_updated on chats(updated_at desc);
-  ```
-
-- **Write path:**
-  - Insert the user message as soon as it's sent, so a crash mid-answer keeps the question.
-  - At the end of the turn, upsert the assistant message and replace that chat's `llm_history` rows, in one transaction.
-  - Writes are sub-millisecond, so they can stay synchronous on main. Revisit only if profiling says otherwise.
-- **The interface grows incremental writes:** `save(thread)` splits into `appendMessage` and `finishTurn` (the JSON backend can keep rewriting the file). `ChatSession` calls those instead of `save(thread)`.
-- **Migration:** on first launch, if `chats.json` exists, import it in one transaction, then rename it to `chats.json.imported`.
-- **New UX it enables:**
-  - Faster search in Recent chats: `ChatStore.search` with FTS5 `trigram`, `snippet()` and `bm25()` blended with recency. Trigram needs 3+ characters per term, and many Chinese searches are 2 characters (電腦, 打印), so a shorter term falls back to `LIKE '%…%'`. The query rules are in `store/search.ts`; the backend is done when `searchContract('sqlite', …)` from `store/__tests__/search.contract.ts` passes.
-  - A retention setting ("Keep chats: 30 days / 1 year / forever") that replaces the hard cap of 50.
-- **Privacy unchanged:** no pixels are stored, and "Forget all chats" runs `delete` plus `VACUUM`.
-
-**Done when:** an existing `chats.json` imports cleanly; Recent chats, reopen and forget all still work; search finds both English and Chinese text; killing the app mid-answer keeps the question.
+**Done when:** a 0.3.2 `chats.json` imports on first launch with no flash of an empty list; Recent chats, reopen, search (English and 「打印」) and forget all work; killing Otty mid-answer keeps the question; "30 days" removes older chats.
 
 ---
 
 ## D-4 · CI pipeline (GitHub Actions) 🔨
 
 **Progress.**
-- ✅ Stage 1 + 2: `.github/workflows/ci.yml` runs typecheck, `npm run test --if-present` and build (`--if-present` because `main` has no tests until D-2 merges), with Dependabot (`.github/dependabot.yml`), the lockfile no longer ignored, and a README badge.
-- ⏳ Make `ci` required on `main` (branch protection) once it's green.
+- ✅ Stage 1 + 2: `.github/workflows/ci.yml` runs typecheck, `npm test` and build on every PR (about 40 s), with Dependabot (`.github/dependabot.yml`), the lockfile committed, and a README badge.
+- ⏳ Make `ci` required on `main` (branch protection). It has been green since 0.2, but `main` is still unprotected (checked 2026-11-03). This is a repository setting for the owner to change.
 - ⏳ Stage 3 (`.dmg` artifact): a `workflow_dispatch` workflow can only be started once it exists on `main`, so add it in a follow-up PR.
 
 **Goal.** Every PR and every push to `main` is checked automatically, so nothing that fails typecheck or build gets merged. Later, CI also produces a downloadable `.dmg`.

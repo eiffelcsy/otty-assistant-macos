@@ -6,7 +6,11 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 
 - **Click the otter** or press **⌥ Space** to ask about highlighted text
 - **⌥ ⇧ Space** to snap part of your screen and ask about it
-- Simple tools: look up facts, open links, copy text, add Apple Reminders (side effects always ask first)
+- Collect several highlights and snips from different apps into one question ("compare these")
+- Attach PDFs, Word documents, pictures and text files
+- Saved chats with search (⇧⌘F) and find in a chat (⌘F)
+- Help in English, or in 繁體中文（香港） when you want it
+- Tools: search the web, read a web page, open links, copy text, add Apple Reminders (side effects always ask first)
 
 Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Dev log](docs/DEVLOG.md) · [Changelog](docs/CHANGELOG.md) · [Brainstorm](docs/BRAINSTORM.md)
 
@@ -31,12 +35,16 @@ The build is unsigned for the MVP. To open it the first time, right-click the ap
 
 ## Stack
 
-Electron + electron-vite + React + TypeScript. The LLM is called from the main process with plain `fetch` to any OpenAI-compatible `/chat/completions` endpoint (default: DeepSeek `deepseek-flash`, with vision).
+Electron + electron-vite + React + TypeScript. The LLM is called from the main process with plain `fetch` to any OpenAI-compatible `/chat/completions` endpoint (default: DeepSeek `deepseek-flash`, with vision). With DeepSeek, web search and page reading use its Search & Fetch APIs with the same key. Chats are saved as JSON; SQLite (`otty.db`) can be tried with `OTTY_STORE=sqlite npm run dev`.
 
 ```
 src/
   shared/types.ts      IPC contract shared by every process
-  main/                Electron main: windows, hotkeys, capture, LLM agent loop, tools, settings
+  shared/captures.ts   capture tray rules (limit, duplicates)
+  main/                Electron main: windows, hotkeys, capture, LLM agent loop, tools, web, settings
+  main/store/          saved chats: ChatStore, JSON and SQLite backends, shared search
+  main/files/          attachments, read in a utility process
   preload/             window.otty bridge (contextIsolation, sandboxed)
-  renderer/src/        React UI: bubble/ (floating otter), panel/ (chat, onboarding, settings)
+  renderer/src/        React UI: bubble/ (floating otter), quick/ (ask at the cursor), panel/ (chat, onboarding, settings)
+tools/                 ui-preview (renderer in a browser), otty-art (painted frames)
 ```
