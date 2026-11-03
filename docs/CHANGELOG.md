@@ -4,6 +4,8 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+## 0.3.2 — Painted Otty (2026-11-03)
+
 ### Painted Otty (2026-11-03)
 - **Otty is now painted art instead of a code-drawn SVG.** Two frames, idle and eyes-closed, made from generated portraits. The eyes-closed frame flashes on top for a blink every 5 seconds, and is held as Otty's happy face. Thinking still bobs with rising bubbles, happy still wiggles, and reduced motion turns them all off.
 - The floating otter now peeks up from the bottom of its green bubble, clipped to the circle.
