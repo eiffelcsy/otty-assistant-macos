@@ -37,17 +37,6 @@
   --danger-ink: #a2493b;
   --ok-soft: rgba(99, 124, 66, 0.1);
 
-  --otter-fur: #a8764f;
-  --otter-fur-light: #c99a72;
-  --otter-fur-dark: #714832;
-  --otter-ear: #4a2f22;
-  --otter-cream: #f3dcc2;
-  --otter-cream-light: #fff6ea;
-  --otter-eye: #2a1c17;
-  --otter-mouth: #7a3530;
-  --otter-tongue: #ee8b84;
-  --otter-whisker: rgba(74, 47, 34, 0.45);
-  --otter-blush: #f2948c;
   --otter-bubble: var(--silver);
 
   /* Radius scale. Nested shapes step down by their padding so corners stay concentric. */
@@ -95,7 +84,6 @@
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3);
     --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 18px -4px rgba(0, 0, 0, 0.45);
     --elev-3: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 40px -8px rgba(0, 0, 0, 0.6);
-    --otter-whisker: rgba(243, 220, 194, 0.55);
   }
 }
 
@@ -175,39 +163,63 @@ kbd {
   white-space: nowrap;
 }
 
-/* ---------- Otter animations ---------- */
-.otter-eyes {
-  transform-origin: 60px 55px;
-  animation: blink 5s infinite;
+/* ---------- Otty (painted frames, see components/Otter.tsx) ---------- */
+.otter {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.otter-body {
+  position: absolute;
+  inset: 0;
+}
+.otter-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+/* The eyes-closed frame: flashed for a blink, held for the happy face. */
+.otter-frame--blink {
+  opacity: 0;
+  animation: blink 5s steps(1, end) infinite;
+}
+.otter--happy .otter-frame--blink {
+  opacity: 1;
+  animation: none;
+}
+.otter-bubbles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: var(--otter-bubble);
+  opacity: 0;
+  pointer-events: none;
 }
 .otter--idle .otter-body {
   animation: float 4s ease-in-out infinite;
 }
-.otter-bubbles {
-  opacity: 0;
-}
-.otter--thinking .otter-head {
+.otter--thinking .otter-body {
   animation: bob 1.4s ease-in-out infinite;
 }
 .otter--thinking .otter-bubbles {
   opacity: 1;
   animation: rise 1.6s ease-in-out infinite;
 }
-.otter--happy .otter-head {
+.otter--happy .otter-body {
   animation: wiggle 0.6s ease-in-out 2;
-  transform-origin: 60px 95px;
-}
-.otter--happy .otter-paws,
-.otter--happy .otter-orb {
-  animation: hop 0.3s ease-in-out 4;
-}
-.otter--thinking .otter-orb__glow {
-  animation: glow 1.4s ease-in-out infinite;
+  transform-origin: 50% 90%;
 }
 
 @keyframes blink {
-  0%, 94%, 100% { transform: scaleY(1); }
-  97% { transform: scaleY(0.1); }
+  0%, 100% { opacity: 0; }
+  96% { opacity: 1; }
+  98.5% { opacity: 0; }
 }
 @keyframes bob {
   0%, 100% { transform: translateY(0); }
@@ -221,14 +233,6 @@ kbd {
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-1.5px); }
-}
-@keyframes hop {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
-}
-@keyframes glow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
 }
 @keyframes wiggle {
   0%, 100% { transform: rotate(0); }
@@ -265,9 +269,19 @@ html[data-view='bubble'] body {
   cursor: grabbing;
   transform: scale(0.97);
 }
-.bubble svg {
-  margin-top: 2px;
+/* Otty peeks up from the bottom of the bubble, clipped to its circle. */
+.bubble__avatar {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   pointer-events: none;
+}
+.bubble__avatar .otter {
+  margin-bottom: -4px;
 }
 /* An answer finished while no Otty window was open. */
 .bubble__badge {
