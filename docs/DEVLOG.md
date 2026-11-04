@@ -21,6 +21,8 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ files/         attachments; fileWorker.js reads docs   │
 │ tools.ts       search_web, read_page, open_url, …      │
 │ web.ts         DeepSeek Search & Fetch (D-9)           │
+│ knownUrls.ts   which addresses read_page may open      │
+│ language.ts    which language each answer uses         │
 │ settings.ts    JSON + safeStorage API key              │
 │ permissions.ts macOS TCC checks                        │
 └────────────────▲──────────────┬────────────────────────┘
@@ -42,28 +44,137 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - The bubble is a non-activating `type: 'panel'` window, so clicking it keeps the other app's selection.
 - Pictures never touch disk beyond the moment of encoding.
 - A user message carries `captures[]` (each with its app) plus `files`; saved chats are read through `store/upgrade.ts`, so old shapes keep loading.
-- **Prompt layout for the cache (from D-12):** the system prompt and tool list depend only on settings. Per-turn context (time, answer language, memories, intent hints) is a note at the end of that turn's user message and is stored and resent as sent. The history only ever grows at the end, so every request starts byte-for-byte with the previous one and DeepSeek's cache serves it. A test guards this.
+- **Web safety:** answers never load remote images, built pages have a Content Security Policy (`electron.vite.config.ts`: `img-src 'self' data:`, and nothing else can be fetched), and `read_page` asks first unless `knownUrls.ts` finds the exact address in what the user sent or a search or page returned. Any new UI that shows a remote picture or a `blob:` URL has to plan around this.
 - Saved chats live in `userData/otty.db` (built-in `node:sqlite`, no native module). Calls are synchronous on main and sub-millisecond for a normal turn: the question is written as it's sent (after the request is under way), and the end of a turn writes only that turn's rows. Schema changes are new migrations in `store/db.ts`, never edits to a released one.
 
 ## Roadmap
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ next | — (schema and `database()` are in) | M (2–3 days) |
-| D-12 | Math that's right, and instant: stable prompt prefix (cache hits), local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
+| D-12 step 0 | Stable prompt prefix, so DeepSeek caches the history | ⏳ next | — | S (2 hours) |
+| D-15 | **Read this page** in one tap | ⏳ next | — | S (half a day) |
+| D-16 | Idle budget: measure CPU, memory and battery, and set limits | ⏳ next | a Mac | S (half a day) |
+| D-17 | Proofread card for writing in a second language | ⏳ next | — | S–M (1 day) |
+| D-18 | Warm explain cards: open instantly, one cache in main | ⏳ next | — | S (half a day) |
+| D-19 | Model-written chat titles | ⏳ next | — | S (2–3 hours) |
+| D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | D-12 step 0 (schema and `database()` are in) | M (2–3 days) |
+| D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | step 0 | M (1–2 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
-| D-1 | Context-aware intents (local encoder classifier) | ⏳ later | OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
+| D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
-**Where things stand (2026-11-03).** `main` has 0.3.2 plus, unreleased: the capture tray (D-8), web search and page reading (D-9), SQLite storage (D-3) and the `.dmg` workflow (D-4); see CHANGELOG → Unreleased. `main` requires a PR with a green `ci` check. None of the unreleased work has been run on a Mac yet.
+**Where things stand (2026-11-04).** `main` has 0.3.2 plus, unreleased: the capture tray (D-8), web search and page reading (D-9), SQLite storage (D-3), the `.dmg` workflow (D-4) and safer answers and web reading (#29); see CHANGELOG → Unreleased. `main` requires a PR with a green `ci` check. None of the unreleased work has been run on a Mac yet.
 
 **Build order**
-1. **Smoke-test steps 38–48 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
-2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
-3. **D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers. Its first step, a stable prompt prefix so DeepSeek can cache the history, speeds up every follow-up and tool round and should land before D-10 adds memories to the prompt. So consider doing D-12 first.
-4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
-5. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
-6. Then **D-1**. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
+1. **Smoke-test steps 38–51 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
+2. **Next session: the small, high-value queue.** These are the best value-per-effort items in BRAINSTORM that nothing blocks. Each lands on its own, so stop wherever the session ends:
+   1. **D-12 step 0.** It speeds up every follow-up and tool round, and D-10 needs its per-turn note.
+   2. **D-15 Read this page.** D-9 built the reading; this makes it findable.
+   3. **D-16 Idle budget.** It has to come before any always-on or animation work, and it can run in the background of a session.
+   4. **D-18 Warm explain cards**, then **D-19 chat titles**. They share one way of making a background call.
+   5. **D-17 Proofread card.** The biggest of the five, and a new reason to reach for Otty.
+3. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
+4. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
+5. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
+6. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
+7. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
+
+---
+
+## D-15 · Read this page in one tap ⏳
+
+**Goal.** "Summarize this page" is one of Otty's most useful tricks, and nobody can find it: today the user has to think of typing it. When Otty knows the page and nothing is highlighted, offer it.
+
+**Design**
+- **When it shows:** no captures, no files, the app tag has a `url`, and the provider can read pages. Removing the app tag removes the offer.
+- **Panel:** a **Summarize this page** tile (UIcon `book-open-reader`, like the tool chip), which is also the ↵ default.
+- **Quick view:** it has no tiles, so ↵ on an empty box runs it. The placeholder says "Ask about this page, or press ↵ to summarize it", and the **↵ ask Otty** button is enabled, which today needs a capture or typed text.
+- **The turn:** a new `read-page` quick action in `actionPrompt`. The app note already carries the address, so `knownUrls.ts` counts it as the user's and no card shows.
+- **Addresses that lost their query.** `cleanUrl` removes everything after `?` for privacy, and that's still right. But `youtube.com/watch` without `?v=…` is a different page, and Otty would summarize the wrong thing. So `frontmostApp()` sets `AppInfo.trimmed` when the address had a query that wasn't just tracking (`utm_*`, `fbclid`, `gclid`, `ref`), and the offer is hidden for those.
+
+**Build**
+- `QuickActions.tsx`: `actionsForTray` takes the app and `readsPages`, and returns the tile. `Quick.tsx`'s `fallback` picks it up from there.
+- `PublicSettings.readsPages`, from `isDeepSeek(baseUrl)`. It's derived, so strip it in `Settings.tsx`'s save the way `hasApiKey` is, or it gets written to `settings.json`.
+- `capture.ts`: `trimmed`. `tools/ui-preview`: `scene=page`.
+- Tests: when the tile shows and hides, the tracking-only query rule, and `read-page` reaching `read_page` with no confirm.
+
+**Done when:** on a public article, ⌥Space with nothing highlighted then ↵ shows a "Reading <site>" chip and a summary, with no card; a YouTube video page offers nothing; with another provider the tile never shows; a signed-in page still gets the friendly "can't read it".
+
+**Smoke test (add to the checklist when it ships).** In Safari on a public article, open the panel with nothing highlighted → a **Summarize this page** tile; tap it → a summary. Remove the app tag → the tile goes. On a YouTube video page → no tile.
+
+---
+
+## D-16 · Idle budget ⏳
+
+**Goal.** Otty is meant to sit on screen all day, and an always-on app that drains a laptop gets quit. NFR-3 says "about 0%", but nobody has measured it. Measure before Moods, eye tracking or background jobs add more.
+
+**Measure**
+- A dev-only `OTTY_METRICS=1` logs `app.getAppMetrics()` once a minute: CPU and memory per process, and the total.
+- Three runs of 10 minutes on an M1: idle with the panel hidden, idle with the panel open, and on battery with the otter blinking.
+- Note how much each renderer costs while hidden. The blink runs every 5 seconds even when nobody could be looking, so check whether it should pause when the display sleeps.
+
+**Starting limits, to adjust after the first measurement:** under 0.5% of one core on average when idle, and under 400 MB across all processes.
+
+**Build:** `src/main/metrics.ts` (no effect unless the variable is set). Record the results and the agreed limits in NFR-3. Fix whatever is cheap to fix; anything bigger goes in BRAINSTORM.
+
+**Done when:** NFR-3 has real numbers, and Moods and eye tracking have a budget to stay inside. From then on, each change to what runs while idle re-runs the measurement.
+
+---
+
+## D-17 · Proofread card for writing in a second language ⏳
+
+**Goal.** Otty's users work in English, and often not their first language. Highlight a draft, and get back the fixes marked up, with a plain reason for each. It teaches as well as fixes, which is what Otty is for.
+
+**Design**
+- A new `proofread` quick action, **Check my writing**, for text captures that aren't a short phrase. In the panel it's a tile. The quick view has no tiles, so it gets a **check writing** key in its hint row, next to **＋ add more**, because the hotkey is how people will get here.
+- **The model writes, code marks up.** The prompt asks for the corrected text in a fenced ` ```fixed ` block, then one short bullet per fix saying why. Changes are as small as possible, the meaning and voice stay, and the text is never translated. If nothing needs fixing, it says so.
+- **The diff is local:** `src/shared/diff.ts` compares the capture with the block (by word, and by character for Han text). A model's own marks would be less reliable, and the Copy button needs clean text anyway. Past 4,000 characters it shows the fixed text without marks, since the comparison grows quadratically.
+- **The card:** removals struck through, additions highlighted (existing tokens), then the reasons, then **Copy fixed text**. While streaming, the block shows as plain text until it closes. D-11's paste back will add **Replace in Pages** here later.
+
+**Build:** `prompts.ts`, `QuickActions.tsx`; `diff.ts` with tests; a `code` renderer in `Markdown.tsx` for `language-fixed`. The renderer needs the original text, and `AssistantMessage` only has the answer, so pass the question's capture down through a small context from both `Messages.tsx` and `Quick.tsx`. Saved chats keep text captures, so a reopened card still shows its marks. `tools/ui-preview`: `scene=proofread`.
+
+**Done when:** a highlighted paragraph with three mistakes shows three marked changes and three reasons; Copy gives clean text; a correct paragraph says it's fine; a Chinese draft stays Chinese; **In 中文** gives the reasons in Chinese and leaves the fixed text alone; a reopened chat shows the same card.
+
+**Smoke test (add to the checklist when it ships).** Highlight a draft with mistakes in Mail → ⌥Space → **check writing** → the marked-up card, with a reason for each fix. **Copy fixed text** → paste → no marks. Toggle dark mode → changes stay legible.
+
+---
+
+## D-18 · Warm explain cards ⏳
+
+**Goal.** Tapping an explain term should feel instant. Today it waits a second or more for a model call, at the exact moment someone is confused. Fetch the cards as soon as the answer finishes, while the user is still reading.
+
+**Move the cache to main.** The cache is in `Markdown.tsx` today, which isn't the right place for this:
+- The panel and quick view are separate renderers that both show every answer, so warming there would make each call twice, and ↵ "continue in chat" would lose the card.
+- `explainTerm` returns its friendly error as ordinary text, so one network blip is cached for the whole session. Only real explanations should be kept.
+
+**Design**
+- `explainCached(term, around, language)` in main: the same key as today (language + lower-cased term), holding in-flight promises so a tap during a warm-up shares the call. At most 200 entries; failures are dropped so the next tap retries.
+- After `done`, for a finished answer with no error, take up to 3 `[term](#explain)` from the text and fetch them in the answer's language. The other language stays on demand. Reopened chats don't warm.
+- **Background calls** get a small helper, shared with D-19: no tools, never touching `ChatSession` history, and `thinking` set to disabled.
+- That last part also fixes a bug: `post` applies the Think deeper setting to explain cards, so reasoning can use up their 300-token limit and leave the card with its "couldn't think of an explanation" message.
+
+**Cost:** up to three small calls per answer, for text the provider already has. Nothing new is sent. Check the real cost in the dev log, and show it in the usage meter if that ships.
+
+**Done when:** a term tapped a few seconds after the answer ends opens with no wait; the dev log shows one call per term with both windows open; turning Wi-Fi off then back on, the card works on the next tap; with Think deeper on, cards still explain.
+
+**Smoke test (add to the checklist when it ships).** Ask something with a dotted term, wait 3 seconds, tap it → the card opens straight away. Turn on **Think deeper** → cards still work.
+
+---
+
+## D-19 · Model-written chat titles ⏳
+
+**Goal.** Recent chats and search read much better with real titles. Today a title is the cut-off question plus a quote (`titleFor`), and most hotkey questions come out as `Explain simply “The quick brown fox jumps over…”`.
+
+**Design**
+- After the first answer in a chat finishes with no error, one background call (D-18's helper, `max_tokens: 24`) writes a title of 3–6 words in the chat's language, from the first 500 characters of the question and of the answer. Text only.
+- Only when "Remember my chats" is on. `titleFor` stays as the instant title and the fallback for any failure.
+- Clean the result: one line, no quotes or trailing full stop, at most 60 characters.
+- **No store change:** `write(thread, { messages: thread.messages.length, history: thread.history.length })` already updates the title and rebuilds the search row, without bumping `updatedAt`. A chat forgotten in the meantime is skipped by `persist`'s existing check. The title goes on the `thread` the turn ran on, not the current one, in case the user has moved on.
+- Chats saved earlier keep their titles. BRAINSTORM's "Re-read history" can refresh them later.
+
+**Done when:** after one question, Recent chats shows a short real title; searching a word from it finds the chat; a Chinese chat gets a Chinese title; with Wi-Fi off the old title stays; forgetting a chat while its title is being written doesn't bring it back.
+
+**Smoke test (add to the checklist when it ships).** Highlight a long paragraph → ⌥Space → ↵ → Recent chats shows a short real title, not the cut-off text. Ask a question in 中文 → a Chinese title.
 
 ---
 
@@ -157,7 +268,7 @@ So the rule is: **each request is the previous request, plus the previous output
   - `remindTurn` and the "never saved" copy are removed. The saved `llm_history` is the exact sent history.
   - The visible message in the chat stays the user's own words: notes live only in `llm_history`.
 - **Tool rounds within a turn** already send back the assistant's `tool_calls` (arguments exactly as received) and `reasoning_content`. With a stable system prompt, round 2 matches round 1's input-plus-output unit.
-- **Changes that are meant to happen** each miss once and are rare: D-13's compaction of old turns, stripping pictures when a chat is reopened, a settings change.
+- **Changes that are meant to happen** each miss once and are rare: compacting old turns (D-13, proposed in BRAINSTORM as "History budget"), stripping pictures when a chat is reopened, a settings change.
 - **New chats share a cached start:** with a static system prompt and tool list, the common-prefix rule makes that start a unit of its own. The **first** question of every new chat (quick view questions included) then reads the whole system prompt and tool schemas from the cache.
 - **Measure:**
   - `stream_options: { include_usage: true }`; log `prompt_cache_hit_tokens`, `prompt_cache_miss_tokens` and time to first token per request, in dev builds only.
@@ -212,6 +323,7 @@ So the rule is: **each request is the previous request, plus the previous output
 ### 3. Render math
 - `remark-math` and `rehype-katex` in `Markdown.tsx`: panel, quick view, explain cards.
 - **Only `$$…$$` counts as math** (`singleDollarTextMath: false`), so "$5 and $10" stays text. `$$…$$` inside a sentence is inline; on its own line it's a block.
+- KaTeX's CSS and fonts come from the bundle, not a CDN: the built pages' CSP allows nothing else.
 - `throwOnError: false`, so bad TeX shows as source text. KaTeX inherits `color`, so dark mode works with no new tokens.
 - **Load cost:**
   - KaTeX and its CSS are imported once with the renderer bundle (the windows are created at startup, so they're already loaded when an answer arrives).
@@ -248,6 +360,12 @@ So the rule is: **each request is the previous request, plus the previous output
 - "$3,200 a month, $1,150 rent, what share?" keeps the dollars as text and answers 35.9%.
 - 「3,000 蚊打八折係幾多？」 gets 2,400 with Chinese working.
 - Follow-up turns in any chat show cache hits in the dev log.
+
+### Smoke test (add to the checklist when it ships)
+- Type `17.5% of 2,340` and press ↵ → **409.5** appears at once (no "thinking", works with Wi-Fi off), with **Copy** and **Explain the working**. Explain → the model explains it.
+- Ask "What's 17.5% of 2,340 plus 8% tax?" → one "Calculated … = …" chip, no flicker, and the right total, with the answer starting about as fast as a normal question. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then rendered steps (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
+- Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text, and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400 with Chinese working. Toggle dark mode → equations stay legible. Copy an answer → the pasted text has `$$…$$`.
+- In a dev build, ask a follow-up in a long chat → the log shows `prompt_cache_hit_tokens` covering the history, on the follow-up and on the round after a tool call. Start a new chat → its first request hits the cache for the system prompt and tools. Switch EN / 中 between turns → still hits.
 
 ### Later (in BRAINSTORM)
 A sandboxed code runner for data in CSVs and tables; recomputing a worked solution's final answer; dates in `calculate`; instant answers also in the quick view's empty state ("type a sum").
@@ -307,7 +425,7 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
   - **Budget: hotkey → overlay visible ≤ 150 ms, release → snip in the tray ≤ 50 ms.**
 - **Crop** in main: from the overlay's points to the display's pixels (`scaleFactor`), then `encodeImage` (the existing downscale and JPEG). Multi-display coordinates are unit-tested.
 - **Renderer:** a fourth view, `?view=snip` (`src/renderer/src/snip/Snip.tsx`), in the same bundle. IPC:
-  - `snip:open` (main → overlay: the frozen image as an object URL);
+  - `snip:open` (main → overlay: the frozen image as an object URL). The built pages' CSP (`img-src 'self' data:`) blocks `blob:`, so add it to `img-src` in `electron.vite.config.ts`. It's safe: a `blob:` address can only come from the page itself, so nothing leaves the Mac. Answers still can't use it, because `Markdown.tsx` drops every image;
   - `snip:done` (overlay → main: rect or "whole display");
   - `snip:cancel`.
 - **Cursor art** goes through `tools/otty-art/prepare.py`, like the other frames:
@@ -333,6 +451,12 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
 - With two displays, both work.
 - A shortcut taken by another app shows the friendly message.
 - Reduced motion turns off the flash and boop.
+
+### Smoke test (add to the checklist when it ships)
+- Press **⌥⇧Space** → within a blink, the screen dims and freezes, with Otty's paw as the cursor. Drag → the paw pinches, and a rounded selection with a size pill follows. Release → a tiny snap, and the snip is in the quick view at once, without the floating otter in it. Open a menu in any app first, then ⌥⇧Space → the menu is in the snip.
+- ⌥⇧Space, then click without dragging → the whole display is the snip. Esc → cancels quietly. Arrow keys and ↵ → nudge and confirm without the mouse. Check the paw on a white page, a black page and a photo: it's always easy to see.
+- Press **⌘⌥⇧Space** → a soft flash, then a "Whole screen" snip of the display under the cursor, readable when opened. With the panel open, it's added to the tray. On a second display, it snaps that one.
+- Settings → the third shortcut, "Capture the whole screen", shows ⌘⌥⇧Space. Set a shortcut another app uses → "Another app is using this shortcut". Turn on Reduce motion in macOS → no flash or boop.
 
 ---
 
@@ -389,6 +513,11 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
 ## D-1 · Context-aware intents with a local encoder classifier ⏳
 
 **Goal.** When the user highlights or snips something and presses ↵ without typing, Otty works out what they most likely want. Example: an error message → "how do I fix this?". If it isn't confident, it asks, offering its best guesses as one-tap chips. The same scores reorder the quick-action chips in the panel.
+
+### Step 0: re-test the plan before building it
+This design assumes a local classifier beats simply asking the model, and that hasn't been tested. Take about 40 real-style captures per intent (they become the eval set below either way), then compare a plain model call with a phase-0 centroid classifier on accuracy, time to first useful word, cost and privacy.
+
+The local classifier's case is that it's private, free and instant, and can pick tiles before anything is sent. If a model call is close on accuracy, the cheaper plan is "Intent-lite" in BRAINSTORM for text captures, and D-1 shrinks to what's left. Write down the result here either way.
 
 ### Intents (v1)
 
@@ -513,16 +642,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 44. Ask a long question and, while the answer streams, force-quit Otty (`kill -9` its process). Relaunch → the chat is in Recent chats with the question, and a follow-up works.
 45. Settings → Privacy → **Keep chats for** shows **1 year**. Pick **30 days** → Save → chats older than 30 days are gone, and Recent chats says "Otty keeps chats for 30 days on this Mac".
 46. Ask "What's new in macOS this month?" → a "Looking up …" chip, and an answer citing dated sources as links that open in the browser.
-47. In Safari on a public article, press **⌥Space** with nothing highlighted → "Summarize this page" → a "Reading <site>" chip and a summary of that page. On a signed-in page (e.g. your webmail) → Otty says it can't read it and suggests highlighting instead. Ask in 中文 about a Hong Kong topic → Chinese sources.
+47. In Safari on a public article, press **⌥Space** with nothing highlighted → type "Summarize this page" → a "Reading <site>" chip and a summary of that page. On a signed-in page (e.g. your webmail) → Otty says it can't read it and suggests highlighting instead. Ask in 中文 about a Hong Kong topic → Chinese sources.
 48. Settings → set the base URL to another provider → search still answers (Wikipedia), and asking to read a page doesn't offer to. Settings → Privacy shows the DeepSeek line.
 49. Snip a page with a very long window title, then send it → the app tag above the snip ends in "…" and stays inside the chat, in the panel and the quick view.
 50. Ask "Read https://example.com" → Otty reads it with no card. Search for something and ask it to read a result → no card. Ask it to read an address nobody gave it → a "Read this page?" card shows the full address, and **No** sends nothing.
 51. In a built app, ask Otty to reply with exactly `![test](https://example.com/p.png)` → the word "test" appears, and no picture loads. Snips, file thumbnails, icons and painted Otty still show.
-52. Type `17.5% of 2,340` and press ↵ → **409.5** appears at once (no "thinking", works with Wi-Fi off), with **Copy** and **Explain the working**. Explain → the model explains it.
-53. Ask "What's 17.5% of 2,340 plus 8% tax?" → one "Calculated … = …" chip, no flicker, and the right total, with the answer starting about as fast as a normal question. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then rendered steps (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
-54. Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text, and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400 with Chinese working. Toggle dark mode → equations stay legible. Copy an answer → the pasted text has `$$…$$`.
-55. In a dev build, ask a follow-up in a long chat → the log shows `prompt_cache_hit_tokens` covering the history, on the follow-up and on the round after a tool call. Start a new chat → its first request hits the cache for the system prompt and tools. Switch EN / 中 between turns → still hits.
-56. Press **⌥⇧Space** → within a blink, the screen dims and freezes, with Otty's paw as the cursor. Drag → the paw pinches, and a rounded selection with a size pill follows. Release → a tiny snap, and the snip is in the quick view at once, without the floating otter in it. Open a menu in any app first, then ⌥⇧Space → the menu is in the snip.
-57. ⌥⇧Space, then click without dragging → the whole display is the snip. Esc → cancels quietly. Arrow keys and ↵ → nudge and confirm without the mouse. Check the paw on a white page, a black page and a photo: it's always easy to see.
-58. Press **⌘⌥⇧Space** → a soft flash, then a "Whole screen" snip of the display under the cursor, readable when opened. With the panel open, it's added to the tray. On a second display, it snaps that one.
-59. Settings → the third shortcut, "Capture the whole screen", shows ⌘⌥⇧Space. Set a shortcut another app uses → "Another app is using this shortcut". Turn on Reduce motion in macOS → no flash or boop.
