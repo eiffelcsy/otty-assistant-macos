@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isMostlyHan, isShortPhrase } from '../../shared/script'
-import { defaultHomeLanguage, languageBlock, languageReminder, resolveLanguage, translateTarget, withReminder } from '../language'
+import { defaultHomeLanguage, languageGuide, languageReminder, resolveLanguage, translateTarget, turnNote, withNote } from '../language'
 
 describe('isMostlyHan', () => {
   it('counts Han characters against words', () => {
@@ -77,20 +77,43 @@ describe('translateTarget', () => {
   })
 })
 
-describe('languageBlock', () => {
+describe('languageGuide', () => {
   it('adds nothing for English-only users', () => {
-    expect(languageBlock('en', null)).toBe('')
+    expect(languageGuide(null)).toBe('')
   })
 
   it('asks for HK vocabulary and English screen labels', () => {
-    const b = languageBlock('zh-HK', 'zh-HK')
-    expect(b).toContain('打印')
-    expect(b).toContain('Traditional characters only')
-    expect(b).toContain('「File」')
+    const g = languageGuide('zh-HK')
+    expect(g).toContain('打印')
+    expect(g).toContain('Traditional characters only')
+    expect(g).toContain('「File」')
+  })
+})
+
+describe('turnNote', () => {
+  const now = new Date(2026, 10, 4, 23, 51, 13)
+
+  it('gives the time to the minute, with no seconds', () => {
+    const note = turnNote('en', null, now)
+    expect(note).toMatch(/^\[Current local time: .*2026.*23:51 \(UTC[+-]\d\d:\d\d\)\]$/)
+    expect(note).not.toContain('23:51:13')
   })
 
-  it('pins English back after a Chinese turn', () => {
-    expect(languageBlock('en', 'zh-HK')).toContain('English')
+  it('stays the same within a minute', () => {
+    expect(turnNote('en', null, now)).toBe(turnNote('en', null, new Date(2026, 10, 4, 23, 51, 59)))
+  })
+
+  it('adds the answer language when a home language is set', () => {
+    expect(turnNote('zh-HK', 'zh-HK', now)).toContain('even if I wrote in English')
+    expect(turnNote('en', 'zh-HK', now)).toContain('Please reply in English')
+  })
+
+  it('leaves the guide to the system prompt when it has it', () => {
+    expect(turnNote('zh-HK', 'zh-HK', now)).not.toContain('打印')
+  })
+
+  it('brings the guide along when the system prompt lacks it', () => {
+    expect(turnNote('zh-HK', null, now)).toContain('打印')
   })
 })
 
@@ -108,17 +131,13 @@ describe('languageReminder', () => {
   })
 })
 
-describe('withReminder', () => {
+describe('withNote', () => {
   it('appends to text', () => {
-    expect(withReminder('What is a CDN?', '(Reply in X.)')).toBe('What is a CDN?\n\n(Reply in X.)')
+    expect(withNote('What is a CDN?', '(Reply in X.)')).toBe('What is a CDN?\n\n(Reply in X.)')
   })
 
   it('adds a text part after a picture', () => {
     const parts = [{ type: 'image_url' as const, image_url: { url: 'data:' } }]
-    expect(withReminder(parts, '(Reply in X.)')).toEqual([...parts, { type: 'text', text: '(Reply in X.)' }])
-  })
-
-  it('leaves content alone with no reminder', () => {
-    expect(withReminder('hi', '')).toBe('hi')
+    expect(withNote(parts, '(Reply in X.)')).toEqual([...parts, { type: 'text', text: '(Reply in X.)' }])
   })
 })

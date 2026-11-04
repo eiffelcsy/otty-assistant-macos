@@ -43,6 +43,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - Explain terms are `[term](#explain)` and tips are `> 💡` blockquotes (see `Markdown.tsx` and `prompts.ts`).
 - The bubble is a non-activating `type: 'panel'` window, so clicking it keeps the other app's selection.
 - Pictures never touch disk beyond the moment of encoding.
+- **Each request is the previous request, plus its output, plus new messages.** DeepSeek only reuses its cache for an exact match from the first token, so the system prompt depends only on settings, per-turn context goes in `turnNote` at the end of the user message and stays in the history, and `llm.test.ts` guards it byte for byte. The chat shows only the user's words. The one exception is the model's thinking, dropped from earlier replies between turns, which costs little.
 - A user message carries `captures[]` (each with its app) plus `files`; saved chats are read through `store/upgrade.ts`, so old shapes keep loading.
 - **Web safety:** answers never load remote images, built pages have a Content Security Policy (`electron.vite.config.ts`: `img-src 'self' data:`, and nothing else can be fetched), and `read_page` asks first unless `knownUrls.ts` finds the exact address in what the user sent or a search or page returned. Any new UI that shows a remote picture or a `blob:` URL has to plan around this.
 - Saved chats live in `userData/otty.db` (built-in `node:sqlite`, no native module). Calls are synchronous on main and sub-millisecond for a normal turn: the question is written as it's sent (after the request is under way), and the end of a turn writes only that turn's rows. Schema changes are new migrations in `store/db.ts`, never edits to a released one.
@@ -51,38 +52,35 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-12 step 0 | Stable prompt prefix, so DeepSeek caches the history | ⏳ next | — | S (2 hours) |
 | D-15 | **Read this page** in one tap | ⏳ next | — | S (half a day) |
 | D-16 | Idle budget: measure CPU, memory and battery, and set limits | ⏳ next | a Mac | S (half a day) |
-| D-20 step 1 | Provider layer: one seam for every model API, with no change in behaviour | ⏳ next | D-12 step 0 | S–M (1–1.5 days) |
+| D-20 step 1 | Provider layer: one seam for every model API, with no change in behaviour | ⏳ next | — | S–M (1–1.5 days) |
 | D-18 | Warm explain cards: open instantly, one cache in main | ⏳ next | D-20 step 1 | S (half a day) |
 | D-19 | Model-written chat titles | ⏳ next | D-20 step 1 | S (2–3 hours) |
 | D-17 | Proofread card for writing in a second language | ⏳ next | — | S–M (1 day) |
-| D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | D-12 step 0 (schema and `database()` are in) | M (2–3 days) |
-| D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | step 0 | M (1–2 days) |
-| D-20 | Any model: OpenAI-compatible, Claude and local, chosen in Settings | ⏳ | D-12 step 0 | L (6–10 days in all) |
+| D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | — (schema, `database()` and the per-turn note are in) | M (2–3 days) |
+| D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
+| D-20 | Any model: OpenAI-compatible, Claude and local, chosen in Settings | ⏳ | — | L (6–10 days in all) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
 | D-21 | Pick up text: lay a snip over the screen and select its words with ⌘C, on the Mac with no model | ⏳ | — (D-14 for opening in place) | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
-**Where things stand (2026-11-05).** `main` is 0.4.0, waiting for its smoke test and tag: the capture tray (D-8), web search and page reading (D-9), SQLite storage (D-3), the `.dmg` workflow (D-4) safer answers and web reading (#29), and tables that paste as tables (#31); see CHANGELOG. `main` requires a PR with a green `ci` check. None of it has been through the smoke test yet.
+**Where things stand (2026-11-05).** 0.4.0 is tagged and smoke-tested (steps 38–54); see CHANGELOG. `main` requires a PR with a green `ci` check.
 
 **Build order**
-1. **Smoke-test steps 38–54 on a Mac, fix what they find, then release 0.4.0**: push a `v0.4.0` tag on the bump commit (the `dmg` workflow attaches the `.dmg` to a draft release).
-2. **Next session: the small, high-value queue.** These are the best value-per-effort items in BRAINSTORM that nothing blocks, plus the seam two of them build on. Each lands on its own, so stop wherever the session ends:
-   1. **D-12 step 0.** It speeds up every follow-up and tool round, and D-10 needs its per-turn note.
-   2. **D-15 Read this page.** D-9 built the reading; this makes it findable.
-   3. **D-16 Idle budget.** It has to come before any always-on or animation work, and it can run in the background of a session.
-   4. **D-20 step 1, the provider layer.** Changes nothing the user can see, and gives D-18 and D-19 a background call that will keep working on every provider.
-   5. **D-18 Warm explain cards**, then **D-19 chat titles**.
-   6. **D-17 Proofread card.** A new reason to reach for Otty.
-3. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
-4. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
-5. **The rest of D-20, any model.** Otty stops depending on one provider, and people can choose privacy or quality for themselves.
-6. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
-7. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
-8. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
+1. **Next session: the small, high-value queue.** These are the best value-per-effort items in BRAINSTORM that nothing blocks, plus the seam two of them build on. Each lands on its own, so stop wherever the session ends:
+   1. **D-15 Read this page.** D-9 built the reading; this makes it findable.
+   2. **D-16 Idle budget.** It has to come before any always-on or animation work, and it can run in the background of a session.
+   3. **D-20 step 1, the provider layer.** Changes nothing the user can see, and gives D-18 and D-19 a background call that will keep working on every provider.
+   4. **D-18 Warm explain cards**, then **D-19 chat titles**.
+   5. **D-17 Proofread card.** A new reason to reach for Otty.
+2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
+3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
+4. **The rest of D-20, any model.** Otty stops depending on one provider, and people can choose privacy or quality for themselves.
+5. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
+6. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
+7. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
 
 ---
 
@@ -234,7 +232,7 @@ Presets: DeepSeek, Claude, OpenAI, Local (Ollama or LM Studio), and Custom (any 
 - `refusal` arrives as HTTP 200, and needs a kind message rather than an empty answer.
 - **Thinking blocks go back unchanged, and history must not be edited.** Newer accounts can get a 400 otherwise. `run()` deletes `reasoning_content` between turns, so adapters must keep their own blocks. D-12 step 0 fixes the rest of the history.
 - **Latency:** Opus 5.5 always thinks, so check it against NFR-2 before making it a default. Haiku 5.5 is the likely fit for Otty's quick answers and for background calls.
-- Use a top-level `cache_control` so the stable prefix from D-12 step 0 is cached.
+- Use a top-level `cache_control` so the stable prompt prefix is cached.
 
 ### Local models
 - `needsKey: false`: `config()` stops requiring a key, and onboarding can finish without one.
@@ -388,42 +386,6 @@ So the design aims for **zero extra requests where possible, at most one otherwi
 | Calculations inside an answer | at most **one** extra model request per answer, with the history cached |
 | Non-math questions | no slower than today: no thinking, no added work beyond a check of under a millisecond |
 | mathjs ready | warmed at startup in idle time, so the first math question never waits for it |
-
-### 0. Keep the prompt prefix stable, and the history append-only (a fix for every turn, not just math)
-**How DeepSeek's cache works** (Context Caching docs):
-- Every request leaves two cached "prefix units": one ending at the end of the user input, one ending at the end of the model's output.
-- Long inputs are also cut into units at fixed intervals, and a start shared by many requests becomes a unit of its own.
-- A later request only hits a unit it matches **completely, byte for byte, from the first token**. A difference anywhere, even inside an old message, misses everything after it.
-- Units take seconds to build and expire after hours to days. `usage.prompt_cache_hit_tokens` and `usage.prompt_cache_miss_tokens` report what happened.
-
-So the rule is: **each request is the previous request, plus the previous output, plus new messages at the end.** Nothing already sent is ever changed.
-
-**Where Otty breaks it today**
-1. **The system prompt changes every second**: it ends with the time to the second (`prompts.ts`) and is rebuilt every tool round (`llm.ts`). It also changes with the answer language (`languageBlock`). Every request misses from the first message, across turns and between tool rounds.
-2. **The language reminder is added and then taken away:** `remindTurn` adds it to the current question only ("never saved"). On the next turn that question is sent without it, so the history no longer matches the unit the last request left. It misses from that message on.
-3. **The model's thinking is dropped from earlier replies** between turns. DeepSeek requires this in thinking mode, so it stays. The cost is small: the unit at the end of the last user input still matches, and only the last reply is re-read.
-
-**Fix**
-- **A static system prompt** that depends only on settings, not on the turn:
-  - the persona and rules;
-  - every language guide the user might need (the 繁體中文（香港） style guide is included whenever that home language is set, rather than only on Chinese turns);
-  - the tool list in a stable order.
-  
-  Changing a setting misses once; nothing else does.
-- **Per-turn context goes in a short note at the end of that turn's user message, and stays there.** The history stores the content exactly as sent, note included, and it's sent the same way on every later request.
-  - The note: the time (to the minute), "Reply in 繁體中文（香港）" or "Reply in English" (a line, since the guide is in the system prompt), and later D-10's memory block and D-1's intent hint.
-  - It's short (tens of tokens; the memory block up to about 1,500 characters), so keeping it costs little, and the cache serves it after the first time.
-  - `remindTurn` and the "never saved" copy are removed. The saved `llm_history` is the exact sent history.
-  - The visible message in the chat stays the user's own words: notes live only in `llm_history`.
-- **Tool rounds within a turn** already send back the assistant's `tool_calls` (arguments exactly as received) and `reasoning_content`. With a stable system prompt, round 2 matches round 1's input-plus-output unit.
-- **Changes that are meant to happen** each miss once and are rare: compacting old turns (D-13, proposed in BRAINSTORM as "History budget"), stripping pictures when a chat is reopened, a settings change.
-- **New chats share a cached start:** with a static system prompt and tool list, the common-prefix rule makes that start a unit of its own. The **first** question of every new chat (quick view questions included) then reads the whole system prompt and tool schemas from the cache.
-- **Measure:**
-  - `stream_options: { include_usage: true }`; log `prompt_cache_hit_tokens`, `prompt_cache_miss_tokens` and time to first token per request, in dev builds only.
-  - Test: build the request messages for turns 1, 2 and 3 of a chat, with a tool round, and assert each one starts with the previous request's messages plus output, **byte for byte** (`llm.test.ts`). This is the guard that keeps later features from breaking caching.
-  - Expected: misses only on the new messages, so a long chat's follow-up starts sooner and its input costs a fraction.
-- **Rule for later features (D-10 memories, D-1 intents, D-13 compaction):** nothing per-turn in the system prompt, and nothing already sent is rewritten except by a deliberate, rare compaction.
-- Small and independent of the math work, so it can ship on its own first (an hour or two plus the test).
 
 ### 1. Three tiers, decided locally in under a millisecond
 `mathTier(text, captures)` in `src/shared/math.ts` (next to `script.ts`) returns one of four values:
@@ -798,3 +760,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 52. Snip a table with Otty and ask "copy this table to my clipboard exactly as it is" → a "Copied to your clipboard" chip. Paste into Word → a real table with borders and a shaded header row, with every cell in place, empty cells included. Try one with Chinese text.
 53. Paste the same copy into Pages, Mail, Numbers and Excel → a table in the first two, and separate cells in the spreadsheets. Paste into TextEdit in plain-text mode or Terminal → tab-separated rows with no `|` marks.
 54. Ask a question that gets a table in the answer, with words around it → press **Copy** under the answer → Word shows the words and a real table. Copy an answer with no table → it pastes exactly as before.
+55. In `npm run dev` with DeepSeek, send a question, then a follow-up in the same chat → the terminal's `[cache]` line shows most of the follow-up's tokens as hits. Ask "what time is it?" → the right time, and no answer mentions the note. With 中 picked, ask in English → the reply is in Chinese with Hong Kong wording. Then switch to English → the reply is in English. The chat shows only your own words.

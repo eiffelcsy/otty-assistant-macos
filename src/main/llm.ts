@@ -1,12 +1,12 @@
 import { randomUUID } from 'crypto'
-import { nativeImage } from 'electron'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, SendOptions } from '../shared/types'
+import { app as electronApp, nativeImage } from 'electron'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, SendOptions } from '../shared/types'
 import { capturedText } from '../shared/captures'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
 import { fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
 import { getApiKey, getStored } from './settings'
-import { languageBlock, languageReminder, resolveLanguage, withReminder } from './language'
+import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
 import { runTool, toolDefs, toolLabel } from './tools'
 import { isKnownUrl } from './knownUrls'
@@ -238,8 +238,6 @@ export class ChatSession {
       home
     })
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
-    const note = languageBlock(language, home)
-    const reminder = languageReminder(language, home)
     const prepared = takeFiles(opts.files)
     const fitted = fitFiles(prepared.map((p) => ({ name: p.meta.name, doc: p.doc, image: p.image?.dataUrl })))
     const files = prepared.map((p, i) => ({ ...p.meta, note: fitted[i].note }))
@@ -264,7 +262,7 @@ export class ChatSession {
 
     // Let a stopped turn finish cleaning up its own history before this one adds to it.
     const prev = this.running
-    this.running = prev.then(() => this.run(thread, prompt, captures, app, fitted, language, note, reminder))
+    this.running = prev.then(() => this.run(thread, prompt, captures, app, fitted, language, home))
     // Save the question now, so a crash mid-answer keeps it. setImmediate runs after the request has been sent,
     // so the write is never on the way to the first token.
     const at = thread.messages.length - 1
@@ -279,8 +277,7 @@ export class ChatSession {
     app: AppInfo | null,
     files: FileOutput[],
     language: AnswerLanguage,
-    note: string,
-    reminder: string
+    home: HomeLanguage | null
   ): Promise<void> {
     const id = randomUUID()
     const abort = new AbortController()
@@ -299,28 +296,35 @@ export class ChatSession {
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
     const turnStart = history.length
-    history.push({ role: 'user', content: userContent(text, captures, app, files) })
+    // Saved as sent: nothing already sent may change, or DeepSeek's cache misses from that point on.
+    history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), turnNote(language, home)) })
+    const system = systemPrompt(home)
     this.emit({ type: 'start', id, language })
 
     try {
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
         const allowTools = round < MAX_TOOL_ROUNDS
+        const sentAt = Date.now()
         const res = await post(
           {
-            messages: [{ role: 'system', content: systemPrompt(note) }, ...remindTurn(history, turnStart, reminder)],
+            messages: [{ role: 'system', content: system }, ...history],
             stream: true,
+            ...(electronApp.isPackaged ? {} : { stream_options: { include_usage: true } }),
             ...(allowTools ? { tools: toolDefs() } : {})
           },
           abort.signal
         )
+        let firstToken = 0
 
         let content = ''
         let reasoning = ''
         const calls: ToolCall[] = []
 
         for await (const chunk of sse(res)) {
+          if (chunk.usage && !electronApp.isPackaged) logCache(chunk.usage, firstToken - sentAt)
           const delta = chunk.choices?.[0]?.delta
           if (!delta) continue
+          firstToken ||= Date.now()
           if (delta.reasoning_content) reasoning += delta.reasoning_content
           if (delta.content) {
             content += delta.content
@@ -393,11 +397,9 @@ export class ChatSession {
   }
 }
 
-/** History with this turn's user message carrying the language reminder. A copy: the reminder is never saved. */
-function remindTurn(history: Message[], index: number, reminder: string): Message[] {
-  const m = history[index]
-  if (!reminder || m?.role !== 'user') return history
-  return history.map((h, i) => (i === index ? { ...m, content: withReminder(m.content, reminder) } : h))
+/** Dev builds only: shows whether DeepSeek's cache is working. Counts only, never content. */
+function logCache(usage: { prompt_cache_hit_tokens?: number; prompt_cache_miss_tokens?: number }, firstTokenMs: number): void {
+  console.log(`[cache] hit ${usage.prompt_cache_hit_tokens ?? '?'} · miss ${usage.prompt_cache_miss_tokens ?? '?'} · first token ${firstTokenMs} ms`)
 }
 
 export async function explainTerm(term: string, around: string, language: AnswerLanguage = 'en'): Promise<string> {
