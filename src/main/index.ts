@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, globalShortcut, ipcMain, Menu, shell, Tray } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, shell, Tray } from 'electron'
 import type {
   AnswerLanguage,
   BubbleState,
@@ -16,6 +16,7 @@ import { chatStore, closeStore, pruneOldChats } from './store'
 import { discardFile, pickFiles, readFile, registerFiles } from './files'
 import { getPermissions, openPermissionSettings } from './permissions'
 import { ChatSession, explainTerm, testConnection } from './llm'
+import { copyText } from './tools'
 import { trayIcon } from './trayIcon'
 import {
   createBubble,
@@ -274,7 +275,7 @@ function registerIpc(): void {
   ipcMain.handle('shell:open', (_e, url: string) => {
     if (/^https?:\/\//i.test(url)) return shell.openExternal(url)
   })
-  ipcMain.handle('clipboard:write', (_e, text: string) => clipboard.writeText(text))
+  ipcMain.handle('clipboard:write', async (_e, text: string) => void (await copyText(text)))
 
   ipcMain.on('bubble:drag', (_e, phase: 'start' | 'end') => {
     if (phase === 'start') return startBubbleDrag()

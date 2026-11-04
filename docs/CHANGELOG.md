@@ -4,7 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
-On `main`, for 0.4.0. Not yet smoke-tested on a Mac (DEVLOG steps 38–51).
+On `main`, for 0.4.0. Not yet smoke-tested on a Mac (DEVLOG steps 38–54).
+
+### Tables that paste as tables (2026-11-04)
+
+- **A copied table lands as a real table.** Otty used to copy plain text, so Word got a mess of `|` marks. Text with a table now goes on the clipboard as HTML too, with borders and a shaded header, so Word, Pages and Mail paste a table. Its plain text is tab-separated, so spreadsheets get cells. This covers both `copy_to_clipboard` and the **Copy** button under an answer. Text with no table is copied exactly as before.
+- **"Exactly as shown".** The prompt asks for every word, number and empty cell to be kept when copying a table from a screenshot. Tables sent as tab-separated rows or in a code fence are understood too.
+- **Pasted HTML stays safe** (`copyFormats.ts`): pictures become their description, because Word would fetch a remote one, and only web and mail links survive.
 
 ### Safer answers and web reading (2026-11-04)
 

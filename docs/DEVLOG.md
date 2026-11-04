@@ -49,13 +49,14 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ next | — (schema and `database()` are in) | M (2–3 days) |
+| D-21 | Pick up text: lay a snip over the screen and select its words with ⌘C, on the Mac with no model | ⏳ | — (D-14 for opening in place) | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
 **Where things stand (2026-11-03).** `main` has 0.3.2 plus, unreleased: the capture tray (D-8), web search and page reading (D-9), SQLite storage (D-3) and the `.dmg` workflow (D-4); see CHANGELOG → Unreleased. `main` requires a PR with a green `ci` check. None of the unreleased work has been run on a Mac yet.
 
 **Build order**
-1. **Smoke-test steps 38–48 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
+1. **Smoke-test steps 38–54 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
 3. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
 4. Then **D-1**. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
@@ -101,6 +102,47 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Done when:** "I'm learning Spanish for a trip" shows *Noted* without a card, and a later "how do I say thank you?" leans Spanish without being told; Undo removes it; after a week of mostly Excel, Settings shows an Excel habit and answers name Excel's menus; a health detail mentioned in passing is not noted, but "remember I'm diabetic" is; a pasted email from someone else teaches nothing; "Don't learn from this chat" learns nothing; Settings edits change the next answer.
 
 ---
+
+## D-21 · Pick up text: select the words in a picture ⏳
+
+**Goal.** Otty lays a snip over the screen with its words live, so the user can drag across them and press ⌘C, like text on a web page. It runs on the Mac: no model, no key and no network, so it also works with a text-only model or offline.
+
+**Why this shape.** Two ways were looked at:
+
+| | Otty's window + `otty-ocr` (chosen) | Apple's Live Text view (`ImageAnalysisOverlayView`) in a native window |
+| --- | --- | --- |
+| Selection | Ours to tune: browser selection over positioned text | Apple's, polished, with no work |
+| Look | Otty's tokens, paw and copy; testable in `tools/ui-preview` | Apple's, in a second UI stack outside the renderer |
+| Reuse | The same helper gives D-1 its text and the "Where is it?" spotlight its boxes | Serves this feature only, so D-1 would still need the helper |
+
+If step 2's selection feels poor on real snips, switch that step to Apple's view. The helper stays either way.
+
+**Measured on macOS 27 (spike, 2026-11-04).** `VNRecognizeTextRequest` read a 900×300 table in English and Traditional Chinese in **250–360 ms warm, but 28 s on the first run**. It gave a box per cell, and read "Item" as "tem" where the text sat against a cell border. `ImageAnalyzer.isSupported` is true and a `swiftc` build with no Xcode project is 93 KB.
+
+### Steps
+
+1. **`otty-ocr` helper (from D-1, built here first).** Swift in `tools/otty-ocr/`, built by `swiftc` for arm64 and x86_64, and shipped in `extraResources`. It takes the picture on stdin, so it never touches disk, and prints JSON: `{ lines: [{ text, box, confidence }] }`, with boxes flipped to top-left coordinates. Languages are `en-US`, `zh-Hant` and `zh-Hans`, plus the home language. `src/main/ocr.ts` runs it, guards for `darwin`, and has a timeout and a friendly failure.
+2. **The overlay window.** A frameless, always-on-top window showing the picture at its real size with invisible, selectable text on top, one positioned span per line in reading order, scaled to fit its box. A small handle moves it, and Esc closes it.
+   - Selecting highlights the words. ⌘C and ⌘A work, and lines copy with line breaks.
+   - A **Copy all** button, and "Otty couldn't find any words in this picture" when there are none.
+   - The picture stays in memory and nothing is saved to the chat.
+3. **Ways in.** A **Pick up text** action on a snip in the quick view and the tray, and on a picture in the chat. The renderer sends only the capture's id; main holds the picture.
+4. **In place, after D-14.** Otty's own snip knows the rectangle it cut, so the overlay opens exactly over the original and the text on screen seems to wake up. Until then it opens by the cursor, because `screencapture -i` doesn't report where the snip was.
+
+### To check
+
+- **The cold start.** Warm the helper with a tiny picture after launch, but only if D-16's idle budget allows it. Show "Reading the words…" with the otter either way, and measure a first run after a reboot, not just the first run ever.
+- **⌘C in this window.** Copy in Electron on a Mac goes through the Edit menu. Otty never sets its own menu, so check that the default one still handles ⌘C and ⌘A with no Dock icon, and add a hidden Edit menu if not.
+- **Misreads.** Try enlarging small snips and padding the edges before recognition. The "tem" misread suggests text near a border needs it. Don't show confidence to the user.
+- **Selection feel.** Drags across a gap, a table and two columns, and vertical or rotated text.
+- **Focus.** The window has to take focus for ⌘C, so check that closing it hands focus back to the app the user was in.
+
+### Later
+
+- **Copy as table.** Apple's `RecognizeDocumentsRequest` (macOS 26) is documented to return tables as rows and cells. Fed into `copyFormats`, that would copy a pictured table with no model and no retyping, which suits the "exactly as shown" promise. It isn't in the Command Line Tools SDK on the dev Mac (15.5), so it needs a newer SDK and has not been tried. Older systems keep the model route.
+- Click a detected address, date or phone number to act on it.
+
+**Docs when it ships:** REQUIREMENTS gains an FR, and D-1's helper note points here. **Size:** M (2 days), assuming the checks above hold.
 
 ## D-11 · Do it with me: step cards that act on the answer ⏳
 
@@ -187,7 +229,7 @@ Keep the list short. Each new intent needs eval data and a template, so it's add
   - Load the model lazily on the first capture after launch, then keep it warm.
   - Check that the `.node` binary is unpacked from asar (`asarUnpack`) in packaged builds.
 - **Phase 0 shortcut (optional, day 1):** before the head is trained, score by cosine similarity to per-intent example centroids. This gets the UX flowing end to end early.
-- **Screenshots need text first.** Add a small Swift helper, `otty-ocr`, built with `swiftc` and shipped in `extraResources`. It uses Apple Vision `VNRecognizeTextRequest` with `en-US` and `zh-Hant` (Vision has no separate HK model; Traditional characters cover it).
+- **Screenshots need text first.** Use the `otty-ocr` Swift helper (built in D-21 step 1, if that lands first). It uses Apple Vision `VNRecognizeTextRequest` with `en-US` and `zh-Hant` (Vision has no separate HK model; Traditional characters cover it).
   - The OCR text feeds the classifier.
   - It is also sent to the LLM next to the image, which means non-vision models can finally handle snips.
   - With no OCR result, the snip uses today's default.
@@ -284,3 +326,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 49. Snip a page with a very long window title, then send it → the app tag above the snip ends in "…" and stays inside the chat, in the panel and the quick view.
 50. Ask "Read https://example.com" → Otty reads it with no card. Search for something and ask it to read a result → no card. Ask it to read an address nobody gave it → a "Read this page?" card shows the full address, and **No** sends nothing.
 51. In a built app, ask Otty to reply with exactly `![test](https://example.com/p.png)` → the word "test" appears, and no picture loads. Snips, file thumbnails, icons and painted Otty still show.
+52. Snip a table with Otty and ask "copy this table to my clipboard exactly as it is" → a "Copied to your clipboard" chip. Paste into Word → a real table with borders and a shaded header row, with every cell in place, empty cells included. Try one with Chinese text.
+53. Paste the same copy into Pages, Mail, Numbers and Excel → a table in the first two, and separate cells in the spreadsheets. Paste into TextEdit in plain-text mode or Terminal → tab-separated rows with no `|` marks.
+54. Ask a question that gets a table in the answer, with words around it → press **Copy** under the answer → Word shows the words and a real table. Copy an answer with no table → it pastes exactly as before.

@@ -50,6 +50,8 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | H | L | → D-1 |
 | A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | idea, after D-9 |
 | Captures in the tray: drag to reorder, or a "replace" mode on ⌥Space for people who want one capture at a time | L | S | idea, after D-8 |
+| Pick up text: lay a snip over the screen with its words selectable, for ⌘C with no model | H | M | → D-21 |
+| Copy a pictured table with no model, using Apple's document reader (macOS 26) and `copyFormats` | M | S–M | idea, after D-21 |
 | Local OCR (Apple Vision) for snips: classifier input and text for non-vision models | H | M | → D-1 (part) |
 | Learn from intent corrections on-device (retrain the head from `intent_feedback`, which keeps embeddings, not text) | M | M | idea |
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
@@ -75,6 +77,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | --- | --- | --- | --- |
 | Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | → D-11 |
 | Follow-up questions inside the quick view (don't force "continue in chat") | H | S | → D-11 |
+| Tables copied from Otty paste as real tables in Word, Pages and spreadsheets | H | S | shipped |
 | Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | shipped (D-9) |
 | **Sources row** under answers that searched: site icons, names and dates from the search results (`site_icon`, `site_name`, `date`), each opening the page | M | S | idea, after D-9 |
 | Search a site from the app note ("search this site for refunds" → `site:` operator) | L | S | idea, after D-9 |

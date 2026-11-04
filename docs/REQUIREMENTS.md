@@ -85,7 +85,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 | `search_web` | With DeepSeek: real web search, 5 dated results with summaries to cite. Otherwise (or if it fails): Wikipedia + DuckDuckGo instant answers | No |
 | `read_page` | With DeepSeek only: reads one web page as Markdown (about 24K characters max), e.g. the page in the app note. Can't see signed-in pages | No |
 | `open_url` | Opens an http(s) link in the default browser | **Yes**: an "Allow / No thanks" card |
-| `copy_to_clipboard` | Puts text (such as a rewritten email) on the clipboard | No |
+| `copy_to_clipboard` | Puts text (such as a rewritten email) on the clipboard. A table pastes as a real table | No |
 | `create_reminder` | Adds an item to Apple Reminders, with an optional due date | **Yes** |
 
 - FR-7.1 At most 6 tool round-trips per question, to prevent loops.
