@@ -1110,6 +1110,7 @@ html[data-view='bubble'] body {
 .msg--user .captures,
 .msg--user .capture {
   align-items: flex-end;
+  max-width: 100%;
 }
 .msg--user .capture > .context-text {
   max-width: 100%;
@@ -1142,6 +1143,7 @@ html[data-view='bubble'] body {
   flex-shrink: 0;
 }
 .app-tag__text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

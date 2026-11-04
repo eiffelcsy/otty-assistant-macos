@@ -9,6 +9,7 @@ import { getApiKey, getStored } from './settings'
 import { languageBlock, languageReminder, resolveLanguage, withReminder } from './language'
 import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
 import { runTool, toolDefs, toolLabel } from './tools'
+import { isKnownUrl } from './knownUrls'
 
 // Minimal OpenAI-compatible chat client (works with DeepSeek and any /chat/completions provider).
 
@@ -353,7 +354,8 @@ export class ChatSession {
           const { label, icon } = toolLabel(call.function.name, args)
           this.emit({ type: 'tool', id, callId: call.id, label, icon, status: 'running' })
           const out = await runTool(call.function.name, args, {
-            confirm: (title, detail) => this.askConfirm(id, title, detail)
+            confirm: (title, detail) => this.askConfirm(id, title, detail),
+            knownUrl: (url) => isKnownUrl(url, history)
           })
           if (abort.signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
           answer.tools = [...answer.tools.filter((t) => t.callId !== call.id), { callId: call.id, label, icon, status: out.status }]

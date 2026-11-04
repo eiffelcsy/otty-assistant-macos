@@ -4,7 +4,16 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
-On `main`, for 0.4.0. Not yet smoke-tested on a Mac (DEVLOG steps 38–48).
+On `main`, for 0.4.0. Not yet smoke-tested on a Mac (DEVLOG steps 38–51).
+
+### Safer answers and web reading (2026-11-04)
+
+- **Answers can't load remote pictures.** A picture in an answer now shows only its description, because fetching it would send whatever its address held, with no click. Built pages also have a Content Security Policy, so they can only reach their own files.
+- **`read_page` asks before opening an unfamiliar address.** It goes straight to addresses that came from the user, a search or a page, exactly as given (`knownUrls.ts`). Anything else shows a "Read this page?" card with the full address, so a tricked model can't quietly send private text to a stranger's server. Search no longer repeats the query in its "no results" message, which could have made an invented address look known.
+
+### Fixes (2026-11-04)
+
+- **Long window titles stay inside the window.** The app tag on a capture could run off the left edge of the chat; it now ends in an ellipsis.
 
 ### Saved chats on SQLite (D-3, 2026-11-03)
 - **Chats now live in a small database, `otty.db`**, using the SQLite built into Electron's Node (`node:sqlite`): no native module, nothing to rebuild. Every turn costs the same however long the chat: saving a normal turn takes about 0.5 ms, opening a chat under 1 ms, and searching 2,000 chats about 35 ms.
