@@ -1,6 +1,7 @@
-import { clipboard, shell } from 'electron'
+import { clipboard, ClipboardItem, shell } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
+import { copyFormats } from './copyFormats'
 import { getApiKey, getStored } from './settings'
 import { deepseekFetch, deepseekSearch, isDeepSeek, WebError, type WebConfig } from './web'
 
@@ -61,6 +62,14 @@ const readPageDef = {
   }
 } as const
 
+/** Copies text, with a table as HTML as well so it pastes as a table. True when it held one. */
+export async function copyText(source: string): Promise<boolean> {
+  const { text, html } = copyFormats(source)
+  if (html) await clipboard.write([new ClipboardItem({ 'text/plain': text, 'text/html': html })])
+  else await clipboard.writeText(text)
+  return Boolean(html)
+}
+
 /** DeepSeek's key and origin, when the user's provider is DeepSeek; null otherwise. */
 function webConfig(): WebConfig | null {
   const { baseUrl } = getStored()
@@ -91,10 +100,11 @@ const otherDefs = [
     type: 'function',
     function: {
       name: 'copy_to_clipboard',
-      description: 'Put text on the user’s clipboard so they can paste it (e.g. a rewritten email).',
+      description:
+        'Put text on the user’s clipboard so they can paste it (e.g. a rewritten email). A Markdown table pastes as a real table in Word, Pages, Excel and Numbers.',
       parameters: {
         type: 'object',
-        properties: { text: { type: 'string' } },
+        properties: { text: { type: 'string', description: 'The text to copy. For a table, a Markdown table with no code fence.' } },
         required: ['text']
       }
     }
@@ -177,8 +187,10 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
       }
 
       case 'copy_to_clipboard':
-        await clipboard.writeText(String(args.text ?? ''))
-        return { result: 'Copied.', status: 'done' }
+        return {
+          result: (await copyText(String(args.text ?? ''))) ? 'Copied as a real table, ready to paste.' : 'Copied.',
+          status: 'done'
+        }
 
       case 'create_reminder': {
         const title = String(args.title ?? '').trim()
