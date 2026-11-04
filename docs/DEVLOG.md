@@ -51,8 +51,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ next | — (schema and `database()` are in) | M (2–3 days) |
-| D-21 | Pick up text: lay a snip over the screen and select its words with ⌘C, on the Mac with no model | ⏳ | — (D-14 for opening in place) | M (2 days) |
 | D-12 step 0 | Stable prompt prefix, so DeepSeek caches the history | ⏳ next | — | S (2 hours) |
 | D-15 | **Read this page** in one tap | ⏳ next | — | S (half a day) |
 | D-16 | Idle budget: measure CPU, memory and battery, and set limits | ⏳ next | a Mac | S (half a day) |
@@ -64,6 +62,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | step 0 | M (1–2 days) |
 | D-20 | Any model: OpenAI-compatible, Claude and local, chosen in Settings | ⏳ | D-12 step 0 | L (6–10 days in all) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
+| D-21 | Pick up text: lay a snip over the screen and select its words with ⌘C, on the Mac with no model | ⏳ | — (D-14 for opening in place) | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
@@ -71,10 +70,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Build order**
 1. **Smoke-test steps 38–54 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
-2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
-3. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
-4. Then **D-1**. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
-1. **Smoke-test steps 38–51 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
 2. **Next session: the small, high-value queue.** These are the best value-per-effort items in BRAINSTORM that nothing blocks, plus the seam two of them build on. Each lands on its own, so stop wherever the session ends:
    1. **D-12 step 0.** It speeds up every follow-up and tool round, and D-10 needs its per-turn note.
    2. **D-15 Read this page.** D-9 built the reading; this makes it findable.
