@@ -31,7 +31,19 @@ On first launch, Otty walks you through pasting a DeepSeek API key (stored encry
 npm run build:mac
 ```
 
-The build is unsigned for the MVP. To open it the first time, right-click the app and choose **Open**.
+The build is unsigned for now. To open it the first time, right-click the app and choose **Open**. Otty needs macOS 13 or later.
+
+The `dmg` workflow on GitHub Actions builds the same thing, and attaches it to a draft release on every `v*` tag.
+
+## Check it
+
+```bash
+npm run typecheck
+```
+
+```bash
+npm test
+```
 
 ## Stack
 
@@ -41,8 +53,9 @@ Electron + electron-vite + React + TypeScript. The LLM is called from the main p
 src/
   shared/types.ts      IPC contract shared by every process
   shared/captures.ts   capture tray rules (limit, duplicates)
+  shared/match.ts      matching rules for chat search and find in chat
   main/                Electron main: windows, hotkeys, capture, LLM agent loop, tools, web, settings
-  main/store/          saved chats: ChatStore, JSON and SQLite backends, shared search
+  main/store/          saved chats: ChatStore on SQLite, schema and search
   main/files/          attachments, read in a utility process
   preload/             window.otty bridge (contextIsolation, sandboxed)
   renderer/src/        React UI: bubble/ (floating otter), quick/ (ask at the cursor), panel/ (chat, onboarding, settings)
