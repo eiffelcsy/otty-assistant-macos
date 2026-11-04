@@ -208,9 +208,14 @@ function TipCard({ children }: { children?: ReactNode }) {
   )
 }
 
+/** Answers never load remote pictures: the request alone would send whatever the address holds, with no click. */
+function NoRemoteImage({ alt }: { alt?: string }) {
+  return <>{alt}</>
+}
+
 // Module-level, so a re-render doesn't hand react-markdown new component types and remount
 // every explain term (which closed an open card whenever the quick view re-rendered).
-const components = { a: MarkdownLink, blockquote: TipCard }
+const components = { a: MarkdownLink, blockquote: TipCard, img: NoRemoteImage }
 const remarkPlugins = [remarkGfm]
 
 export function Markdown({ text, language = 'en' }: { text: string; language?: AnswerLanguage }) {

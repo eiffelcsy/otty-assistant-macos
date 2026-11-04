@@ -9,6 +9,8 @@ const run = promisify(execFile)
 export interface ToolContext {
   /** Ask the user to approve a side-effecting action. */
   confirm(title: string, detail: string): Promise<boolean>
+  /** True when this exact address came from the user, a search or a page, not from the model. */
+  knownUrl(url: string): boolean
 }
 
 export interface ToolOutcome {
@@ -154,8 +156,12 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
       case 'read_page': {
         const web = webConfig()
         if (!web) return { result: 'Reading pages needs Otty to be connected to DeepSeek.', status: 'error' }
+        const url = String(args.url ?? '')
+        if (/^https?:\/\//i.test(url) && !ctx.knownUrl(url) && !(await ctx.confirm('Read this page?', url))) {
+          return { result: 'The user declined.', status: 'denied' }
+        }
         try {
-          return { result: await deepseekFetch(web, String(args.url ?? '')), status: 'done' }
+          return { result: await deepseekFetch(web, url), status: 'done' }
         } catch (err) {
           if (err instanceof WebError) return { result: err.message, status: 'error' }
           throw err
@@ -240,7 +246,7 @@ async function lookup(query: string): Promise<string> {
     }
   }
 
-  return parts.length ? parts.join('\n\n') : `No results found for "${query}".`
+  return parts.length ? parts.join('\n\n') : 'No results found.'
 }
 
 async function createReminder(title: string, due: Date | null): Promise<void> {

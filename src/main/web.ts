@@ -84,7 +84,7 @@ export async function deepseekSearch(cfg: WebConfig, query: string, fetchImpl: t
   if (!q) return 'No search query was given.'
   const json = await post(cfg, '/v1/tools/search', { query: q, count: SEARCH_COUNT, need_content: false }, fetchImpl)
   const results: SearchResult[] = Array.isArray(json?.results) ? json.results : []
-  if (!results.length) return `No web results found for "${q}".`
+  if (!results.length) return 'No web results found.'
   return results
     .map((r, i) => {
       const meta = [r.site_name, r.date?.slice(0, 10)].filter(Boolean).join(', ')
