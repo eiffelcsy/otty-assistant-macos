@@ -1,5 +1,5 @@
 import type { ChatMessage } from '../../shared/types'
-import type { Message } from '../llm'
+import type { Message } from '../providers'
 import type { Thread } from './types'
 
 // Pictures are never written to disk: snips, attached pictures and their thumbnails are emptied before saving.

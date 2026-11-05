@@ -2,11 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Capture, ChatEvent, HomeLanguage } from '../../shared/types'
 
 let home: HomeLanguage | null = 'zh-HK'
+let key = 'key'
+let thinking = false
 
-vi.mock('electron', () => ({ nativeImage: {}, app: { isPackaged: true, getPath: () => '' } }))
+vi.mock('electron', () => ({
+  nativeImage: { createFromBitmap: () => ({ toPNG: () => Buffer.from('png') }) },
+  app: { isPackaged: true, getPath: () => '' }
+}))
 vi.mock('../settings', () => ({
-  getStored: () => ({ baseUrl: 'https://api.test', model: 'm', thinking: false, homeLanguage: home, rememberChats: false }),
-  getApiKey: () => 'key'
+  getStored: () => ({ baseUrl: 'https://api.test/', model: 'm', thinking, homeLanguage: home, rememberChats: false }),
+  getApiKey: () => key
 }))
 vi.mock('../store', () => ({ chatStore: () => ({ write: async () => {} }), pruneOldChats: async () => {} }))
 vi.mock('../files', () => ({ takeFiles: () => [] }))
@@ -16,7 +21,7 @@ vi.mock('../tools', () => ({
   toolLabel: () => ({ label: 'Looking up', icon: 'search' }),
   runTool: async () => ({ result: 'A result.', status: 'done' })
 }))
-const { ChatSession } = await import('../llm')
+const { ChatSession, explainTerm, testConnection } = await import('../llm')
 
 interface Sent {
   role: string
@@ -49,6 +54,8 @@ const snip: Capture = { id: 'c1', context: { kind: 'image', dataUrl: 'data:image
 
 beforeEach(() => {
   home = 'zh-HK'
+  key = 'key'
+  thinking = false
   requests = []
   replies = []
   vi.useRealTimers()
@@ -131,5 +138,158 @@ describe('what ChatSession sends', () => {
     replies = [toolCall('Let me search.'), answer('Found it.')]
     await new ChatSession(() => {}).send('Find otters', [], null)
     expect(requests[1].messages.find((m) => m.role === 'assistant')?.reasoning_content).toBe('Let me search.')
+  })
+})
+
+describe('talking to the model', () => {
+  const events = (session: (emit: (e: ChatEvent) => void) => InstanceType<typeof ChatSession>) => {
+    const seen: ChatEvent[] = []
+    return { seen, session: session((e) => seen.push(e)) }
+  }
+  const respond = (status: number, body = '') => vi.stubGlobal('fetch', async () => new Response(body, { status }))
+
+  it('sends the same request shape as ever', async () => {
+    let url = ''
+    let headers: Record<string, string> = {}
+    let body: Record<string, unknown> = {}
+    vi.stubGlobal('fetch', async (u: string, init: RequestInit) => {
+      url = u
+      headers = init.headers as Record<string, string>
+      body = JSON.parse(String(init.body))
+      return stream(answer('Hi'))
+    })
+    thinking = true
+    await new ChatSession(() => {}).send('Hello', [], null)
+    expect(url).toBe('https://api.test/chat/completions')
+    expect(headers).toEqual({ 'Content-Type': 'application/json', Authorization: 'Bearer key' })
+    expect(Object.keys(body)).toEqual(['model', 'thinking', 'messages', 'stream', 'tools'])
+    expect(body).toMatchObject({ model: 'm', thinking: { type: 'enabled' }, stream: true })
+  })
+
+  it('streams text, and puts tool calls back together from their pieces', async () => {
+    const piece = (args: string, first = false) => ({
+      choices: [{ delta: { tool_calls: [{ index: 0, ...(first ? { id: 'c1', function: { name: 'search_', arguments: args } } : { function: { arguments: args } }) }] } }]
+    })
+    const named = { choices: [{ delta: { tool_calls: [{ index: 0, function: { name: 'web' } }] } }] }
+    replies = [[piece('{"query"', true), named, piece(':"otters"}')], [...answer('One '), ...answer('two')]]
+    const { seen, session } = events((emit) => new ChatSession(emit))
+    await session.send('Find otters', [], null)
+    const sent = requests[1].messages.find((m) => m.role === 'assistant') as unknown as { tool_calls: unknown }
+    expect(sent.tool_calls).toEqual([{ id: 'c1', type: 'function', function: { name: 'search_web', arguments: '{"query":"otters"}' } }])
+    expect(seen.flatMap((e) => (e.type === 'delta' ? [e.text] : []))).toEqual(['One ', 'two'])
+    expect(seen.at(-1)?.type).toBe('done')
+  })
+
+  it('stops offering tools after six rounds', async () => {
+    replies = Array.from({ length: 7 }, () => toolCall())
+    await new ChatSession(() => {}).send('Keep going', [], null)
+    expect(requests).toHaveLength(7)
+    expect(requests.map((r) => 'tools' in r)).toEqual([true, true, true, true, true, true, false])
+  })
+
+  it.each([
+    [401, '', 'key doesn’t look right'],
+    [402, '', 'balance is empty'],
+    [429, '', 'lots of questions'],
+    [503, '', 'having a moment'],
+    [400, 'this model has no vision', 'can’t look at pictures'],
+    [418, 'odd', 'error 418']
+  ])('turns a %i into a friendly message', async (status, body, words) => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    respond(status, body)
+    const { seen, session } = events((emit) => new ChatSession(emit))
+    await session.send('Hello', [], null)
+    const error = seen.find((e) => e.type === 'error') as { message: string }
+    expect(error.message).toContain(words)
+  })
+
+  it('explains a lost connection', async () => {
+    vi.stubGlobal('fetch', async () => {
+      throw new TypeError('fetch failed')
+    })
+    const { seen, session } = events((emit) => new ChatSession(emit))
+    await session.send('Hello', [], null)
+    expect(seen.find((e) => e.type === 'error')).toMatchObject({ message: expect.stringContaining('can’t reach the internet') })
+  })
+
+  it('asks for a key when there is none', async () => {
+    key = ''
+    const { seen, session } = events((emit) => new ChatSession(emit))
+    await session.send('Hello', [], null)
+    expect(seen.find((e) => e.type === 'error')).toMatchObject({ message: expect.stringContaining('needs a DeepSeek key') })
+  })
+
+  it('forgets a failed turn, so a dangling tool call can’t break the next one', async () => {
+    let calls = 0
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      if (++calls === 2) return new Response('', { status: 500 })
+      requests.push(JSON.parse(String(init.body)))
+      return stream(calls === 1 ? toolCall() : answer('Fine'))
+    })
+    const session = new ChatSession(() => {})
+    await session.send('First', [], null)
+    await session.send('Second', [], null)
+    expect(requests.at(-1)?.messages.map((m) => m.role)).toEqual(['system', 'user'])
+  })
+
+  it('stops part way through an answer', async () => {
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      requests.push(JSON.parse(String(init.body)))
+      if (requests.length > 1) return stream(answer('Second answer'))
+      return new Response(
+        new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify(answer('Partial')[0])}\n\n`))
+            init.signal?.addEventListener('abort', () => controller.error(new DOMException('Stopped', 'AbortError')))
+          }
+        })
+      )
+    })
+    const { seen, session } = events((emit) => new ChatSession(emit))
+    const turn = session.send('Tell me a story', [], null)
+    await vi.waitFor(() => expect(seen.some((e) => e.type === 'delta')).toBe(true))
+    session.stop()
+    await turn
+    expect(seen.at(-1)?.type).toBe('done')
+    expect(seen.some((e) => e.type === 'error')).toBe(false)
+    await session.send('Next', [], null)
+    expect(requests[1].messages.map((m) => m.role)).toEqual(['system', 'user'])
+  })
+
+  it('explains a term with one short request and no system prompt', async () => {
+    let body: { stream?: boolean; max_tokens?: number; messages?: Sent[] } = {}
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      body = JSON.parse(String(init.body))
+      return Response.json({ choices: [{ message: { content: ' A meaning. ' } }] })
+    })
+    expect(await explainTerm('CDN', 'around')).toBe('A meaning.')
+    expect(body).toMatchObject({ stream: false, max_tokens: 300 })
+    expect(body.messages?.map((m) => m.role)).toEqual(['user'])
+  })
+
+  it('has kind words when an explanation fails or comes back empty', async () => {
+    vi.stubGlobal('fetch', async () => Response.json({ choices: [] }))
+    expect(await explainTerm('CDN', '')).toContain('couldn’t think of')
+    respond(401)
+    expect(await explainTerm('CDN', '')).toContain('key doesn’t look right')
+  })
+
+  it('names the model when the connection works', async () => {
+    vi.stubGlobal('fetch', async () => Response.json({ model: 'deepseek-x', choices: [{ message: { content: 'Hi' } }] }))
+    expect(await testConnection()).toEqual({ ok: true, message: 'Connected to deepseek-x! Otty is ready to help.' })
+  })
+
+  it('warns when the model can’t see pictures', async () => {
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) =>
+      String(init.body).includes('image_url') ? new Response('no image support', { status: 400 }) : Response.json({ choices: [] })
+    )
+    const result = await testConnection()
+    expect(result.ok).toBe(true)
+    expect(result.message).toBe('Connected to m! Heads up: this model can’t look at screen snips, but questions about text work fine.')
+  })
+
+  it('says why the connection failed', async () => {
+    respond(401)
+    expect(await testConnection()).toEqual({ ok: false, message: 'Otty’s key doesn’t look right. Please check it in Settings.' })
   })
 })

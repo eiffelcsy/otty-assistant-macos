@@ -6,6 +6,11 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release.
 
+### One seam for every model service (D-20 step 1, 2026-11-05)
+
+- **Nothing changes for users.** All the code that talks to a model service moved to `src/main/providers/`, behind a small `Provider` interface: `stream()` gives neutral events (text, thinking, whole tool calls, why it stopped) and `complete()` gives one short answer. `ChatSession`, explain cards and the connection test no longer know which service they're using.
+- **The chat loop is now pinned by tests,** written against the old code first: the request shape, tool calls arriving in pieces, the tool limit, each friendly error, a lost connection, Stop, a failed turn, explain cards and the connection test.
+
 ### Cheaper, quicker follow-ups (D-12 step 0, 2026-11-05)
 
 - **The system prompt no longer changes every second.** It ended with the time, so DeepSeek could never reuse its cache. It now depends only on settings, so a follow-up should only pay for what's new, and every new chat shares a cached start.

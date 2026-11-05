@@ -1,4 +1,4 @@
-import type { Message } from './llm'
+import type { Message } from './providers'
 
 // A hostile page can tell the model to "read" an address with private text inside it. So read_page only goes
 // straight to addresses that exist outside the model: what the user sent, and what a search or page returned.

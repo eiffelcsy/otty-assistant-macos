@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isKnownUrl, urlsIn } from '../knownUrls'
-import type { Message } from '../llm'
+import type { Message } from '../providers'
 
 const toolCall = (id: string, name: string, url = ''): Message => ({
   role: 'assistant',

@@ -54,9 +54,8 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | --- | --- | --- | --- | --- |
 | D-15 | **Read this page** in one tap | ⏳ next | — | S (half a day) |
 | D-16 | Idle budget: measure CPU, memory and battery, and set limits | ⏳ next | a Mac | S (half a day) |
-| D-20 step 1 | Provider layer: one seam for every model API, with no change in behaviour | ⏳ next | — | S–M (1–1.5 days) |
-| D-18 | Warm explain cards: open instantly, one cache in main | ⏳ next | D-20 step 1 | S (half a day) |
-| D-19 | Model-written chat titles | ⏳ next | D-20 step 1 | S (2–3 hours) |
+| D-18 | Warm explain cards: open instantly, one cache in main | ⏳ next | — | S (half a day) |
+| D-19 | Model-written chat titles | ⏳ next | — | S (2–3 hours) |
 | D-17 | Proofread card for writing in a second language | ⏳ next | — | S–M (1 day) |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | — (schema, `database()` and the per-turn note are in) | M (2–3 days) |
 | D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
@@ -72,9 +71,8 @@ The working plan: what's next, how we'll build it, and how to check it works.
 1. **Next session: the small, high-value queue.** These are the best value-per-effort items in BRAINSTORM that nothing blocks, plus the seam two of them build on. Each lands on its own, so stop wherever the session ends:
    1. **D-15 Read this page.** D-9 built the reading; this makes it findable.
    2. **D-16 Idle budget.** It has to come before any always-on or animation work, and it can run in the background of a session.
-   3. **D-20 step 1, the provider layer.** Changes nothing the user can see, and gives D-18 and D-19 a background call that will keep working on every provider.
-   4. **D-18 Warm explain cards**, then **D-19 chat titles**.
-   5. **D-17 Proofread card.** A new reason to reach for Otty.
+   3. **D-18 Warm explain cards**, then **D-19 chat titles**.
+   4. **D-17 Proofread card.** A new reason to reach for Otty.
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
 3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
 4. **The rest of D-20, any model.** Otty stops depending on one provider, and people can choose privacy or quality for themselves.
@@ -185,7 +183,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Goal.** Otty works with the model the user wants: DeepSeek, OpenAI and other OpenAI-compatible services, Claude, or a model running on their own Mac. Choosing one is a friendly picker, not a server address. Each provider gets as much of Otty as it can support, and Otty says plainly what it can't do. It also stops being a bet on one company, and it's the base for "Model profiles", "Two model slots" and a private, fully local Otty.
 
-**Today.** The request and streaming code is in one place (`post` and `sse` in `llm.ts`), and the prompts are nearly provider-free. What's actually tied to DeepSeek:
+**Today.** The request and streaming code is behind `src/main/providers/`, and the prompts are nearly provider-free. What's actually tied to DeepSeek:
 - `thinking` goes on every request, and strict servers may reject it. On Claude, `{ type: 'disabled' }` is a 400 on Opus 5.5 and Sonnet 5.5.
 - Real search and `read_page` only exist with DeepSeek's key. Everyone else gets Wikipedia and DuckDuckGo.
 - A key is always required, and only one can be saved.
@@ -202,7 +200,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 ```ts
 interface Provider {
   stream(req: ChatRequest, signal: AbortSignal): AsyncIterable<ProviderEvent>
-  complete(req: ChatRequest): Promise<string>
+  complete(req: ChatRequest): Promise<Completion> // { text, model? }
 }
 // ChatRequest: system, messages, tools, maxTokens, reasoning: 'least' | 'normal' | 'deep'
 // ProviderEvent: text, reasoning, tool call, then done with stop: 'end' | 'tools' | 'length' | 'refusal'
@@ -256,7 +254,7 @@ Whatever ships, `PublicSettings.readsPages` (D-15) comes from the profile, and S
 - Each provider's privacy line says where questions go.
 
 ### Steps
-1. **Provider layer, with no change in behaviour** (1–1.5 days). Move `post` and `sse` behind the OpenAI adapter and move the callers to `stream()` and `complete()`. First add tests for the chat loop, which has none: a fake `fetch` plays recorded streams through text, a tool round, a stop and an error.
+1. **Provider layer.** Shipped; see CHANGELOG.
 2. **Profiles and local** (1 day): the fields above, no-key mode, the file budget from `contextTokens`.
 3. **Claude adapter** (1.5–2 days).
 4. **Picker, keys and copy** (1–1.5 days). `tools/ui-preview`: `scene=provider`.

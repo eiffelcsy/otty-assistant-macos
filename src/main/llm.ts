@@ -1,106 +1,20 @@
 import { randomUUID } from 'crypto'
-import { app as electronApp, nativeImage } from 'electron'
+import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, SendOptions } from '../shared/types'
 import { capturedText } from '../shared/captures'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
 import { fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
-import { getApiKey, getStored } from './settings'
+import { getStored } from './settings'
 import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
 import { runTool, toolDefs, toolLabel } from './tools'
 import { isKnownUrl } from './knownUrls'
+import { activeProvider, FriendlyError, NoVisionError, type ContentPart, type ToolCall } from './providers'
 
-// Minimal OpenAI-compatible chat client (works with DeepSeek and any /chat/completions provider).
-
-type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
-
-interface ToolCall {
-  id: string
-  type: 'function'
-  function: { name: string; arguments: string }
-}
-
-export type Message =
-  | { role: 'system'; content: string }
-  | { role: 'user'; content: string | ContentPart[] }
-  | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[]; reasoning_content?: string }
-  | { role: 'tool'; tool_call_id: string; content: string }
+// The conversation: what's sent, what comes back and what's saved. Talking to the model service is `providers/`.
 
 const MAX_TOOL_ROUNDS = 6
-
-export class FriendlyError extends Error {}
-/** The model rejected an image, i.e. it has no vision. */
-class NoVisionError extends FriendlyError {}
-
-function config() {
-  const s = getStored()
-  const key = getApiKey()
-  if (!key) throw new FriendlyError('Otty needs a DeepSeek key first — open Settings (the gear button) to add one.')
-  return { baseUrl: s.baseUrl.replace(/\/+$/, ''), model: s.model, thinking: s.thinking, key }
-}
-
-function friendlyHttp(status: number, body: string): FriendlyError {
-  if (status === 401) return new FriendlyError('Otty’s key doesn’t look right. Please check it in Settings.')
-  if (status === 402) return new FriendlyError('Your DeepSeek balance is empty. Top up at platform.deepseek.com, then try again.')
-  if (status === 429) return new FriendlyError('Otty is getting lots of questions right now. Give it a few seconds and try again.')
-  if (status >= 500) return new FriendlyError('The AI service is having a moment. Please try again shortly.')
-  if (status === 400 && /image|vision|multimodal/i.test(body)) {
-    return new NoVisionError('This model can’t look at pictures. Try a vision-capable model in Settings.')
-  }
-  console.error('LLM error', status, body)
-  return new FriendlyError(`Something went wrong (error ${status}). Please try again.`)
-}
-
-function networkError(err: unknown): Error {
-  if (err instanceof FriendlyError || (err as Error).name === 'AbortError') return err as Error
-  return new FriendlyError('Otty can’t reach the internet. Check your connection and try again.')
-}
-
-async function post(body: object, signal?: AbortSignal): Promise<Response> {
-  const c = config()
-  let res: Response
-  try {
-    res = await fetch(`${c.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${c.key}` },
-      body: JSON.stringify({
-        model: c.model,
-        thinking: { type: c.thinking ? 'enabled' : 'disabled' },
-        ...body
-      }),
-      signal
-    })
-  } catch (err) {
-    throw networkError(err)
-  }
-  if (!res.ok) throw friendlyHttp(res.status, await res.text().catch(() => ''))
-  return res
-}
-
-async function* sse(res: Response): AsyncGenerator<any> {
-  const reader = res.body!.getReader()
-  const decoder = new TextDecoder()
-  let buf = ''
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) return
-    buf += decoder.decode(value, { stream: true })
-    let nl: number
-    while ((nl = buf.indexOf('\n')) >= 0) {
-      const line = buf.slice(0, nl).trim()
-      buf = buf.slice(nl + 1)
-      if (!line.startsWith('data:')) continue
-      const data = line.slice(5).trim()
-      if (data === '[DONE]') return
-      try {
-        yield JSON.parse(data)
-      } catch {
-        /* keep-alive or partial noise */
-      }
-    }
-  }
-}
 
 function appLine(app: AppInfo | null): string {
   if (!app) return ''
@@ -304,42 +218,22 @@ export class ChatSession {
     try {
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
         const allowTools = round < MAX_TOOL_ROUNDS
-        const sentAt = Date.now()
-        const res = await post(
-          {
-            messages: [{ role: 'system', content: system }, ...history],
-            stream: true,
-            ...(electronApp.isPackaged ? {} : { stream_options: { include_usage: true } }),
-            ...(allowTools ? { tools: toolDefs() } : {})
-          },
-          abort.signal
-        )
-        let firstToken = 0
+        const replies = activeProvider().stream({ system, messages: history, tools: allowTools ? toolDefs() : undefined }, abort.signal)
 
         let content = ''
         let reasoning = ''
-        const calls: ToolCall[] = []
+        const toolCalls: ToolCall[] = []
 
-        for await (const chunk of sse(res)) {
-          if (chunk.usage && !electronApp.isPackaged) logCache(chunk.usage, firstToken - sentAt)
-          const delta = chunk.choices?.[0]?.delta
-          if (!delta) continue
-          firstToken ||= Date.now()
-          if (delta.reasoning_content) reasoning += delta.reasoning_content
-          if (delta.content) {
-            content += delta.content
-            answer.text += delta.content
-            this.emit({ type: 'delta', id, text: delta.content })
-          }
-          for (const tc of delta.tool_calls ?? []) {
-            const slot = (calls[tc.index ?? 0] ??= { id: '', type: 'function', function: { name: '', arguments: '' } })
-            if (tc.id) slot.id = tc.id
-            if (tc.function?.name) slot.function.name += tc.function.name
-            if (tc.function?.arguments) slot.function.arguments += tc.function.arguments
+        for await (const event of replies) {
+          if (event.type === 'reasoning') reasoning += event.text
+          if (event.type === 'tool') toolCalls.push(event.call)
+          if (event.type === 'text') {
+            content += event.text
+            answer.text += event.text
+            this.emit({ type: 'delta', id, text: event.text })
           }
         }
 
-        const toolCalls = calls.filter(Boolean)
         history.push({
           role: 'assistant',
           content: content || null,
@@ -397,20 +291,13 @@ export class ChatSession {
   }
 }
 
-/** Dev builds only: shows whether DeepSeek's cache is working. Counts only, never content. */
-function logCache(usage: { prompt_cache_hit_tokens?: number; prompt_cache_miss_tokens?: number }, firstTokenMs: number): void {
-  console.log(`[cache] hit ${usage.prompt_cache_hit_tokens ?? '?'} · miss ${usage.prompt_cache_miss_tokens ?? '?'} · first token ${firstTokenMs} ms`)
-}
-
 export async function explainTerm(term: string, around: string, language: AnswerLanguage = 'en'): Promise<string> {
   try {
-    const res = await post({
+    const { text } = await activeProvider().complete({
       messages: [{ role: 'user', content: explainPrompt(term, around, language, getStored().homeLanguage) }],
-      stream: false,
-      max_tokens: 300
+      maxTokens: 300
     })
-    const json: any = await res.json()
-    return json.choices?.[0]?.message?.content?.trim() || 'Hmm, Otty couldn’t think of a simple explanation. Try asking in the chat!'
+    return text || 'Hmm, Otty couldn’t think of a simple explanation. Try asking in the chat!'
   } catch (err) {
     return err instanceof FriendlyError ? err.message : 'Otty couldn’t fetch that explanation right now.'
   }
@@ -420,7 +307,7 @@ export async function explainTerm(term: string, around: string, language: Answer
 async function canSeeImages(): Promise<boolean | null> {
   const png = nativeImage.createFromBitmap(Buffer.alloc(32 * 32 * 4, 200), { width: 32, height: 32 }).toPNG()
   try {
-    const res = await post({
+    await activeProvider().complete({
       messages: [
         {
           role: 'user',
@@ -430,10 +317,8 @@ async function canSeeImages(): Promise<boolean | null> {
           ]
         }
       ],
-      stream: false,
-      max_tokens: 10
+      maxTokens: 10
     })
-    await res.json()
     return true
   } catch (err) {
     return err instanceof NoVisionError ? false : null
@@ -442,9 +327,8 @@ async function canSeeImages(): Promise<boolean | null> {
 
 export async function testConnection(): Promise<{ ok: boolean; message: string }> {
   try {
-    const res = await post({ messages: [{ role: 'user', content: 'Say hi in 3 words.' }], stream: false, max_tokens: 20 })
-    const json: any = await res.json()
-    const model = String(json.model || getStored().model)
+    const reply = await activeProvider().complete({ messages: [{ role: 'user', content: 'Say hi in 3 words.' }], maxTokens: 20 })
+    const model = String(reply.model || getStored().model)
     const vision = await canSeeImages()
     const message =
       vision === false
