@@ -2,9 +2,7 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
-## Unreleased
-
-On `main`, for 0.4.0. Not yet smoke-tested on a Mac (DEVLOG steps 38–54).
+## 0.4.0 — Capture tray, web reading and saved chats (2026-11-05)
 
 ### Tables that paste as tables (2026-11-04)
 

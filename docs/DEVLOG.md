@@ -66,10 +66,10 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
-**Where things stand (2026-11-04).** `main` has 0.3.2 plus, unreleased: the capture tray (D-8), web search and page reading (D-9), SQLite storage (D-3), the `.dmg` workflow (D-4) and safer answers and web reading (#29); see CHANGELOG → Unreleased. `main` requires a PR with a green `ci` check. None of the unreleased work has been run on a Mac yet.
+**Where things stand (2026-11-05).** `main` is 0.4.0, waiting for its smoke test and tag: the capture tray (D-8), web search and page reading (D-9), SQLite storage (D-3), the `.dmg` workflow (D-4) safer answers and web reading (#29), and tables that paste as tables (#31); see CHANGELOG. `main` requires a PR with a green `ci` check. None of it has been through the smoke test yet.
 
 **Build order**
-1. **Smoke-test steps 38–54 on a Mac, fix what they find, then release 0.4.0**: bump `package.json`, move CHANGELOG's Unreleased under a 0.4.0 heading, and push a `v0.4.0` tag (the `dmg` workflow attaches the `.dmg` to a draft release).
+1. **Smoke-test steps 38–54 on a Mac, fix what they find, then release 0.4.0**: push a `v0.4.0` tag on the bump commit (the `dmg` workflow attaches the `.dmg` to a draft release).
 2. **Next session: the small, high-value queue.** These are the best value-per-effort items in BRAINSTORM that nothing blocks, plus the seam two of them build on. Each lands on its own, so stop wherever the session ends:
    1. **D-12 step 0.** It speeds up every follow-up and tool round, and D-10 needs its per-turn note.
    2. **D-15 Read this page.** D-9 built the reading; this makes it findable.
