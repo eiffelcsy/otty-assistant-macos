@@ -30,7 +30,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | S | considering, part of Otty's den |
-| Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors | H | S–M | considering |
+| Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | considering |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering |
 | Feed Otty: drop a file or dragged text on the otter to ask about it, with a munching animation | H | S–M | considering |
 | More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
@@ -44,6 +44,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Desktop-pet Otty: full-body sprite or Rive rig that swims around the desktop, floats on its back, peeks from screen edges, and paw-presses buttons (pairs with the "Show me how" ghost cursor) | H | L | idea |
 | Daily greeting and a gentle weekly recap ("3 things learned this week"), with no streaks to lose | L | S | considering, part of Otty's den |
 | Seasonal or unlockable accessories (hat, scarf) | M | M | considering, earned in Otty's den |
+| Float smoothly only while it matters: on hover or just after an answer, and stepped the rest of the time, so Otty looks alive for almost no battery | M | S | idea |
 | Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | → D-10 (issue #17): learns on its own and shows a Noted line with Undo, no confirm cards |
 | Painted Otty frames with a blink (idle + eyes-closed) | H | S | shipped |
 | Respect `prefers-reduced-motion` across every new animation | M | S | shipped (a global rule in `styles.css` turns off all animation and transitions) |
@@ -284,6 +285,9 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Keep going after closing: a long task carries on when the panel closes, and the unseen-answer dot says when it's ready | M | S–M | idea, after Ask me later: answers already do this; only longer tasks are missing |
 | Local-only noticing: opt-in triggers from app switches and error dialogs on the Mac; nothing is sent until the user taps | H | L | considering, replaces the paw-raise idea's design; uses the AX helper |
 | Morning note: an opt-in daily summary from memories, reminders and the calendar | M | M | idea, after calendar access |
+| Finish the idle budget: a run with the panel open, more memory runs to set a limit, and pausing the otter when the display sleeps | M | S | idea |
+| Create the panel and quick view on first use, or free them after a long idle, to cut memory (about 100 MB each). Measure the cost to NFR-1 first | M | S | idea |
+| An idle check in CI or a script that fails when a change goes over the CPU budget, so an animation can't creep back in | M | M | idea |
 | Idle budget: set and test limits for CPU, memory and battery, because an always-on app that drains the laptop gets quit | H | S | shipped |
 
 ## Otty's chores: work Otty starts itself
