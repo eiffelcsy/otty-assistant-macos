@@ -8,7 +8,7 @@ import { prettyKey } from '../lib/keys'
 export function Onboarding({ settings, onDone }: { settings: PublicSettings; onDone: (s: PublicSettings) => void }) {
   const [step, setStep] = useState(0)
   const [key, setKey] = useState('')
-  const [hasKey, setHasKey] = useState(settings.hasApiKey)
+  const [hasKey, setHasKey] = useState(settings.hasApiKey || !settings.needsKey)
   const [test, setTest] = useState<{ ok: boolean; message: string } | null>(null)
   const [testing, setTesting] = useState(false)
   const [perms, setPerms] = useState<Permissions | null>(null)

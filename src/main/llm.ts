@@ -3,14 +3,14 @@ import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, SendOptions } from '../shared/types'
 import { capturedText } from '../shared/captures'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
-import { fitFiles, type FileOutput } from './files/budget'
+import { fileBudget, fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
 import { getStored } from './settings'
 import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
 import { runTool, toolDefs, toolLabel } from './tools'
 import { isKnownUrl } from './knownUrls'
-import { activeProvider, FriendlyError, NoVisionError, type ContentPart, type ToolCall } from './providers'
+import { activeProfile, activeProvider, FriendlyError, NoVisionError, type ContentPart, type ToolCall } from './providers'
 
 // The conversation: what's sent, what comes back and what's saved. Talking to the model service is `providers/`.
 
@@ -153,7 +153,8 @@ export class ChatSession {
     })
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
     const prepared = takeFiles(opts.files)
-    const fitted = fitFiles(prepared.map((p) => ({ name: p.meta.name, doc: p.doc, image: p.image?.dataUrl })))
+    const budget = fileBudget(activeProfile().contextTokens)
+    const fitted = fitFiles(prepared.map((p) => ({ name: p.meta.name, doc: p.doc, image: p.image?.dataUrl })), budget)
     const files = prepared.map((p, i) => ({ ...p.meta, note: fitted[i].note }))
     const userMsg: Extract<ChatMessage, { role: 'user' }> = {
       id: randomUUID(),
@@ -212,7 +213,7 @@ export class ChatSession {
     const turnStart = history.length
     // Saved as sent: nothing already sent may change, or DeepSeek's cache misses from that point on.
     history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), turnNote(language, home)) })
-    const system = systemPrompt(home)
+    const system = systemPrompt(home, activeProfile().web !== 'off')
     this.emit({ type: 'start', id, language })
 
     try {

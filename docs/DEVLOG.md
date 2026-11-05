@@ -183,12 +183,11 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Goal.** Otty works with the model the user wants: DeepSeek, OpenAI and other OpenAI-compatible services, Claude, or a model running on their own Mac. Choosing one is a friendly picker, not a server address. Each provider gets as much of Otty as it can support, and Otty says plainly what it can't do. It also stops being a bet on one company, and it's the base for "Model profiles", "Two model slots" and a private, fully local Otty.
 
-**Today.** The request and streaming code is behind `src/main/providers/`, and the prompts are nearly provider-free. What's actually tied to DeepSeek:
-- `thinking` goes on every request, and strict servers may reject it. On Claude, `{ type: 'disabled' }` is a 400 on Opus 5.5 and Sonnet 5.5.
-- Real search and `read_page` only exist with DeepSeek's key. Everyone else gets Wikipedia and DuckDuckGo.
-- A key is always required, and only one can be saved.
-- The 48K file budget assumes a 128K window.
-- Copy, the key link and the 402 message name DeepSeek.
+**Today.** The request and streaming code is behind `src/main/providers/`, and the prompts are nearly provider-free. What's still tied to DeepSeek:
+- Real search and `read_page` only exist with DeepSeek's key. Other online services get Wikipedia and DuckDuckGo, and local models get no web tools.
+- Only one key can be saved, and it's read from one setting.
+- Onboarding, the key link and Settings copy name DeepSeek.
+- The service is worked out from the address (`profileFor`). Step 4 replaces that with a choice.
 
 ### Design decisions
 - **The OpenAI-shaped `Message` stays Otty's internal format.** Adapters translate as they send. Saved chats need no migration, `knownUrls.ts` and `store/images.ts` don't change, and switching provider mid-chat keeps working.
@@ -209,7 +208,7 @@ interface Provider {
 - `run()`'s loop stays in `ChatSession` and only sees `ProviderEvent`s. `explainTerm`, `testConnection` and `canSeeImages` use `complete()`.
 - Errors become one `FriendlyError` per case (bad key, no credit, busy, too long, no vision), each with the provider's name and top-up link from the profile.
 
-**Profile**, in `profiles.ts`, one per preset:
+**Profile**, in `providers/profiles.ts`, one per preset. Step 2 added the fields features already use. `kind`, `baseUrl`, `model`, `keyUrl` and `vision` come with steps 3 and 4:
 
 | Field | Example |
 | --- | --- |
@@ -255,7 +254,7 @@ Whatever ships, `PublicSettings.readsPages` (D-15) comes from the profile, and S
 
 ### Steps
 1. **Provider layer.** Shipped; see CHANGELOG.
-2. **Profiles and local** (1 day): the fields above, no-key mode, the file budget from `contextTokens`.
+2. **Profiles and local.** Shipped; see CHANGELOG. Not yet tried against a real Ollama or LM Studio: step 6 does that, and should check the 8K window, Ollama's default context size, and the wording of its "no tools" error.
 3. **Claude adapter** (1.5–2 days).
 4. **Picker, keys and copy** (1–1.5 days). `tools/ui-preview`: `scene=provider`.
 5. **Web tools** (1–3 days), after the prototype.

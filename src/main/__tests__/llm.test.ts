@@ -4,18 +4,19 @@ import type { Capture, ChatEvent, HomeLanguage } from '../../shared/types'
 let home: HomeLanguage | null = 'zh-HK'
 let key = 'key'
 let thinking = false
+let baseUrl = 'https://api.deepseek.com/'
 
 vi.mock('electron', () => ({
   nativeImage: { createFromBitmap: () => ({ toPNG: () => Buffer.from('png') }) },
   app: { isPackaged: true, getPath: () => '' }
 }))
 vi.mock('../settings', () => ({
-  getStored: () => ({ baseUrl: 'https://api.test/', model: 'm', thinking, homeLanguage: home, rememberChats: false }),
+  getStored: () => ({ baseUrl, model: 'm', thinking, homeLanguage: home, rememberChats: false }),
   getApiKey: () => key
 }))
 vi.mock('../store', () => ({ chatStore: () => ({ write: async () => {} }), pruneOldChats: async () => {} }))
 vi.mock('../files', () => ({ takeFiles: () => [] }))
-vi.mock('../files/budget', () => ({ fitFiles: () => [] }))
+vi.mock('../files/budget', () => ({ fileBudget: () => 0, fitFiles: () => [] }))
 vi.mock('../tools', () => ({
   toolDefs: () => [{ type: 'function', function: { name: 'search_web' } }],
   toolLabel: () => ({ label: 'Looking up', icon: 'search' }),
@@ -56,6 +57,7 @@ beforeEach(() => {
   home = 'zh-HK'
   key = 'key'
   thinking = false
+  baseUrl = 'https://api.deepseek.com/'
   requests = []
   replies = []
   vi.useRealTimers()
@@ -160,7 +162,7 @@ describe('talking to the model', () => {
     })
     thinking = true
     await new ChatSession(() => {}).send('Hello', [], null)
-    expect(url).toBe('https://api.test/chat/completions')
+    expect(url).toBe('https://api.deepseek.com/chat/completions')
     expect(headers).toEqual({ 'Content-Type': 'application/json', Authorization: 'Bearer key' })
     expect(Object.keys(body)).toEqual(['model', 'thinking', 'messages', 'stream', 'tools'])
     expect(body).toMatchObject({ model: 'm', thinking: { type: 'enabled' }, stream: true })
@@ -291,5 +293,49 @@ describe('talking to the model', () => {
   it('says why the connection failed', async () => {
     respond(401)
     expect(await testConnection()).toEqual({ ok: false, message: 'Otty’s key doesn’t look right. Please check it in Settings.' })
+  })
+})
+
+describe('a local model', () => {
+  beforeEach(() => {
+    baseUrl = 'http://localhost:11434/v1'
+  })
+
+  it('works with no key saved', async () => {
+    key = ''
+    const seen: ChatEvent[] = []
+    await new ChatSession((e) => seen.push(e)).send('Hello', [], null)
+    expect(requests).toHaveLength(1)
+    expect(seen.some((e) => e.type === 'error')).toBe(false)
+  })
+
+  it('never gets the key saved for an online service', async () => {
+    let headers = {}
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      headers = init.headers as object
+      return stream(answer('Hi'))
+    })
+    await new ChatSession(() => {}).send('Hello', [], null)
+    expect(headers).not.toHaveProperty('Authorization')
+  })
+
+  it('is told it has no web tools', async () => {
+    await new ChatSession(() => {}).send('Hello', [], null)
+    const system = String(requests[0].messages[0].content)
+    expect(system).not.toContain('search_web')
+    expect(system).toContain("can't search the web")
+  })
+})
+
+describe('another online service', () => {
+  it('needs no key if it’s a custom address, and names itself when it does', async () => {
+    baseUrl = 'https://models.example.com/v1'
+    key = ''
+    await new ChatSession(() => {}).send('Hello', [], null)
+    expect(requests).toHaveLength(1)
+    baseUrl = 'https://api.openai.com/v1'
+    const seen: ChatEvent[] = []
+    await new ChatSession((e) => seen.push(e)).send('Hello', [], null)
+    expect(seen.find((e) => e.type === 'error')).toMatchObject({ message: expect.stringContaining('needs an OpenAI key') })
   })
 })

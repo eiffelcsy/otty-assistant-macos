@@ -6,6 +6,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release.
 
+### Local models and provider profiles (D-20 step 2, 2026-11-05)
+
+- **A model on the Mac works with no key.** Point the model address at Ollama or LM Studio and Otty stops asking for one. Friendly messages cover the usual problems: the server isn't running, or the model isn't downloaded.
+- **With a local model, nothing leaves the Mac.** Web tools aren't offered, the prompt says so, and `runTool` refuses a search even if the model asks for one by name. The key saved for an online service is never sent to it.
+- **Each service gets what it expects** (`providers/profiles.ts`). Only DeepSeek gets the `thinking` field, which strict servers can reject. OpenAI gets `max_completion_tokens`. A model that can't use tools is asked again without them, because many local ones reject them outright.
+- **The file budget follows the model's window:** the same 48K on DeepSeek, and much less on a small local model. Requests to DeepSeek are unchanged.
+
 ### One seam for every model service (D-20 step 1, 2026-11-05)
 
 - **Nothing changes for users.** All the code that talks to a model service moved to `src/main/providers/`, behind a small `Provider` interface: `stream()` gives neutral events (text, thinking, whole tool calls, why it stopped) and `complete()` gives one short answer. `ChatSession`, explain cards and the connection test no longer know which service they're using.

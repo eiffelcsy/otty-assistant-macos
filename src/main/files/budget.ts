@@ -6,6 +6,11 @@ import type { Extracted } from './extract'
 /** Tokens for all of one message's documents together: about half of a 128K-token window. */
 export const FILE_TOKEN_BUDGET = 48_000
 
+/** The same share of any model's window: 48K of 128K, leaving room for the chat and the answer. */
+export function fileBudget(contextTokens: number): number {
+  return Math.floor(contextTokens * 0.375)
+}
+
 const WIDE = /[ᄀ-ᇿ⺀-鿿가-힯豈-﫿＀-￯]/
 
 /** A rough token count: about one per CJK character, about four characters per token otherwise. */

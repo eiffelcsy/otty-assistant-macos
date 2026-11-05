@@ -2,7 +2,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { deflateRawSync } from 'zlib'
 import { describe, expect, it } from 'vitest'
-import { cutToTokens, estimateTokens, fitDocument, fitFiles, shareBudget } from '../budget'
+import { cutToTokens, estimateTokens, fileBudget, fitDocument, fitFiles, shareBudget } from '../budget'
 import { decodeText, extract, FileError, kindOf } from '../extract'
 import { unzippedSize } from '../zip'
 
@@ -130,3 +130,10 @@ function zipOf(name: string, data: Buffer): Buffer {
   end.writeUInt32LE(centralAt, 16)
   return Buffer.concat([local, nameBuf, packed, central, nameBuf, end])
 }
+
+describe('fileBudget', () => {
+  it('keeps today\'s budget for a 128K window and shrinks with smaller ones', () => {
+    expect(fileBudget(128_000)).toBe(48_000)
+    expect(fileBudget(8_192)).toBe(3_072)
+  })
+})

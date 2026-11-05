@@ -84,6 +84,8 @@ export type KeepChats = '30d' | '1y' | 'forever'
 
 export interface PublicSettings {
   hasApiKey: boolean
+  /** False for a service that works with no key, such as a local model. */
+  needsKey: boolean
   baseUrl: string
   model: string
   thinking: boolean
@@ -100,7 +102,7 @@ export interface PublicSettings {
   homeLanguage: HomeLanguage | null
 }
 
-export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey'>> {
+export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey'>> {
   /** Plaintext key from the settings form; main encrypts it. Empty string clears it. */
   apiKey?: string
 }

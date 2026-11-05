@@ -2,8 +2,9 @@ import { clipboard, ClipboardItem, shell } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { copyFormats } from './copyFormats'
+import { profileFor } from './providers/profiles'
 import { getApiKey, getStored } from './settings'
-import { deepseekFetch, deepseekSearch, isDeepSeek, WebError, type WebConfig } from './web'
+import { deepseekFetch, deepseekSearch, WebError, type WebConfig } from './web'
 
 const run = promisify(execFile)
 
@@ -70,15 +71,19 @@ export async function copyText(source: string): Promise<boolean> {
   return Boolean(html)
 }
 
+/** True when nothing should leave the Mac. */
+const webOff = () => profileFor(getStored().baseUrl).web === 'off'
+
 /** DeepSeek's key and origin, when the user's provider is DeepSeek; null otherwise. */
 function webConfig(): WebConfig | null {
   const { baseUrl } = getStored()
   const key = getApiKey()
-  return key && isDeepSeek(baseUrl) ? { baseUrl, key } : null
+  return key && profileFor(baseUrl).web === 'deepseek' ? { baseUrl, key } : null
 }
 
 /** The tools offered to the model. Real search and page reading need DeepSeek's endpoints. */
 export function toolDefs() {
+  if (webOff()) return otherDefs
   const web = webConfig() ? [searchWebDef, readPageDef] : [lookupDef]
   return [...web, ...otherDefs]
 }
@@ -161,6 +166,8 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
   try {
     switch (name) {
       case 'search_web':
+        // A model can call this even when it isn't offered, so "nothing leaves the Mac" is enforced here too.
+        if (webOff()) return { result: 'Web lookups are off with this model.', status: 'error' }
         return { result: await searchWeb(String(args.query ?? '')), status: 'done' }
 
       case 'read_page': {

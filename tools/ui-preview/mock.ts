@@ -19,6 +19,7 @@ const scene = q.get('scene') ?? 'chat'
 
 const settings: PublicSettings = {
   hasApiKey: true,
+  needsKey: true,
   baseUrl: 'https://api.deepseek.com',
   model: 'deepseek-flash',
   thinking: false,

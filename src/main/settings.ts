@@ -3,8 +3,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import type { PublicSettings, SettingsUpdate } from '../shared/types'
 import { defaultHomeLanguage } from './language'
+import { profileFor } from './providers/profiles'
 
-interface StoredSettings extends Omit<PublicSettings, 'hasApiKey'> {
+interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey'> {
   apiKeyEnc?: string // base64 of safeStorage-encrypted key (or plain, if encryption unavailable)
   apiKeyPlain?: boolean
   bubblePosition?: { x: number; y: number }
@@ -54,7 +55,7 @@ export function getStored(): StoredSettings {
 
 export function getPublic(): PublicSettings {
   const { apiKeyEnc, apiKeyPlain: _p, bubblePosition: _b, ...rest } = load()
-  return { ...rest, hasApiKey: Boolean(apiKeyEnc) || Boolean(process.env.DEEPSEEK_API_KEY) }
+  return { ...rest, hasApiKey: Boolean(apiKeyEnc) || Boolean(process.env.DEEPSEEK_API_KEY), needsKey: profileFor(rest.baseUrl).needsKey }
 }
 
 export function getApiKey(): string | null {
