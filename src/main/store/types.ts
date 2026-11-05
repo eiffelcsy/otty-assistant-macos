@@ -1,5 +1,5 @@
 import type { ChatMessage, ChatSearchHit, ChatSummary } from '../../shared/types'
-import type { Message } from '../llm'
+import type { Message } from '../providers'
 
 // Where saved chats live. Callers only see this interface, so a backend (JSON today, SQLite in D-3,
 // maybe an online database later) can be swapped without touching them.

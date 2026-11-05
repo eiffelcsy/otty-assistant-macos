@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import type { KeepChats, PublicSettings } from '../../../shared/types'
+import { serviceAt, serviceById } from '../../../shared/services'
+import { connectionReady, ConnectionFields } from '../components/ConnectionFields'
 import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
 import { Icon } from '../components/Icon'
 
@@ -20,7 +22,7 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
 
   const save = async () => {
     setSaving(true)
-    const { hasApiKey: _h, ...rest } = form
+    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, ...rest } = form
     const s = await window.otty.saveSettings({ ...rest, ...(key.trim() ? { apiKey: key.trim() } : {}) })
     setKey('')
     onSaved(s)
@@ -35,24 +37,7 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
         <h3>
           <Icon name="brain" /> AI connection
         </h3>
-        <label className="label">
-          API key
-          <input
-            className="field"
-            type="password"
-            placeholder={settings.hasApiKey ? 'Saved (paste to replace)' : 'sk-…'}
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-          />
-        </label>
-        <label className="label">
-          Model
-          <input className="field" value={form.model} onChange={(e) => set('model', e.target.value)} />
-        </label>
-        <label className="label">
-          Server address
-          <input className="field" value={form.baseUrl} onChange={(e) => set('baseUrl', e.target.value)} />
-        </label>
+        <ConnectionFields value={form} onChange={(c) => setForm((f) => ({ ...f, ...c }))} apiKey={key} onKey={setKey} savedKeys={form.savedKeys} />
         <label className="toggle">
           <input type="checkbox" checked={form.thinking} onChange={(e) => set('thinking', e.target.checked)} />
           <span>
@@ -135,12 +120,11 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
           </button>
         )}
         <p className="hint">
-          When Otty searches the web or reads a page for you, the search words or the page address go to DeepSeek,
-          which fetches the page itself. It can’t see pages you’re signed in to.
+          {serviceById(serviceAt(form.baseUrl)).webPrivacy}
         </p>
       </section>
 
-      <button className="btn btn--primary btn--wide" disabled={saving} onClick={save}>
+      <button className="btn btn--primary btn--wide" disabled={saving || !connectionReady(form)} onClick={save}>
         {saving ? 'Saving…' : 'Save'}
       </button>
       {status && <div className={status.ok ? 'ok-card' : 'error-card'}>{status.message}</div>}

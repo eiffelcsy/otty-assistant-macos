@@ -1,6 +1,6 @@
 import type { DatabaseSync, StatementSync } from 'node:sqlite'
 import type { ChatMessage, ChatSearchHit, ChatSummary } from '../../shared/types'
-import type { Message } from '../llm'
+import type { Message } from '../providers'
 import { CHAT_SEARCH_DDL, compact, transaction } from './db'
 import { stripHistory, stripMessage } from './images'
 import { parseQuery, searchableText, searchThreads } from './search'

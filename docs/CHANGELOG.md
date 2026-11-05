@@ -6,6 +6,34 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release.
 
+### Choose Otty's brain (D-20 step 4, 2026-11-05)
+
+- **Pick a service, paste a key.** Settings and the welcome page now offer DeepSeek, Claude, OpenAI, On this Mac and Another service, and each fills in its own address and model (`shared/services.ts`). The address and API format sit under Advanced. DeepSeek stays the default.
+- **One key per service.** Switching back never loses a key, and a key only ever goes to its own service. Before, the saved key went to whatever address was set. Keys from earlier versions move across on first launch, so upgrading needs no setup. A key that can't be unlocked counts as missing instead of crashing.
+- **Each service says where things go,** both for questions and for web lookups, in Settings → Privacy.
+
+### Any Anthropic-style server, including Claude (D-20 step 3, 2026-11-05)
+
+- **Otty now speaks two API formats.** Set the server address, model and key, and pick **API format** in Settings: Automatic, OpenAI-style or Anthropic-style. Automatic goes by the address, so nothing changes for existing users.
+- **Claude works** at `https://api.anthropic.com`, with `claude-sonnet-5-5` as the model to start on. It streams, uses tools and reads snips. Thinking blocks go back unchanged across tool rounds and turns, the prompt is cached, and a chat whose history changed quietly loses old thinking instead of failing.
+- **Other Anthropic-style servers** get a plain request with none of Claude's extras. Their key goes out both ways, because servers differ, and with no key the SDK can't pick one up from elsewhere on the Mac.
+- **Chats move between services.** A reply is only replayed to the server that wrote it. Anywhere else it's rebuilt from its text and tool calls.
+- **A refusal shows a kind message** on any service, and the turn is forgotten. On Claude, the API first tries a fallback model (`fallbacks: "default"`).
+- Friendly error messages are now shared, so both formats say the same thing.
+
+### Local models and provider profiles (D-20 step 2, 2026-11-05)
+
+- **Stretch goal, not fully supported.** Local models are implemented but have not been tested against a real Ollama or LM Studio.
+- **A model on the Mac works with no key.** Point the model address at Ollama or LM Studio and Otty stops asking for one. Friendly messages cover the usual problems: the server isn't running, or the model isn't downloaded.
+- **With a local model, nothing leaves the Mac.** Web tools aren't offered, the prompt says so, and `runTool` refuses a search even if the model asks for one by name. The key saved for an online service is never sent to it.
+- **Each service gets what it expects** (`providers/profiles.ts`). Only DeepSeek gets the `thinking` field, which strict servers can reject. OpenAI gets `max_completion_tokens`. A model that can't use tools is asked again without them, because many local ones reject them outright.
+- **The file budget follows the model's window:** the same 48K on DeepSeek, and much less on a small local model. Requests to DeepSeek are unchanged.
+
+### One seam for every model service (D-20 step 1, 2026-11-05)
+
+- **Nothing changes for users.** All the code that talks to a model service moved to `src/main/providers/`, behind a small `Provider` interface: `stream()` gives neutral events (text, thinking, whole tool calls, why it stopped) and `complete()` gives one short answer. `ChatSession`, explain cards and the connection test no longer know which service they're using.
+- **The chat loop is now pinned by tests,** written against the old code first: the request shape, tool calls arriving in pieces, the tool limit, each friendly error, a lost connection, Stop, a failed turn, explain cards and the connection test.
+
 ### Cheaper, quicker follow-ups (D-12 step 0, 2026-11-05)
 
 - **The system prompt no longer changes every second.** It ended with the time, so DeepSeek could never reuse its cache. It now depends only on settings, so a follow-up should only pay for what's new, and every new chat shares a cached start.

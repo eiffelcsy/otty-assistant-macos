@@ -1,3 +1,5 @@
+import type { ServiceId } from './services'
+
 // Types shared by main, preload and renderer. Type-only: no runtime code here.
 
 export type ScreenContext =
@@ -82,8 +84,16 @@ export interface SendOptions {
 /** How long saved chats are kept, counted from their last message. */
 export type KeepChats = '30d' | '1y' | 'forever'
 
+/** Which API shape the server speaks. `auto` goes by the address, and OpenAI's is the default for an unknown one. */
+export type ApiFormat = 'auto' | 'openai' | 'anthropic'
+
 export interface PublicSettings {
   hasApiKey: boolean
+  /** False for a service that works with no key, such as a local model. */
+  needsKey: boolean
+  /** Services with a key saved. Never the keys themselves. */
+  savedKeys: ServiceId[]
+  apiFormat: ApiFormat
   baseUrl: string
   model: string
   thinking: boolean
@@ -100,7 +110,7 @@ export interface PublicSettings {
   homeLanguage: HomeLanguage | null
 }
 
-export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey'>> {
+export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys'>> {
   /** Plaintext key from the settings form; main encrypts it. Empty string clears it. */
   apiKey?: string
 }
