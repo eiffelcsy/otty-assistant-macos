@@ -17,6 +17,7 @@ import { discardFile, pickFiles, readFile, registerFiles } from './files'
 import { getPermissions, openPermissionSettings } from './permissions'
 import { ChatSession, explainTerm, testConnection } from './llm'
 import { copyText } from './tools'
+import { startMetrics } from './metrics'
 import { trayIcon } from './trayIcon'
 import {
   createBubble,
@@ -300,6 +301,7 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.whenReady().then(() => {
     app.dock?.hide() // Otty lives in the bubble + menu bar, not the Dock.
+    startMetrics()
     registerIpc()
     createPanel().on('show', () => setBadge(false))
     createQuick().on('show', () => setBadge(false))
