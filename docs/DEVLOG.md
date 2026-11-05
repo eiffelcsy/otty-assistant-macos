@@ -222,8 +222,8 @@ Presets: DeepSeek, Claude, OpenAI, Local (Ollama or LM Studio), and Custom (any 
 Otty speaks two formats: OpenAI's `/chat/completions` and Anthropic's Messages. The user sets the format, address, model and key, and presets only fill those in, so any server that speaks either format works with no new code. Both are built (`providers/openai.ts`, `providers/anthropic.ts`). Facts for later steps:
 - **Claude's extras go only to `api.anthropic.com`:** thinking settings, effort, caching and fallbacks. Other servers get a plain request.
 - **Replays are tied to the host.** Thinking is signed by the server that wrote it, so a reply from anywhere else is rebuilt from its text and tool calls.
-- **Latency:** Sonnet 5.5 is Claude's default, chosen for answer quality over Haiku 5.5. Check it against NFR-2 in step 6.
-- **"Use tools only when they genuinely help"** is in the prompt, and Sonnet 5.5 takes that literally. Step 6 should check it still reaches for tools.
+- **Latency:** Sonnet 5.5 is Claude's default, chosen for answer quality over Haiku 5.5. It hasn't been measured against NFR-2.
+- **"Use tools only when they genuinely help"** is in the prompt, and Sonnet 5.5 takes that literally. Watch that it still reaches for tools.
 
 ### Local models
 - `needsKey: false`: `config()` stops requiring a key, and onboarding can finish without one.
@@ -242,30 +242,30 @@ Whatever ships, `PublicSettings.readsPages` (D-15) comes from the profile, and S
 
 ### Steps
 1. **Provider layer.** Shipped; see CHANGELOG.
-2. **Profiles and local.** Shipped; see CHANGELOG. Not yet tried against a real Ollama or LM Studio: step 6 does that, and should check the 8K window, Ollama's default context size, and the wording of its "no tools" error.
-3. **Anthropic format.** Shipped; see CHANGELOG. Not yet run against the real API: step 6 does that.
+2. **Profiles and local.** Shipped; see CHANGELOG. Local models are a stretch goal: implemented but not fully supported, because they haven't been tested against a real Ollama or LM Studio. The 8K window and the match on Ollama's "no tools" error are unconfirmed.
+3. **Anthropic format.** Shipped; see CHANGELOG. Not yet run against the real API, so the first real chat is the test.
 4. **Presets, keys and copy.** Shipped; see CHANGELOG. Model lists from each service's models endpoint are still an idea, so OpenAI and local models are typed in.
 5. **Web tools** (1–3 days), after the prototype.
-6. **Model checks** (1–2 days): run a short set of real tasks on each preset, covering tool calls, explain terms, tips, 繁體中文, snips and a long file. It's the first slice of the "Otty eval" in BRAINSTORM.
+6. **Model checks.** Skipped (2026-11-05). Nothing is scheduled to run real tasks on each preset, so what these tests can't show stays unconfirmed. It's the first slice of the "Otty eval" in BRAINSTORM, if that's picked up later.
 
 ### Open questions
 - Which OpenAI model should its preset start on? It's empty for now, so the user types one. Claude starts on Sonnet 5.5.
-- Stripping pictures from a reopened chat does count as an edit. `drop_block` should turn that into a quiet loss of old thinking, not a 400. Confirm it on the real API in step 6.
-- Does a third-party Anthropic-style server accept `tool_choice: none` and both auth headers? Step 6.
-- Which local models are good enough to recommend? Step 6 decides.
+- Stripping pictures from a reopened chat does count as an edit. `drop_block` should turn that into a quiet loss of old thinking, not a 400. Unconfirmed on the real API.
+- Does a third-party Anthropic-style server accept `tool_choice: none` and both auth headers? Unconfirmed.
+- Which local models are good enough to recommend? Open until local support is taken up again.
 
 **Done when:**
 - A chat works on each preset, with streaming, Stop, tool chips and confirm cards.
 - A chat started on one provider continues on another.
 - A tool round on Claude, with thinking, succeeds across several turns and after reopening.
-- With Ollama, Otty needs no key, and with web lookups off nothing leaves the Mac.
+- With Ollama, Otty needs no key, and with web lookups off nothing leaves the Mac. (Stretch goal: built, not tested on a real server.)
 - A model without vision gets a clear message on a snip, and a refusal shows a kind message.
 - A 0.4.0 user upgrades with no setup, and their key and chats still work.
 - Grepping for `deepseek` outside `src/main/providers/`, `web.ts` and tests finds only copy that's meant to say it.
 
 **Smoke test (add to the checklist when it ships).**
 - Settings → pick **Claude** → paste a key → **Test** names the model. Ask something that needs a tool → the chip and answer work. Ask a follow-up, then reopen the chat from Recent chats and ask another.
-- Switch to **Local** with Ollama running → no key asked for. Turn Wi-Fi off → it still answers. Quit Ollama → a friendly message says so.
+- Switch to **Local** with Ollama running → no key asked for. Turn Wi-Fi off → it still answers. Quit Ollama → a friendly message says so. (Stretch goal, not part of the smoke test for now.)
 - Snip with a text-only model → the "can't look at pictures" message. Switch providers mid-chat → the conversation carries on.
 
 ---
