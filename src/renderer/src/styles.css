@@ -887,7 +887,7 @@ html[data-view='bubble'] body {
   border: 1px solid var(--hairline);
 }
 .context-card > .context-text,
-.context-card > .context-img {
+.context-card > .context-picture {
   margin: 2px 26px 0 2px;
 }
 /* The capture tray: one or more captures, each under the app it came from. */
@@ -906,7 +906,7 @@ html[data-view='bubble'] body {
   min-width: 0;
 }
 .context-card .capture > .context-text,
-.context-card .capture > .context-img {
+.context-card .capture > .context-picture {
   margin: 2px 26px 0 2px;
 }
 .context-card .capture > .app-tag {
@@ -1626,7 +1626,7 @@ html[data-view='quick'] body {
   right: -6px;
 }
 .quick__box .captures--many .capture > .context-text,
-.quick__box .captures--many .capture > .context-img {
+.quick__box .captures--many .capture > .context-picture {
   margin-right: 22px;
 }
 .quick__key--go {
@@ -1835,4 +1835,154 @@ html[data-view='quick'] body {
 .connection .link-btn {
   align-self: flex-start;
   font-size: 13px;
+}
+
+/* ---------- Pick up text: a picture with its words selectable ---------- */
+html[data-view='pickup'],
+html[data-view='pickup'] body,
+html[data-view='pickup'] #root {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+}
+
+.pickup {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.pickup__stage {
+  position: relative;
+  align-self: center;
+  flex: none;
+}
+
+.pickup__stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+.pickup__text {
+  position: absolute;
+  inset: 0;
+  cursor: text;
+  user-select: text;
+}
+
+.pickup__text span {
+  position: absolute;
+  color: transparent;
+  white-space: pre;
+  font-family: -apple-system, BlinkMacSystemFont, 'PingFang HK', sans-serif;
+  transform-origin: 0 0;
+}
+
+.pickup__text span::selection {
+  color: transparent;
+  background: var(--brand-line);
+}
+
+.pickup__bar {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 8px 0 10px;
+  border-top: 1px solid var(--hairline);
+  -webkit-app-region: drag;
+}
+
+.pickup__hint {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pickup__copy,
+.pickup__close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  -webkit-app-region: no-drag;
+}
+
+.pickup__copy {
+  flex: none;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-sm);
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pickup__copy:hover {
+  background: var(--brand-strong);
+}
+
+.pickup__close {
+  flex: none;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+}
+
+.pickup__close:hover {
+  background: var(--fill-strong);
+}
+
+/* Beside the picture, not over it: a snip in the quick view is only 64px tall. */
+.context-picture {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.context-picture .context-img {
+  min-width: 0;
+}
+
+.context-picture__pickup {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.context-picture__pickup:hover {
+  background: var(--surface-2);
 }

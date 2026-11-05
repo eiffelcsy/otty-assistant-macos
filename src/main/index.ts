@@ -26,13 +26,17 @@ import {
   expandQuickToPanel,
   getBubble,
   getPanel,
+  getPickup,
   getQuick,
+  pickupPicture,
   prepareQuickAtCursor,
   quickIsCollecting,
+  readPickup,
   resizeQuick,
   setQuickState,
   showPanelAtCursor,
   showPanelByBubble,
+  showPickup,
   startBubbleDrag
 } from './windows'
 
@@ -276,6 +280,10 @@ function registerIpc(): void {
     if (/^https?:\/\//i.test(url)) return shell.openExternal(url)
   })
   ipcMain.handle('clipboard:write', async (_e, text: string) => void (await copyText(text)))
+  ipcMain.handle('pickup:open', (_e, dataUrl: string) => showPickup(String(dataUrl)))
+  ipcMain.handle('pickup:picture', () => pickupPicture())
+  ipcMain.handle('pickup:read', () => readPickup())
+  ipcMain.handle('pickup:close', () => getPickup()?.close())
 
   ipcMain.on('bubble:drag', (_e, phase: 'start' | 'end') => {
     if (phase === 'start') return startBubbleDrag()

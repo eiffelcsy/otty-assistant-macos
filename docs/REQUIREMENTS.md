@@ -66,6 +66,8 @@ Everything here is built, unless it says *Planned*. Priority: **P0** = core to O
 - FR-4.4 If Screen Recording permission is missing, Otty shows the same friendly guide as FR-3.5.
 - FR-4.5 *(Planned, D-14.)* Otty draws its own snip overlay (paw cursor, frozen screen, instant crop), and **⌘⌥⇧Space** captures the whole display under the cursor. Both leave Otty's own windows out of the picture.
 
+- FR-4.6 **Pick up text** opens a snip in a floating window with its words selectable, for ⌘C. The text is read on the Mac, with no model, and nothing is saved or sent.
+
 ### FR-5 Chat panel (P0)
 - FR-5.1 Answers stream in token by token, with an "Otty is thinking…" otter animation before the first token.
 - FR-5.2 Follow-up questions keep the conversation context. **New chat** clears it.

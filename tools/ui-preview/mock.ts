@@ -12,10 +12,36 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick  ?scene=chat|empty|compose|tray|settings|provider|history|find  ?home=none
+// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|history|find (pickup: reading|nowords|failed)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
+
+/** A small table and a paragraph, drawn as a picture, with the boxes the helper would report. */
+const pickupSample = (() => {
+  const [w, h] = [640, 300]
+  const cells = [
+    ['Item', 40, 50],
+    ['價格', 260, 50],
+    ['Note', 440, 50],
+    ['Apples', 40, 100],
+    ['3.50', 260, 100],
+    ['fresh', 440, 100],
+    ['Pears', 40, 150],
+    ['12.00', 260, 150],
+    ['繁體中文', 440, 150],
+    ['Otters hold hands while they sleep.', 40, 240]
+  ] as const
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="white"/>${cells
+    .map(([t, x, y]) => `<text x="${x}" y="${y}" font-family="Helvetica, PingFang HK" font-size="22">${t}</text>`)
+    .join('')}</svg>`
+  const measure = document.createElement('canvas').getContext('2d')!
+  measure.font = '22px Helvetica, PingFang HK'
+  return {
+    picture: { dataUrl: `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`, width: w, height: h },
+    lines: cells.map(([text, x, y]) => ({ text, box: { x: x / w, y: (y - 20) / h, w: measure.measureText(text).width / w, h: 27 / h } }))
+  }
+})()
 
 const settings: PublicSettings = {
   hasApiKey: true,
@@ -163,7 +189,13 @@ const api: OttyApi = {
   captureScreenshot: async () => ({ context: snip, app: terminal }),
   closePanel: noop,
   openExternal: noop,
-  copyText: noop,
+  copyText: async (text) => {
+    ;(window as any).__copied = text
+  },
+  pickUpText: noop,
+  pickupPicture: async () => pickupSample.picture,
+  pickupRead: async () => (scene === 'reading' ? new Promise(() => {}) : scene === 'nowords' ? [] : scene === 'failed' ? null : pickupSample.lines),
+  closePickup: noop,
   closeQuick: noop,
   expandQuick: noop,
   quickResize: () => {},
