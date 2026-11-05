@@ -9,6 +9,8 @@ import './styles.css'
 const view = new URLSearchParams(location.search).get('view') ?? 'panel'
 document.documentElement.dataset.view = view
 
+window.otty.onWindowVisible((visible) => document.documentElement.toggleAttribute('data-asleep', !visible))
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>{view === 'bubble' ? <Bubble /> : view === 'quick' ? <Quick /> : view === 'pickup' ? <Pickup /> : <Panel />}</StrictMode>
 )

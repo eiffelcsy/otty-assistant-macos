@@ -202,7 +202,8 @@ kbd {
   pointer-events: none;
 }
 .otter--idle .otter-body {
-  animation: float 4s ease-in-out infinite;
+  /* Stepped, because a smooth loop redraws all day: 1.6% of a core against 0.35%. It only travels 1.5px. */
+  animation: float 4s steps(8) infinite;
 }
 .otter--thinking .otter-body {
   animation: bob 1.4s ease-in-out infinite;
@@ -238,6 +239,13 @@ kbd {
   0%, 100% { transform: rotate(0); }
   25% { transform: rotate(-6deg); }
   75% { transform: rotate(6deg); }
+}
+
+/* A hidden window has nobody to animate for. */
+html[data-asleep] *,
+html[data-asleep] *::before,
+html[data-asleep] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

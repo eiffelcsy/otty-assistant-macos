@@ -241,7 +241,8 @@ const api: OttyApi = {
     return () => {}
   },
   onBubbleState: () => () => {},
-  onBubbleBadge: () => () => {}
+  onBubbleBadge: () => () => {},
+  onWindowVisible: () => () => {}
 }
 
 ;(window as any).otty = api

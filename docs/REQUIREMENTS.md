@@ -67,6 +67,7 @@ Everything here is built, unless it says *Planned*. Priority: **P0** = core to O
 - FR-4.5 *(Planned, D-14.)* Otty draws its own snip overlay (paw cursor, frozen screen, instant crop), and **⌘⌥⇧Space** captures the whole display under the cursor. Both leave Otty's own windows out of the picture.
 
 - FR-4.6 **Pick up text** opens a snip in a floating window with its words selectable, for ⌘C. The text is read on the Mac, with no model, and nothing is saved or sent.
+- FR-4.7 **Pick up text** copies table rows with tabs, so they paste as cells.
 
 ### FR-5 Chat panel (P0)
 - FR-5.1 Answers stream in token by token, with an "Otty is thinking…" otter animation before the first token.
@@ -82,6 +83,7 @@ Everything here is built, unless it says *Planned*. Priority: **P0** = core to O
 - FR-6.3 The card has an **Ask more about this** button that sends a follow-up question.
 - FR-6.4 The model can add a **💡 tip card** (rendered from a `> 💡` blockquote) for extra context.
 - FR-6.5 The answer style is short paragraphs, plain words, steps for how-to questions, and no walls of text.
+- FR-6.6 Explain cards open without a wait: the first three terms are fetched when an answer ends, and failures aren't remembered.
 
 ### FR-7 Simple agent tools (P0)
 The model may call these tools through OpenAI-style function calling. The UI shows each call as a small chip with an icon ("Looking up “photosynthesis”").
@@ -109,6 +111,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-9.1 Each hotkey, bubble click or snip also notes the frontmost app's name and window title, and for Safari / Chromium browsers (Chrome, Arc, Brave, Edge, Vivaldi, Opera) the current page address with its query and fragment removed. This runs alongside the selection copy, so it adds no delay.
 - FR-9.2 It shows as a removable "In Safari · page title" tag in the composer and quick view, and on the sent message. It is added to the user message as a short `[I'm using …]` note.
 - FR-9.3 It never reports Otty itself, and it can be switched off in Settings → Privacy ("Tell Otty which app I'm using").
+- FR-9.4 When Otty knows the page and nothing is highlighted, it offers **Summarize this page**. It makes no offer when removing the address's query would mean reading a different page.
 
 ### FR-10 Saved chats (P0)
 - FR-10.1 Every conversation is saved as it goes. A hotkey question or **New chat** starts a new conversation, and the old one stays saved instead of being wiped.
@@ -118,6 +121,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-10.5 **Search** at the top of Recent chats (⇧⌘F in the panel, or ⌘F with no chat open) finds chats by their title, messages and text captures, in English or Chinese. Every word must appear; quotes keep a phrase. Results show a highlighted snippet, and clicking one reopens the chat at the matching message.
 - FR-10.6 **Find in this chat** (⌘F, or the search button in the header) highlights every match in the open conversation with the same matching rules, shows "2 of 5", and steps with ↵ / ⇧↵. Esc closes the bar before it closes the panel.
 - FR-10.7 **Keep chats for** 30 days / 1 year / forever (Settings → Privacy, default 1 year), counted from a chat's last message. Older chats are forgotten at launch, after each answer and when the setting changes. Forgotten chats are overwritten on disk, not just unlinked.
+- FR-10.8 After the first answer, a model-written title of a few words replaces the instant one, in the chat's language.
 
 ### FR-12 File attachments (P1)
 - FR-12.1 The panel's paperclip button, dragging files onto the panel, or pasting a file copied in Finder attaches up to 5 files (25 MB each) to the next message. Each shows as a chip with its type, name and page count, "Reading…" while it's read, and a friendly reason when it can't be.
@@ -140,6 +144,10 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-14.4 Chinese answers use Hong Kong written Chinese, Traditional characters only, with HK vocabulary, and keep on-screen English words like 「File」 as they are.
 - FR-14.5 Explain cards open in their answer's language, show a 中文 line, and have an EN / 中文 toggle.
 
+### FR-15 Proofreading (P1)
+- FR-15.1 **Check my writing** returns a highlighted draft corrected, with each change marked and a plain reason for it.
+- FR-15.2 The marks are worked out by comparing the texts, never taken from the model. The draft is never translated.
+
 ### FR-11 Later (P2)
 See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language (shipped, D-2) · inserting text back into the source app (planned, D-11) · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
 
@@ -149,7 +157,7 @@ See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice
 | --- | --- |
 | NFR-1 | Shortcut-to-panel time is under 400 ms for text (excluding model latency) |
 | NFR-2 | First token is under 2 s on a normal connection with thinking off |
-| NFR-3 | Idle CPU is about 0% (CSS animations only, no polling except while dragging). Not measured yet: see D-16 |
+| NFR-3 | Idle: under 0.5% of one core on average, measured with `OTTY_METRICS=1`. On an M4 on battery, with the bubble showing: 1.6% with a smooth float, about 0.35% with it stepped, and 0.02% with no animation. Memory read 210–700 MB, because macOS compresses idle apps, so the 400 MB starting limit needs more runs before it's set. Re-measure when what runs while idle changes |
 | NFR-4 | Security: `contextIsolation` on, `nodeIntegration` off, sandboxed renderer, a narrow typed preload API, all network calls from the main process, and a Content Security Policy on built pages so they can only reach their own files |
 | NFR-5 | Privacy: nothing is sent anywhere until the user asks a question. Screenshots are deleted from disk right after encoding and are never saved with chats; attached files are only read, never copied, and pictures from them are never saved. App context and chat saving can each be turned off. With DeepSeek, web searches and page reads send only the query or the page address, to the same provider as the model, and never the user's cookies; DeepSeek fetches the page itself. With another provider, or when DeepSeek's search fails, the query goes straight from the Mac to Wikipedia and DuckDuckGo, which see the user's IP address |
 | NFR-6 | Accessibility: keyboard usable, 4.5:1 contrast, works in light and dark mode, respects `prefers-reduced-motion` |

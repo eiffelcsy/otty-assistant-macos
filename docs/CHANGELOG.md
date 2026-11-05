@@ -6,6 +6,26 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release.
 
+### Idle budget (D-16, 2026-11-05)
+
+- **Measured for the first time,** with `OTTY_METRICS=1` (`metrics.ts`): idle Otty used 1.6% of a core, nearly all of it the otter's smooth float redrawing all day.
+- **The float is now stepped,** which measured about 0.35%. It only travels 1.5px, so it should look the same. Hidden windows now pause their animations too.
+
+### Proofread card (D-17, 2026-11-05)
+
+- **Check my writing.** A highlighted draft comes back with each change marked and a plain reason for it. It's a tile in the panel and a **check writing** key in the quick view.
+- **The model writes, Otty marks up.** The model only returns the corrected text, and `shared/diff.ts` compares it with what was highlighted, so the marks are always true. Past 4,000 characters it shows the fixed text without marks.
+- **Copy fixed text** and the answer's own Copy both give clean text. Drafts stay in their own language, and **In 中文** changes the reasons only.
+
+### Chat titles written by the model (D-19, 2026-11-05)
+
+- After the first answer, a background call writes a title of a few words in the chat's language, so Recent chats and search read better. The instant title stays if that fails, and it only runs when chats are remembered.
+
+### Warm explain cards (D-18, 2026-11-05)
+
+- **Cards open straight away.** The first three terms are fetched as soon as an answer ends, into one cache in main (`explainCache.ts`), so both windows share each call and ↵ "continue in chat" keeps them.
+- **Failures aren't remembered,** so one network blip no longer sticks for the session. Cards use the least thinking, so **Think deeper** can't use up their limit.
+
 ### Read this page in one tap (D-15, 2026-11-05)
 
 - **Summarize this page.** When Otty knows the page and nothing is highlighted, the panel offers a tile and ↵ in the quick view runs it. It works on every service that can read pages, and shows no card, because the address is the user's own.

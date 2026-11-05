@@ -52,6 +52,9 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Pick up text reads two-column pages properly: spot the columns from the line boxes, so a drag stays in one column | M | M | idea |
+| Pick up text on the screen itself: a hotkey that freezes the whole screen with its words selectable, with no snip first | H | M | idea, after D-14 |
+| More one-tap page actions next to Summarize: key points, and "what should I do here?" | M | S | idea |
 | Pick up text: a snip in a floating window with its words selectable, for ⌘C with no model | H | M | shipped |
 | Frontmost app, window title and page URL as context | H | S | shipped |
 | Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | H | L | → D-1 |
@@ -94,6 +97,8 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Show what Claude's web searches cost in the usage meter, since each one is billed | M | S | idea |
+| Copy a proofread reason as a note, or send a whole fix to the phrasebook | L | S | idea |
 | Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | → D-11 |
 | Follow-up questions inside the quick view (don't force "continue in chat") | H | S | → D-11 |
 | Tables copied from Otty paste as real tables in Word, Pages and spreadsheets | H | S | shipped |
@@ -137,6 +142,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Personal phrasebook: save word-help cards and review them later (a table in `otty.db`) | M | M | idea |
 | Full keyboard navigation audit and VoiceOver labels | M | M | idea |
 | UI copy translated (a tiny `t()` dictionary) | L | M | idea: our users work in an English UI, so this is low priority |
+| Common mistakes: the proofread card notices what keeps coming up ("you often drop plurals") and offers a short lesson, with D-10's memory | H | M | idea, after D-10 |
+| Proofread in a tone: fix mistakes and also make it warmer, firmer or more formal, still as marked changes | M | S | idea |
 | Word help for short selections: meaning, home-language translation, example | H | S | shipped (D-2); D-1 will predict it |
 | Home-language help: English by default, **繁體中文（香港）** on demand (pill, typed-language detection, Explain in Chinese, keep on-screen English labels) | H | S–M | shipped (D-2) |
 | Simplified / TW-term drift guard (`opencc-js`, cn → hk after each turn) and a `tools/lang-check` script | L | S | parked: none seen in D-2 testing; revisit if a model change brings slips |
@@ -156,6 +163,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Encryption at rest for the database (SQLCipher or a safeStorage-wrapped key) | M | M | idea |
 | Semantic search ("that chat about my visa") with the D-1 encoder's embeddings | M | M | idea, after D-1 |
 | Optional encrypted iCloud sync between Macs | M | L | idea |
+| Refresh a chat's title when the conversation moves on to something else | L | S | idea |
 | Find in this chat (⌘F), highlights and ↵ / ⇧↵ stepping | H | S | shipped (D-7) |
 | Saved chats with Recent chats | H | M | shipped (on SQLite since D-3) |
 | SQLite storage, retention setting | H | M | shipped (D-3) |
@@ -171,6 +179,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Sign and notarize (Developer ID) so permissions survive updates; custom `.icns` | H | M | considering, needed before sharing builds |
 | Auto-update (electron-updater) | M | M | idea |
 | Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | idea |
+| An Otty test harness: drive the real overlay and windows in Electron with real input, as a repeatable `npm` script rather than one-off scripts | M | M | idea |
+| Only run the `dmg` workflow on PRs that change packaging, and allow auto-merge, because Mac runner queues held up a release | M | S | idea |
 | Provider presets in Settings (DeepSeek, OpenAI, local Ollama) with a model picker | M | S | shipped |
 | Fully local mode (local LLM via an Ollama-compatible endpoint) for privacy-first users | M | S | stretch goal: built, labelled experimental, not fully supported |
 | CI: typecheck and build on every PR, then tests, then an unsigned `.dmg` artifact | H | S | shipped (D-4) |
@@ -208,9 +218,9 @@ The model streams quickly, but the first token still takes about a second. So th
 | Vote before thinking: for D-12's `problem` tier, run 3 parallel non-thinking passes; if they agree, answer, and only use thinking if they don't | M | M | idea, measure in `tools/math-eval/` |
 | Second look: a checker reads the finished answer while the user does, and only speaks up if a cited page or fact doesn't hold | M | M | idea |
 | Reading buddy: a session the user starts, where each ⌘C gets a small gloss card and a running word list that feeds the phrasebook | M | M | idea |
-| Warm explain terms: fetch an answer's `[term](#explain)` cards as soon as it finishes, so a tap opens instantly | M | S | → D-18 |
-| Proofread card for writing in a second language: a highlighted draft comes back as a marked-up diff with one plain reason per fix | H | S–M | → D-17 |
-| Model-written chat titles: replace the cut-off question from `titleFor` with a short real title once the first answer lands, so Recent chats and search read better | M | S | → D-19 |
+| Warm explain terms: fetch an answer's `[term](#explain)` cards as soon as it finishes, so a tap opens instantly | M | S | shipped |
+| Proofread card for writing in a second language: a highlighted draft comes back as a marked-up diff with one plain reason per fix | H | S–M | shipped |
+| Model-written chat titles: replace the cut-off question from `titleFor` with a short real title once the first answer lands, so Recent chats and search read better | M | S | shipped |
 | Answer while typing: start speculatively after a short pause so the answer is ready on ↵ | M | M | parked: it sends words the user might delete, which breaks the "nothing until you ask" rule |
 
 ## Scaling with better models
@@ -274,7 +284,7 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Keep going after closing: a long task carries on when the panel closes, and the unseen-answer dot says when it's ready | M | S–M | idea, after Ask me later: answers already do this; only longer tasks are missing |
 | Local-only noticing: opt-in triggers from app switches and error dialogs on the Mac; nothing is sent until the user taps | H | L | considering, replaces the paw-raise idea's design; uses the AX helper |
 | Morning note: an opt-in daily summary from memories, reminders and the calendar | M | M | idea, after calendar access |
-| Idle budget: set and test limits for CPU, memory and battery, because an always-on app that drains the laptop gets quit | H | S | → D-16 |
+| Idle budget: set and test limits for CPU, memory and battery, because an always-on app that drains the laptop gets quit | H | S | shipped |
 
 ## Otty's chores: work Otty starts itself
 

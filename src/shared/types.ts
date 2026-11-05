@@ -287,4 +287,6 @@ export interface OttyApi {
   onBubbleState(cb: (s: BubbleState) => void): () => void
   /** True while an answer is waiting that the user hasn't seen. */
   onBubbleBadge(cb: (on: boolean) => void): () => void
+  /** Whether this window is on screen. */
+  onWindowVisible(cb: (visible: boolean) => void): () => void
 }
