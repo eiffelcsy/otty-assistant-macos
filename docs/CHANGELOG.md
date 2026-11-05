@@ -9,7 +9,7 @@ On `main`, for the next release.
 ### Idle budget (D-16, 2026-11-05)
 
 - **Measured for the first time,** with `OTTY_METRICS=1` (`metrics.ts`): idle Otty used 1.6% of a core, nearly all of it the otter's smooth float redrawing all day.
-- **The float is now stepped,** which measured about 0.35%. It only travels 1.5px, so it should look the same. Hidden windows now pause their animations too.
+- **Now about 0.25%.** The float is stepped, and it only travels 1.5px, so it should look the same. Hidden windows pause their animations, and read 0.00%.
 
 ### Proofread card (D-17, 2026-11-05)
 
