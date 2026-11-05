@@ -187,13 +187,12 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - Real search and `read_page` only exist with DeepSeek's key. Other online services get Wikipedia and DuckDuckGo, and local models get no web tools.
 - Only one key can be saved, and it's read from one setting.
 - Onboarding, the key link and Settings copy name DeepSeek.
-- The service is worked out from the address (`profileFor`). Step 4 replaces that with a choice.
 
 ### Design decisions
 - **The OpenAI-shaped `Message` stays Otty's internal format.** Adapters translate as they send. Saved chats need no migration, `knownUrls.ts` and `store/images.ts` don't change, and switching provider mid-chat keeps working.
 - **Anything provider-specific rides along opaquely.** An assistant `Message` gains `provider?: { id, model, blocks }`, which is how Claude's thinking blocks survive a tool loop. It's JSON in `llm_history`, so there's no schema change. Adapters only replay blocks for the same provider and model.
 - **Features ask for what they need, not for a provider.** Code outside `src/main/providers/` never checks a provider's name: it reads the profile.
-- **`@anthropic-ai/sdk` for Claude, raw `fetch` for the rest.** The SDK handles streaming, retries and typed errors, and the Claude API moves quickly. It's a runtime dependency of main only, hidden behind the adapter.
+- **`@anthropic-ai/sdk` for the Anthropic format, raw `fetch` for OpenAI's.** The SDK handles streaming, retries and typed errors, and is bundled into main like everything else.
 
 ### The provider layer (`src/main/providers/`)
 ```ts
@@ -208,11 +207,11 @@ interface Provider {
 - `run()`'s loop stays in `ChatSession` and only sees `ProviderEvent`s. `explainTerm`, `testConnection` and `canSeeImages` use `complete()`.
 - Errors become one `FriendlyError` per case (bad key, no credit, busy, too long, no vision), each with the provider's name and top-up link from the profile.
 
-**Profile**, in `providers/profiles.ts`, one per preset. Step 2 added the fields features already use. `kind`, `baseUrl`, `model`, `keyUrl` and `vision` come with steps 3 and 4:
+**Profile**, in `providers/profiles.ts`, one per preset. It's found from the address, and Settings → API format can override the format. `baseUrl`, `keyUrl` and `vision` come with step 4:
 
 | Field | Example |
 | --- | --- |
-| `id`, `label`, `kind` | `claude`, "Claude", `anthropic` (or `openai`) |
+| `id`, `label`, `format` | `claude`, "Claude", `anthropic` (or `openai`) |
 | `baseUrl`, `model`, `keyUrl`, `needsKey` | a local model has no key |
 | `contextTokens` | drives the file budget, replacing `FILE_TOKEN_BUDGET` |
 | `vision` | whether snips can be offered |
@@ -222,14 +221,12 @@ interface Provider {
 
 Presets: DeepSeek, Claude, OpenAI, Local (Ollama or LM Studio), and Custom (any OpenAI-compatible address). Model lists come from each provider's models endpoint where there is one, with a text field as the fallback.
 
-### Claude adapter: what's different
-- The system prompt is a top-level field, and `max_tokens` is required.
-- Tools use `input_schema`. Consecutive `tool` messages merge into **one** user message of `tool_result` blocks, and `tool_calls` become `tool_use` blocks with parsed input.
-- Data URLs become base64 image blocks.
-- `refusal` arrives as HTTP 200, and needs a kind message rather than an empty answer.
-- **Thinking blocks go back unchanged, and history must not be edited.** Newer accounts can get a 400 otherwise. `run()` deletes `reasoning_content` between turns, so adapters must keep their own blocks. D-12 step 0 fixes the rest of the history.
-- **Latency:** Opus 5.5 always thinks, so check it against NFR-2 before making it a default. Haiku 5.5 is the likely fit for Otty's quick answers and for background calls.
-- Use a top-level `cache_control` so the stable prompt prefix is cached.
+### Two API formats, not one adapter per company
+Otty speaks two formats: OpenAI's `/chat/completions` and Anthropic's Messages. The user sets the format, address, model and key, and presets only fill those in, so any server that speaks either format works with no new code. Both are built (`providers/openai.ts`, `providers/anthropic.ts`). Facts for later steps:
+- **Claude's extras go only to `api.anthropic.com`:** thinking settings, effort, caching and fallbacks. Other servers get a plain request.
+- **Replays are tied to the host.** Thinking is signed by the server that wrote it, so a reply from anywhere else is rebuilt from its text and tool calls.
+- **Latency:** Sonnet 5.5 is Claude's default, chosen for answer quality over Haiku 5.5. Check it against NFR-2 in step 6.
+- **"Use tools only when they genuinely help"** is in the prompt, and Sonnet 5.5 takes that literally. Step 6 should check it still reaches for tools.
 
 ### Local models
 - `needsKey: false`: `config()` stops requiring a key, and onboarding can finish without one.
@@ -255,14 +252,15 @@ Whatever ships, `PublicSettings.readsPages` (D-15) comes from the profile, and S
 ### Steps
 1. **Provider layer.** Shipped; see CHANGELOG.
 2. **Profiles and local.** Shipped; see CHANGELOG. Not yet tried against a real Ollama or LM Studio: step 6 does that, and should check the 8K window, Ollama's default context size, and the wording of its "no tools" error.
-3. **Claude adapter** (1.5–2 days).
-4. **Picker, keys and copy** (1–1.5 days). `tools/ui-preview`: `scene=provider`.
+3. **Anthropic format.** Shipped; see CHANGELOG. Not yet run against the real API: step 6 does that.
+4. **Presets, keys and copy** (1 day). Presets fill in the format, address and model, with one key per service. `tools/ui-preview`: `scene=provider`.
 5. **Web tools** (1–3 days), after the prototype.
 6. **Model checks** (1–2 days): run a short set of real tasks on each preset, covering tool calls, explain terms, tips, 繁體中文, snips and a long file. It's the first slice of the "Otty eval" in BRAINSTORM.
 
 ### Open questions
-- Which Claude and OpenAI models does each preset default to? It's a cost and speed choice.
-- Does stripping pictures from a reopened chat count as an edit once it holds thinking blocks? Test it on Claude. If it does, a reopened chat may need to drop its stored blocks, and that needs testing too.
+- Which OpenAI model does its preset start on? It's a cost and speed choice. Claude starts on Sonnet 5.5.
+- Stripping pictures from a reopened chat does count as an edit. `drop_block` should turn that into a quiet loss of old thinking, not a 400. Confirm it on the real API in step 6.
+- Does a third-party Anthropic-style server accept `tool_choice: none` and both auth headers? Step 6.
 - Which local models are good enough to recommend? Step 6 decides.
 
 **Done when:**

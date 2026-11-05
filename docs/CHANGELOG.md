@@ -6,6 +6,15 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release.
 
+### Any Anthropic-style server, including Claude (D-20 step 3, 2026-11-05)
+
+- **Otty now speaks two API formats.** Set the server address, model and key, and pick **API format** in Settings: Automatic, OpenAI-style or Anthropic-style. Automatic goes by the address, so nothing changes for existing users.
+- **Claude works** at `https://api.anthropic.com`, with `claude-sonnet-5-5` as the model to start on. It streams, uses tools and reads snips. Thinking blocks go back unchanged across tool rounds and turns, the prompt is cached, and a chat whose history changed quietly loses old thinking instead of failing.
+- **Other Anthropic-style servers** get a plain request with none of Claude's extras. Their key goes out both ways, because servers differ, and with no key the SDK can't pick one up from elsewhere on the Mac.
+- **Chats move between services.** A reply is only replayed to the server that wrote it. Anywhere else it's rebuilt from its text and tool calls.
+- **A refusal shows a kind message** on any service, and the turn is forgotten. On Claude, the API first tries a fallback model (`fallbacks: "default"`).
+- Friendly error messages are now shared, so both formats say the same thing.
+
 ### Local models and provider profiles (D-20 step 2, 2026-11-05)
 
 - **A model on the Mac works with no key.** Point the model address at Ollama or LM Studio and Otty stops asking for one. Friendly messages cover the usual problems: the server isn't running, or the model isn't downloaded.

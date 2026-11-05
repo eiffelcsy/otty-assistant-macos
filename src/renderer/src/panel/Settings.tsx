@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { KeepChats, PublicSettings } from '../../../shared/types'
+import type { ApiFormat, KeepChats, PublicSettings } from '../../../shared/types'
 import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
 import { Icon } from '../components/Icon'
 
@@ -52,6 +52,14 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
         <label className="label">
           Server address
           <input className="field" value={form.baseUrl} onChange={(e) => set('baseUrl', e.target.value)} />
+        </label>
+        <label className="label">
+          API format
+          <select className="field" value={form.apiFormat} onChange={(e) => set('apiFormat', e.target.value as ApiFormat)}>
+            <option value="auto">Automatic</option>
+            <option value="openai">OpenAI-style</option>
+            <option value="anthropic">Anthropic-style</option>
+          </select>
         </label>
         <label className="toggle">
           <input type="checkbox" checked={form.thinking} onChange={(e) => set('thinking', e.target.checked)} />

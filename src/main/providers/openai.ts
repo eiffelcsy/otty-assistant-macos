@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { FriendlyError, NoToolsError, NoVisionError } from './errors'
+import { FriendlyError, friendlyConnection, friendlyStatus, NoToolsError } from './errors'
 import type { Profile } from './profiles'
 import type { ChatRequest, Provider, ProviderEvent, StopReason, ToolCall } from './types'
 
@@ -14,39 +14,28 @@ export interface OpenAiConfig {
   profile: Profile
 }
 
-function friendlyHttp(status: number, body: string, profile: Profile): FriendlyError {
-  if (status === 401) return new FriendlyError('Otty’s key doesn’t look right. Please check it in Settings.')
-  if (status === 402) {
-    const where = profile.topUp ? ` Top up at ${profile.topUp}, then try again.` : ''
-    return new FriendlyError(`${profile.topUp ? `Your ${profile.label}` : 'Your'} balance is empty.${where}`)
-  }
-  if (status === 404 && profile.id === 'local') {
-    return new FriendlyError('Otty can’t find that model. Check its name in Settings, and that it’s downloaded in Ollama or LM Studio.')
-  }
-  if (status === 429) return new FriendlyError('Otty is getting lots of questions right now. Give it a few seconds and try again.')
-  if (status >= 500) return new FriendlyError('The AI service is having a moment. Please try again shortly.')
-  if (status === 400 && /does not support tools|tools? (is|are) not supported/i.test(body)) {
-    return new NoToolsError('This model can’t use tools.')
-  }
-  if (status === 400 && /image|vision|multimodal/i.test(body)) {
-    return new NoVisionError('This model can’t look at pictures. Try a vision-capable model in Settings.')
-  }
-  console.error('LLM error', status, body)
-  return new FriendlyError(`Something went wrong (error ${status}). Please try again.`)
+function httpError(status: number, body: string, profile: Profile): FriendlyError {
+  if (status === 400 && /does not support tools|tools? (is|are) not supported/i.test(body)) return new NoToolsError('This model can’t use tools.')
+  return friendlyStatus(status, body, profile)
 }
 
 function networkError(err: unknown, profile: Profile): Error {
   if (err instanceof FriendlyError || (err as Error).name === 'AbortError') return err as Error
-  if (profile.id === 'local') return new FriendlyError('Otty can’t reach your local model. Check that Ollama or LM Studio is running.')
-  return new FriendlyError('Otty can’t reach the internet. Check your connection and try again.')
+  return friendlyConnection(profile)
 }
 
 function requestBody(config: OpenAiConfig, req: ChatRequest): object {
   const thinks = req.reasoning ? req.reasoning !== 'least' : config.thinking
+  // Another service's record of a reply means nothing here, and a strict server would reject it.
+  const messages = req.messages.map((m) => {
+    if (m.role !== 'assistant') return m
+    const { provider: _provider, ...rest } = m
+    return rest
+  })
   return {
     model: config.model,
     ...(config.profile.reasoning === 'thinking-field' ? { thinking: { type: thinks ? 'enabled' : 'disabled' } } : {}),
-    messages: req.system === undefined ? req.messages : [{ role: 'system', content: req.system }, ...req.messages]
+    messages: req.system === undefined ? messages : [{ role: 'system', content: req.system }, ...messages]
   }
 }
 
@@ -62,7 +51,7 @@ async function post(config: OpenAiConfig, body: object, signal?: AbortSignal): P
   } catch (err) {
     throw networkError(err, config.profile)
   }
-  if (!res.ok) throw friendlyHttp(res.status, await res.text().catch(() => ''), config.profile)
+  if (!res.ok) throw httpError(res.status, await res.text().catch(() => ''), config.profile)
   return res
 }
 
@@ -104,7 +93,7 @@ export function openAiProvider(config: () => OpenAiConfig): Provider {
       const c = config()
       const measure = !app.isPackaged
       const sentAt = Date.now()
-      const send = (tools = req.tools) =>
+      const send = (tools = req.toolsOff ? [] : req.tools) =>
         post(
           c,
           {

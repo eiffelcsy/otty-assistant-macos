@@ -5,13 +5,14 @@ let home: HomeLanguage | null = 'zh-HK'
 let key = 'key'
 let thinking = false
 let baseUrl = 'https://api.deepseek.com/'
+let apiFormat = 'auto'
 
 vi.mock('electron', () => ({
   nativeImage: { createFromBitmap: () => ({ toPNG: () => Buffer.from('png') }) },
   app: { isPackaged: true, getPath: () => '' }
 }))
 vi.mock('../settings', () => ({
-  getStored: () => ({ baseUrl, model: 'm', thinking, homeLanguage: home, rememberChats: false }),
+  getStored: () => ({ baseUrl, apiFormat, model: 'm', thinking, homeLanguage: home, rememberChats: false }),
   getApiKey: () => key
 }))
 vi.mock('../store', () => ({ chatStore: () => ({ write: async () => {} }), pruneOldChats: async () => {} }))
@@ -58,6 +59,7 @@ beforeEach(() => {
   key = 'key'
   thinking = false
   baseUrl = 'https://api.deepseek.com/'
+  apiFormat = 'auto'
   requests = []
   replies = []
   vi.useRealTimers()
@@ -337,5 +339,151 @@ describe('another online service', () => {
     const seen: ChatEvent[] = []
     await new ChatSession((e) => seen.push(e)).send('Hello', [], null)
     expect(seen.find((e) => e.type === 'error')).toMatchObject({ message: expect.stringContaining('needs an OpenAI key') })
+  })
+})
+
+describe('the API format', () => {
+  it('uses the format the user chose for an unknown address', async () => {
+    baseUrl = 'https://models.example.com'
+    apiFormat = 'anthropic'
+    let url = ''
+    vi.stubGlobal('fetch', async (u: string | URL) => {
+      url = String(u)
+      return Response.json({ id: 'm', type: 'message', role: 'assistant', model: 'x', content: [{ type: 'text', text: 'Hi' }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } })
+    })
+    await explainTerm('CDN', '')
+    expect(url).toBe('https://models.example.com/v1/messages')
+    apiFormat = 'openai'
+    vi.stubGlobal('fetch', async (u: string | URL) => {
+      url = String(u)
+      return Response.json({ choices: [] })
+    })
+    await explainTerm('CDN', '')
+    expect(url).toBe('https://models.example.com/chat/completions')
+  })
+})
+
+describe('a chat on Claude', () => {
+  type Sent = { messages: { role: string; content: unknown }[]; system?: string; tools?: unknown; tool_choice?: unknown }
+  let bodies: Sent[] = []
+  let claudeReplies: Response[] = []
+
+  /** A reply with thinking first, as Claude sends it. */
+  function reply(blocks: Record<string, unknown>[], stop = 'end_turn'): Response {
+    const events: object[] = [
+      { type: 'message_start', message: { id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-5-5', content: [], stop_reason: null, usage: { input_tokens: 1, output_tokens: 1 } } }
+    ]
+    blocks.forEach((block, index) => {
+      if (block.type === 'text') {
+        events.push({ type: 'content_block_start', index, content_block: { type: 'text', text: '' } })
+        events.push({ type: 'content_block_delta', index, delta: { type: 'text_delta', text: block.text } })
+      } else if (block.type === 'tool_use') {
+        events.push({ type: 'content_block_start', index, content_block: { ...block, input: {} } })
+        events.push({ type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(block.input) } })
+      } else {
+        events.push({ type: 'content_block_start', index, content_block: { type: 'thinking', thinking: '', signature: '' } })
+        events.push({ type: 'content_block_delta', index, delta: { type: 'signature_delta', signature: block.signature } })
+      }
+      events.push({ type: 'content_block_stop', index })
+    })
+    events.push({ type: 'message_delta', delta: { stop_reason: stop, stop_sequence: null }, usage: { output_tokens: 1 } })
+    events.push({ type: 'message_stop' })
+    const body = events.map((e) => `event: ${(e as { type: string }).type}\ndata: ${JSON.stringify(e)}\n\n`).join('')
+    return new Response(body, { headers: { 'content-type': 'text/event-stream' } })
+  }
+
+  const think = (n: number) => ({ type: 'thinking', thinking: '', signature: `sig-${n}` })
+  const useTool = { type: 'tool_use', id: 'toolu_1', name: 'search_web', input: { query: 'otters' } }
+
+  beforeEach(() => {
+    baseUrl = 'https://api.anthropic.com'
+    bodies = []
+    claudeReplies = []
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)))
+      return claudeReplies.shift() ?? reply([{ type: 'text', text: 'Done.' }])
+    })
+  })
+
+  it('only ever adds to the last request, with thinking sent back unchanged', async () => {
+    const session = new ChatSession(() => {})
+    claudeReplies = [reply([think(1), useTool], 'tool_use'), reply([think(2), { type: 'text', text: 'Otters swim.' }]), reply([think(3), { type: 'text', text: 'Rivers.' }])]
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 10, 4, 9, 0, 1) })
+    await session.send('What are otters?', [], null)
+    vi.setSystemTime(new Date(2026, 10, 4, 9, 7, 42))
+    await session.send('Where do they live?', [], null)
+    await session.send('Thanks', [], null)
+    expect(bodies).toHaveLength(4)
+    for (let i = 1; i < bodies.length; i++) {
+      expect(bodies[i].system).toBe(bodies[0].system)
+      expect(JSON.stringify(bodies[i].tools)).toBe(JSON.stringify(bodies[0].tools))
+      const before = bodies[i - 1].messages
+      expect(JSON.stringify(bodies[i].messages.slice(0, before.length))).toBe(JSON.stringify(before))
+    }
+    expect(JSON.stringify(bodies[3].messages)).toContain('sig-1')
+    expect(JSON.stringify(bodies[3].messages)).toContain('sig-3')
+  })
+
+  it('runs tools and sends the result back', async () => {
+    claudeReplies = [reply([think(1), useTool], 'tool_use'), reply([{ type: 'text', text: 'Found it.' }])]
+    const seen: ChatEvent[] = []
+    await new ChatSession((e) => seen.push(e)).send('Find otters', [], null)
+    expect(seen.some((e) => e.type === 'tool')).toBe(true)
+    expect(bodies[1].messages.at(-1)).toEqual({ role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'A result.' }] })
+    expect(seen.at(-1)?.type).toBe('done')
+  })
+
+  it('keeps the tools listed on the last round, and turns them off instead', async () => {
+    claudeReplies = Array.from({ length: 7 }, () => reply([useTool], 'tool_use'))
+    await new ChatSession(() => {}).send('Keep going', [], null)
+    expect(bodies).toHaveLength(7)
+    expect(bodies[6].tools).toEqual(bodies[0].tools)
+    expect(bodies[6].tool_choice).toEqual({ type: 'none' })
+    expect(bodies[5]).not.toHaveProperty('tool_choice')
+  })
+
+  it('shows a kind message for a refusal, and forgets the turn', async () => {
+    claudeReplies = [reply([], 'refusal'), reply([{ type: 'text', text: 'Fine.' }])]
+    const seen: ChatEvent[] = []
+    const session = new ChatSession((e) => seen.push(e))
+    await session.send('Something it declines', [], null)
+    expect(seen.find((e) => e.type === 'error')).toMatchObject({ message: expect.stringContaining('can’t help with that one') })
+    await session.send('Something else', [], null)
+    expect(bodies[1].messages.map((m) => m.role)).toEqual(['user'])
+  })
+
+  it('carries on after switching to DeepSeek, which never sees Claude’s record', async () => {
+    const session = new ChatSession(() => {})
+    claudeReplies = [reply([think(1), { type: 'text', text: 'Hello from Claude.' }])]
+    await session.send('Hi', [], null)
+    baseUrl = 'https://api.deepseek.com'
+    let body = ''
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      body = String(init.body)
+      return stream(answer('Hello from DeepSeek.'))
+    })
+    await session.send('Still there?', [], null)
+    expect(body).toContain('Hello from Claude.')
+    expect(body).not.toContain('sig-1')
+    expect(body).not.toContain('"provider"')
+  })
+
+  it('carries on after switching from DeepSeek, tool round included', async () => {
+    baseUrl = 'https://api.deepseek.com'
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      requests.push(JSON.parse(String(init.body)))
+      return stream(replies.shift() ?? answer('Done.'))
+    })
+    const session = new ChatSession(() => {})
+    replies = [toolCall(), answer('Otters are mustelids.')]
+    await session.send('Find otters', [], null)
+    baseUrl = 'https://api.anthropic.com'
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)))
+      return reply([{ type: 'text', text: 'Yes.' }])
+    })
+    await session.send('Sure?', [], null)
+    expect(bodies[0].messages.map((m) => m.role)).toEqual(['user', 'assistant', 'user', 'assistant', 'user'])
+    expect(bodies[0].messages[1].content).toEqual([{ type: 'tool_use', id: 'call-1', name: 'search_web', input: { query: 'otters' } }])
   })
 })

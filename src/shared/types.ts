@@ -82,10 +82,14 @@ export interface SendOptions {
 /** How long saved chats are kept, counted from their last message. */
 export type KeepChats = '30d' | '1y' | 'forever'
 
+/** Which API shape the server speaks. `auto` goes by the address, and OpenAI's is the default for an unknown one. */
+export type ApiFormat = 'auto' | 'openai' | 'anthropic'
+
 export interface PublicSettings {
   hasApiKey: boolean
   /** False for a service that works with no key, such as a local model. */
   needsKey: boolean
+  apiFormat: ApiFormat
   baseUrl: string
   model: string
   thinking: boolean

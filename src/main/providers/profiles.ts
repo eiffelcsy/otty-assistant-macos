@@ -1,9 +1,14 @@
+import type { ApiFormat } from '../../shared/types'
 import { isDeepSeek } from '../web'
 
 /** What Otty needs to know about a service. Features read this; they never check which service it is. */
 export interface Profile {
-  id: 'deepseek' | 'openai' | 'local' | 'custom'
+  id: 'deepseek' | 'claude' | 'openai' | 'local' | 'custom'
+  /** The API format it speaks, unless the user chose another in Settings. */
+  format: 'openai' | 'anthropic'
   label: string
+  /** The model to start with. */
+  model?: string
   /** For "Otty needs … first". */
   keyLabel: string
   /** Without a key saved, Otty asks for one before calling. A local model never gets a key at all. */
@@ -13,7 +18,7 @@ export interface Profile {
   /** Size of the model's window, which sets how much of a file is sent. */
   contextTokens: number
   /** How to ask for more or less thinking. */
-  reasoning: 'thinking-field' | 'none'
+  reasoning: 'thinking-field' | 'effort' | 'none'
   tokenLimit: 'max_tokens' | 'max_completion_tokens'
   /** Where search and page reading go. `off` means nothing leaves the Mac. */
   web: 'deepseek' | 'lookup' | 'off'
@@ -21,6 +26,7 @@ export interface Profile {
 
 const DEEPSEEK: Profile = {
   id: 'deepseek',
+  format: 'openai',
   label: 'DeepSeek',
   keyLabel: 'a DeepSeek key',
   needsKey: true,
@@ -31,8 +37,24 @@ const DEEPSEEK: Profile = {
   web: 'deepseek'
 }
 
+/** Claude's window is far bigger, but a bigger file budget would cost more on every question. */
+const CLAUDE: Profile = {
+  id: 'claude',
+  format: 'anthropic',
+  label: 'Claude',
+  model: 'claude-sonnet-5-5',
+  keyLabel: 'a Claude key',
+  needsKey: true,
+  topUp: 'platform.claude.com',
+  contextTokens: 128_000,
+  reasoning: 'effort',
+  tokenLimit: 'max_tokens',
+  web: 'lookup'
+}
+
 const OPENAI: Profile = {
   id: 'openai',
+  format: 'openai',
   label: 'OpenAI',
   keyLabel: 'an OpenAI key',
   needsKey: true,
@@ -46,6 +68,7 @@ const OPENAI: Profile = {
 /** Ollama and LM Studio. Their windows are small by default, so stay well inside them. */
 const LOCAL: Profile = {
   id: 'local',
+  format: 'openai',
   label: 'your local model',
   keyLabel: 'a key',
   needsKey: false,
@@ -58,6 +81,7 @@ const LOCAL: Profile = {
 /** Any other OpenAI-style address. It may or may not want a key, so the service decides. */
 const CUSTOM: Profile = {
   id: 'custom',
+  format: 'openai',
   label: 'your AI service',
   keyLabel: 'a key',
   needsKey: false,
@@ -69,14 +93,21 @@ const CUSTOM: Profile = {
 
 const isLocal = (host: string) => ['localhost', '127.0.0.1', '[::1]'].includes(host) || host.endsWith('.localhost')
 
-export function profileFor(baseUrl: string): Profile {
+function serviceAt(baseUrl: string): Profile {
   if (isDeepSeek(baseUrl)) return DEEPSEEK
   try {
     const { hostname } = new URL(baseUrl)
+    if (hostname === 'api.anthropic.com') return CLAUDE
     if (hostname === 'api.openai.com') return OPENAI
     if (isLocal(hostname)) return LOCAL
   } catch {
     /* not an address yet */
   }
   return CUSTOM
+}
+
+/** What's known about an address. `format` is the user's choice; `auto` goes by the address. */
+export function profileFor(baseUrl: string, format: ApiFormat = 'auto'): Profile {
+  const profile = serviceAt(baseUrl)
+  return format === 'auto' ? profile : { ...profile, format }
 }

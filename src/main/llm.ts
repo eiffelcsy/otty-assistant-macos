@@ -10,7 +10,7 @@ import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
 import { runTool, toolDefs, toolLabel } from './tools'
 import { isKnownUrl } from './knownUrls'
-import { activeProfile, activeProvider, FriendlyError, NoVisionError, type ContentPart, type ToolCall } from './providers'
+import { activeProfile, activeProvider, FriendlyError, NoVisionError, type ContentPart, type ProviderReplay, type ToolCall } from './providers'
 
 // The conversation: what's sent, what comes back and what's saved. Talking to the model service is `providers/`.
 
@@ -219,15 +219,20 @@ export class ChatSession {
     try {
       for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
         const allowTools = round < MAX_TOOL_ROUNDS
-        const replies = activeProvider().stream({ system, messages: history, tools: allowTools ? toolDefs() : undefined }, abort.signal)
+        const replies = activeProvider().stream({ system, messages: history, tools: toolDefs(), toolsOff: !allowTools }, abort.signal)
 
         let content = ''
         let reasoning = ''
         const toolCalls: ToolCall[] = []
+        let replay: ProviderReplay | undefined
 
         for await (const event of replies) {
           if (event.type === 'reasoning') reasoning += event.text
           if (event.type === 'tool') toolCalls.push(event.call)
+          if (event.type === 'done') {
+            if (event.stop === 'refusal') throw new FriendlyError('Otty can’t help with that one. Try asking in a different way.')
+            replay = event.replay
+          }
           if (event.type === 'text') {
             content += event.text
             answer.text += event.text
@@ -239,7 +244,8 @@ export class ChatSession {
           role: 'assistant',
           content: content || null,
           ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
-          ...(reasoning ? { reasoning_content: reasoning } : {})
+          ...(reasoning ? { reasoning_content: reasoning } : {}),
+          ...(replay ? { provider: replay } : {})
         })
         if (!toolCalls.length) break
 

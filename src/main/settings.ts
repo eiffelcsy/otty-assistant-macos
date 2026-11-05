@@ -12,6 +12,7 @@ interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey'> 
 }
 
 const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
+  apiFormat: 'auto',
   baseUrl: 'https://api.deepseek.com',
   model: 'deepseek-flash',
   thinking: false,
@@ -55,7 +56,7 @@ export function getStored(): StoredSettings {
 
 export function getPublic(): PublicSettings {
   const { apiKeyEnc, apiKeyPlain: _p, bubblePosition: _b, ...rest } = load()
-  return { ...rest, hasApiKey: Boolean(apiKeyEnc) || Boolean(process.env.DEEPSEEK_API_KEY), needsKey: profileFor(rest.baseUrl).needsKey }
+  return { ...rest, hasApiKey: Boolean(apiKeyEnc) || Boolean(process.env.DEEPSEEK_API_KEY), needsKey: profileFor(rest.baseUrl, rest.apiFormat).needsKey }
 }
 
 export function getApiKey(): string | null {
