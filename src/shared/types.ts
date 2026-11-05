@@ -1,3 +1,5 @@
+import type { ServiceId } from './services'
+
 // Types shared by main, preload and renderer. Type-only: no runtime code here.
 
 export type ScreenContext =
@@ -89,6 +91,8 @@ export interface PublicSettings {
   hasApiKey: boolean
   /** False for a service that works with no key, such as a local model. */
   needsKey: boolean
+  /** Services with a key saved. Never the keys themselves. */
+  savedKeys: ServiceId[]
   apiFormat: ApiFormat
   baseUrl: string
   model: string
@@ -106,7 +110,7 @@ export interface PublicSettings {
   homeLanguage: HomeLanguage | null
 }
 
-export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey'>> {
+export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys'>> {
   /** Plaintext key from the settings form; main encrypts it. Empty string clears it. */
   apiKey?: string
 }

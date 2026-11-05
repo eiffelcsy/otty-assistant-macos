@@ -4,9 +4,19 @@ import { join } from 'path'
 import type { PublicSettings, SettingsUpdate } from '../shared/types'
 import { defaultHomeLanguage } from './language'
 import { profileFor } from './providers/profiles'
+import { serviceAt, type ServiceId } from '../shared/services'
 
-interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey'> {
-  apiKeyEnc?: string // base64 of safeStorage-encrypted key (or plain, if encryption unavailable)
+interface SavedKey {
+  /** Base64 of the safeStorage-encrypted key, or of the key itself if encryption wasn't available. */
+  enc: string
+  plain?: boolean
+}
+
+interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys'> {
+  /** One per service, so a key only ever goes to the service it belongs to. */
+  apiKeys?: Partial<Record<ServiceId, SavedKey>>
+  /** The single key from before 0.5, moved into `apiKeys` on load. */
+  apiKeyEnc?: string
   apiKeyPlain?: boolean
   bubblePosition?: { x: number; y: number }
 }
@@ -42,8 +52,20 @@ function load(): StoredSettings {
   // Missing means "never chosen", so follow the Mac's languages. A saved null means the user picked "None".
   const homeLanguage = saved.homeLanguage !== undefined ? saved.homeLanguage : defaultHomeLanguage(app.getPreferredSystemLanguages())
   cache = { ...DEFAULTS, ...saved, homeLanguage }
+  moveOldKey(cache)
   return cache
 }
+
+/** The old key belonged to whichever service the address pointed at. */
+function moveOldKey(s: StoredSettings): void {
+  if (!s.apiKeyEnc) return
+  s.apiKeys = { ...s.apiKeys, [serviceAt(s.baseUrl)]: { enc: s.apiKeyEnc, ...(s.apiKeyPlain ? { plain: true } : {}) } }
+  delete s.apiKeyEnc
+  delete s.apiKeyPlain
+  persist()
+}
+
+const envKey = (s: StoredSettings) => (serviceAt(s.baseUrl) === 'deepseek' && process.env.DEEPSEEK_API_KEY) || null
 
 function persist(): void {
   mkdirSync(app.getPath('userData'), { recursive: true })
@@ -55,17 +77,27 @@ export function getStored(): StoredSettings {
 }
 
 export function getPublic(): PublicSettings {
-  const { apiKeyEnc, apiKeyPlain: _p, bubblePosition: _b, ...rest } = load()
-  return { ...rest, hasApiKey: Boolean(apiKeyEnc) || Boolean(process.env.DEEPSEEK_API_KEY), needsKey: profileFor(rest.baseUrl, rest.apiFormat).needsKey }
+  const s = load()
+  const { apiKeys, apiKeyEnc: _e, apiKeyPlain: _p, bubblePosition: _b, ...rest } = s
+  return {
+    ...rest,
+    hasApiKey: Boolean(apiKeys?.[serviceAt(s.baseUrl)]) || Boolean(envKey(s)),
+    needsKey: profileFor(rest.baseUrl, rest.apiFormat).needsKey,
+    savedKeys: Object.keys(apiKeys ?? {}) as ServiceId[]
+  }
 }
 
 export function getApiKey(): string | null {
   const s = load()
-  if (s.apiKeyEnc) {
-    const buf = Buffer.from(s.apiKeyEnc, 'base64')
-    return s.apiKeyPlain ? buf.toString('utf8') : safeStorage.decryptString(buf)
+  const saved = s.apiKeys?.[serviceAt(s.baseUrl)]
+  if (!saved) return envKey(s)
+  const buf = Buffer.from(saved.enc, 'base64')
+  try {
+    return saved.plain ? buf.toString('utf8') : safeStorage.decryptString(buf)
+  } catch (err) {
+    console.error('Could not unlock the saved key', err)
+    return null
   }
-  return process.env.DEEPSEEK_API_KEY ?? null
 }
 
 export function update(u: SettingsUpdate): PublicSettings {
@@ -74,15 +106,11 @@ export function update(u: SettingsUpdate): PublicSettings {
   Object.assign(s, rest)
   if (apiKey !== undefined) {
     const key = apiKey.trim()
-    if (!key) {
-      delete s.apiKeyEnc
-    } else if (safeStorage.isEncryptionAvailable()) {
-      s.apiKeyEnc = safeStorage.encryptString(key).toString('base64')
-      s.apiKeyPlain = false
-    } else {
-      s.apiKeyEnc = Buffer.from(key, 'utf8').toString('base64')
-      s.apiKeyPlain = true
-    }
+    const service = serviceAt(s.baseUrl)
+    const keys = (s.apiKeys ??= {})
+    if (!key) delete keys[service]
+    else if (safeStorage.isEncryptionAvailable()) keys[service] = { enc: safeStorage.encryptString(key).toString('base64') }
+    else keys[service] = { enc: Buffer.from(key, 'utf8').toString('base64'), plain: true }
   }
   persist()
   return getPublic()

@@ -185,8 +185,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Today.** The request and streaming code is behind `src/main/providers/`, and the prompts are nearly provider-free. What's still tied to DeepSeek:
 - Real search and `read_page` only exist with DeepSeek's key. Other online services get Wikipedia and DuckDuckGo, and local models get no web tools.
-- Only one key can be saved, and it's read from one setting.
-- Onboarding, the key link and Settings copy name DeepSeek.
 
 ### Design decisions
 - **The OpenAI-shaped `Message` stays Otty's internal format.** Adapters translate as they send. Saved chats need no migration, `knownUrls.ts` and `store/images.ts` don't change, and switching provider mid-chat keeps working.
@@ -243,22 +241,16 @@ Decide this with a small prototype, because it's the biggest unknown in the esti
 
 Whatever ships, `PublicSettings.readsPages` (D-15) comes from the profile, and Settings → Privacy says where lookups go for the chosen provider, which also closes the gap noted in BRAINSTORM.
 
-### Settings and onboarding
-- Onboarding's key step becomes **Choose Otty's brain**: the presets as cards, then a key field and link only if they're needed. DeepSeek stays the default.
-- `provider` and one encrypted key per provider. Switching back never loses a key. On first launch, an old `apiKeyEnc` becomes the DeepSeek key, and a non-DeepSeek `baseUrl` becomes Custom. `DEEPSEEK_API_KEY` still works in dev.
-- Settings shows the picker, with Advanced for the address and model, and warns when a choice loses something ("This model can't see snips").
-- Each provider's privacy line says where questions go.
-
 ### Steps
 1. **Provider layer.** Shipped; see CHANGELOG.
 2. **Profiles and local.** Shipped; see CHANGELOG. Not yet tried against a real Ollama or LM Studio: step 6 does that, and should check the 8K window, Ollama's default context size, and the wording of its "no tools" error.
 3. **Anthropic format.** Shipped; see CHANGELOG. Not yet run against the real API: step 6 does that.
-4. **Presets, keys and copy** (1 day). Presets fill in the format, address and model, with one key per service. `tools/ui-preview`: `scene=provider`.
+4. **Presets, keys and copy.** Shipped; see CHANGELOG. Model lists from each service's models endpoint are still an idea, so OpenAI and local models are typed in.
 5. **Web tools** (1–3 days), after the prototype.
 6. **Model checks** (1–2 days): run a short set of real tasks on each preset, covering tool calls, explain terms, tips, 繁體中文, snips and a long file. It's the first slice of the "Otty eval" in BRAINSTORM.
 
 ### Open questions
-- Which OpenAI model does its preset start on? It's a cost and speed choice. Claude starts on Sonnet 5.5.
+- Which OpenAI model should its preset start on? It's empty for now, so the user types one. Claude starts on Sonnet 5.5.
 - Stripping pictures from a reopened chat does count as an edit. `drop_block` should turn that into a quiet loss of old thinking, not a 400. Confirm it on the real API in step 6.
 - Does a third-party Anthropic-style server accept `tool_choice: none` and both auth headers? Step 6.
 - Which local models are good enough to recommend? Step 6 decides.

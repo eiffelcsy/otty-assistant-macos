@@ -1,6 +1,8 @@
 // DeepSeek's Search and Fetch APIs (D-9): real web search and page reading with the key users already have.
 // No Electron imports, so it can be tested on its own. `tools.ts` decides when to use it.
 
+import { serviceAt } from '../shared/services'
+
 /** Where and how to call DeepSeek. */
 export interface WebConfig {
   baseUrl: string
@@ -14,11 +16,7 @@ const TIMEOUT_MS = 15_000
 
 /** True when the base URL is DeepSeek's own API, the only one with these endpoints. */
 export function isDeepSeek(baseUrl: string): boolean {
-  try {
-    return new URL(baseUrl).host === 'api.deepseek.com'
-  } catch {
-    return false
-  }
+  return serviceAt(baseUrl) === 'deepseek'
 }
 
 /** A failure the model can pass on in plain words. `fallback` = worth trying another search. */

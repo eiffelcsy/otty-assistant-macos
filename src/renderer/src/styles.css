@@ -1822,3 +1822,17 @@ html[data-view='quick'] body {
   background-color: var(--straw);
   color: var(--shadow-ink);
 }
+
+/* Choosing Otty's brain, in Settings and on the welcome page. */
+.connection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+
+.connection .link-btn {
+  align-self: flex-start;
+  font-size: 13px;
+}

@@ -22,7 +22,7 @@ Otty is a cute otter assistant for macOS. It floats on screen as a small button,
 | Build | **electron-vite** + Vite | One config for main, preload and renderer, with hot reload |
 | UI | **React + TypeScript**, plain CSS with design tokens | Simple, no CSS framework to learn |
 | Markdown | `react-markdown` + `remark-gfm` | Rich answers with clickable "explain" terms |
-| LLM | **DeepSeek `deepseek-flash`** over the OpenAI-compatible `/chat/completions` API, called with raw `fetch` + SSE | No SDK lock-in. Base URL and model can be changed in Settings, so any OpenAI-compatible provider works |
+| LLM | The user's choice: DeepSeek by default, Claude, OpenAI, a local model, or any OpenAI-style or Anthropic-style address | One adapter per API format (`src/main/providers/`), so a new service needs no new code |
 | Screen capture | macOS built-in `screencapture -i` | The native crosshair box-drawing UX Mac users already know |
 | Selected text | Copy-and-restore clipboard trick (simulated ⌘C via `osascript`) | Works in nearly every app; needs Accessibility permission |
 | Secrets | Electron `safeStorage` (backed by the macOS Keychain) | The API key never touches the renderer or plain disk |
@@ -99,9 +99,9 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-7.5 Answers never load remote pictures: an image in an answer shows only its description.
 
 ### FR-8 Onboarding & settings (P0)
-- FR-8.1 First run shows a 3-step welcome: (1) meet Otty and pick "My other language", (2) paste your DeepSeek key, with a link to get one and a **Test** button, (3) grant permissions, with live status ticks.
-- FR-8.2 Settings: API key, server address, model, "Think deeper (slower)" toggle, show/hide the floating otter, shortcuts, "My other language", and Privacy (app awareness, saved chats, how long to keep them).
-- FR-8.3 The API key is stored encrypted and is never sent to the renderer. The renderer only sees `hasApiKey`.
+- FR-8.1 First run shows a 3-step welcome: (1) meet Otty and pick "My other language", (2) choose a service and paste its key, with a link to get one and a **Test** button, (3) grant permissions, with live status ticks.
+- FR-8.2 Settings: a service picker with its key and model (address and API format under Advanced), "Think deeper (slower)" toggle, show/hide the floating otter, shortcuts, "My other language", and Privacy (app awareness, saved chats, how long to keep them).
+- FR-8.3 Each service has its own key, stored encrypted and never sent to the renderer or to another service. The renderer only sees which services have a key.
 
 ### FR-9 App awareness (P0)
 - FR-9.1 Each hotkey, bubble click or snip also notes the frontmost app's name and window title, and for Safari / Chromium browsers (Chrome, Arc, Brave, Edge, Vivaldi, Opera) the current page address with its query and fragment removed. This runs alongside the selection copy, so it adds no delay.

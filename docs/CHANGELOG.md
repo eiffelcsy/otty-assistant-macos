@@ -6,6 +6,12 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release.
 
+### Choose Otty's brain (D-20 step 4, 2026-11-05)
+
+- **Pick a service, paste a key.** Settings and the welcome page now offer DeepSeek, Claude, OpenAI, On this Mac and Another service, and each fills in its own address and model (`shared/services.ts`). The address and API format sit under Advanced. DeepSeek stays the default.
+- **One key per service.** Switching back never loses a key, and a key only ever goes to its own service. Before, the saved key went to whatever address was set. Keys from earlier versions move across on first launch, so upgrading needs no setup. A key that can't be unlocked counts as missing instead of crashing.
+- **Each service says where things go,** both for questions and for web lookups, in Settings → Privacy.
+
 ### Any Anthropic-style server, including Claude (D-20 step 3, 2026-11-05)
 
 - **Otty now speaks two API formats.** Set the server address, model and key, and pick **API format** in Settings: Automatic, OpenAI-style or Anthropic-style. Automatic goes by the address, so nothing changes for existing users.

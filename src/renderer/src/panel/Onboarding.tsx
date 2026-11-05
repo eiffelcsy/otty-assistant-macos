@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { HomeLanguage, Permissions, PublicSettings } from '../../../shared/types'
+import { serviceAt, serviceById } from '../../../shared/services'
+import { connectionReady, ConnectionFields, type Connection } from '../components/ConnectionFields'
 import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
@@ -8,7 +10,8 @@ import { prettyKey } from '../lib/keys'
 export function Onboarding({ settings, onDone }: { settings: PublicSettings; onDone: (s: PublicSettings) => void }) {
   const [step, setStep] = useState(0)
   const [key, setKey] = useState('')
-  const [hasKey, setHasKey] = useState(settings.hasApiKey || !settings.needsKey)
+  const [connection, setConnection] = useState<Connection>({ baseUrl: settings.baseUrl, model: settings.model, apiFormat: settings.apiFormat })
+  const [saved, setSaved] = useState(settings.savedKeys)
   const [test, setTest] = useState<{ ok: boolean; message: string } | null>(null)
   const [testing, setTesting] = useState(false)
   const [perms, setPerms] = useState<Permissions | null>(null)
@@ -26,13 +29,15 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
   const saveAndTest = async () => {
     setTesting(true)
     setTest(null)
-    if (key.trim()) {
-      const s = await window.otty.saveSettings({ apiKey: key.trim() })
-      setHasKey(s.hasApiKey)
-    }
+    const s = await window.otty.saveSettings({ ...connection, ...(key.trim() ? { apiKey: key.trim() } : {}) })
+    setSaved(s.savedKeys)
+    setKey('')
     setTest(await window.otty.testConnection())
     setTesting(false)
   }
+
+  const service = serviceById(serviceAt(connection.baseUrl))
+  const canTest = connectionReady(connection) && (!service.needsKey || Boolean(key.trim()) || saved.includes(service.id))
 
   const finish = async () => onDone(await window.otty.saveSettings({ onboarded: true }))
 
@@ -70,23 +75,10 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
 
       {step === 1 && (
         <div className="onboarding__page">
-          <h2>Give Otty a brain</h2>
-          <p>
-            Otty uses DeepSeek to think. Paste your key below — it stays locked in your Mac’s Keychain.
-          </p>
-          <button className="link-btn" onClick={() => window.otty.openExternal('https://platform.deepseek.com/api_keys')}>
-            Don’t have a key? Get one here <Icon name="arrow-up-right-from-square" />
-          </button>
-          <input
-            className="field"
-            type="password"
-            placeholder={hasKey ? 'Key saved (paste to replace)' : 'sk-…'}
-            value={key}
-            onChange={(e) => setKey(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && saveAndTest()}
-            autoFocus
-          />
-          <button className="btn btn--soft btn--wide" disabled={testing || (!key.trim() && !hasKey)} onClick={saveAndTest}>
+          <h2>Choose Otty’s brain</h2>
+          <p>Otty needs an AI service to think. Keys stay locked in your Mac’s Keychain.</p>
+          <ConnectionFields value={connection} onChange={setConnection} apiKey={key} onKey={setKey} savedKeys={saved} autoFocus />
+          <button className="btn btn--soft btn--wide" disabled={testing || !canTest} onClick={saveAndTest}>
             {testing ? 'Checking…' : 'Save & test'}
           </button>
           {test && <div className={test.ok ? 'ok-card' : 'error-card'}>{test.message}</div>}

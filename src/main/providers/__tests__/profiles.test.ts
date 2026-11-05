@@ -31,8 +31,8 @@ describe('profileFor', () => {
     expect(profileFor('https://api.deepseek.com')).toMatchObject({ needsKey: true, contextTokens: 128_000, reasoning: 'thinking-field', web: 'deepseek' })
   })
 
-  it('starts Claude on Sonnet 5.5', () => {
-    expect(profileFor('https://api.anthropic.com')).toMatchObject({ format: 'anthropic', model: 'claude-sonnet-5-5', needsKey: true })
+  it('knows Claude speaks the Anthropic format', () => {
+    expect(profileFor('https://api.anthropic.com')).toMatchObject({ format: 'anthropic', needsKey: true })
   })
 
   it('goes by the address unless the user chose a format', () => {

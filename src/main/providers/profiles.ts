@@ -1,14 +1,12 @@
 import type { ApiFormat } from '../../shared/types'
-import { isDeepSeek } from '../web'
+import { serviceAt, type ServiceId } from '../../shared/services'
 
 /** What Otty needs to know about a service. Features read this; they never check which service it is. */
 export interface Profile {
-  id: 'deepseek' | 'claude' | 'openai' | 'local' | 'custom'
+  id: ServiceId
   /** The API format it speaks, unless the user chose another in Settings. */
   format: 'openai' | 'anthropic'
   label: string
-  /** The model to start with. */
-  model?: string
   /** For "Otty needs … first". */
   keyLabel: string
   /** Without a key saved, Otty asks for one before calling. A local model never gets a key at all. */
@@ -42,7 +40,6 @@ const CLAUDE: Profile = {
   id: 'claude',
   format: 'anthropic',
   label: 'Claude',
-  model: 'claude-sonnet-5-5',
   keyLabel: 'a Claude key',
   needsKey: true,
   topUp: 'platform.claude.com',
@@ -91,23 +88,10 @@ const CUSTOM: Profile = {
   web: 'lookup'
 }
 
-const isLocal = (host: string) => ['localhost', '127.0.0.1', '[::1]'].includes(host) || host.endsWith('.localhost')
-
-function serviceAt(baseUrl: string): Profile {
-  if (isDeepSeek(baseUrl)) return DEEPSEEK
-  try {
-    const { hostname } = new URL(baseUrl)
-    if (hostname === 'api.anthropic.com') return CLAUDE
-    if (hostname === 'api.openai.com') return OPENAI
-    if (isLocal(hostname)) return LOCAL
-  } catch {
-    /* not an address yet */
-  }
-  return CUSTOM
-}
+const PROFILES: Record<ServiceId, Profile> = { deepseek: DEEPSEEK, claude: CLAUDE, openai: OPENAI, local: LOCAL, custom: CUSTOM }
 
 /** What's known about an address. `format` is the user's choice; `auto` goes by the address. */
 export function profileFor(baseUrl: string, format: ApiFormat = 'auto'): Profile {
-  const profile = serviceAt(baseUrl)
+  const profile = PROFILES[serviceAt(baseUrl)]
   return format === 'auto' ? profile : { ...profile, format }
 }

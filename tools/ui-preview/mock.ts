@@ -12,7 +12,7 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick  ?scene=chat|empty|compose|tray|settings|history|find  ?home=none
+// ?view=panel|quick  ?scene=chat|empty|compose|tray|settings|provider|history|find  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -20,6 +20,7 @@ const scene = q.get('scene') ?? 'chat'
 const settings: PublicSettings = {
   hasApiKey: true,
   needsKey: true,
+  savedKeys: ['deepseek'],
   apiFormat: 'auto',
   baseUrl: 'https://api.deepseek.com',
   model: 'deepseek-flash',
@@ -180,7 +181,7 @@ const api: OttyApi = {
     // Once only: StrictMode subscribes twice, and a second snip would land in the tray.
     if (scene === 'tray' && !trayed.panel) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 160)
     trayed.panel = true
-    if (scene === 'settings') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    if (scene === 'settings' || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
     if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)
     if (scene === 'history') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 120)
     return () => {}
