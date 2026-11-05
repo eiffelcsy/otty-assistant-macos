@@ -23,6 +23,7 @@ On `main`, for the next release.
 
 ### Local models and provider profiles (D-20 step 2, 2026-11-05)
 
+- **Stretch goal, not fully supported.** Local models are implemented but have not been tested against a real Ollama or LM Studio.
 - **A model on the Mac works with no key.** Point the model address at Ollama or LM Studio and Otty stops asking for one. Friendly messages cover the usual problems: the server isn't running, or the model isn't downloaded.
 - **With a local model, nothing leaves the Mac.** Web tools aren't offered, the prompt says so, and `runTool` refuses a search even if the model asks for one by name. The key saved for an online service is never sent to it.
 - **Each service gets what it expects** (`providers/profiles.ts`). Only DeepSeek gets the `thinking` field, which strict servers can reject. OpenAI gets `max_completion_tokens`. A model that can't use tools is asked again without them, because many local ones reject them outright.
