@@ -1,4 +1,4 @@
-import type { Capture, FileAttachment, HomeLanguage, QuickAction, ScreenContext } from '../../../shared/types'
+import type { AppInfo, Capture, FileAttachment, HomeLanguage, QuickAction, ScreenContext } from '../../../shared/types'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { isMostlyHan, isShortPhrase } from '../../../shared/script'
 import { Icon } from './Icon'
@@ -48,8 +48,14 @@ export function actionsForFiles(files: FileAttachment[]): ActionItem[] {
   ]
 }
 
+/** What the page offer needs: the app the user is in, and whether this service can read pages. */
+export interface PageOffer {
+  app: AppInfo | null
+  readsPages: boolean
+}
+
 /** The actions for everything in the tray. Several things together get Compare (the ↵ default) and friends. */
-export function actionsForTray(captures: Capture[], files: FileAttachment[], home: HomeLanguage | null): ActionItem[] {
+export function actionsForTray(captures: Capture[], files: FileAttachment[], home: HomeLanguage | null, page?: PageOffer): ActionItem[] {
   if (captures.length + files.length > 1 && captures.length > 0) {
     return [
       { action: 'compare', label: 'Compare these', icon: 'balance-scale-left' },
@@ -58,7 +64,8 @@ export function actionsForTray(captures: Capture[], files: FileAttachment[], hom
     ]
   }
   if (captures.length === 1) return actionsFor(captures[0].context, home)
-  return files.length ? actionsForFiles(files) : []
+  if (files.length) return actionsForFiles(files)
+  return page?.readsPages && page.app?.url && !page.app.trimmed ? [{ action: 'read-page', label: 'Summarize this page', icon: 'book-open-reader' }] : []
 }
 
 /** A tidy grid of action tiles under a capture. The first tile is the ↵ default and says so. */

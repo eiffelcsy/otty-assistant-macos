@@ -12,7 +12,7 @@ interface SavedKey {
   plain?: boolean
 }
 
-interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys'> {
+interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages'> {
   /** One per service, so a key only ever goes to the service it belongs to. */
   apiKeys?: Partial<Record<ServiceId, SavedKey>>
   /** The single key from before 0.5, moved into `apiKeys` on load. */
@@ -83,6 +83,7 @@ export function getPublic(): PublicSettings {
     ...rest,
     hasApiKey: Boolean(apiKeys?.[serviceAt(s.baseUrl)]) || Boolean(envKey(s)),
     needsKey: profileFor(rest.baseUrl, rest.apiFormat).needsKey,
+    readsPages: profileFor(rest.baseUrl, rest.apiFormat).web !== 'off',
     savedKeys: Object.keys(apiKeys ?? {}) as ServiceId[]
   }
 }

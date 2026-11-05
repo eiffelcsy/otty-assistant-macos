@@ -33,6 +33,7 @@ export function Quick() {
   const [popover, setPopover] = useState(false)
   const [opened, setOpened] = useState(0)
   const [home, setHome] = useState<HomeLanguage | null>(null)
+  const [readsPages, setReadsPages] = useState(false)
   const [pick, setPick] = useState<AnswerLanguage | undefined>()
   const { messages, busy, waitingFirstToken, clear } = useChat()
   const cardRef = useRef<HTMLDivElement>(null)
@@ -59,6 +60,7 @@ export function Quick() {
         clear()
         window.otty.getSettings().then((s) => {
           setHome(s.homeLanguage)
+          setReadsPages(s.readsPages)
           setAskHotkey(s.askHotkey)
         })
         setCaptures(p.context ? [{ id: crypto.randomUUID(), context: p.context, app: p.app ?? null }] : [])
@@ -88,7 +90,7 @@ export function Quick() {
    * ↵ with an empty box runs the first quick action: the meaning for a single word, a simple explanation
    * for one capture, Compare for several.
    */
-  const fallback = actionsForTray(captures, [], home)[0]
+  const fallback = actionsForTray(captures, [], home, { app, readsPages })[0]
   const ask = () => {
     const item = input.trim() ? undefined : fallback
     const text = item ? item.label : input.trim()
@@ -202,13 +204,15 @@ export function Quick() {
                     className="quick__input"
                     rows={1}
                     placeholder={
-                      fallback?.action === 'define'
-                        ? 'Ask about this, or press ↵ for its meaning'
-                        : captures.length > 1
-                          ? 'Ask about these, or press ↵ to compare them'
-                          : captures.length
-                            ? 'Ask about this, or press ↵ to explain it'
-                            : 'Ask Otty anything…'
+                      fallback?.action === 'read-page'
+                        ? 'Ask about this page, or press ↵ to summarize it'
+                        : fallback?.action === 'define'
+                          ? 'Ask about this, or press ↵ for its meaning'
+                          : captures.length > 1
+                            ? 'Ask about these, or press ↵ to compare them'
+                            : captures.length
+                              ? 'Ask about this, or press ↵ to explain it'
+                              : 'Ask Otty anything…'
                     }
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -258,7 +262,7 @@ export function Quick() {
                     </button>
                   )}
                   {home && <LanguagePill home={home} value={pick} onChange={setPick} />}
-                  <button className="quick__key quick__key--go" onClick={ask} disabled={!input.trim() && !captures.length}>
+                  <button className="quick__key quick__key--go" onClick={ask} disabled={!input.trim() && !fallback}>
                     <kbd>↵</kbd> ask Otty
                   </button>
                 </span>

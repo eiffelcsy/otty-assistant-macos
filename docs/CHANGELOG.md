@@ -6,6 +6,11 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release.
 
+### Read this page in one tap (D-15, 2026-11-05)
+
+- **Summarize this page.** When Otty knows the page and nothing is highlighted, the panel offers a tile and ↵ in the quick view runs it. It works on every service that can read pages, and shows no card, because the address is the user's own.
+- **It only offers what it can really read.** An address still has its query removed for privacy, but if that query mattered, like `youtube.com/watch?v=…`, Otty would be reading a different page, so it makes no offer. Tracking-only queries such as `utm_*` don't count.
+
 ### Web search and page reading beyond DeepSeek (D-20 step 5, 2026-11-05)
 
 - **Claude searches the web for real**, with its own `web_search` tool: at most five searches an answer, with a "Searching the web" chip, and a long search resumes by itself. Each search is billed to the user's Claude account, and Settings → Privacy says so.

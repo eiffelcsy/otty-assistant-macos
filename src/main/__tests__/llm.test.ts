@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Capture, ChatEvent, HomeLanguage } from '../../shared/types'
+import type { Message } from '../providers'
 
 let home: HomeLanguage | null = 'zh-HK'
 let key = 'key'
@@ -24,6 +25,7 @@ vi.mock('../tools', () => ({
   runTool: async () => ({ result: 'A result.', status: 'done' })
 }))
 const { ChatSession, explainTerm, testConnection } = await import('../llm')
+const { isKnownUrl } = await import('../knownUrls')
 
 interface Sent {
   role: string
@@ -339,6 +341,16 @@ describe('another online service', () => {
     const seen: ChatEvent[] = []
     await new ChatSession((e) => seen.push(e)).send('Hello', [], null)
     expect(seen.find((e) => e.type === 'error')).toMatchObject({ message: expect.stringContaining('needs an OpenAI key') })
+  })
+})
+
+describe('summarize this page', () => {
+  it('sends the page’s address as the user’s, so reading it needs no card', async () => {
+    await new ChatSession(() => {}).send('Summarize this page', [], { name: 'Safari', url: 'https://example.com/story' }, { action: 'read-page' })
+    const history = requests[0].messages.slice(1) as Message[]
+    expect(String(history[0].content)).toContain('https://example.com/story')
+    expect(String(history[0].content)).toContain('Read this page and summarize it')
+    expect(isKnownUrl('https://example.com/story', history)).toBe(true)
   })
 })
 

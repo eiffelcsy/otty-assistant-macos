@@ -80,7 +80,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Per-app tips: recognise Excel, Mail, Terminal… and offer app-specific quick actions | M | M | idea, D-1 may cover most of it |
 | Snip a single window: hover highlights the window under the paw, click snaps it (window list from a small Swift helper) | M | M | idea, after D-14 |
 | More cursor moods: a magnifier paw for tiny targets, a "wave" while waiting for a hotkey release | L | S | idea, after D-14 |
-| A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | → D-15 |
+| A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | shipped |
 | Snip the whole window or screen, not just a box | M | S | → D-14 (whole screen and whole display); a single window is below |
 | Local OCR (Apple Vision) for snips: classifier input and text for non-vision models | H | M | → D-1 (part) |
 | Otty's own snip overlay: paw cursor, frozen screen, rounded selection, instant crop | H | M | → D-14 |

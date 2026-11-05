@@ -22,7 +22,7 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
 
   const save = async () => {
     setSaving(true)
-    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, ...rest } = form
+    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, readsPages: _r, ...rest } = form
     const s = await window.otty.saveSettings({ ...rest, ...(key.trim() ? { apiKey: key.trim() } : {}) })
     setKey('')
     onSaved(s)
