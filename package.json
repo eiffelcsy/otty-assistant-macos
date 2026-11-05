@@ -12,7 +12,7 @@
     "preview": "electron-vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "build:mac": "electron-vite build && electron-builder --mac"
+    "build:mac": "electron-vite build && electron-builder --mac --publish never"
   },
   "devDependencies": {
     "@flaticon/flaticon-uicons": "^3.3.1",
