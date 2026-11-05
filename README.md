@@ -17,7 +17,7 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 - Works with DeepSeek, Claude, OpenAI or any OpenAI-style or Anthropic-style server. Models on your Mac are experimental
 - Tools: search the web, read a web page, open links, copy text, add Apple Reminders (side effects always ask first)
 
-Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Dev log](docs/DEVLOG.md) · [Changelog](docs/CHANGELOG.md) · [Brainstorm](docs/BRAINSTORM.md)
+Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Dev log](docs/DEVLOG.md) · [Changelog](docs/CHANGELOG.md) · [Brainstorm](docs/BRAINSTORM.md) · [Autonomy direction](docs/AUTONOMY.md)
 
 ## Run it (on a Mac)
 

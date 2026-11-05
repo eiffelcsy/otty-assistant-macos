@@ -14,6 +14,8 @@ Three pillars. An idea should push at least one of them without hurting the othe
 
 Under all three: **trust**. Non-technical users first, privacy by default, confirm cards before anything with side effects.
 
+The long-run direction, from something you ask to something that looks after things for you, is in [AUTONOMY.md](AUTONOMY.md). Check big features against its checklist.
+
 ## How to use this doc
 
 - Add ideas freely, one line each, in the right section. Give each one **Impact** (H/M/L), **Effort** (S/M/L) and a pillar.
@@ -158,6 +160,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Back up and restore chats and memories (export `otty.db` or a JSON bundle; restore on a new Mac) | M | S | idea |
 | Search filters: by app ("chats from Excel"), by date, with/without files | M | S | idea |
 | Pin a chat (`chats.pinned` is in the schema, and retention already skips pinned chats) / pin the panel open | M | S | idea |
+| `recall` tool: the model searches saved chats and follows links when it needs them, so old context isn't carried in every request. Results append, so the cache rule holds; counts as private data | H | M | idea, overlaps "Tools before pipelines" |
 | Recent chats past the newest 500: load more as you scroll, or group by month | L | S | idea |
 | Find in the quick view too, and in an open explain card | L | S | idea |
 | Find bar: "match case" / whole-word toggles for code and English-heavy chats | L | S | idea |
@@ -278,18 +281,22 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Background activity list in Settings: everything running or scheduled, with a stop button | H | S | considering, ships with the first background job |
-| Survive sleep and wake: pause on sleep, resume on wake, retry after a dropped connection (`powerMonitor`) | M | S | considering |
+| Attention budget: everything unprompted shares one small daily allowance, a dismissal shrinks it, and quiet mode always wins | H | S | idea, ships with the first unprompted feature (see AUTONOMY.md) |
+| A one-tap way to start a job: a **Look into this** tile, and "keep going" on a report that hit its limit | M | S | idea, after D-22 |
 | Pick up where you left off: reopen the last chat's context with a light "Still on the budget?" | M | S | idea, after D-10 |
+| The otter shows what's happening: moods mirror jobs (working, waiting for you, something ready), so nobody needs a dashboard. Must stay inside the idle budget | H | S–M | idea, after the first background job |
+| Surface budgets: a job returns a headline and a body, and each surface uses what fits (bubble a few words, inbox a few lines, panel the lot) | M | S | idea, with the inbox |
 | Ask me later: "check this tomorrow at 9", run read-only, with the result waiting in a small inbox | H | M | considering, needs a jobs table |
 | Watch for me: check a page on a schedule and tell the user when it changes (price, delivery, results) | H | M | idea, after Ask me later; web reads are billed per call, so show the cost |
 | "Do not disturb" for Otty: a quiet mode, plus automatic quiet during full-screen video and screen sharing | M | S–M | idea |
-| Keep going after closing: a long task carries on when the panel closes, and the unseen-answer dot says when it's ready | M | S–M | idea, after Ask me later: answers already do this; only longer tasks are missing |
 | Local-only noticing: opt-in triggers from app switches and error dialogs on the Mac; nothing is sent until the user taps | H | L | considering, replaces the paw-raise idea's design; uses the AX helper |
 | Morning note: an opt-in daily summary from memories, reminders and the calendar | M | M | idea, after calendar access |
 | Finish the idle budget: a run with the panel open, more memory runs to set a limit, and pausing the otter when the display sleeps | M | S | idea |
 | Create the panel and quick view on first use, or free them after a long idle, to cut memory (about 100 MB each). Measure the cost to NFR-1 first | M | S | idea |
 | An idle check in CI or a script that fails when a change goes over the CPU budget, so an animation can't creep back in | M | M | idea |
+| Background activity list: everything running or scheduled, with a stop button | H | S | → D-22 (a panel view, not in Settings) |
+| Survive sleep and wake: pause on sleep, resume on wake, retry after a dropped connection (`powerMonitor`) | M | S | → D-22 |
+| Keep going after closing: a long task carries on when the panel closes, and the unseen-answer dot says when it's ready | M | S–M | → D-22 |
 | Idle budget: set and test limits for CPU, memory and battery, because an always-on app that drains the laptop gets quit | H | S | shipped |
 
 ## Otty's chores: work Otty starts itself
@@ -303,13 +310,17 @@ Otty spots something useful, suggests a small repeatable job, checks it against 
 | Daily chore budget and auto-pause on repeated failures or surprises | M | S | considering |
 | Injection test set in the Otty eval: hostile pages and documents that try to leak data or trigger tools | H | S–M | considering |
 | Private role for chores: send private data only to a chosen model, ideally a local one | M | S | idea, extends Fast and Best slots |
+| "Why did this happen?" on every note: follow the links from note to job, trigger, recipe and the chat where the user agreed | M | S | idea, needs ids linked from the start |
 | Locked tool set per run: code hands a chore only the tools and sites in its recipe, whatever the model asks for | H | M | considering |
+| Standing limits: the user sets a monthly budget and a trusted-sites list once, and Otty works freely inside them, so cards become rare | H | M | idea, after the first chores (see AUTONOMY.md) |
 | Chore recipes: a typed plan (trigger, steps, data, sites, output) that the model drafts and code checks | H | M | considering |
 | Read first, then lock the doors: fetch public pages with no private data, then do the private step with every tool off | H | M | considering |
 | Calendar and Reminders reading, opt-in per source, so chores have useful material | H | M | idea |
 | First chores: page watch, Monday prep, deadline nudge, phrasebook quiz | H | M | idea |
 | Chore inbox and history: what ran, what it read, what it cost, with pause and delete | H | M | considering, ships with the first chore |
 | Chore suggestions from local habits: Otty notices repeats and offers a chore, at most one a day, and "no thanks" sticks | H | M | idea, after D-10 |
+| "Stop asking?": after the user approves the same thing many times, Otty offers to make it standing. Only the user can say yes | M | M | idea, after standing limits |
+| Reply to a note: answering an inbox note continues that job with its context, instead of starting a new chat | M | S | → D-22 (a job's report is a normal chat) |
 
 ## Parked / rejected (with reasons)
 
