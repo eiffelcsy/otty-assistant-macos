@@ -11,15 +11,6 @@ export const AskContext = createContext<(text: string) => void>(() => {})
 /** The user's home language, so explain cards can offer the other language. null = English only. */
 export const HomeContext = createContext<HomeLanguage | null>(null)
 
-/** Keyed by language + term, so each language is fetched once. */
-const cache = new Map<string, Promise<string>>()
-
-function explainCached(term: string, around: string, language: AnswerLanguage): Promise<string> {
-  const key = `${language}:${term.toLowerCase()}`
-  if (!cache.has(key)) cache.set(key, window.otty.explain(term, around, language))
-  return cache.get(key)!
-}
-
 function textOf(node: ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node)
   if (Array.isArray(node)) return node.map(textOf).join('')
@@ -61,7 +52,7 @@ function ExplainTerm({
     wanted.current = l
     setLang(l)
     setText(null)
-    explainCached(term, around, l).then((t) => {
+    window.otty.explain(term, around, l).then((t) => {
       if (wanted.current === l) setText(t)
     })
   }

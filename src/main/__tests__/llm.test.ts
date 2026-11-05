@@ -5,6 +5,8 @@ import type { Message } from '../providers'
 let home: HomeLanguage | null = 'zh-HK'
 let key = 'key'
 let thinking = false
+let remember = false
+let saved: { title: string }[] = []
 let baseUrl = 'https://api.deepseek.com/'
 let apiFormat = 'auto'
 
@@ -13,10 +15,17 @@ vi.mock('electron', () => ({
   app: { isPackaged: true, getPath: () => '' }
 }))
 vi.mock('../settings', () => ({
-  getStored: () => ({ baseUrl, apiFormat, model: 'm', thinking, homeLanguage: home, rememberChats: false }),
+  getStored: () => ({ baseUrl, apiFormat, model: 'm', thinking, homeLanguage: home, rememberChats: remember }),
   getApiKey: () => key
 }))
-vi.mock('../store', () => ({ chatStore: () => ({ write: async () => {} }), pruneOldChats: async () => {} }))
+vi.mock('../store', () => ({
+  chatStore: () => ({
+    write: async (t: { title: string }) => {
+      saved.push({ title: t.title })
+    }
+  }),
+  pruneOldChats: async () => {}
+}))
 vi.mock('../files', () => ({ takeFiles: () => [] }))
 vi.mock('../files/budget', () => ({ fileBudget: () => 0, fitFiles: () => [] }))
 vi.mock('../tools', () => ({
@@ -24,7 +33,7 @@ vi.mock('../tools', () => ({
   toolLabel: () => ({ label: 'Looking up', icon: 'search' }),
   runTool: async () => ({ result: 'A result.', status: 'done' })
 }))
-const { ChatSession, explainTerm, testConnection } = await import('../llm')
+const { ChatSession, cleanTitle, explainTerm, testConnection } = await import('../llm')
 const { isKnownUrl } = await import('../knownUrls')
 
 interface Sent {
@@ -60,6 +69,8 @@ beforeEach(() => {
   home = 'zh-HK'
   key = 'key'
   thinking = false
+  remember = false
+  saved = []
   baseUrl = 'https://api.deepseek.com/'
   apiFormat = 'auto'
   requests = []
@@ -268,16 +279,16 @@ describe('talking to the model', () => {
       body = JSON.parse(String(init.body))
       return Response.json({ choices: [{ message: { content: ' A meaning. ' } }] })
     })
-    expect(await explainTerm('CDN', 'around')).toBe('A meaning.')
+    expect(await explainTerm('Fresh term', 'around')).toBe('A meaning.')
     expect(body).toMatchObject({ stream: false, max_tokens: 300 })
     expect(body.messages?.map((m) => m.role)).toEqual(['user'])
   })
 
   it('has kind words when an explanation fails or comes back empty', async () => {
     vi.stubGlobal('fetch', async () => Response.json({ choices: [] }))
-    expect(await explainTerm('CDN', '')).toContain('couldn’t think of')
+    expect(await explainTerm('Empty term', '')).toContain('couldn’t think of')
     respond(401)
-    expect(await explainTerm('CDN', '')).toContain('key doesn’t look right')
+    expect(await explainTerm('Empty term', '')).toContain('key doesn’t look right')
   })
 
   it('names the model when the connection works', async () => {
@@ -354,6 +365,141 @@ describe('summarize this page', () => {
   })
 })
 
+describe('warm explain cards', () => {
+  const bodies: { messages: Sent[]; thinking?: { type: string } }[] = []
+
+  beforeEach(() => {
+    bodies.length = 0
+    thinking = true
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body))
+      if (body.stream) return stream(answer('A [Warm term](#explain) and a [Second term](#explain).'))
+      bodies.push(body)
+      return Response.json({ choices: [{ message: { content: 'Explained.' } }] })
+    })
+  })
+
+  it('fetches the terms as soon as the answer ends, so a tap needs no call', async () => {
+    await new ChatSession(() => {}).send('Hello', [], null)
+    await vi.waitFor(() => expect(bodies).toHaveLength(2))
+    expect(await explainTerm('Warm term', '')).toBe('Explained.')
+    expect(bodies).toHaveLength(2)
+  })
+
+  it('uses the least thinking, whatever the setting, so a card isn’t cut off', async () => {
+    await explainTerm('Thinking term', '')
+    expect(bodies[0].thinking).toEqual({ type: 'disabled' })
+  })
+
+  it('keeps background calls out of the chat', async () => {
+    const session = new ChatSession(() => {})
+    await session.send('Hello', [], null)
+    let next: Sent[] = []
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      next = JSON.parse(String(init.body)).messages
+      return stream(answer('Fine.'))
+    })
+    await session.send('Again', [], null)
+    expect(next.map((m) => m.role)).toEqual(['system', 'user', 'assistant', 'user'])
+  })
+
+  it('warms nothing when the answer fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    let calls = 0
+    vi.stubGlobal('fetch', async () => {
+      calls++
+      return new Response('', { status: 500 })
+    })
+    await new ChatSession(() => {}).send('Hello', [], null)
+    expect(calls).toBe(1)
+  })
+})
+
+describe('chat titles', () => {
+  const session = (title: string) => {
+    const bodies: { max_tokens?: number; messages: Sent[] }[] = []
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body))
+      if (body.stream) return stream(answer('Otters float on their backs.'))
+      bodies.push(body)
+      return Response.json({ choices: [{ message: { content: title } }] })
+    })
+    return { bodies, chat: new ChatSession(() => {}) }
+  }
+
+  it('writes a title after the first answer, and saves it', async () => {
+    remember = true
+    const { bodies, chat } = session('"How otters float."')
+    await chat.send('How do otters float?', [], null)
+    await vi.waitFor(() => expect(saved.at(-1)?.title).toBe('How otters float'))
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0].max_tokens).toBe(24)
+    expect(String(bodies[0].messages[0].content)).toContain('How do otters float?')
+  })
+
+  it('only does it once a chat', async () => {
+    remember = true
+    const { bodies, chat } = session('A title')
+    await chat.send('One', [], null)
+    await vi.waitFor(() => expect(bodies).toHaveLength(1))
+    await chat.send('Two', [], null)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(bodies).toHaveLength(1)
+  })
+
+  it('does nothing when chats aren’t remembered', async () => {
+    const { bodies, chat } = session('A title')
+    await chat.send('One', [], null)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(bodies).toHaveLength(0)
+  })
+
+  it('keeps the instant title if the call fails', async () => {
+    remember = true
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      if (JSON.parse(String(init.body)).stream) return stream(answer('Fine.'))
+      return new Response('', { status: 500 })
+    })
+    await new ChatSession(() => {}).send('My question', [], null)
+    await new Promise((r) => setTimeout(r, 20))
+    expect(saved.every((s) => s.title === 'My question')).toBe(true)
+  })
+
+  it('doesn’t bring back a chat forgotten while its title was being written', async () => {
+    remember = true
+    let finish = () => {}
+    vi.stubGlobal('fetch', async (_u: string, init: RequestInit) => {
+      if (JSON.parse(String(init.body)).stream) return stream(answer('Fine.'))
+      await new Promise<void>((resolve) => (finish = resolve))
+      return Response.json({ choices: [{ message: { content: 'Too late' } }] })
+    })
+    const chat = new ChatSession(() => {})
+    await chat.send('Forget me', [], null)
+    await vi.waitFor(() => expect(finish).not.toBe(undefined))
+    await new Promise((r) => setTimeout(r, 10))
+    chat.forget(chat.threadId)
+    finish()
+    await new Promise((r) => setTimeout(r, 10))
+    expect(saved.some((s) => s.title === 'Too late')).toBe(false)
+  })
+})
+
+describe('cleanTitle', () => {
+  it.each([
+    ['"How otters float."', 'How otters float'],
+    ['Title: Sea otters', 'Sea otters'],
+    ['「打印機設定」。', '打印機設定'],
+    ['First line\nSecond line', 'First line'],
+    ['   ', '']
+  ])('turns %j into %j', (raw, title) => {
+    expect(cleanTitle(raw)).toBe(title)
+  })
+
+  it('stops at 60 characters', () => {
+    expect(cleanTitle('word '.repeat(30)).length).toBeLessThanOrEqual(60)
+  })
+})
+
 describe('the API format', () => {
   it('uses the format the user chose for an unknown address', async () => {
     baseUrl = 'https://models.example.com'
@@ -363,14 +509,14 @@ describe('the API format', () => {
       url = String(u)
       return Response.json({ id: 'm', type: 'message', role: 'assistant', model: 'x', content: [{ type: 'text', text: 'Hi' }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } })
     })
-    await explainTerm('CDN', '')
+    await explainTerm('Format term one', '')
     expect(url).toBe('https://models.example.com/v1/messages')
     apiFormat = 'openai'
     vi.stubGlobal('fetch', async (u: string | URL) => {
       url = String(u)
       return Response.json({ choices: [] })
     })
-    await explainTerm('CDN', '')
+    await explainTerm('Format term two', '')
     expect(url).toBe('https://models.example.com/chat/completions')
   })
 })

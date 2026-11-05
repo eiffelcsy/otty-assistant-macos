@@ -39,6 +39,15 @@ ${tools}
 ${guide ? `\n\n${guide}` : ''}`
 }
 
+/** Asks for a short title. Written in the chat's own language, so a Chinese chat gets a Chinese title. */
+export function titlePrompt(question: string, answer: string): string {
+  return `Write a title for this chat: 3 to 6 words, in the same language as the question, naming the topic. Reply with the title alone, with no quotes.
+
+Question: ${question.slice(0, 500)}
+
+Answer: ${answer.slice(0, 500)}`
+}
+
 /** The prompt a quick action sends in place of its chip label. `language` is the answer's resolved language. */
 export function actionPrompt(action: QuickAction, language: AnswerLanguage, home: HomeLanguage | null): string {
   switch (action) {

@@ -7,7 +7,8 @@ import { fileBudget, fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
 import { getStored } from './settings'
 import { resolveLanguage, turnNote, withNote } from './language'
-import { actionPrompt, explainPrompt, systemPrompt } from './prompts'
+import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
+import { createExplainCache, termsToWarm } from './explainCache'
 import { runTool, toolDefs, toolLabel } from './tools'
 import { isKnownUrl } from './knownUrls'
 import { activeProfile, activeProvider, FriendlyError, NoVisionError, type ContentPart, type ProviderReplay, type ToolCall } from './providers'
@@ -207,6 +208,7 @@ export class ChatSession {
       at: Date.now()
     }
     const answerAt = thread.messages.push(answer) - 1
+    let finished = false
 
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
@@ -277,6 +279,7 @@ export class ChatSession {
         }
       }
       this.emit({ type: 'done', id })
+      finished = true
     } catch (err) {
       // Drop the unfinished turn so a dangling tool call can't break the next request.
       history.length = turnStart
@@ -294,6 +297,30 @@ export class ChatSession {
       // Only this turn's rows: the cost doesn't grow with the length of the chat.
       this.persist(thread, { messages: answerAt, history: turnStart })
       void pruneOldChats().catch((err) => console.error('Could not forget old chats', err))
+      if (finished) this.afterAnswer(thread, answer, answerAt === 1)
+    }
+  }
+
+  /** Background work once an answer is complete. None of it touches the chat's history. */
+  private afterAnswer(thread: Thread, answer: Extract<ChatMessage, { role: 'assistant' }>, first: boolean): void {
+    for (const term of termsToWarm(answer.text)) void explainTerm(term, answer.text, answer.language ?? 'en')
+    if (first) void this.writeTitle(thread, answer.text)
+  }
+
+  /** The instant title stays if this fails. `thread` is the chat the turn ran on, which may not be the current one. */
+  private async writeTitle(thread: Thread, answer: string): Promise<void> {
+    if (!getStored().rememberChats) return
+    const asked = thread.messages[0]
+    if (asked?.role !== 'user') return
+    try {
+      const question = [asked.text, capturedText(asked.captures)].filter(Boolean).join('\n')
+      const { text } = await activeProvider().complete({ messages: [{ role: 'user', content: titlePrompt(question, answer) }], maxTokens: 24, reasoning: 'least' })
+      const title = cleanTitle(text)
+      if (!title) return
+      thread.title = title
+      this.persist(thread, { messages: thread.messages.length, history: thread.history.length })
+    } catch {
+      /* the instant title is fine */
     }
   }
 
@@ -306,16 +333,32 @@ export class ChatSession {
   }
 }
 
+/** An explanation, or a failure with friendly words. Only real explanations are kept. */
+async function fetchExplanation(term: string, around: string, language: AnswerLanguage): Promise<string> {
+  const { text } = await activeProvider().complete({
+    messages: [{ role: 'user', content: explainPrompt(term, around, language, getStored().homeLanguage) }],
+    maxTokens: 300,
+    reasoning: 'least'
+  })
+  if (!text) throw new FriendlyError('Hmm, Otty couldn’t think of a simple explanation. Try asking in the chat!')
+  return text
+}
+
+const explanations = createExplainCache(fetchExplanation)
+
 export async function explainTerm(term: string, around: string, language: AnswerLanguage = 'en'): Promise<string> {
   try {
-    const { text } = await activeProvider().complete({
-      messages: [{ role: 'user', content: explainPrompt(term, around, language, getStored().homeLanguage) }],
-      maxTokens: 300
-    })
-    return text || 'Hmm, Otty couldn’t think of a simple explanation. Try asking in the chat!'
+    return await explanations(term, around, language)
   } catch (err) {
     return err instanceof FriendlyError ? err.message : 'Otty couldn’t fetch that explanation right now.'
   }
+}
+
+/** One line, with no quotes or closing full stop, or nothing if there's no usable title. */
+export function cleanTitle(raw: string): string {
+  const line = raw.trim().split('\n')[0].trim()
+  const bare = line.replace(/^title:\s*/i, '').replace(/^["'“”‘’「」『』]+|["'“”‘’「」『』.。]+$/g, '').trim()
+  return bare.length > 60 ? `${bare.slice(0, 59).trim()}…` : bare
 }
 
 /** Sends a small grey square. True = the model can see, false = it can't, null = couldn't tell. */
