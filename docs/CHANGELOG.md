@@ -2,6 +2,16 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
+## Unreleased
+
+On `main`, for the next release.
+
+### Cheaper, quicker follow-ups (D-12 step 0, 2026-11-05)
+
+- **The system prompt no longer changes every second.** It ended with the time, so DeepSeek could never reuse its cache. It now depends only on settings, so a follow-up should only pay for what's new, and every new chat shares a cached start.
+- **The time and answer language moved into a short note** at the end of each user message (`turnNote`), kept in the history exactly as sent. The chat still shows only the user's words. The time is now to the minute.
+- **The Hong Kong writing guide is always in the prompt** when that home language is set, instead of only on Chinese turns. A test checks that each request starts with the previous one byte for byte, and dev builds log cache hits.
+
 ## 0.4.0 — Capture tray, web reading and saved chats (2026-11-05)
 
 ### Tables that paste as tables (2026-11-04)
