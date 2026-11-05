@@ -1,6 +1,7 @@
-import { BrowserWindow, screen, shell, systemPreferences } from 'electron'
-import type { QuickState } from '../shared/types'
+import { BrowserWindow, nativeImage, screen, shell, systemPreferences } from 'electron'
+import type { OcrLine, PickupPicture, QuickState } from '../shared/types'
 import { join } from 'path'
+import { readText } from './ocr'
 import { getStored, saveBubblePosition } from './settings'
 
 const BUBBLE_SIZE = 84
@@ -14,7 +15,7 @@ let bubble: BrowserWindow | null = null
 let panel: BrowserWindow | null = null
 let quick: BrowserWindow | null = null
 
-function load(win: BrowserWindow, view: 'bubble' | 'panel' | 'quick'): void {
+function load(win: BrowserWindow, view: 'bubble' | 'panel' | 'quick' | 'pickup'): void {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) win.loadURL(`${devUrl}?view=${view}`)
   else win.loadFile(join(__dirname, '../renderer/index.html'), { query: { view } })
@@ -128,6 +129,67 @@ export function createQuick(): BrowserWindow {
   }
   quick.on('closed', () => (quick = null))
   return quick
+}
+
+// --- Pick up text: a picture with its words selectable. It floats until closed, so the user can paste elsewhere and come back.
+
+const PICKUP_MIN_W = 360
+const PICKUP_BAR_H = 48
+
+let pickup: BrowserWindow | null = null
+/** Only held while the window is open. */
+let pickupImage: { picture: PickupPicture; bytes: Buffer; words?: Promise<OcrLine[] | null> } | null = null
+
+export function showPickup(dataUrl: string): void {
+  const image = /^data:image\//.test(dataUrl) ? nativeImage.createFromDataURL(dataUrl) : null
+  if (!image || image.isEmpty()) return
+  pickup?.close()
+
+  // A snip's pixels are the screen's, so divide by its scale to show the words at their real size.
+  const cursor = screen.getCursorScreenPoint()
+  const display = screen.getDisplayNearestPoint(cursor)
+  const wa = display.workArea
+  const { width, height } = image.getSize()
+  const natural = { width: width / display.scaleFactor, height: height / display.scaleFactor }
+  const fit = Math.min(1, (wa.width - GAP * 2) / natural.width, (wa.height - GAP * 2 - PICKUP_BAR_H) / natural.height)
+  const picture = { dataUrl, width: Math.round(natural.width * fit), height: Math.round(natural.height * fit) }
+  pickupImage = { picture, bytes: image.toPNG() }
+
+  const w = Math.max(picture.width, PICKUP_MIN_W)
+  const h = picture.height + PICKUP_BAR_H
+  const win = new BrowserWindow({
+    x: Math.round(Math.max(wa.x + GAP, Math.min(cursor.x - w / 2, wa.x + wa.width - w - GAP))),
+    y: Math.round(Math.max(wa.y + GAP, Math.min(cursor.y - h / 2, wa.y + wa.height - h - GAP))),
+    width: w,
+    height: h,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: true,
+    fullscreenable: false,
+    show: false,
+    webPreferences
+  })
+  pickup = win
+  win.setAlwaysOnTop(true, 'floating')
+  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  secure(win)
+  load(win, 'pickup')
+  win.once('ready-to-show', () => win.show())
+  win.on('closed', () => {
+    if (pickup !== win) return
+    pickup = null
+    pickupImage = null
+  })
+}
+
+export const getPickup = () => pickup
+export const pickupPicture = (): PickupPicture | null => pickupImage?.picture ?? null
+
+export function readPickup(): Promise<OcrLine[] | null> {
+  if (!pickupImage) return Promise.resolve(null)
+  return (pickupImage.words ??= readText(pickupImage.bytes))
 }
 
 // --- Quick view across desktops and while collecting captures.

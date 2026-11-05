@@ -7,12 +7,13 @@
   "private": true,
   "scripts": {
     "postinstall": "install-electron",
+    "predev": "node tools/otty-ocr/build.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
-    "build:mac": "electron-vite build && electron-builder --mac --publish never"
+    "build:mac": "node tools/otty-ocr/build.mjs && electron-vite build && electron-builder --mac --publish never"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^1.5.0",

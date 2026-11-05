@@ -15,7 +15,17 @@ export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; c
       </div>
     )
   }
-  if (ctx.kind === 'image') return <img className="context-img" src={ctx.dataUrl} alt="Your screen snip" />
+  if (ctx.kind === 'image') {
+    const { dataUrl } = ctx
+    return (
+      <div className="context-picture">
+        <img className="context-img" src={dataUrl} alt="Your screen snip" />
+        <button className="context-picture__pickup" title="Select and copy the words in this picture" onClick={() => void window.otty.pickUpText(dataUrl)}>
+          <Icon name="text" /> Pick up text
+        </button>
+      </div>
+    )
+  }
   const max = compact ? 90 : 160
   return (
     <div className="context-text">

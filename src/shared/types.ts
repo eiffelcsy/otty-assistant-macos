@@ -209,6 +209,19 @@ export interface QuickState {
   pinned: boolean
 }
 
+/** A line of text found in a picture. `box` runs from 0 to 1 across the picture, from its top left. */
+export interface OcrLine {
+  text: string
+  box: { x: number; y: number; w: number; h: number }
+}
+
+/** The picture in the Pick up text window, and the size to show it at. */
+export interface PickupPicture {
+  dataUrl: string
+  width: number
+  height: number
+}
+
 export interface OttyApi {
   getSettings(): Promise<PublicSettings>
   saveSettings(update: SettingsUpdate): Promise<PublicSettings>
@@ -243,6 +256,13 @@ export interface OttyApi {
   closePanel(): Promise<void>
   openExternal(url: string): Promise<void>
   copyText(text: string): Promise<void>
+
+  /** Opens the Pick up text window for a picture. */
+  pickUpText(dataUrl: string): Promise<void>
+  pickupPicture(): Promise<PickupPicture | null>
+  /** The words in the picture. Null if reading it failed. */
+  pickupRead(): Promise<OcrLine[] | null>
+  closePickup(): Promise<void>
 
   closeQuick(): Promise<void>
   /** Hide the quick view and continue the same conversation in the full panel. */

@@ -6,6 +6,9 @@ directories:
 files:
   - out/**
   - package.json
+extraResources:
+  - from: build/bin/otty-ocr
+    to: otty-ocr
 mac:
   category: public.app-category.productivity
   target:
