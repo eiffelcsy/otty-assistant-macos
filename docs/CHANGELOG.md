@@ -6,6 +6,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release.
 
+### Web search and page reading beyond DeepSeek (D-20 step 5, 2026-11-05)
+
+- **Claude searches the web for real**, with its own `web_search` tool: at most five searches an answer, with a "Searching the web" chip, and a long search resumes by itself. Each search is billed to the user's Claude account, and Settings → Privacy says so.
+- **Every online service can read pages.** Without DeepSeek's reader, the Mac opens the page itself (`pageReader.ts`), so the site sees the user's internet address, and Settings → Privacy says that too.
+- **Page reading keeps its checks.** It still asks before an unfamiliar address. Claude's `web_fetch` is left out because it would skip those checks. The reader only opens public addresses on normal web ports, and checks each redirect, so a hostile page can't send Otty to a router or anything else only this Mac can reach.
+- Addresses in Claude's search results count as known. The model's own text and search words never do.
+- **On this Mac** is labelled experimental in the picker.
+
 ### Choose Otty's brain (D-20 step 4, 2026-11-05)
 
 - **Pick a service, paste a key.** Settings and the welcome page now offer DeepSeek, Claude, OpenAI, On this Mac and Another service, and each fills in its own address and model (`shared/services.ts`). The address and API format sit under Advanced. DeepSeek stays the default.

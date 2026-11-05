@@ -377,9 +377,11 @@ describe('a chat on Claude', () => {
       if (block.type === 'text') {
         events.push({ type: 'content_block_start', index, content_block: { type: 'text', text: '' } })
         events.push({ type: 'content_block_delta', index, delta: { type: 'text_delta', text: block.text } })
-      } else if (block.type === 'tool_use') {
+      } else if (block.type === 'tool_use' || block.type === 'server_tool_use') {
         events.push({ type: 'content_block_start', index, content_block: { ...block, input: {} } })
         events.push({ type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(block.input) } })
+      } else if (block.type === 'web_search_tool_result') {
+        events.push({ type: 'content_block_start', index, content_block: block })
       } else {
         events.push({ type: 'content_block_start', index, content_block: { type: 'thinking', thinking: '', signature: '' } })
         events.push({ type: 'content_block_delta', index, delta: { type: 'signature_delta', signature: block.signature } })
@@ -422,6 +424,30 @@ describe('a chat on Claude', () => {
     }
     expect(JSON.stringify(bodies[3].messages)).toContain('sig-1')
     expect(JSON.stringify(bodies[3].messages)).toContain('sig-3')
+  })
+
+  it('shows a chip while Claude searches, and saves it with the answer', async () => {
+    const search = { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: { query: 'otters' } }
+    const results = { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_1', content: [] }
+    claudeReplies = [reply([search, results, { type: 'text', text: 'Found.' }])]
+    const seen: ChatEvent[] = []
+    await new ChatSession((e) => seen.push(e)).send('News?', [], null)
+    const chips = seen.flatMap((e) => (e.type === 'tool' ? [[e.label, e.status]] : []))
+    expect(chips).toEqual([
+      ['Searching the web', 'running'],
+      ['Searching the web', 'done']
+    ])
+  })
+
+  it('resumes a paused turn by sending the same chat again, with no new message', async () => {
+    const search = { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: { query: 'otters' } }
+    claudeReplies = [reply([think(1), search], 'pause_turn'), reply([{ type: 'text', text: 'Done searching.' }])]
+    const seen: ChatEvent[] = []
+    await new ChatSession((e) => seen.push(e)).send('Dig deep', [], null)
+    expect(bodies).toHaveLength(2)
+    expect(bodies[1].messages.map((m) => m.role)).toEqual(['user', 'assistant'])
+    expect(JSON.stringify(bodies[1].messages[1].content)).toContain('srvtoolu_1')
+    expect(seen.at(-1)?.type).toBe('done')
   })
 
   it('runs tools and sends the result back', async () => {

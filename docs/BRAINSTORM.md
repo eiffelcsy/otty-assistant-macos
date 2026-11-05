@@ -168,8 +168,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Sign and notarize (Developer ID) so permissions survive updates; custom `.icns` | H | M | considering, needed before sharing builds |
 | Auto-update (electron-updater) | M | M | idea |
 | Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | idea |
-| Provider presets in Settings (DeepSeek, OpenAI, local Ollama) with a model picker | M | S | → D-20 |
-| Fully local mode (local LLM via an Ollama-compatible endpoint) for privacy-first users | M | S | → D-20 |
+| Provider presets in Settings (DeepSeek, OpenAI, local Ollama) with a model picker | M | S | shipped |
+| Fully local mode (local LLM via an Ollama-compatible endpoint) for privacy-first users | M | S | stretch goal: built, labelled experimental, not fully supported |
 | CI: typecheck and build on every PR, then tests, then an unsigned `.dmg` artifact | H | S | shipped (D-4) |
 | Test names the model and warns about no vision | M | S | shipped |
 | Native Swift shell if Electron size or feel becomes a problem | M | L | parked until there's a reason |
@@ -230,6 +230,11 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Model checks: a short set of real tasks on each service (tools, explain terms, 繁體中文, snips, a long file). The first slice of the Otty eval. D-20 step 6, skipped for now | M | M | idea |
+| Model lists from each service's models endpoint, and a starting OpenAI model, so nobody types a name | M | S | idea |
+| Remember the model chosen for each service, so switching back doesn't reset it | L | S | idea |
+| Close the DNS gap in reading pages from the Mac: pin the checked address for the connection, so a name can't change between the check and the fetch | M | S | idea |
+| Otty says plainly when a model can't use tools, instead of quietly going without them | M | S | idea |
 | Two model slots, Fast and Best: features ask for a role, not a model name, so background work and hard tasks upgrade separately | H | S | considering, after D-20 step 1 |
 | Scaffold ledger: note which model weakness each prompt rule or routing step works around, and retest on every upgrade | M | S | idea, needs the Otty eval |
 | Otty eval: 50–100 real-style tasks, scored for quality, speed and cost, so any new model is judged in an hour. Grows out of `tools/math-eval/` | H | M | considering, do first |
@@ -240,8 +245,8 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Goal mode, "Get this done": plan, act, check and report for a stated goal, built on D-11 step cards | H | L | idea, after D-11 |
 | Proactive help, gated by measured precision: stays off until evals show it's rarely wrong, and always opt-in | H | L | idea, extends the paw-raise idea |
 | Re-test D-1 before building it: compare a plain model call with the local classifier on the same captures, for accuracy, speed and privacy | H | S | → D-1 step 0 |
-| Budgets from the profile: derive the 48K file budget and `MAX_TOOL_ROUNDS` from the model instead of fixed constants | M | S | → D-20 (the file budget; tool rounds can follow) |
-| Model profiles: context size, vision, thinking, tool limits per model, replacing DeepSeek-only assumptions such as the `thinking` field on every request | H | S–M | → D-20 |
+| Budgets from the profile: derive the 48K file budget and `MAX_TOOL_ROUNDS` from the model instead of fixed constants | M | S | shipped (the file budget); tool rounds are an idea |
+| Model profiles: context size, vision, thinking, tool limits per model, replacing DeepSeek-only assumptions such as the `thinking` field on every request | H | S–M | shipped |
 
 ## Always there: a companion that stays on
 

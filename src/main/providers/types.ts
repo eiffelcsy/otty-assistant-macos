@@ -33,13 +33,16 @@ export interface ChatRequest {
   reasoning?: 'least' | 'normal' | 'deep'
 }
 
-export type StopReason = 'end' | 'tools' | 'length' | 'refusal'
+/** `paused` means a long server-side turn stopped part way, and sending the same chat again resumes it. */
+export type StopReason = 'end' | 'tools' | 'length' | 'refusal' | 'paused'
 
 export type ProviderEvent =
   | { type: 'text'; text: string }
   | { type: 'reasoning'; text: string }
   /** One whole tool call, once all its pieces have arrived. */
   | { type: 'tool'; call: ToolCall }
+  /** The service is searching the web itself. */
+  | { type: 'search'; status: 'running' | 'done' }
   | { type: 'done'; stop: StopReason; replay?: ProviderReplay }
 
 export interface Completion {

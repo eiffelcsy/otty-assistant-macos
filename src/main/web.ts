@@ -92,7 +92,8 @@ export async function deepseekSearch(cfg: WebConfig, query: string, fetchImpl: t
 }
 
 /** Reads one web page as Markdown, cut to a size the model can use. */
-export async function deepseekFetch(cfg: WebConfig, url: string, fetchImpl: typeof fetch = fetch): Promise<string> {
+/** A safe, ordinary web address, or a message saying why not. */
+export function checkedUrl(url: string): URL {
   let parsed: URL
   try {
     parsed = new URL(url)
@@ -102,12 +103,21 @@ export async function deepseekFetch(cfg: WebConfig, url: string, fetchImpl: type
   if (!/^https?:$/.test(parsed.protocol) || parsed.username || parsed.password) {
     throw new WebError('Otty can only read ordinary http(s) web pages.', false)
   }
-  const json = await post(cfg, '/v1/tools/fetch', { url: parsed.href }, fetchImpl)
-  const content = String(json?.content ?? '').trim()
-  if (!content) throw new WebError('That page had no text Otty could read.', false)
-  const title = String(json?.title ?? '').trim()
+  return parsed
+}
+
+/** A page as the model sees it, cut to a size that fits. */
+export function formatPage(title: string, href: string, content: string): string {
   const cut = content.length > PAGE_MAX_CHARS
   const body = cut ? content.slice(0, PAGE_MAX_CHARS) : content
   const note = cut ? `\n\n[Only the first ${PAGE_MAX_CHARS.toLocaleString('en')} of ${content.length.toLocaleString('en')} characters were included.]` : ''
-  return `${title ? `# ${title}\n` : ''}Source: ${parsed.href}\n\n${body}${note}`
+  return `${title ? `# ${title}\n` : ''}Source: ${href}\n\n${body}${note}`
+}
+
+export async function deepseekFetch(cfg: WebConfig, url: string, fetchImpl: typeof fetch = fetch): Promise<string> {
+  const parsed = checkedUrl(url)
+  const json = await post(cfg, '/v1/tools/fetch', { url: parsed.href }, fetchImpl)
+  const content = String(json?.content ?? '').trim()
+  if (!content) throw new WebError('That page had no text Otty could read.', false)
+  return formatPage(String(json?.title ?? '').trim(), parsed.href, content)
 }

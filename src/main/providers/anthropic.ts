@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { friendlyConnection, friendlyStatus } from './errors'
-import type { Profile } from './profiles'
+import { searchesOnServer, type Profile } from './profiles'
 import type { ChatRequest, ContentPart, Message, Provider, ProviderEvent, StopReason, ToolCall } from './types'
 
 type Params = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming
@@ -29,7 +29,10 @@ const THINKING_BETA = 'thinking-binding-controls-2026-08-01'
 const FALLBACK_BETA = 'server-side-fallback-2026-07-01'
 const HAS_FALLBACKS = new Set(['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-opus-5', 'claude-fable-5-1'])
 
-const STOPS: Record<string, StopReason> = { end_turn: 'end', tool_use: 'tools', max_tokens: 'length', refusal: 'refusal' }
+const STOPS: Record<string, StopReason> = { end_turn: 'end', tool_use: 'tools', max_tokens: 'length', refusal: 'refusal', pause_turn: 'paused' }
+
+/** Each search is billed, so a single answer can only run a few. */
+const MAX_SEARCHES = 5
 
 /** Tool ids from another service may hold characters this format rejects. */
 const toolId = (id: string) => id.replace(/[^a-zA-Z0-9_-]/g, '_')
@@ -115,6 +118,13 @@ function claudeExtras(c: AnthropicConfig, req: ChatRequest): Partial<Params> {
   }
 }
 
+function toolParams(c: AnthropicConfig, req: ChatRequest): Partial<Params> {
+  const search = searchesOnServer(c.profile, c.model) ? [{ type: 'web_search_20260209' as const, name: 'web_search' as const, max_uses: MAX_SEARCHES }] : []
+  const tools = [...toAnthropicTools(req.tools ?? []), ...search]
+  if (!tools.length) return {}
+  return { tools, ...(req.toolsOff ? { tool_choice: { type: 'none' as const } } : {}) }
+}
+
 function params(c: AnthropicConfig, req: ChatRequest, maxTokens: number): Params {
   return {
     model: c.model,
@@ -122,7 +132,7 @@ function params(c: AnthropicConfig, req: ChatRequest, maxTokens: number): Params
     messages: toAnthropicMessages(req.messages, serverOf(c)),
     ...(req.system !== undefined ? { system: req.system } : {}),
     // The tools stay listed on a round that can't use them, because changing them counts as editing the chat.
-    ...(req.tools?.length ? { tools: toAnthropicTools(req.tools), ...(req.toolsOff ? { tool_choice: { type: 'none' as const } } : {}) } : {}),
+    ...toolParams(c, req),
     ...claudeExtras(c, req)
   }
 }
@@ -151,6 +161,11 @@ export function anthropicProvider(config: () => AnthropicConfig): Provider {
         const stream = client(c).beta.messages.stream(params(c, req, req.maxTokens ?? STREAM_MAX_TOKENS), { signal })
         for await (const event of stream) {
           if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') yield { type: 'text', text: event.delta.text }
+          if (event.type === 'content_block_start') {
+            const block = event.content_block
+            if (block.type === 'server_tool_use' && block.name === 'web_search') yield { type: 'search', status: 'running' }
+            if (block.type === 'web_search_tool_result') yield { type: 'search', status: 'done' }
+          }
         }
         const message = await stream.finalMessage()
         for (const block of message.content) {
