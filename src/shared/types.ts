@@ -61,6 +61,7 @@ export type QuickAction =
   | 'what-is'
   | 'read-text'
   | 'read-page'
+  | 'proofread'
   | 'explain-home'
   | 'define'
   /** For attached documents. */

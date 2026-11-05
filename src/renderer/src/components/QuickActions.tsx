@@ -28,6 +28,7 @@ export function actionsFor(ctx: ScreenContext, home: HomeLanguage | null): Actio
     ...(home ? [{ action: 'explain-home' as const, label: `Explain in ${LANGUAGE_SHORT[home]}`, icon: 'comment-alt' }] : []),
     ...(short ? [] : [{ action: 'summarize' as const, label: 'Summarize', icon: 'list' }]),
     { action: 'translate', label: `Translate to ${translateTo}`, icon: 'language' },
+    ...(short ? [] : [{ action: 'proofread' as const, label: 'Check my writing', icon: 'pencil' }]),
     ...(short ? [] : [{ action: 'next-step' as const, label: 'What should I do?', icon: 'interrogation' }])
   ]
 }

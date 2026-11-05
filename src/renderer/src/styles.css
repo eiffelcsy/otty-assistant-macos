@@ -1986,3 +1986,41 @@ html[data-view='pickup'] #root {
 .context-picture__pickup:hover {
   background: var(--surface-2);
 }
+
+/* Proofread card: what changed, marked up by Otty rather than the model. */
+.fixed-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+}
+
+.fixed-card__text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.fixed-card ins {
+  border-radius: var(--r-xs);
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fixed-card del {
+  color: var(--danger-ink);
+  text-decoration: line-through;
+}
+
+.fixed-card del + ins {
+  margin-left: 3px;
+}
+
+.fixed-card .copy-btn {
+  align-self: flex-start;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Capture, FileAttachment } from '../../../../shared/types'
-import { actionsForTray } from '../QuickActions'
+import { actionsFor, actionsForTray } from '../QuickActions'
 
 const article = { name: 'Safari', url: 'https://example.com/story' }
 const offered = (page: Parameters<typeof actionsForTray>[3], captures: Capture[] = [], files: FileAttachment[] = []) =>
@@ -32,5 +32,20 @@ describe('the page offer', () => {
     const file = { id: 'f', name: 'a.txt', kind: 'text' } as FileAttachment
     expect(offered({ app: article, readsPages: true }, [capture])).not.toContain('read-page')
     expect(offered({ app: article, readsPages: true }, [], [file])).not.toContain('read-page')
+  })
+})
+
+describe('checking writing', () => {
+  const actions = (text: string) => actionsFor({ kind: 'text', text }, null).map((a) => a.action)
+
+  it('is offered for a draft, without becoming the default', () => {
+    const offered = actions('I has two cat and they is very friendly, and we goes to the park every day.')
+    expect(offered).toContain('proofread')
+    expect(offered[0]).not.toBe('proofread')
+  })
+
+  it('isn’t offered for a word or a picture', () => {
+    expect(actions('idempotent')).not.toContain('proofread')
+    expect(actionsFor({ kind: 'image', dataUrl: 'x', width: 1, height: 1 }, null).map((a) => a.action)).not.toContain('proofread')
   })
 })
