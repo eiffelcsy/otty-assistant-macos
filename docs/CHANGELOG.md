@@ -14,6 +14,14 @@ On `main`, for the next release.
 - Addresses in Claude's search results count as known. The model's own text and search words never do.
 - **On this Mac** is labelled experimental in the picker.
 
+### Pick up text (D-21, 2026-11-05)
+
+- **Select the words in a picture.** **Pick up text** beside a snip opens it in a floating window with its words live: drag across them and press ⌘C, like text on a web page. ⌘A and **Copy all** work too. The window stays on top until it's closed, so the user can paste elsewhere and come back.
+- **It all runs on the Mac:** no model, no key and no network. `otty-ocr` is a small Swift helper using Apple Vision, built by `tools/otty-ocr/build.mjs` and shipped in the app's resources. The picture reaches it over stdin, so it never touches disk, and it's gone when the window closes.
+- **Tables stay tables.** Lines are sorted into rows (`readingOrder.ts`), because Vision reads a table column by column, and rows copy with tabs, so `copyFormats` pastes them as real cells.
+- **What testing found.** Vision needs Chinese listed first or Chinese turns into symbols, but that hurts English ("due" read as "aue"), so the helper reads both ways and uses English for lines with no Chinese. A margin around the picture fixes text near an edge. Enlarging was dropped because it lost characters.
+- A read takes about 0.4 s, but the first one after installing took 30–50 s while Apple's models loaded, so the window opens straight away and says "Reading the words…".
+
 ### Choose Otty's brain (D-20 step 4, 2026-11-05)
 
 - **Pick a service, paste a key.** Settings and the welcome page now offer DeepSeek, Claude, OpenAI, On this Mac and Another service, and each fills in its own address and model (`shared/services.ts`). The address and API format sit under Advanced. DeepSeek stays the default.

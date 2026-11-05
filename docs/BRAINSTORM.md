@@ -52,12 +52,15 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Pick up text: a snip in a floating window with its words selectable, for ⌘C with no model | H | M | shipped |
 | Frontmost app, window title and page URL as context | H | S | shipped |
 | Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | H | L | → D-1 |
 | A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | idea, after D-9 |
 | Captures in the tray: drag to reorder, or a "replace" mode on ⌥Space for people who want one capture at a time | L | S | idea, after D-8 |
-| Pick up text: lay a snip over the screen with its words selectable, for ⌘C with no model | H | M | → D-21 |
-| Copy a pictured table with no model, using Apple's document reader (macOS 26) and `copyFormats` | M | S–M | idea, after D-21 |
+| Copy a pictured table with no model, using Apple's document reader (macOS 26) and `copyFormats` | M | S–M | idea |
+| Pick up text opens exactly over the original spot, so the text on screen seems to wake up (D-14's snip knows the rectangle) | M | S | idea, after D-14 |
+| Pick up text on attached pictures, and click a detected address, date or phone number to act on it | M | S–M | idea |
+| Warm `otty-ocr` after launch, if the idle budget allows, so the first read isn't slow | M | S | idea, after D-16 |
 | Local OCR (Apple Vision) for snips: classifier input and text for non-vision models | H | M | → D-1 (part) |
 | Learn from intent corrections on-device (retrain the head from `intent_feedback`, which keeps embeddings, not text) | M | M | idea |
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
@@ -65,7 +68,7 @@ Under all three: **trust**. Non-technical users first, privacy by default, confi
 | Attach files in the quick view: it hides on blur, so a drag from Finder closes it. Needs "don't hide while dragging" or a paperclip there | M | S | idea |
 | File quick actions answer in the document's language (a Chinese PDF → a Chinese summary when 繁體中文 is the other language); today actions default to English | M | S | idea |
 | History budget for long chats (D-13, proposed): compact old pictures, page reads and documents in rare single steps; recover from a context-length error, which today shows "Something went wrong (error 400)" | M | S | considering, after D-12 step 0 |
-| OCR for scanned PDFs with the D-1 `otty-ocr` helper | M | S | idea, after D-1 |
+| OCR for scanned PDFs with the `otty-ocr` helper | M | S | idea, after D-1 |
 | Captures in the tray: drag to reorder, or a "replace" mode on ⌥Space for people who want one capture at a time | L | S | idea |
 | Learn from intent corrections on-device (retrain the head from `intent_feedback`, which keeps embeddings, not text) | M | M | idea |
 | Scanned PDFs on vision models: render pages to images (needs a canvas in the utility process) | M | M | idea, D-6 v1 says "can't read scans yet" |

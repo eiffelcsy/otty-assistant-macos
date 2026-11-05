@@ -36,6 +36,11 @@ const api: OttyApi = {
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
   copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
 
+  pickUpText: (dataUrl) => ipcRenderer.invoke('pickup:open', dataUrl),
+  pickupPicture: () => ipcRenderer.invoke('pickup:picture'),
+  pickupRead: () => ipcRenderer.invoke('pickup:read'),
+  closePickup: () => ipcRenderer.invoke('pickup:close'),
+
   closeQuick: () => ipcRenderer.invoke('quick:close'),
   expandQuick: () => ipcRenderer.invoke('quick:expand'),
   quickResize: (height) => ipcRenderer.send('quick:resize', height),

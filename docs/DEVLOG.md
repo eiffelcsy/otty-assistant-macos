@@ -60,7 +60,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | — (schema, `database()` and the per-turn note are in) | M (2–3 days) |
 | D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
-| D-21 | Pick up text: lay a snip over the screen and select its words with ⌘C, on the Mac with no model | ⏳ | — (D-14 for opening in place) | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
@@ -217,46 +216,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 ---
 
-## D-21 · Pick up text: select the words in a picture ⏳
-
-**Goal.** Otty lays a snip over the screen with its words live, so the user can drag across them and press ⌘C, like text on a web page. It runs on the Mac: no model, no key and no network, so it also works with a text-only model or offline.
-
-**Why this shape.** Two ways were looked at:
-
-| | Otty's window + `otty-ocr` (chosen) | Apple's Live Text view (`ImageAnalysisOverlayView`) in a native window |
-| --- | --- | --- |
-| Selection | Ours to tune: browser selection over positioned text | Apple's, polished, with no work |
-| Look | Otty's tokens, paw and copy; testable in `tools/ui-preview` | Apple's, in a second UI stack outside the renderer |
-| Reuse | The same helper gives D-1 its text and the "Where is it?" spotlight its boxes | Serves this feature only, so D-1 would still need the helper |
-
-If step 2's selection feels poor on real snips, switch that step to Apple's view. The helper stays either way.
-
-**Measured on macOS 27 (spike, 2026-11-04).** `VNRecognizeTextRequest` read a 900×300 table in English and Traditional Chinese in **250–360 ms warm, but 28 s on the first run**. It gave a box per cell, and read "Item" as "tem" where the text sat against a cell border. `ImageAnalyzer.isSupported` is true and a `swiftc` build with no Xcode project is 93 KB.
-
-### Steps
-
-1. **`otty-ocr` helper (from D-1, built here first).** Swift in `tools/otty-ocr/`, built by `swiftc` for arm64 and x86_64, and shipped in `extraResources`. It takes the picture on stdin, so it never touches disk, and prints JSON: `{ lines: [{ text, box, confidence }] }`, with boxes flipped to top-left coordinates. Languages are `en-US`, `zh-Hant` and `zh-Hans`, plus the home language. `src/main/ocr.ts` runs it, guards for `darwin`, and has a timeout and a friendly failure.
-2. **The overlay window.** A frameless, always-on-top window showing the picture at its real size with invisible, selectable text on top, one positioned span per line in reading order, scaled to fit its box. A small handle moves it, and Esc closes it.
-   - Selecting highlights the words. ⌘C and ⌘A work, and lines copy with line breaks.
-   - A **Copy all** button, and "Otty couldn't find any words in this picture" when there are none.
-   - The picture stays in memory and nothing is saved to the chat.
-3. **Ways in.** A **Pick up text** action on a snip in the quick view and the tray, and on a picture in the chat. The renderer sends only the capture's id; main holds the picture.
-4. **In place, after D-14.** Otty's own snip knows the rectangle it cut, so the overlay opens exactly over the original and the text on screen seems to wake up. Until then it opens by the cursor, because `screencapture -i` doesn't report where the snip was.
-
-### To check
-
-- **The cold start.** Warm the helper with a tiny picture after launch, but only if D-16's idle budget allows it. Show "Reading the words…" with the otter either way, and measure a first run after a reboot, not just the first run ever.
-- **⌘C in this window.** Copy in Electron on a Mac goes through the Edit menu. Otty never sets its own menu, so check that the default one still handles ⌘C and ⌘A with no Dock icon, and add a hidden Edit menu if not.
-- **Misreads.** Try enlarging small snips and padding the edges before recognition. The "tem" misread suggests text near a border needs it. Don't show confidence to the user.
-- **Selection feel.** Drags across a gap, a table and two columns, and vertical or rotated text.
-- **Focus.** The window has to take focus for ⌘C, so check that closing it hands focus back to the app the user was in.
-
-### Later
-
-- **Copy as table.** Apple's `RecognizeDocumentsRequest` (macOS 26) is documented to return tables as rows and cells. Fed into `copyFormats`, that would copy a pictured table with no model and no retyping, which suits the "exactly as shown" promise. It isn't in the Command Line Tools SDK on the dev Mac (15.5), so it needs a newer SDK and has not been tried. Older systems keep the model route.
-- Click a detected address, date or phone number to act on it.
-
-**Docs when it ships:** REQUIREMENTS gains an FR, and D-1's helper note points here. **Size:** M (2 days), assuming the checks above hold.
 ## D-12 · Math that's right, and instant: calculator, tiered thinking, rendered equations ⏳
 
 **Goal.** Otty gets numbers right, shows math the way a textbook does, and is **never slower for it**. Today it slips, for three fixable reasons:
@@ -553,7 +512,7 @@ Keep the list short. Each new intent needs eval data and a template, so it's add
   - Load the model lazily on the first capture after launch, then keep it warm.
   - Check that the `.node` binary is unpacked from asar (`asarUnpack`) in packaged builds.
 - **Phase 0 shortcut (optional, day 1):** before the head is trained, score by cosine similarity to per-intent example centroids. This gets the UX flowing end to end early.
-- **Screenshots need text first.** Use the `otty-ocr` Swift helper (built in D-21 step 1, if that lands first). It uses Apple Vision `VNRecognizeTextRequest` with `en-US` and `zh-Hant` (Vision has no separate HK model; Traditional characters cover it).
+- **Screenshots need text first.** Use the `otty-ocr` Swift helper (`tools/otty-ocr/`, `src/main/ocr.ts`). It uses Apple Vision `VNRecognizeTextRequest` with `en-US` and `zh-Hant` (Vision has no separate HK model; Traditional characters cover it).
   - The OCR text feeds the classifier.
   - It is also sent to the LLM next to the image, which means non-vision models can finally handle snips.
   - With no OCR result, the snip uses today's default.
@@ -654,6 +613,9 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 53. Paste the same copy into Pages, Mail, Numbers and Excel → a table in the first two, and separate cells in the spreadsheets. Paste into TextEdit in plain-text mode or Terminal → tab-separated rows with no `|` marks.
 54. Ask a question that gets a table in the answer, with words around it → press **Copy** under the answer → Word shows the words and a real table. Copy an answer with no table → it pastes exactly as before.
 55. In `npm run dev` with DeepSeek, send a question, then a follow-up in the same chat → the terminal's `[cache]` line shows most of the follow-up's tokens as hits. Ask "what time is it?" → the right time, and no answer mentions the note. With 中 picked, ask in English → the reply is in Chinese with Hong Kong wording. Then switch to English → the reply is in English. The chat shows only your own words.
+56. Snip something with text → press **Pick up text** beside the picture in the quick view → a window opens by the cursor with the picture at about its real size. "Reading the words…" shows, then "Drag across the words". The first read after installing can take up to a minute. Repeat from the panel's tray and from a picture in a sent message.
+57. Drag across some words → they highlight exactly where they are in the picture. Press ⌘C and paste into Notes → the same words. Press ⌘A then ⌘C, and try **Copy all**. Snip a table, drag across a row, and paste into Word → real table cells. Try Chinese and English together.
+58. With the window open, switch to another app, paste, and come back → it's still there on top. Press Esc → it closes, and the app you were in has focus. Snip something with no words → "Otty couldn't find any words in this picture". Turn the Wi-Fi off → it still works.
 59. Settings → pick **Claude** → paste a key → **Save**: the test names the model. Ask something that needs a tool → the chip and answer work. Ask a follow-up, then reopen the chat from Recent chats and ask another.
 60. On Claude, ask "What's new in macOS this month?" → a "Searching the web" chip, then an answer citing sources. Ask it to read one of those sources → no card. Ask it to read an address nobody gave it → a "Read this page?" card.
 61. On OpenAI or a custom address, ask Otty to read a public page → a "Reading <site>" chip and a summary. Ask it to read `http://192.168.1.1` → it says it can only read public pages. Switch services mid-chat → the conversation carries on, and switching back keeps each key.
