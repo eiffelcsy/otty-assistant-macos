@@ -59,7 +59,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-17 | Proofread card for writing in a second language | ⏳ next | — | S–M (1 day) |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | — (schema, `database()` and the per-turn note are in) | M (2–3 days) |
 | D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
-| D-20 | Any model: OpenAI-compatible, Claude and local, chosen in Settings | ⏳ | — | L (6–10 days in all) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
@@ -74,10 +73,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
    4. **D-17 Proofread card.** A new reason to reach for Otty.
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
 3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
-4. **The rest of D-20, any model.** Otty stops depending on one provider, and people can choose privacy or quality for themselves.
-5. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
-6. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
-7. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
+4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
+5. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
+6. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
 
 ---
 
@@ -150,7 +148,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Design**
 - `explainCached(term, around, language)` in main: the same key as today (language + lower-cased term), holding in-flight promises so a tap during a warm-up shares the call. At most 200 entries; failures are dropped so the next tap retries.
 - After `done`, for a finished answer with no error, take up to 3 `[term](#explain)` from the text and fetch them in the answer's language. The other language stays on demand. Reopened chats don't warm.
-- **Background calls** use D-20's `complete()` with `reasoning: 'least'`, shared with D-19: no tools, never touching `ChatSession` history, and the least thinking the model allows.
+- **Background calls** use the provider's `complete()` with `reasoning: 'least'`, shared with D-19: no tools, never touching `ChatSession` history, and the least thinking the model allows.
 - That also fixes a bug: `post` applies the Think deeper setting to explain cards, so reasoning can use up their 300-token limit and leave the card with its "couldn't think of an explanation" message.
 
 **Cost:** up to three small calls per answer, for text the provider already has. Nothing new is sent. Check the real cost in the dev log, and show it in the usage meter if that ships.
@@ -166,7 +164,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Goal.** Recent chats and search read much better with real titles. Today a title is the cut-off question plus a quote (`titleFor`), and most hotkey questions come out as `Explain simply “The quick brown fox jumps over…”`.
 
 **Design**
-- After the first answer in a chat finishes with no error, one background call (D-20's `complete()`, `max_tokens: 24`) writes a title of 3–6 words in the chat's language, from the first 500 characters of the question and of the answer. Text only.
+- After the first answer in a chat finishes with no error, one background call (the provider's `complete()`, `max_tokens: 24`) writes a title of 3–6 words in the chat's language, from the first 500 characters of the question and of the answer. Text only.
 - Only when "Remember my chats" is on. `titleFor` stays as the instant title and the fallback for any failure.
 - Clean the result: one line, no quotes or trailing full stop, at most 60 characters.
 - **No store change:** `write(thread, { messages: thread.messages.length, history: thread.history.length })` already updates the title and rebuilds the search row, without bumping `updatedAt`. A chat forgotten in the meantime is skipped by `persist`'s existing check. The title goes on the `thread` the turn ran on, not the current one, in case the user has moved on.
@@ -175,98 +173,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Done when:** after one question, Recent chats shows a short real title; searching a word from it finds the chat; a Chinese chat gets a Chinese title; with Wi-Fi off the old title stays; forgetting a chat while its title is being written doesn't bring it back.
 
 **Smoke test (add to the checklist when it ships).** Highlight a long paragraph → ⌥Space → ↵ → Recent chats shows a short real title, not the cut-off text. Ask a question in 中文 → a Chinese title.
-
----
-
-## D-20 · Any model: OpenAI-compatible, Claude and local ⏳
-
-**Goal.** Otty works with the model the user wants: DeepSeek, OpenAI and other OpenAI-compatible services, Claude, or a model running on their own Mac. Choosing one is a friendly picker, not a server address. Each provider gets as much of Otty as it can support, and Otty says plainly what it can't do. It also stops being a bet on one company, and it's the base for "Model profiles", "Two model slots" and a private, fully local Otty.
-
-**Today.** The request and streaming code is behind `src/main/providers/`, and the prompts are nearly provider-free. What's still tied to DeepSeek:
-- Real search and `read_page` only exist with DeepSeek's key. Other online services get Wikipedia and DuckDuckGo, and local models get no web tools.
-
-### Design decisions
-- **The OpenAI-shaped `Message` stays Otty's internal format.** Adapters translate as they send. Saved chats need no migration, `knownUrls.ts` and `store/images.ts` don't change, and switching provider mid-chat keeps working.
-- **Anything provider-specific rides along opaquely.** An assistant `Message` gains `provider?: { id, model, blocks }`, which is how Claude's thinking blocks survive a tool loop. It's JSON in `llm_history`, so there's no schema change. Adapters only replay blocks for the same provider and model.
-- **Features ask for what they need, not for a provider.** Code outside `src/main/providers/` never checks a provider's name: it reads the profile.
-- **`@anthropic-ai/sdk` for the Anthropic format, raw `fetch` for OpenAI's.** The SDK handles streaming, retries and typed errors, and is bundled into main like everything else.
-
-### The provider layer (`src/main/providers/`)
-```ts
-interface Provider {
-  stream(req: ChatRequest, signal: AbortSignal): AsyncIterable<ProviderEvent>
-  complete(req: ChatRequest): Promise<Completion> // { text, model? }
-}
-// ChatRequest: system, messages, tools, maxTokens, reasoning: 'least' | 'normal' | 'deep'
-// ProviderEvent: text, reasoning, tool call, then done with stop: 'end' | 'tools' | 'length' | 'refusal'
-```
-- `reasoning` replaces the raw `thinking` field. Each adapter maps it: DeepSeek to `thinking`, Claude to `effort` (and leaves `thinking` out where it can't be disabled), and models with no such control ignore it. D-12's tiers ask for `reasoning` the same way.
-- `run()`'s loop stays in `ChatSession` and only sees `ProviderEvent`s. `explainTerm`, `testConnection` and `canSeeImages` use `complete()`.
-- Errors become one `FriendlyError` per case (bad key, no credit, busy, too long, no vision), each with the provider's name and top-up link from the profile.
-
-**Profile**, in `providers/profiles.ts`, one per preset. It's found from the address, and Settings → API format can override the format. `baseUrl`, `keyUrl` and `vision` come with step 4:
-
-| Field | Example |
-| --- | --- |
-| `id`, `label`, `format` | `claude`, "Claude", `anthropic` (or `openai`) |
-| `baseUrl`, `model`, `keyUrl`, `needsKey` | a local model has no key |
-| `contextTokens` | drives the file budget, replacing `FILE_TOKEN_BUDGET` |
-| `vision` | whether snips can be offered |
-| `reasoning` | `thinking-field`, `effort` or `none` |
-| `tokenLimit` | `max_tokens` or `max_completion_tokens` |
-| `web` | `deepseek`, `claude`, `lookup` or `off` |
-
-Presets: DeepSeek, Claude, OpenAI, Local (Ollama or LM Studio), and Custom (any OpenAI-compatible address). Model lists come from each provider's models endpoint where there is one, with a text field as the fallback.
-
-### Two API formats, not one adapter per company
-Otty speaks two formats: OpenAI's `/chat/completions` and Anthropic's Messages. The user sets the format, address, model and key, and presets only fill those in, so any server that speaks either format works with no new code. Both are built (`providers/openai.ts`, `providers/anthropic.ts`). Facts for later steps:
-- **Claude's extras go only to `api.anthropic.com`:** thinking settings, effort, caching and fallbacks. Other servers get a plain request.
-- **Replays are tied to the host.** Thinking is signed by the server that wrote it, so a reply from anywhere else is rebuilt from its text and tool calls.
-- **Latency:** Sonnet 5.5 is Claude's default, chosen for answer quality over Haiku 5.5. It hasn't been measured against NFR-2.
-- **"Use tools only when they genuinely help"** is in the prompt, and Sonnet 5.5 takes that literally. Watch that it still reaches for tools.
-
-### Local models
-- `needsKey: false`: `config()` stops requiring a key, and onboarding can finish without one.
-- `Test` explains the common failures in plain words: Ollama isn't running, or the model isn't downloaded.
-- Set the context size where the server allows it, and keep the file budget well inside it.
-- With `web: 'off'`, nothing leaves the Mac. Settings says so, and the fallback to Wikipedia and DuckDuckGo stays off unless the user turns on web lookups.
-- A model with no tool calling runs without tools, and Otty says it can't set reminders or search.
-
-### Web tools without DeepSeek
-Decide this with a small prototype, because it's the biggest unknown in the estimate:
-- **Claude:** its server-side `web_search` and `web_fetch`. They run outside the confirm cards and `knownUrls.ts`, so they need a safety review first: `allowed_domains`, `max_uses`, and what a hostile page can reach. Their result blocks also need handling.
-- **OpenAI and others:** stay on the lookup, or add a search service (Brave or Tavily) with its own optional key.
-- **Reading pages from the Mac:** a possible `read_page` for everyone. It exposes the user's IP, and must refuse local and private addresses.
-
-Whatever ships, `PublicSettings.readsPages` (D-15) comes from the profile, and Settings → Privacy says where lookups go for the chosen provider, which also closes the gap noted in BRAINSTORM.
-
-### Steps
-1. **Provider layer.** Shipped; see CHANGELOG.
-2. **Profiles and local.** Shipped; see CHANGELOG. Local models are a stretch goal: implemented but not fully supported, because they haven't been tested against a real Ollama or LM Studio. The 8K window and the match on Ollama's "no tools" error are unconfirmed.
-3. **Anthropic format.** Shipped; see CHANGELOG. Not yet run against the real API, so the first real chat is the test.
-4. **Presets, keys and copy.** Shipped; see CHANGELOG. Model lists from each service's models endpoint are still an idea, so OpenAI and local models are typed in.
-5. **Web tools** (1–3 days), after the prototype.
-6. **Model checks.** Skipped (2026-11-05). Nothing is scheduled to run real tasks on each preset, so what these tests can't show stays unconfirmed. It's the first slice of the "Otty eval" in BRAINSTORM, if that's picked up later.
-
-### Open questions
-- Which OpenAI model should its preset start on? It's empty for now, so the user types one. Claude starts on Sonnet 5.5.
-- Stripping pictures from a reopened chat does count as an edit. `drop_block` should turn that into a quiet loss of old thinking, not a 400. Unconfirmed on the real API.
-- Does a third-party Anthropic-style server accept `tool_choice: none` and both auth headers? Unconfirmed.
-- Which local models are good enough to recommend? Open until local support is taken up again.
-
-**Done when:**
-- A chat works on each preset, with streaming, Stop, tool chips and confirm cards.
-- A chat started on one provider continues on another.
-- A tool round on Claude, with thinking, succeeds across several turns and after reopening.
-- With Ollama, Otty needs no key, and with web lookups off nothing leaves the Mac. (Stretch goal: built, not tested on a real server.)
-- A model without vision gets a clear message on a snip, and a refusal shows a kind message.
-- A 0.4.0 user upgrades with no setup, and their key and chats still work.
-- Grepping for `deepseek` outside `src/main/providers/`, `web.ts` and tests finds only copy that's meant to say it.
-
-**Smoke test (add to the checklist when it ships).**
-- Settings → pick **Claude** → paste a key → **Test** names the model. Ask something that needs a tool → the chip and answer work. Ask a follow-up, then reopen the chat from Recent chats and ask another.
-- Switch to **Local** with Ollama running → no key asked for. Turn Wi-Fi off → it still answers. Quit Ollama → a friendly message says so. (Stretch goal, not part of the smoke test for now.)
-- Snip with a text-only model → the "can't look at pictures" message. Switch providers mid-chat → the conversation carries on.
 
 ---
 
@@ -710,3 +616,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 56. Snip something with text → press **Pick up text** beside the picture in the quick view → a window opens by the cursor with the picture at about its real size. "Reading the words…" shows, then "Drag across the words". The first read after installing can take up to a minute. Repeat from the panel's tray and from a picture in a sent message.
 57. Drag across some words → they highlight exactly where they are in the picture. Press ⌘C and paste into Notes → the same words. Press ⌘A then ⌘C, and try **Copy all**. Snip a table, drag across a row, and paste into Word → real table cells. Try Chinese and English together.
 58. With the window open, switch to another app, paste, and come back → it's still there on top. Press Esc → it closes, and the app you were in has focus. Snip something with no words → "Otty couldn't find any words in this picture". Turn the Wi-Fi off → it still works.
+59. Settings → pick **Claude** → paste a key → **Save**: the test names the model. Ask something that needs a tool → the chip and answer work. Ask a follow-up, then reopen the chat from Recent chats and ask another.
+60. On Claude, ask "What's new in macOS this month?" → a "Searching the web" chip, then an answer citing sources. Ask it to read one of those sources → no card. Ask it to read an address nobody gave it → a "Read this page?" card.
+61. On OpenAI or a custom address, ask Otty to read a public page → a "Reading <site>" chip and a summary. Ask it to read `http://192.168.1.1` → it says it can only read public pages. Switch services mid-chat → the conversation carries on, and switching back keeps each key.

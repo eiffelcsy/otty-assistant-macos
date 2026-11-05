@@ -2,7 +2,8 @@ import { clipboard, ClipboardItem, shell } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { copyFormats } from './copyFormats'
-import { profileFor } from './providers/profiles'
+import { readPageFromMac } from './pageReader'
+import { profileFor, searchesOnServer } from './providers/profiles'
 import { getApiKey, getStored } from './settings'
 import { deepseekFetch, deepseekSearch, WebError, type WebConfig } from './web'
 
@@ -81,11 +82,13 @@ function webConfig(): WebConfig | null {
   return key && profileFor(baseUrl).web === 'deepseek' ? { baseUrl, key } : null
 }
 
-/** The tools offered to the model. Real search and page reading need DeepSeek's endpoints. */
+/** The tools offered to the model. Claude brings its own search, and pages are read from the Mac unless DeepSeek does it. */
 export function toolDefs() {
   if (webOff()) return otherDefs
-  const web = webConfig() ? [searchWebDef, readPageDef] : [lookupDef]
-  return [...web, ...otherDefs]
+  const { baseUrl, apiFormat, model } = getStored()
+  if (webConfig()) return [searchWebDef, readPageDef, ...otherDefs]
+  if (searchesOnServer(profileFor(baseUrl, apiFormat), model)) return [readPageDef, ...otherDefs]
+  return [lookupDef, readPageDef, ...otherDefs]
 }
 
 const otherDefs = [
@@ -171,14 +174,14 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
         return { result: await searchWeb(String(args.query ?? '')), status: 'done' }
 
       case 'read_page': {
+        if (webOff()) return { result: 'Web lookups are off with this model.', status: 'error' }
         const web = webConfig()
-        if (!web) return { result: 'Reading pages needs Otty to be connected to DeepSeek.', status: 'error' }
         const url = String(args.url ?? '')
         if (/^https?:\/\//i.test(url) && !ctx.knownUrl(url) && !(await ctx.confirm('Read this page?', url))) {
           return { result: 'The user declined.', status: 'denied' }
         }
         try {
-          return { result: await deepseekFetch(web, url), status: 'done' }
+          return { result: await (web ? deepseekFetch(web, url) : readPageFromMac(url)), status: 'done' }
         } catch (err) {
           if (err instanceof WebError) return { result: err.message, status: 'error' }
           throw err

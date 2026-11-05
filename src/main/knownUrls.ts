@@ -35,6 +35,15 @@ function userText(content: Extract<Message, { role: 'user' }>['content']): strin
   return content.map((part) => (part.type === 'text' ? part.text : '')).join('\n')
 }
 
+/** Addresses in a service's own search results. Only those blocks: the model's text in the same reply never counts. */
+function searchResultUrls(m: Message): string[] {
+  if (m.role !== 'assistant' || !m.provider) return []
+  return (m.provider.blocks as { type?: string; content?: unknown }[]).flatMap((block) => {
+    if (block.type !== 'web_search_tool_result' || !Array.isArray(block.content)) return []
+    return (block.content as { url?: unknown }[]).flatMap((r) => (typeof r.url === 'string' ? [normalized(r.url) ?? ''] : []))
+  })
+}
+
 export function isKnownUrl(url: string, history: Message[]): boolean {
   const href = normalized(url)
   if (!href) return false
@@ -43,7 +52,7 @@ export function isKnownUrl(url: string, history: Message[]): boolean {
     if (m.role === 'assistant') for (const call of m.tool_calls ?? []) toolNames.set(call.id, call.function.name)
     const fromUser = m.role === 'user' ? userText(m.content) : ''
     const fromWeb = m.role === 'tool' && WEB_TOOLS.has(toolNames.get(m.tool_call_id) ?? '') ? m.content : ''
-    if (urlsIn(fromUser + '\n' + fromWeb).includes(href)) return true
+    if (urlsIn(fromUser + '\n' + fromWeb).includes(href) || searchResultUrls(m).includes(href)) return true
   }
   return false
 }

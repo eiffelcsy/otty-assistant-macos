@@ -67,3 +67,27 @@ describe('isKnownUrl', () => {
     expect(isKnownUrl('not a url', [{ role: 'user', content: 'not a url' }])).toBe(false)
   })
 })
+
+describe('a service\'s own search results', () => {
+  const reply = (blocks: unknown[]): Message => ({ role: 'assistant', content: 'See https://model-said.example/', provider: { id: 'api.anthropic.com', model: 'm', blocks } })
+  const results = { type: 'web_search_tool_result', content: [{ type: 'web_search_result', url: 'https://found.example/page', title: 'Found' }] }
+
+  it('counts an address from the results', () => {
+    expect(isKnownUrl('https://found.example/page', [reply([results])])).toBe(true)
+  })
+
+  it('never counts the model\'s own words in the same reply', () => {
+    const history = [reply([{ type: 'text', text: 'Try https://model-said.example/' }, results])]
+    expect(isKnownUrl('https://model-said.example/', history)).toBe(false)
+  })
+
+  it('never counts an address the model passed to the search', () => {
+    const query = { type: 'server_tool_use', name: 'web_search', input: { query: 'https://evil.example/?data=secret' } }
+    expect(isKnownUrl('https://evil.example/?data=secret', [reply([query, results])])).toBe(false)
+  })
+
+  it('copes with a failed search', () => {
+    const failed = { type: 'web_search_tool_result', content: { type: 'web_search_tool_result_error', error_code: 'max_uses_exceeded' } }
+    expect(isKnownUrl('https://found.example/page', [reply([failed])])).toBe(false)
+  })
+})

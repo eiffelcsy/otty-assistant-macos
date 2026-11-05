@@ -19,7 +19,8 @@ export interface Service {
   webPrivacy: string
 }
 
-const LOOKUPS = 'When Otty looks something up, the search words go to Wikipedia and DuckDuckGo. It can’t read whole pages with this service.'
+const PAGES = 'When it reads a page, your Mac opens it directly, so the site sees your internet address. It can’t see pages you’re signed in to.'
+const LOOKUPS = `When Otty looks something up, the search words go to Wikipedia and DuckDuckGo. ${PAGES}`
 
 export const SERVICES: Service[] = [
   {
@@ -44,7 +45,7 @@ export const SERVICES: Service[] = [
     keyUrl: 'https://platform.claude.com/settings/keys',
     keyHint: 'sk-ant-…',
     privacy: 'Your questions go to Anthropic.',
-    webPrivacy: LOOKUPS
+    webPrivacy: `When Otty searches the web, the search words go to Anthropic, and each search is billed to your Claude account. ${PAGES}`
   },
   {
     id: 'openai',
@@ -60,8 +61,8 @@ export const SERVICES: Service[] = [
   },
   {
     id: 'local',
-    label: 'On this Mac',
-    blurb: 'Private and free, with Ollama or LM Studio.',
+    label: 'On this Mac (experimental)',
+    blurb: 'Private, with Ollama or LM Studio. Not fully tested yet.',
     baseUrl: 'http://localhost:11434/v1',
     model: '',
     needsKey: false,

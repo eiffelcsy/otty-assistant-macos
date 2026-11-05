@@ -225,6 +225,7 @@ export class ChatSession {
         let reasoning = ''
         const toolCalls: ToolCall[] = []
         let replay: ProviderReplay | undefined
+        let paused = false
 
         for await (const event of replies) {
           if (event.type === 'reasoning') reasoning += event.text
@@ -232,6 +233,12 @@ export class ChatSession {
           if (event.type === 'done') {
             if (event.stop === 'refusal') throw new FriendlyError('Otty can’t help with that one. Try asking in a different way.')
             replay = event.replay
+            paused = event.stop === 'paused'
+          }
+          if (event.type === 'search') {
+            const chip = { callId: `${id}-search-${round}`, label: 'Searching the web', icon: 'search' }
+            if (event.status === 'done') answer.tools = [...answer.tools.filter((t) => t.callId !== chip.callId), { ...chip, status: 'done' }]
+            this.emit({ type: 'tool', id, ...chip, status: event.status })
           }
           if (event.type === 'text') {
             content += event.text
@@ -247,6 +254,7 @@ export class ChatSession {
           ...(reasoning ? { reasoning_content: reasoning } : {}),
           ...(replay ? { provider: replay } : {})
         })
+        if (paused) continue // the same chat, sent again, resumes it
         if (!toolCalls.length) break
 
         for (const call of toolCalls) {

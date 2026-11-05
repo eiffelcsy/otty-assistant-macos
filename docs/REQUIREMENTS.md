@@ -27,7 +27,7 @@ Otty is a cute otter assistant for macOS. It floats on screen as a small button,
 | Selected text | Copy-and-restore clipboard trick (simulated ⌘C via `osascript`) | Works in nearly every app; needs Accessibility permission |
 | Secrets | Electron `safeStorage` (backed by the macOS Keychain) | The API key never touches the renderer or plain disk |
 | Storage | SQLite (`otty.db`) through Electron's built-in `node:sqlite`, FTS5 trigram search | No native module to rebuild; sub-millisecond writes; full-text search in English and Chinese; room for memories and intent feedback |
-| Web | DeepSeek Search & Fetch APIs when the provider is DeepSeek; Wikipedia + DuckDuckGo otherwise | Same key as the model, no extra account |
+| Web | DeepSeek Search & Fetch with DeepSeek; Claude's web search with Claude; Wikipedia + DuckDuckGo otherwise. Pages are read from the Mac without DeepSeek | Each service says where lookups go |
 | Files | `pdfjs-dist` and `mammoth`, in a utility process | Big documents never freeze the app |
 | Tests | Vitest, run by CI on every PR | No Electron needed for most of it |
 | Packaging | electron-builder → `.dmg`, Apple Silicon and Intel | Unsigned for now; signing and notarization come later |
@@ -88,8 +88,8 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 
 | Tool | Behavior | Confirmation |
 | --- | --- | --- |
-| `search_web` | With DeepSeek: real web search, 5 dated results with summaries to cite. Otherwise (or if it fails): Wikipedia + DuckDuckGo instant answers | No |
-| `read_page` | With DeepSeek only: reads one web page as Markdown (about 24K characters max), e.g. the page in the app note. Can't see signed-in pages | Only for an address that didn't come from the user, a search or a page: a "Read this page?" card shows it in full |
+| `search_web` | With DeepSeek: real web search, 5 dated results with summaries to cite. Claude uses its own web search instead. Otherwise (or if it fails): short summaries from Wikipedia and DuckDuckGo. Off with a local model | No |
+| `read_page` | Reads one public web page as Markdown (about 24K characters max), through DeepSeek or from the Mac, e.g. the page in the app note. Can't see signed-in pages | Only for an address that didn't come from the user, a search or a page: a "Read this page?" card shows it in full |
 | `open_url` | Opens an http(s) link in the default browser | **Yes**: an "Allow / No thanks" card |
 | `copy_to_clipboard` | Puts text (such as a rewritten email) on the clipboard. A table pastes as a real table | No |
 | `create_reminder` | Adds an item to Apple Reminders, with an optional due date | **Yes** |

@@ -19,7 +19,7 @@ export interface Profile {
   reasoning: 'thinking-field' | 'effort' | 'none'
   tokenLimit: 'max_tokens' | 'max_completion_tokens'
   /** Where search and page reading go. `off` means nothing leaves the Mac. */
-  web: 'deepseek' | 'lookup' | 'off'
+  web: 'deepseek' | 'claude' | 'lookup' | 'off'
 }
 
 const DEEPSEEK: Profile = {
@@ -46,7 +46,7 @@ const CLAUDE: Profile = {
   contextTokens: 128_000,
   reasoning: 'effort',
   tokenLimit: 'max_tokens',
-  web: 'lookup'
+  web: 'claude'
 }
 
 const OPENAI: Profile = {
@@ -89,6 +89,23 @@ const CUSTOM: Profile = {
 }
 
 const PROFILES: Record<ServiceId, Profile> = { deepseek: DEEPSEEK, claude: CLAUDE, openai: OPENAI, local: LOCAL, custom: CUSTOM }
+
+/** The models that take the current web search tool. */
+const SEARCHING_MODELS = new Set([
+  'claude-opus-5-5',
+  'claude-opus-5',
+  'claude-opus-4-8',
+  'claude-opus-4-7',
+  'claude-opus-4-6',
+  'claude-sonnet-5-5',
+  'claude-sonnet-5',
+  'claude-sonnet-4-6'
+])
+
+/** True when the service runs its own web search, in place of Otty's simple lookup. */
+export function searchesOnServer(profile: Profile, model: string): boolean {
+  return profile.web === 'claude' && profile.format === 'anthropic' && SEARCHING_MODELS.has(model)
+}
 
 /** What's known about an address. `format` is the user's choice; `auto` goes by the address. */
 export function profileFor(baseUrl: string, format: ApiFormat = 'auto'): Profile {

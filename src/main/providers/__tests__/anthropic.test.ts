@@ -18,9 +18,11 @@ function sse(blocks: Record<string, unknown>[], stopReason = 'end_turn'): Respon
     if (block.type === 'text') {
       events.push({ type: 'content_block_start', index, content_block: { type: 'text', text: '' } })
       events.push({ type: 'content_block_delta', index, delta: { type: 'text_delta', text: block.text } })
-    } else if (block.type === 'tool_use') {
+    } else if (block.type === 'tool_use' || block.type === 'server_tool_use') {
       events.push({ type: 'content_block_start', index, content_block: { ...block, input: {} } })
       events.push({ type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(block.input) } })
+    } else if (block.type === 'web_search_tool_result') {
+      events.push({ type: 'content_block_start', index, content_block: block })
     } else {
       events.push({ type: 'content_block_start', index, content_block: { ...block, signature: '' } })
       events.push({ type: 'content_block_delta', index, delta: { type: 'signature_delta', signature: block.signature } })
@@ -109,7 +111,7 @@ describe('the request', () => {
     const tools = [{ type: 'function', function: { name: 'find', description: 'Finds', parameters: { type: 'object', properties: {} } } }]
     await collect({ messages: [], tools })
     await collect({ messages: [], tools, toolsOff: true })
-    expect(sent[0].body.tools).toEqual([{ name: 'find', description: 'Finds', input_schema: { type: 'object', properties: {} } }])
+    expect(sent[0].body.tools[0]).toEqual({ name: 'find', description: 'Finds', input_schema: { type: 'object', properties: {} } })
     expect(sent[0].body).not.toHaveProperty('tool_choice')
     expect(sent[1].body.tools).toEqual(sent[0].body.tools)
     expect(sent[1].body.tool_choice).toEqual({ type: 'none' })
@@ -311,4 +313,48 @@ describe('another server that speaks this format', () => {
     })
     await expect(run(custom('http://localhost:8080', ''))).rejects.toThrow('Check that Ollama or LM Studio is running')
   }, 15_000)
+})
+
+describe('web search on Claude', () => {
+  const search = { type: 'server_tool_use', id: 'srvtoolu_1', name: 'web_search', input: { query: 'otters' } }
+  const results = { type: 'web_search_tool_result', tool_use_id: 'srvtoolu_1', content: [{ type: 'web_search_result', url: 'https://a.example/', title: 'A', encrypted_content: 'x' }] }
+
+  it('adds the search tool, with a limit, after Otty’s own tools', async () => {
+    answerWith(() => sse([{ type: 'text', text: 'Hi' }]))
+    await collect({ messages: [], tools: [{ type: 'function', function: { name: 'find', parameters: {} } }] })
+    expect(sent[0].body.tools.map((t: { name: string }) => t.name)).toEqual(['find', 'web_search'])
+    expect(sent[0].body.tools[1]).toEqual({ type: 'web_search_20260209', name: 'web_search', max_uses: 5 })
+  })
+
+  it('never adds web_fetch, which would skip Otty’s checks', async () => {
+    answerWith(() => sse([{ type: 'text', text: 'Hi' }]))
+    await collect()
+    expect(JSON.stringify(sent[0].body)).not.toContain('web_fetch')
+  })
+
+  it('keeps it off models and servers that can’t take it', async () => {
+    answerWith(() => sse([{ type: 'text', text: 'Hi' }]))
+    const haiku = anthropicProvider(() => ({ ...config, model: 'claude-haiku-5-5' }))
+    for await (const _ of haiku.stream({ messages: [] }, new AbortController().signal));
+    const other = anthropicProvider(() => ({ ...config, baseUrl: 'https://models.example.com', profile: profileFor('https://models.example.com', 'anthropic') }))
+    for await (const _ of other.stream({ messages: [] }, new AbortController().signal));
+    expect(sent[0].body).not.toHaveProperty('tools')
+    expect(sent[1].body).not.toHaveProperty('tools')
+  })
+
+  it('reports the search, and keeps its blocks for sending back', async () => {
+    answerWith(() => sse([search, results, { type: 'text', text: 'Found it.' }]))
+    const events = await collect()
+    expect(events.filter((e) => e.type === 'search')).toEqual([
+      { type: 'search', status: 'running' },
+      { type: 'search', status: 'done' }
+    ])
+    const done = events.at(-1) as Extract<ProviderEvent, { type: 'done' }>
+    expect(done.replay?.blocks.map((b) => (b as { type: string }).type)).toEqual(['server_tool_use', 'web_search_tool_result', 'text'])
+  })
+
+  it('reports a pause, so the turn can be resumed', async () => {
+    answerWith(() => sse([search], 'pause_turn'))
+    expect((await collect()).at(-1)).toMatchObject({ type: 'done', stop: 'paused' })
+  })
 })
