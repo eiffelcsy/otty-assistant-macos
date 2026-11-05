@@ -63,6 +63,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
+| D-22 | Keep going: answers that carry on, background research jobs, Activity (Stage 1 of AUTONOMY.md) | ⏳ | — (steps 0–1 before D-10) | L (5–7 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
 **Where things stand (2026-11-05).** 0.4.0 is built and smoke-tested, with its draft release waiting to be published. `main` also has, unreleased: any model (D-20), Pick up text (D-21), a stable prompt (D-12 step 0), Read this page (D-15), the idle budget (D-16), warm explain cards (D-18), chat titles (D-19) and the proofread card (D-17); see CHANGELOG → Unreleased. None of that has run against a real Claude, OpenAI or local model yet. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
@@ -73,7 +74,8 @@ The working plan: what's next, how we'll build it, and how to check it works.
 3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
 4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant, catches menus that would vanish, and lets Pick up text open over the original spot.
 5. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how". The proofread card gains **Replace in Pages** here.
-6. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, eval set). The OCR helper is already built. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
+6. **D-22 Keep going.** Otty's first step from reactive to autonomous: work carries on while you look away. Steps 0 and 1 are small and should land before D-10, which adds tools.
+7. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, eval set). The OCR helper is already built. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
 
 ---
 
@@ -370,6 +372,113 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
 - "I'm stuck" on a step snips, asks, and updates the card.
 - A Delete step asks "Sure?" first.
 - In the quick view you can work through all the steps without it closing.
+
+---
+
+## D-22 · Keep going: Otty works while you look away ⏳
+
+**Goal.** Stage 1 of [AUTONOMY.md](AUTONOMY.md). Otty stops doing only one thing at a time. An answer carries on when the user moves to another chat, and a bigger question becomes a job that runs in the background, survives a restart and waits as a normal chat when it's done.
+
+**What's in.** Answers that keep running, read-only research jobs, an Activity view, and sleep and restart handling. **What's out:** schedules, recipes, anything Otty starts itself, and any job tool with side effects. Those are Stage 2.
+
+**The promise doesn't change.** The user starts every job with a card, so NFR-5 still holds and needs no rewording yet.
+
+### 1. Answers that keep running
+
+Today `send()`, `open()` and `reset()` all stop the running turn, and that includes a new hotkey question (`opts.fresh`).
+
+- **Turns belong to a chat, not to the session.** `ChatSession` keeps a map of running turns by thread id, each with its own `AbortController` and confirms. It still has one chat on show, and only that chat's events reach the windows.
+- **Moving away no longer stops anything.** `open()` and `reset()` just change which chat is on show.
+- **A new question in the same chat still replaces the running answer.** One history can't take two turns at once, and this is what people already expect from Stop.
+- **Coming back mid-answer:** `open()` uses the live thread, not the saved one, and `load` says which answer is still streaming. Its confirm card, if any, is shown again.
+- **Limit:** three running turns. A fourth stops the oldest one that isn't on show.
+- These turns stay in memory, as today. A quit loses them. Only jobs survive.
+
+### 2. Jobs
+
+- **Started by a `start_job({ title, brief })` tool** from a chat turn, for questions needing many sources or more rounds than a chat gets. It returns straight away, and the chat carries on with a "Looking into…" chip. The prompt rule goes in the static system prompt.
+- **Always a card first, every time,** through the existing `askConfirm`: what it will look into, that it uses the user's key, and that it only reads public pages. The card is what stops a hostile page from starting a job, because the model's own request never starts one.
+- **A job sees only its brief.** No chat history, memories, captures or files. It has outside content and a way out (search queries and addresses), so under the Rule of Two it must not hold private data. The card shows the whole brief, so the user sees exactly what goes.
+- **Tools:** `search_web` and `read_page`, and nothing else, enforced in `runTool` by the new allowed list. Not offered with `web: 'off'`, and refused there too.
+- **Addresses:** the brief is written by the model, so its text must not count as known in `isKnownUrl`, even though it's a `user` message. The job keeps `seed_urls`: the addresses in the brief that were already known in the source chat. Everything else must come from a search or page. An unknown address makes the job wait (below).
+- **One job runs at a time,** and up to five wait in a queue. That keeps spending and CPU predictable.
+- **System prompt:** a new `jobPrompt`, fixed by settings, and the history only grows, so the cache rule holds for free. No model call touches `ChatSession` history.
+- **Results become a chat.** A finished job writes a new saved thread: the brief, then the report. Reports use the same Markdown as answers, and appear in Recent chats and search. Follow-ups just work, which also delivers "Reply to a note". The thread's history holds the brief and report, not every page read.
+- **Links, from the start:** `source_thread` and `result_thread`, so "why did this happen?" can be answered later.
+
+**States:** `queued → working → waiting → done`, plus `paused` and `failed`. Only the runner changes them. On screen: Waiting its turn, Working, Waiting for you, Done, Paused, Couldn't finish.
+
+### 3. Limits (the first supervisor, in plain code)
+
+| Limit | Value | When reached |
+| --- | --- | --- |
+| Tool rounds | 24 | Tools off, and it writes up what it has |
+| Lookups (searches + pages) | 30 | Same |
+| Working time | 15 minutes | Same |
+| The same call with the same arguments | 3 times | Same |
+| Dropped connection | 3 tries with growing gaps | Paused |
+| Other failures | Once | Failed, with friendly words and what it found so far, if anything |
+
+Running out gives a partial report that says so, not a failure, using the same "tools off" final round as chat. Limits count rounds and lookups because `Provider` doesn't report tokens. Spend in tokens needs usage events, which belong with the usage meter idea.
+
+### 4. Saved step by step
+
+- **Migration v2.** `jobs`: id, title, brief, status, seed_urls, source_thread, result_thread, language, rounds, lookups, worked_ms, wait_json, wait_answer, error, created_at, updated_at, seen_at. `job_steps`: job_id, seq, json. Allowed values are checked in TypeScript, as in v1.
+- **`JobStore` interface** in `src/main/jobs/`, async like `ChatStore`, and with a contract test.
+- **Each history message is one appended row,** written as it happens.
+- **Resuming:** load the steps. If the last assistant message has tool calls with no result, run those first, then carry on. Stage 1 tools only read, so re-running one is safe. **Stage 2 must add a once-only check before any tool with side effects can be a job tool.**
+- **A confirm that can wait:** an unknown address sets `waiting` and saves the question in `wait_json`. No promise is held. Allow or Don't Allow writes `wait_answer` and the job carries on, even after a restart. The next job in the queue runs meanwhile.
+- **Sleep:** `powerMonitor` `suspend` pauses the running job without counting it as a failure. `resume` restarts it after a short delay for the network.
+- **Launch:** jobs left `working` resume. **If a job has sat for over 24 hours, it goes to Paused with a Keep going button,** so reopening Otty after a holiday never spends money unasked.
+
+### 5. Privacy and forgetting
+
+- **Remember my chats off:** jobs run in memory only. Nothing is written, they don't survive a quit, and the report stays until quit.
+- **Forget all chats** stops every job and deletes all jobs and steps. **Deleting a chat** that came from a job deletes the job's rows too. Deleting the source chat stops a job started from it, because the user has said to forget that chat.
+- **Retention:** `prune` also removes finished jobs past the cutoff. Steps are deleted as soon as a job finishes, because the report is what's kept.
+- The renderer gets titles, states and counts, never histories.
+
+### 6. What the user sees
+
+- **Activity**, a new panel view with a header icon, and a dot while something unseen waits. Each row: title, state, "12 pages read", and Stop, Allow / Don't Allow, Keep going or Open. Answers still running in other chats appear here too.
+- **The otter:** a job finishing, or waiting for an answer, turns on the existing dot. While work runs, a small still marker shows, not an animation, because minutes of smooth motion is what NFR-3 warns about. The dot clears on opening a window as today, and Activity keeps its own dot until each job is seen (`seen_at`).
+- **`forward()` changes:** thinking and happy only follow the chat on show. A background answer finishing only sets the dot.
+- Friendly copy throughout: "Otty's still looking into this", and never "job", "queue" or "failed".
+
+### Build (one PR per step, each shippable)
+
+0. **`src/main/loop.ts`.** Move the tool loop out of `ChatSession.run`: it takes a history, tools, a `ToolContext`, a round limit and a signal, and reports events and each appended message. No behaviour change, and `llm.test.ts` must pass untouched.
+1. **Allowed tools.** `ToolContext.allowed` enforced first thing in `runTool`, with `toolDefs` filtered to match. Add `ChatRequest.serverSearch`, because `anthropic.ts` adds Claude's web search whatever the tool list says, so today the list isn't a real limit.
+2. **Turns per chat** (section 1), with the `load` and `forward()` changes.
+3. **Migration, `JobStore`, runner and limits**, with a fake provider, and no UI yet.
+4. **`start_job`, the card, results as chats, forgetting.** IPC `jobs:list/stop/answer/resume/open` and an `onJobs` event, separate from `ChatEvent`.
+5. **Activity view**, with `scene=activity` in `tools/ui-preview`.
+6. **Sleep, wake and the 24-hour rule.** Then re-measure NFR-3 with a job running and after it ends.
+
+Steps 0 and 1 are worth doing before D-10, which adds `remember` and `forget`.
+
+### Tests
+- Chat: moving to another chat leaves the answer running and saving to its own thread; a same-chat question still replaces it; only the shown chat's events reach the windows; a deleted chat's running turn never writes back.
+- Allowed tools: a job calling `open_url` is refused even though the model asked; `web: 'off'` refuses everything.
+- `isKnownUrl`: an address only in the brief needs an answer; a seeded one doesn't; a search result's does not.
+- Resume: killing the runner at every step and restarting gives the same history, with no dangling tool call, on both API formats.
+- Limits: each one ends in a partial report. A repeated call stops at three.
+- Cache: every job request extends the one before it, byte for byte.
+- Remember off writes nothing to `jobs` or `job_steps`.
+
+### Done when
+"Compare the three cheapest ways to get from Hong Kong to Tokyo in May" shows a card, then a chip. The user asks something else in a new chat, and both finish. Quitting mid-job and relaunching carries on. Closing the lid and opening it carries on. A job meeting an unknown address waits, and Allow works after a restart. A job left for two days asks first. A job that hits a limit gives a partial report that says so. The report is a normal chat that takes follow-ups. Idle CPU stays under NFR-3 once nothing is running.
+
+### Smoke test (add to the checklist when it ships)
+1. Ask something long, then press ⌥Space on other text and ask that → both answers finish, and the first chat shows its full answer when reopened.
+2. Ask for a big comparison → the card shows the brief → Allow → a chip, and Activity shows Working with pages counted. Deny → nothing runs.
+3. Quit mid-job and relaunch → it carries on. Sleep the Mac and wake it → it carries on. Turn the Wi-Fi off mid-job → Paused, then it resumes.
+4. When it's done → a dot on the otter and in Activity → Open → a normal chat. Ask a follow-up. Search for it in Recent chats.
+5. Turn off **Remember my chats**, run a job, quit → no trace in `otty.db`. **Forget all chats** with a job running → it stops and is gone.
+6. On a model on this Mac → Otty never offers a job.
+
+### Later (in BRAINSTORM)
+A one-tap way to start a job, a "keep going" offer on a partial report, speech-bubble news, and showing real spend once usage is reported.
 
 ---
 
