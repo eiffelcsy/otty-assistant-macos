@@ -2,9 +2,7 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
-## Unreleased
-
-On `main`, for the next release.
+## 0.5.0 — Any model, Pick up text and a proofreader (2026-11-05)
 
 ### Idle budget (D-16, 2026-11-05)
 

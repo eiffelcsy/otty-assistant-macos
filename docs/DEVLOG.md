@@ -65,10 +65,10 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
-**Where things stand (2026-11-05).** 0.4.0 is built and smoke-tested, with its draft release waiting to be published. `main` also has, unreleased: any model (D-20), Pick up text (D-21), a stable prompt (D-12 step 0), Read this page (D-15), the idle budget (D-16), warm explain cards (D-18), chat titles (D-19) and the proofread card (D-17); see CHANGELOG → Unreleased. None of that has run against a real Claude, OpenAI or local model yet. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
+**Where things stand (2026-11-05).** `main` is 0.5.0, waiting for its smoke test and tag; see CHANGELOG. It has any model (D-20), Pick up text (D-21), a stable prompt (D-12 step 0), Read this page (D-15), the idle budget (D-16), warm explain cards (D-18), chat titles (D-19) and the proofread card (D-17). None of that has run against a real Claude, OpenAI or local model yet. 0.4.0 is smoke-tested, with its draft release waiting to be published. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
 **Build order**
-1. **Publish 0.4.0, then release 0.5** once the new work has been tried on a Mac: smoke-test steps 55–65, starting with a first real chat on Claude.
+1. **Publish 0.4.0, then smoke-test steps 55–65 on a Mac, fix what they find, and release 0.5.0** by pushing a `v0.5.0` tag on the bump commit (the `dmg` workflow attaches the `.dmg` to a draft release). Start with a first real chat on Claude.
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
 3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
 4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant, catches menus that would vanish, and lets Pick up text open over the original spot.
