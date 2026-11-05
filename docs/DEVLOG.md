@@ -61,14 +61,14 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | --- | --- | --- | --- | --- |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | — (schema, `database()` and the per-turn note are in) | M (2–3 days) |
 | D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
-| D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
+| D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏳ | — | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
 **Where things stand (2026-11-05).** `main` is 0.5.0, waiting for its smoke test and tag; see CHANGELOG. It has any model (D-20), Pick up text (D-21), a stable prompt (D-12 step 0), Read this page (D-15), the idle budget (D-16), warm explain cards (D-18), chat titles (D-19) and the proofread card (D-17). None of that has run against a real Claude, OpenAI or local model yet. 0.4.0 is smoke-tested, with its draft release waiting to be published. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
 **Build order**
-1. **Publish 0.4.0, then smoke-test steps 55–65 on a Mac, fix what they find, and release 0.5.0** by pushing a `v0.5.0` tag on the bump commit (the `dmg` workflow attaches the `.dmg` to a draft release). Start with a first real chat on Claude.
+1. **Publish 0.4.0, then smoke-test steps 55–66 on a Mac, fix what they find, and release 0.5.0** by pushing a `v0.5.0` tag on the bump commit (the `dmg` workflow attaches the `.dmg` to a draft release). Start with a first real chat on Claude.
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
 3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
 4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant, catches menus that would vanish, and lets Pick up text open over the original spot.
@@ -235,9 +235,9 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
 
 ---
 
-## D-14 · Otty's own snip: a paw cursor, a frozen screen, and a whole-screen shortcut ⏳
+## D-14 · Otty's own snip: a paw cursor and a frozen screen ⏳
 
-**Goal.** Snipping should feel like Otty, not like a system tool, and be faster too. And the whole screen should be one shortcut away.
+**Goal.** Snipping should feel like Otty, not like a system tool, and be faster too. The whole-screen shortcut shipped ahead of this in 0.5.0.
 
 **Today.** ⌥⇧Space runs `screencapture -i` (`capture.ts`): the macOS crosshair, a grey box and system styling. It can't be themed, it can't show Otty, and it can't pick a whole screen without extra keys. The floating otter also lands in the picture.
 
@@ -265,17 +265,6 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
   - arrow keys nudge the selection 1 pt (⇧ for 10), and ↵ confirms, so it works from the keyboard.
 - **A small "snap!"** on release: the selection pulses once and the paw does a tiny boop, then the overlay closes. With `prefers-reduced-motion`, it just closes.
 
-### The whole-screen shortcut (⌘⌥⇧Space, `Command+Alt+Shift+Space`)
-- **No overlay:** it snaps the display under the cursor straight away, with Otty's windows left out. A soft shutter flash (none with reduced motion) and the bubble's happy face confirm it.
-- **Where it goes:** like any snip, it follows D-8's tray rules: added to an open panel or a collecting quick view, otherwise a new quick view. Its chip says **Whole screen** and the app note names the frontmost app.
-- **Size:** a whole screen is sent at up to 2048 px on the long side, not the usual 1600, so text stays readable, as JPEG q85. Its token cost is noted under FR-4.
-- **Privacy:** a whole screen can include notifications and other windows. Nothing is sent until the user asks, the preview sits in the tray with its ✕, and the welcome page and Settings say what "whole screen" captures.
-- **Everywhere else:**
-  - Settings gets a third shortcut field, "Capture the whole screen". `PublicSettings.screenHotkey` defaults to `Command+Alt+Shift+Space`.
-  - It's in the menu-bar menu, the bubble's right-click menu, and the empty chat's how-to list.
-  - `prettyKey` shows ⌘⌥⇧Space.
-- **When a shortcut is taken** by another app (registration fails), Settings shows "Another app is using this shortcut. Pick a different one.", not just a console warning. That covers all three shortcuts.
-
 ### Build
 - **Windows** (`windows.ts`):
   - One transparent, frameless overlay window per display, **created hidden at startup** so it appears within a frame of the snapshot being ready.
@@ -283,7 +272,7 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
   - Bounds equal the display's `bounds`, rebuilt on `screen` display-added, display-removed and metrics-changed events.
   - It takes focus while open (for Esc and the arrow keys). The frontmost app is recorded **before** the overlay opens, as today.
 - **Snapshot:**
-  - **Leaving Otty out:** for the moment of the snapshot, the bubble, panel and quick view get `setContentProtection(true)`, which keeps them out of the capture without hiding them, so there's no flicker. It's turned off right after, so Otty still shows up in the user's own screenshots and screen shares.
+  - **Leaving Otty out:** use `withWindowsHidden` from `capture.ts`, as the whole-screen shortcut does. Content protection would avoid the blink, but newer macOS capture APIs may ignore it. It couldn't be tested without Screen Recording, so try it on a Mac first if the blink bothers anyone.
   - **How:** whichever of `desktopCapturer.getSources({ types: ['screen'], thumbnailSize: <display size × scale> })` (in-process, no file) and `screencapture -x -D n` (one per display, in parallel) is faster on an M1 at full Retina size. Prototype both and keep the winner.
   - **Budget: hotkey → overlay visible ≤ 150 ms, release → snip in the tray ≤ 50 ms.**
 - **Crop** in main: from the overlay's points to the display's pixels (`scaleFactor`), then `encodeImage` (the existing downscale and JPEG). Multi-display coordinates are unit-tested.
@@ -295,31 +284,26 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
   - new sources `paw-open` and `paw-pinch`;
   - outputs `cursor-paw.png`, `cursor-paw@2x.png`, `cursor-pinch.png` and `cursor-pinch@2x.png`, each with its hotspot written to a small JSON file;
   - the script adds the outline and halo. Never hand-edited.
-- **Permissions:** both the snapshot and the whole-screen shortcut need Screen Recording, which snips already need. Without it, the existing "needs-screen" notice.
+- **Permissions:** the snapshot needs Screen Recording, which snips already need. Without it, `desktopCapturer` throws rather than giving a blank, so show the existing "needs-screen" notice.
 - **Fallback:** if the overlay can't be shown (a display change mid-snip, for example), fall back to `screencapture -i`, so snipping always works.
 - **`tools/ui-preview`:** `?view=snip` with a sample frozen background, to tune the look and cursor in a browser.
 
 ### Tests
 - Rect maths: normalising a drag in any direction, clamping to the display, points to pixels at scale 1 and 2, a second display at negative coordinates, a click becoming "whole display".
-- The size choice (2048 for whole screen, 1600 otherwise) and a JPEG under the size budget.
-- Settings: the third shortcut saves, re-registers, and reports a taken shortcut.
 - Timing, in a dev log: hotkey → overlay visible, release → chip.
 
 ### Done when
 - ⌥⇧Space shows Otty's paw on a softly dimmed, frozen screen within a blink. Dragging shows the pinched paw, rounded selection and size pill; releasing adds the snip at once, with no grey macOS box.
 - Snipping an open menu keeps the menu in the picture.
 - Clicking without dragging snaps that whole display.
-- ⌘⌥⇧Space adds a "Whole screen" snip of the display under the cursor, with the floating otter not in it, and the chip readable.
 - The paw is easy to see on white, black and a photo.
 - With two displays, both work.
-- A shortcut taken by another app shows the friendly message.
-- Reduced motion turns off the flash and boop.
+- Reduced motion turns off the boop.
 
 ### Smoke test (add to the checklist when it ships)
 - Press **⌥⇧Space** → within a blink, the screen dims and freezes, with Otty's paw as the cursor. Drag → the paw pinches, and a rounded selection with a size pill follows. Release → a tiny snap, and the snip is in the quick view at once, without the floating otter in it. Open a menu in any app first, then ⌥⇧Space → the menu is in the snip.
 - ⌥⇧Space, then click without dragging → the whole display is the snip. Esc → cancels quietly. Arrow keys and ↵ → nudge and confirm without the mouse. Check the paw on a white page, a black page and a photo: it's always easy to see.
-- Press **⌘⌥⇧Space** → a soft flash, then a "Whole screen" snip of the display under the cursor, readable when opened. With the panel open, it's added to the tray. On a second display, it snaps that one.
-- Settings → the third shortcut, "Capture the whole screen", shows ⌘⌥⇧Space. Set a shortcut another app uses → "Another app is using this shortcut". Turn on Reduce motion in macOS → no flash or boop.
+- Turn on Reduce motion in macOS → no boop.
 
 ---
 
@@ -524,3 +508,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 63. Ask something with a dotted term, wait 3 seconds, tap it → the card opens straight away. Turn on **Think deeper** → cards still work. Turn Wi-Fi off, tap a new term, then back on and tap again → the second tap works.
 64. Highlight a long paragraph → ⌥Space → ↵ → Recent chats shows a short real title, not the cut-off text. Search a word from the title → the chat is found. Ask a question in 中文 → a Chinese title.
 65. Highlight a draft with mistakes in Mail → ⌥Space → **check writing** → the marked-up card, with a reason for each fix. **Copy fixed text** → paste → no marks. Press **In 中文** → the reasons change and the fixed text doesn't. Check a correct paragraph → it says it reads well. Reopen the chat → the same card. Toggle dark mode → the changes stay legible.
+66. Press **⌘⌥⇧Space** → Otty blinks out for a moment, then a picture labelled **Whole screen** of the display under the cursor, without the floating otter or any Otty window in it, readable when opened. Ask about it → the answer treats it as the whole screen. With the panel open, it's added to the tray. On a second display, it snaps that one. With Screen Recording off → the friendly notice. Settings shows the third shortcut, and setting one another app uses shows "Another app is using this shortcut" after saving.

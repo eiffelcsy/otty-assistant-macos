@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## 0.5.0 — Any model, Pick up text and a proofreader (2026-11-05)
 
+### Whole-screen shortcut (2026-11-05)
+
+- **⌘⌥⇧Space captures the whole display under the cursor** in one press, with no crosshair. It's labelled **Whole screen** and follows the same tray rules as a snip. It's in the menus, the empty chat's tips and Settings, as a third shortcut.
+- **Otty stays out of the picture:** its windows go invisible for the moment of the capture. It's sent at up to 2048 px, so text stays readable.
+- **A shortcut another app owns now says so** in Settings, for all three, instead of just doing nothing.
+- This is the shortcut from D-14. The paw cursor and frozen-screen overlay are still to come.
+
 ### Idle budget (D-16, 2026-11-05)
 
 - **Measured for the first time,** with `OTTY_METRICS=1` (`metrics.ts`): idle Otty used 1.6% of a core, nearly all of it the otter's smooth float redrawing all day.

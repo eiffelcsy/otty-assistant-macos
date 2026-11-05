@@ -55,6 +55,8 @@ const settings: PublicSettings = {
   showBubble: true,
   askHotkey: 'Alt+Space',
   snapHotkey: 'Alt+Shift+Space',
+  screenHotkey: 'Command+Alt+Shift+Space',
+  takenHotkeys: q.get('taken') ? ['Alt+Space'] : [],
   onboarded: scene !== 'onboarding',
   shareAppContext: true,
   rememberChats: true,

@@ -28,6 +28,15 @@ describe('addCapture', () => {
 })
 
 describe('userContent', () => {
+  it('says when a picture is the whole screen', () => {
+    const whole: Capture = { id: 'w', context: { kind: 'image', dataUrl: 'data:w', width: 1, height: 1, wholeScreen: true }, app: null }
+    const one = userContent('What is this?', [whole], null) as { type: string; text?: string }[]
+    expect(one.at(-1)?.text).toContain('This is a picture of my whole screen.')
+    const two = userContent('Compare', [whole, snip('b', 'data:b')], null) as { type: string; text?: string }[]
+    expect(two.at(-1)?.text).toContain('A picture of my whole screen: picture 1.')
+    expect(two.at(-1)?.text).toContain('A snip of part of my screen: picture 2.')
+  })
+
   it('keeps the one-capture wording', () => {
     const body = userContent('Explain', [text('a', 'hello', { name: 'Safari' })], null)
     expect(body).toBe(`[I'm using Safari.]\n\nHere is the text I highlighted on my screen:\n"""\nhello\n"""\n\nExplain`)
