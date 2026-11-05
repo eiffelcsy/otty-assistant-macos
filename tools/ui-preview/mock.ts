@@ -12,7 +12,7 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|history|find (pickup: reading|nowords|failed)  ?home=none
+// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|history|find (pickup: reading|nowords|failed)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -71,6 +71,18 @@ const snipUrl =
     '<svg xmlns="http://www.w3.org/2000/svg" width="360" height="90"><rect width="360" height="90" fill="#1f1c1d"/><text x="12" y="30" font-family="monospace" font-size="13" fill="#e6e3dc">$ acme deploy</text><text x="12" y="56" font-family="monospace" font-size="13" fill="#e08a7a">Error: 429 Too Many Requests</text></svg>'
   )
 const snip = { kind: 'image' as const, dataUrl: snipUrl, width: 360, height: 90 }
+
+const draft = 'I has two cat and they is very friendly. Yesterday we goes to the park.'
+const proofreadSample: ChatMessage[] = [
+  { id: 'u1', role: 'user', text: 'Check my writing', captures: [{ id: 'c1', context: { kind: 'text', text: draft }, app: null }], app: null },
+  {
+    id: 'a1',
+    role: 'assistant',
+    language: 'en',
+    tools: [],
+    text: '```fixed\nI have two cats and they are very friendly. Yesterday we went to the park.\n```\n\n- **has → have:** “I” takes “have”.\n- **cat → cats:** two of them, so it’s plural.\n- **is → are:** “they” takes “are”.\n- **goes → went:** “yesterday” needs the past tense.'
+  }
+]
 
 const sample: ChatMessage[] = [
   { id: 'u1', role: 'user', text: 'Explain this simply', captures: [{ id: 'c1', context: highlighted, app }], app: null, language: 'en' },
@@ -205,6 +217,7 @@ const api: OttyApi = {
   bubbleDrag: () => {},
   onChatEvent: (cb) => {
     chatCb = cb
+    if (scene === 'proofread') setTimeout(() => cb({ type: 'load', messages: proofreadSample }), 50)
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}
   },
@@ -228,7 +241,8 @@ const api: OttyApi = {
     return () => {}
   },
   onBubbleState: () => () => {},
-  onBubbleBadge: () => () => {}
+  onBubbleBadge: () => () => {},
+  onWindowVisible: () => () => {}
 }
 
 ;(window as any).otty = api

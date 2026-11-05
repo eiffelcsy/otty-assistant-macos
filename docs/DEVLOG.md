@@ -13,28 +13,35 @@ The working plan: what's next, how we'll build it, and how to check it works.
 ```
 ┌──────────────── main process (Node 24) ────────────────┐
 │ index.ts       lifecycle, tray, hotkeys, IPC, badge    │
-│ windows.ts     bubble · quick view · panel windows     │
+│ windows.ts     bubble · quick view · panel · pickup    │
 │ capture.ts     selection (⌘C trick), snip, frontmost   │
-│ llm.ts         ChatSession: SSE client + tool loop     │
+│ llm.ts         ChatSession: tool loop, background work │
+│ providers/     one adapter per API format, profiles    │
 │ store/         ChatStore on SQLite (otty.db): chats,   │
 │                search, retention; schema in db.ts      │
 │ files/         attachments; fileWorker.js reads docs   │
 │ tools.ts       search_web, read_page, open_url, …      │
-│ web.ts         DeepSeek Search & Fetch (D-9)           │
+│ web.ts         DeepSeek Search & Fetch                 │
+│ pageReader.ts  reads public pages from the Mac         │
 │ knownUrls.ts   which addresses read_page may open      │
+│ copyFormats.ts tables on the clipboard as HTML + tabs  │
+│ ocr.ts         runs the otty-ocr Swift helper          │
+│ explainCache   explain cards, warmed after an answer   │
 │ language.ts    which language each answer uses         │
-│ settings.ts    JSON + safeStorage API key              │
+│ settings.ts    JSON + one safeStorage key per service  │
 │ permissions.ts macOS TCC checks                        │
+│ metrics.ts     OTTY_METRICS=1 idle measurements        │
 └────────────────▲──────────────┬────────────────────────┘
           invoke │              │ events (chat:event, panel:open, quick:open, bubble:*)
 ┌────────────────┴──────────────▼────────────────────────┐
 │ preload: window.otty (typed, narrow API)               │
 └────────────────▲──────────────┬────────────────────────┘
 ┌────────────────┴──────────────▼────────────────────────┐
-│ renderer (React), one bundle, three views              │
+│ renderer (React), one bundle, four views               │
 │  ?view=bubble → <Bubble/>  otter button + badge        │
 │  ?view=quick  → <Quick/>   ask-at-cursor card          │
 │  ?view=panel  → <Panel/>   chat, Recent chats, settings│
+│  ?view=pickup → <Pickup/>  a snip with selectable text │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -52,102 +59,21 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-16 | Idle budget: measure CPU, memory and battery, and set limits | ⏳ next | a Mac | S (half a day) |
-| D-18 | Warm explain cards: open instantly, one cache in main | ⏳ next | — | S (half a day) |
-| D-19 | Model-written chat titles | ⏳ next | — | S (2–3 hours) |
-| D-17 | Proofread card for writing in a second language | ⏳ next | — | S–M (1 day) |
 | D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | — (schema, `database()` and the per-turn note are in) | M (2–3 days) |
 | D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen, instant crop, and a whole-screen shortcut (⌘⌥⇧Space) | ⏳ | — | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
-**Where things stand (2026-11-05).** 0.4.0 is tagged and smoke-tested (steps 38–54); see CHANGELOG. `main` requires a PR with a green `ci` check.
+**Where things stand (2026-11-05).** 0.4.0 is built and smoke-tested, with its draft release waiting to be published. `main` also has, unreleased: any model (D-20), Pick up text (D-21), a stable prompt (D-12 step 0), Read this page (D-15), the idle budget (D-16), warm explain cards (D-18), chat titles (D-19) and the proofread card (D-17); see CHANGELOG → Unreleased. None of that has run against a real Claude, OpenAI or local model yet. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
 **Build order**
-1. **Next session: the small, high-value queue.** These are the best value-per-effort items in BRAINSTORM that nothing blocks, plus the seam two of them build on. Each lands on its own, so stop wherever the session ends:
-   1. **D-16 Idle budget.** It has to come before any always-on or animation work, and it can run in the background of a session.
-   2. **D-18 Warm explain cards**, then **D-19 chat titles**.
-   3. **D-17 Proofread card.** A new reason to reach for Otty.
+1. **Publish 0.4.0, then release 0.5** once the new work has been tried on a Mac: smoke-test steps 55–65, starting with a first real chat on Claude.
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
 3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
-4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
-5. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
-6. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
-
----
-
-## D-16 · Idle budget ⏳
-
-**Goal.** Otty is meant to sit on screen all day, and an always-on app that drains a laptop gets quit. NFR-3 says "about 0%", but nobody has measured it. Measure before Moods, eye tracking or background jobs add more.
-
-**Measure**
-- A dev-only `OTTY_METRICS=1` logs `app.getAppMetrics()` once a minute: CPU and memory per process, and the total.
-- Three runs of 10 minutes on an M1: idle with the panel hidden, idle with the panel open, and on battery with the otter blinking.
-- Note how much each renderer costs while hidden. The blink runs every 5 seconds even when nobody could be looking, so check whether it should pause when the display sleeps.
-
-**Starting limits, to adjust after the first measurement:** under 0.5% of one core on average when idle, and under 400 MB across all processes.
-
-**Build:** `src/main/metrics.ts` (no effect unless the variable is set). Record the results and the agreed limits in NFR-3. Fix whatever is cheap to fix; anything bigger goes in BRAINSTORM.
-
-**Done when:** NFR-3 has real numbers, and Moods and eye tracking have a budget to stay inside. From then on, each change to what runs while idle re-runs the measurement.
-
----
-
-## D-17 · Proofread card for writing in a second language ⏳
-
-**Goal.** Otty's users work in English, and often not their first language. Highlight a draft, and get back the fixes marked up, with a plain reason for each. It teaches as well as fixes, which is what Otty is for.
-
-**Design**
-- A new `proofread` quick action, **Check my writing**, for text captures that aren't a short phrase. In the panel it's a tile. The quick view has no tiles, so it gets a **check writing** key in its hint row, next to **＋ add more**, because the hotkey is how people will get here.
-- **The model writes, code marks up.** The prompt asks for the corrected text in a fenced ` ```fixed ` block, then one short bullet per fix saying why. Changes are as small as possible, the meaning and voice stay, and the text is never translated. If nothing needs fixing, it says so.
-- **The diff is local:** `src/shared/diff.ts` compares the capture with the block (by word, and by character for Han text). A model's own marks would be less reliable, and the Copy button needs clean text anyway. Past 4,000 characters it shows the fixed text without marks, since the comparison grows quadratically.
-- **The card:** removals struck through, additions highlighted (existing tokens), then the reasons, then **Copy fixed text**. While streaming, the block shows as plain text until it closes. D-11's paste back will add **Replace in Pages** here later.
-
-**Build:** `prompts.ts`, `QuickActions.tsx`; `diff.ts` with tests; a `code` renderer in `Markdown.tsx` for `language-fixed`. The renderer needs the original text, and `AssistantMessage` only has the answer, so pass the question's capture down through a small context from both `Messages.tsx` and `Quick.tsx`. Saved chats keep text captures, so a reopened card still shows its marks. `tools/ui-preview`: `scene=proofread`.
-
-**Done when:** a highlighted paragraph with three mistakes shows three marked changes and three reasons; Copy gives clean text; a correct paragraph says it's fine; a Chinese draft stays Chinese; **In 中文** gives the reasons in Chinese and leaves the fixed text alone; a reopened chat shows the same card.
-
-**Smoke test (add to the checklist when it ships).** Highlight a draft with mistakes in Mail → ⌥Space → **check writing** → the marked-up card, with a reason for each fix. **Copy fixed text** → paste → no marks. Toggle dark mode → changes stay legible.
-
----
-
-## D-18 · Warm explain cards ⏳
-
-**Goal.** Tapping an explain term should feel instant. Today it waits a second or more for a model call, at the exact moment someone is confused. Fetch the cards as soon as the answer finishes, while the user is still reading.
-
-**Move the cache to main.** The cache is in `Markdown.tsx` today, which isn't the right place for this:
-- The panel and quick view are separate renderers that both show every answer, so warming there would make each call twice, and ↵ "continue in chat" would lose the card.
-- `explainTerm` returns its friendly error as ordinary text, so one network blip is cached for the whole session. Only real explanations should be kept.
-
-**Design**
-- `explainCached(term, around, language)` in main: the same key as today (language + lower-cased term), holding in-flight promises so a tap during a warm-up shares the call. At most 200 entries; failures are dropped so the next tap retries.
-- After `done`, for a finished answer with no error, take up to 3 `[term](#explain)` from the text and fetch them in the answer's language. The other language stays on demand. Reopened chats don't warm.
-- **Background calls** use the provider's `complete()` with `reasoning: 'least'`, shared with D-19: no tools, never touching `ChatSession` history, and the least thinking the model allows.
-- That also fixes a bug: `post` applies the Think deeper setting to explain cards, so reasoning can use up their 300-token limit and leave the card with its "couldn't think of an explanation" message.
-
-**Cost:** up to three small calls per answer, for text the provider already has. Nothing new is sent. Check the real cost in the dev log, and show it in the usage meter if that ships.
-
-**Done when:** a term tapped a few seconds after the answer ends opens with no wait; the dev log shows one call per term with both windows open; turning Wi-Fi off then back on, the card works on the next tap; with Think deeper on, cards still explain.
-
-**Smoke test (add to the checklist when it ships).** Ask something with a dotted term, wait 3 seconds, tap it → the card opens straight away. Turn on **Think deeper** → cards still work.
-
----
-
-## D-19 · Model-written chat titles ⏳
-
-**Goal.** Recent chats and search read much better with real titles. Today a title is the cut-off question plus a quote (`titleFor`), and most hotkey questions come out as `Explain simply “The quick brown fox jumps over…”`.
-
-**Design**
-- After the first answer in a chat finishes with no error, one background call (the provider's `complete()`, `max_tokens: 24`) writes a title of 3–6 words in the chat's language, from the first 500 characters of the question and of the answer. Text only.
-- Only when "Remember my chats" is on. `titleFor` stays as the instant title and the fallback for any failure.
-- Clean the result: one line, no quotes or trailing full stop, at most 60 characters.
-- **No store change:** `write(thread, { messages: thread.messages.length, history: thread.history.length })` already updates the title and rebuilds the search row, without bumping `updatedAt`. A chat forgotten in the meantime is skipped by `persist`'s existing check. The title goes on the `thread` the turn ran on, not the current one, in case the user has moved on.
-- Chats saved earlier keep their titles. BRAINSTORM's "Re-read history" can refresh them later.
-
-**Done when:** after one question, Recent chats shows a short real title; searching a word from it finds the chat; a Chinese chat gets a Chinese title; with Wi-Fi off the old title stays; forgetting a chat while its title is being written doesn't bring it back.
-
-**Smoke test (add to the checklist when it ships).** Highlight a long paragraph → ⌥Space → ↵ → Recent chats shows a short real title, not the cut-off text. Ask a question in 中文 → a Chinese title.
+4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant, catches menus that would vanish, and lets Pick up text open over the original spot.
+5. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how". The proofread card gains **Replace in Pages** here.
+6. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, eval set). The OCR helper is already built. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
 
 ---
 
@@ -595,3 +521,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 60. On Claude, ask "What's new in macOS this month?" → a "Searching the web" chip, then an answer citing sources. Ask it to read one of those sources → no card. Ask it to read an address nobody gave it → a "Read this page?" card.
 61. On OpenAI or a custom address, ask Otty to read a public page → a "Reading <site>" chip and a summary. Ask it to read `http://192.168.1.1` → it says it can only read public pages. Switch services mid-chat → the conversation carries on, and switching back keeps each key.
 62. In Safari on a public article, open the panel with nothing highlighted → a **Summarize this page** tile. Tap it → a "Reading <site>" chip and a summary, with no card. Remove the app tag → the tile goes. In the quick view, press ⌥Space with nothing highlighted, then ↵ → the same summary. On a YouTube video page, or with a model on this Mac → no offer. On a page that needs a sign-in → a friendly "can't read it".
+63. Ask something with a dotted term, wait 3 seconds, tap it → the card opens straight away. Turn on **Think deeper** → cards still work. Turn Wi-Fi off, tap a new term, then back on and tap again → the second tap works.
+64. Highlight a long paragraph → ⌥Space → ↵ → Recent chats shows a short real title, not the cut-off text. Search a word from the title → the chat is found. Ask a question in 中文 → a Chinese title.
+65. Highlight a draft with mistakes in Mail → ⌥Space → **check writing** → the marked-up card, with a reason for each fix. **Copy fixed text** → paste → no marks. Press **In 中文** → the reasons change and the fixed text doesn't. Check a correct paragraph → it says it reads well. Reopen the chat → the same card. Toggle dark mode → the changes stay legible.

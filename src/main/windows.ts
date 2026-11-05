@@ -21,6 +21,14 @@ function load(win: BrowserWindow, view: 'bubble' | 'panel' | 'quick' | 'pickup')
   else win.loadFile(join(__dirname, '../renderer/index.html'), { query: { view } })
 }
 
+/** Tells a window when it's hidden, so it can stop animating for nobody. */
+function sleepWhenHidden(win: BrowserWindow): void {
+  const tell = () => win.webContents.send('window:visible', win.isVisible())
+  win.on('show', tell)
+  win.on('hide', tell)
+  win.webContents.on('did-finish-load', tell)
+}
+
 function secure(win: BrowserWindow): void {
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/i.test(url)) shell.openExternal(url)
@@ -87,6 +95,7 @@ export function createPanel(): BrowserWindow {
   panel.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   secure(panel)
   load(panel, 'panel')
+  sleepWhenHidden(panel)
   panel.on('closed', () => (panel = null))
   return panel
 }
@@ -127,6 +136,7 @@ export function createQuick(): BrowserWindow {
   if (process.platform === 'darwin') {
     systemPreferences.subscribeWorkspaceNotification('NSWorkspaceActiveSpaceDidChangeNotification', followToSpace)
   }
+  sleepWhenHidden(quick)
   quick.on('closed', () => (quick = null))
   return quick
 }

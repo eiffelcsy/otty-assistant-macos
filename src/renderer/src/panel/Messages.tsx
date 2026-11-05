@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import type { AppInfo, Capture, ScreenContext } from '../../../shared/types'
 import { Icon } from '../components/Icon'
-import type { Assistant } from '../lib/useChat'
-import { Markdown } from './Markdown'
+import { capturedText } from '../../../shared/captures'
+import { withoutFixedFence } from '../../../shared/diff'
+import type { Assistant, UiMessage } from '../lib/useChat'
+import { Markdown, ProofreadContext } from './Markdown'
 
 export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; compact?: boolean }) {
   if (ctx.kind === 'image' && !ctx.dataUrl) {
@@ -102,7 +104,13 @@ export interface AgainOffer {
   onClick: () => void
 }
 
-export function AssistantMessage({ m, again, found }: { m: Assistant; again?: AgainOffer; found?: boolean }) {
+/** The text the user highlighted for this answer, so a proofread card can show what changed. */
+export function sourceFor(messages: UiMessage[], id: string): string {
+  const asked = messages.slice(0, messages.findIndex((m) => m.id === id)).reverse().find((m) => m.role === 'user')
+  return asked?.role === 'user' ? capturedText(asked.captures) : ''
+}
+
+export function AssistantMessage({ m, again, found, source = '' }: { m: Assistant; again?: AgainOffer; found?: boolean; source?: string }) {
   const [copied, setCopied] = useState(false)
   return (
     <div className={`msg msg--otty${found ? ' msg--found' : ''}`} data-msg-id={m.id}>
@@ -121,7 +129,9 @@ export function AssistantMessage({ m, again, found }: { m: Assistant; again?: Ag
       )}
       {m.text && (
         <div className="msg__bubble">
-          <Markdown text={m.text} language={m.language} />
+          <ProofreadContext.Provider value={{ source, done: !m.streaming }}>
+            <Markdown text={m.text} language={m.language} />
+          </ProofreadContext.Provider>
         </div>
       )}
       {m.confirm && (
@@ -149,7 +159,7 @@ export function AssistantMessage({ m, again, found }: { m: Assistant; again?: Ag
           <button
             className="copy-btn"
             onClick={() => {
-              window.otty.copyText(m.text.replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
+              window.otty.copyText(withoutFixedFence(m.text).replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
               setCopied(true)
               setTimeout(() => setCopied(false), 1500)
             }}

@@ -53,7 +53,8 @@ const api: OttyApi = {
   onPanelOpen: (cb) => listen('panel:open', cb),
   onQuickOpen: (cb) => listen('quick:open', cb),
   onBubbleState: (cb) => listen('bubble:state', cb),
-  onBubbleBadge: (cb) => listen('bubble:badge', cb)
+  onBubbleBadge: (cb) => listen('bubble:badge', cb),
+  onWindowVisible: (cb) => listen('window:visible', cb)
 }
 
 contextBridge.exposeInMainWorld('otty', api)

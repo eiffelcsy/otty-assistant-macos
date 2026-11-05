@@ -12,7 +12,7 @@ import { useAttachments } from '../lib/useAttachments'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
 import { History } from './History'
-import { AppTag, AssistantMessage, CaptureList } from './Messages'
+import { AppTag, AssistantMessage, CaptureList, sourceFor } from './Messages'
 import { FindBar } from './FindBar'
 import { Onboarding } from './Onboarding'
 import { Settings } from './Settings'
@@ -285,6 +285,7 @@ export function Panel() {
                       m={m}
                       again={again?.id === m.id ? again.offer : undefined}
                       found={m.id === focusId}
+                      source={sourceFor(messages, m.id)}
                     />
                   )
                 )}

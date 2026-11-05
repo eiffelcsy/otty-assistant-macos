@@ -39,6 +39,15 @@ ${tools}
 ${guide ? `\n\n${guide}` : ''}`
 }
 
+/** Asks for a short title. Written in the chat's own language, so a Chinese chat gets a Chinese title. */
+export function titlePrompt(question: string, answer: string): string {
+  return `Write a title for this chat: 3 to 6 words, in the same language as the question, naming the topic. Reply with the title alone, with no quotes.
+
+Question: ${question.slice(0, 500)}
+
+Answer: ${answer.slice(0, 500)}`
+}
+
 /** The prompt a quick action sends in place of its chip label. `language` is the answer's resolved language. */
 export function actionPrompt(action: QuickAction, language: AnswerLanguage, home: HomeLanguage | null): string {
   switch (action) {
@@ -63,6 +72,11 @@ export function actionPrompt(action: QuickAction, language: AnswerLanguage, home
       return 'What is this?'
     case 'read-text':
       return 'Read out the text in this picture, exactly as written.'
+    case 'proofread':
+      return `Check my writing. Reply in this shape:
+1. The whole text, corrected, in a code block that starts with \`\`\`fixed. Fix mistakes in spelling, grammar and word choice, and change as little as you can. Keep my meaning, my voice and my line breaks. Keep it in the language I wrote it in, and never translate it.
+2. Then one short bullet for each fix, saying what changed and why in plain words.
+If nothing needs fixing, leave out the block and just say it reads well. If I later ask for this in another language, translate the bullets only and keep the block exactly as it is.`
     case 'read-page':
       return 'Read this page and summarize it: what it is, then the points that matter most.'
     case 'again':

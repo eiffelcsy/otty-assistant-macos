@@ -4,12 +4,12 @@ import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { LanguagePill } from '../components/LanguagePill'
-import { actionsForTray } from '../components/QuickActions'
+import { actionsForTray, type ActionItem } from '../components/QuickActions'
 import { prettyKey } from '../lib/keys'
 import { againOffer } from '../lib/again'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from '../panel/Markdown'
-import { AppTag, AssistantMessage, CaptureList } from '../panel/Messages'
+import { AppTag, AssistantMessage, CaptureList, sourceFor } from '../panel/Messages'
 
 /** Leaves room under a short answer for an explain-term card to open into. */
 const POPOVER_ROOM = 320
@@ -91,8 +91,9 @@ export function Quick() {
    * for one capture, Compare for several.
    */
   const fallback = actionsForTray(captures, [], home, { app, readsPages })[0]
-  const ask = () => {
-    const item = input.trim() ? undefined : fallback
+  const proofread = actionsForTray(captures, [], home).find((a) => a.action === 'proofread')
+  const ask = (picked?: ActionItem) => {
+    const item = picked ?? (input.trim() ? undefined : fallback)
     const text = item ? item.label : input.trim()
     if (!text) return
     setQuestion(text)
@@ -231,7 +232,7 @@ export function Quick() {
               <div className="quick__answer" ref={answerRef}>
                 <div className="quick__answer-body" ref={answerBodyRef}>
                   {answers.map((m) => (
-                    <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} />
+                    <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} source={sourceFor(messages, m.id)} />
                   ))}
                   {waitingFirstToken && (
                     <div className="thinking">
@@ -261,8 +262,13 @@ export function Quick() {
                       <Icon name="plus" /> add more
                     </button>
                   )}
+                  {proofread && (
+                    <button className="quick__key" title="Fix mistakes and explain each one" onClick={() => ask(proofread)}>
+                      <Icon name="pencil" /> check writing
+                    </button>
+                  )}
                   {home && <LanguagePill home={home} value={pick} onChange={setPick} />}
-                  <button className="quick__key quick__key--go" onClick={ask} disabled={!input.trim() && !fallback}>
+                  <button className="quick__key quick__key--go" onClick={() => ask()} disabled={!input.trim() && !fallback}>
                     <kbd>↵</kbd> ask Otty
                   </button>
                 </span>

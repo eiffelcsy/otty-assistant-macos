@@ -2,6 +2,7 @@ import { createContext, useContext, useLayoutEffect, useRef, useState, type Reac
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { AnswerLanguage, HomeLanguage } from '../../../shared/types'
+import { wordDiff } from '../../../shared/diff'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { Icon } from '../components/Icon'
 
@@ -10,15 +11,6 @@ export const AskContext = createContext<(text: string) => void>(() => {})
 
 /** The user's home language, so explain cards can offer the other language. null = English only. */
 export const HomeContext = createContext<HomeLanguage | null>(null)
-
-/** Keyed by language + term, so each language is fetched once. */
-const cache = new Map<string, Promise<string>>()
-
-function explainCached(term: string, around: string, language: AnswerLanguage): Promise<string> {
-  const key = `${language}:${term.toLowerCase()}`
-  if (!cache.has(key)) cache.set(key, window.otty.explain(term, around, language))
-  return cache.get(key)!
-}
 
 function textOf(node: ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node)
@@ -61,7 +53,7 @@ function ExplainTerm({
     wanted.current = l
     setLang(l)
     setText(null)
-    explainCached(term, around, l).then((t) => {
+    window.otty.explain(term, around, l).then((t) => {
       if (wanted.current === l) setText(t)
     })
   }
@@ -213,9 +205,47 @@ function NoRemoteImage({ alt }: { alt?: string }) {
   return <>{alt}</>
 }
 
+/** What the proofread card compares against: the text the user highlighted, and whether the answer has finished. */
+export const ProofreadContext = createContext<{ source: string; done: boolean }>({ source: '', done: true })
+
+/** The corrected text from a proofread answer, marked up here so the marks are always true to what changed. */
+function FixedCard({ text }: { text: string }) {
+  const { source, done } = useContext(ProofreadContext)
+  const [copied, setCopied] = useState(false)
+  const parts = done && source ? wordDiff(source, text) : null
+  return (
+    <div className="fixed-card">
+      <p className="fixed-card__text">
+        {parts
+          ? parts.map((p, i) => (p.kind === 'same' ? p.text : p.kind === 'added' ? <ins key={i}>{p.text}</ins> : <del key={i}>{p.text}</del>))
+          : text}
+      </p>
+      {done && (
+        <button
+          className="copy-btn"
+          onClick={() => {
+            void window.otty.copyText(text)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1500)
+          }}
+        >
+          <Icon name={copied ? 'check' : 'copy-alt'} />
+          {copied ? 'Copied' : 'Copy fixed text'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function CodeBlock({ children }: { children?: ReactNode }) {
+  const code = children as { props?: { className?: string } } | undefined
+  if (code?.props?.className === 'language-fixed') return <FixedCard text={textOf(children).replace(/\n$/, '')} />
+  return <pre>{children}</pre>
+}
+
 // Module-level, so a re-render doesn't hand react-markdown new component types and remount
 // every explain term (which closed an open card whenever the quick view re-rendered).
-const components = { a: MarkdownLink, blockquote: TipCard, img: NoRemoteImage }
+const components = { a: MarkdownLink, blockquote: TipCard, img: NoRemoteImage, pre: CodeBlock }
 const remarkPlugins = [remarkGfm]
 
 export function Markdown({ text, language = 'en' }: { text: string; language?: AnswerLanguage }) {
