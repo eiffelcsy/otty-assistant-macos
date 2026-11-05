@@ -63,6 +63,8 @@ export function actionPrompt(action: QuickAction, language: AnswerLanguage, home
       return 'What is this?'
     case 'read-text':
       return 'Read out the text in this picture, exactly as written.'
+    case 'read-page':
+      return 'Read this page and summarize it: what it is, then the points that matter most.'
     case 'again':
       return `Please give your previous answer again, in ${LANGUAGE_NAMES[language]}.`
     case 'define':

@@ -42,6 +42,8 @@ export interface AppInfo {
   name: string
   title?: string
   url?: string
+  /** The address lost a query that matters, so `url` may not be the page the user sees. */
+  trimmed?: boolean
 }
 
 /** The language an answer is written in. Keyed by language (not "Chinese") so zh-TW can slot in later. */
@@ -58,6 +60,7 @@ export type QuickAction =
   | 'next-step'
   | 'what-is'
   | 'read-text'
+  | 'read-page'
   | 'explain-home'
   | 'define'
   /** For attached documents. */
@@ -93,6 +96,8 @@ export interface PublicSettings {
   needsKey: boolean
   /** Services with a key saved. Never the keys themselves. */
   savedKeys: ServiceId[]
+  /** False when nothing may leave the Mac. */
+  readsPages: boolean
   apiFormat: ApiFormat
   baseUrl: string
   model: string
@@ -110,7 +115,7 @@ export interface PublicSettings {
   homeLanguage: HomeLanguage | null
 }
 
-export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys'>> {
+export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages'>> {
   /** Plaintext key from the settings form; main encrypts it. Empty string clears it. */
   apiKey?: string
 }

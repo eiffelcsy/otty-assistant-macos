@@ -52,7 +52,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-15 | **Read this page** in one tap | ⏳ next | — | S (half a day) |
 | D-16 | Idle budget: measure CPU, memory and battery, and set limits | ⏳ next | a Mac | S (half a day) |
 | D-18 | Warm explain cards: open instantly, one cache in main | ⏳ next | — | S (half a day) |
 | D-19 | Model-written chat titles | ⏳ next | — | S (2–3 hours) |
@@ -67,38 +66,14 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Build order**
 1. **Next session: the small, high-value queue.** These are the best value-per-effort items in BRAINSTORM that nothing blocks, plus the seam two of them build on. Each lands on its own, so stop wherever the session ends:
-   1. **D-15 Read this page.** D-9 built the reading; this makes it findable.
-   2. **D-16 Idle budget.** It has to come before any always-on or animation work, and it can run in the background of a session.
-   3. **D-18 Warm explain cards**, then **D-19 chat titles**.
-   4. **D-17 Proofread card.** A new reason to reach for Otty.
+   1. **D-16 Idle budget.** It has to come before any always-on or animation work, and it can run in the background of a session.
+   2. **D-18 Warm explain cards**, then **D-19 chat titles**.
+   3. **D-17 Proofread card.** A new reason to reach for Otty.
 2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
 3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
 4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant and catches menus that would vanish.
 5. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how".
 6. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, OCR helper, eval set). Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
-
----
-
-## D-15 · Read this page in one tap ⏳
-
-**Goal.** "Summarize this page" is one of Otty's most useful tricks, and nobody can find it: today the user has to think of typing it. When Otty knows the page and nothing is highlighted, offer it.
-
-**Design**
-- **When it shows:** no captures, no files, the app tag has a `url`, and the provider can read pages. Removing the app tag removes the offer.
-- **Panel:** a **Summarize this page** tile (UIcon `book-open-reader`, like the tool chip), which is also the ↵ default.
-- **Quick view:** it has no tiles, so ↵ on an empty box runs it. The placeholder says "Ask about this page, or press ↵ to summarize it", and the **↵ ask Otty** button is enabled, which today needs a capture or typed text.
-- **The turn:** a new `read-page` quick action in `actionPrompt`. The app note already carries the address, so `knownUrls.ts` counts it as the user's and no card shows.
-- **Addresses that lost their query.** `cleanUrl` removes everything after `?` for privacy, and that's still right. But `youtube.com/watch` without `?v=…` is a different page, and Otty would summarize the wrong thing. So `frontmostApp()` sets `AppInfo.trimmed` when the address had a query that wasn't just tracking (`utm_*`, `fbclid`, `gclid`, `ref`), and the offer is hidden for those.
-
-**Build**
-- `QuickActions.tsx`: `actionsForTray` takes the app and `readsPages`, and returns the tile. `Quick.tsx`'s `fallback` picks it up from there.
-- `PublicSettings.readsPages`, from `isDeepSeek(baseUrl)`. It's derived, so strip it in `Settings.tsx`'s save the way `hasApiKey` is, or it gets written to `settings.json`.
-- `capture.ts`: `trimmed`. `tools/ui-preview`: `scene=page`.
-- Tests: when the tile shows and hides, the tracking-only query rule, and `read-page` reaching `read_page` with no confirm.
-
-**Done when:** on a public article, ⌥Space with nothing highlighted then ↵ shows a "Reading <site>" chip and a summary, with no card; a YouTube video page offers nothing; with another provider the tile never shows; a signed-in page still gets the friendly "can't read it".
-
-**Smoke test (add to the checklist when it ships).** In Safari on a public article, open the panel with nothing highlighted → a **Summarize this page** tile; tap it → a summary. Remove the app tag → the tile goes. On a YouTube video page → no tile.
 
 ---
 
@@ -619,3 +594,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 59. Settings → pick **Claude** → paste a key → **Save**: the test names the model. Ask something that needs a tool → the chip and answer work. Ask a follow-up, then reopen the chat from Recent chats and ask another.
 60. On Claude, ask "What's new in macOS this month?" → a "Searching the web" chip, then an answer citing sources. Ask it to read one of those sources → no card. Ask it to read an address nobody gave it → a "Read this page?" card.
 61. On OpenAI or a custom address, ask Otty to read a public page → a "Reading <site>" chip and a summary. Ask it to read `http://192.168.1.1` → it says it can only read public pages. Switch services mid-chat → the conversation carries on, and switching back keeps each key.
+62. In Safari on a public article, open the panel with nothing highlighted → a **Summarize this page** tile. Tap it → a "Reading <site>" chip and a summary, with no card. Remove the app tag → the tile goes. In the quick view, press ⌥Space with nothing highlighted, then ↵ → the same summary. On a YouTube video page, or with a model on this Mac → no offer. On a page that needs a sign-in → a friendly "can't read it".

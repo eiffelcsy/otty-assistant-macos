@@ -92,6 +92,22 @@ export async function deepseekSearch(cfg: WebConfig, query: string, fetchImpl: t
 }
 
 /** Reads one web page as Markdown, cut to a size the model can use. */
+const TRACKING = /^(utm_.+|fbclid|gclid|ref)$/i
+
+/**
+ * A page's address without its query or fragment, which often carry tokens or personal details. `trimmed` says a
+ * query that matters was removed: `youtube.com/watch` without `?v=…` isn't the page the user is looking at.
+ */
+export function cleanUrl(raw: string): { url: string; trimmed: boolean } | undefined {
+  try {
+    const u = new URL(raw)
+    if (!/^https?:$/.test(u.protocol)) return undefined
+    return { url: (u.origin + u.pathname).slice(0, 300), trimmed: [...u.searchParams.keys()].some((k) => !TRACKING.test(k)) }
+  } catch {
+    return undefined
+  }
+}
+
 /** A safe, ordinary web address, or a message saying why not. */
 export function checkedUrl(url: string): URL {
   let parsed: URL

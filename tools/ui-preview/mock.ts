@@ -12,7 +12,7 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|history|find (pickup: reading|nowords|failed)  ?home=none
+// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|history|find (pickup: reading|nowords|failed)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -47,6 +47,7 @@ const settings: PublicSettings = {
   hasApiKey: true,
   needsKey: true,
   savedKeys: ['deepseek'],
+  readsPages: true,
   apiFormat: 'auto',
   baseUrl: 'https://api.deepseek.com',
   model: 'deepseek-flash',
@@ -209,6 +210,7 @@ const api: OttyApi = {
   },
   onPanelOpen: (cb) => {
     openCb = cb
+    if (scene === 'page') setTimeout(() => cb({ context: null, app }), 80)
     if (scene === 'compose' || scene === 'empty-compose' || scene === 'tray') setTimeout(() => cb({ context: highlighted, app }), 80)
     // Once only: StrictMode subscribes twice, and a second snip would land in the tray.
     if (scene === 'tray' && !trayed.panel) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 160)
@@ -219,7 +221,8 @@ const api: OttyApi = {
     return () => {}
   },
   onQuickOpen: (cb) => {
-    setTimeout(() => cb({ context: q.get('ctx') === 'word' ? { kind: 'text', text: 'idempotent' } : highlighted, app }), 50)
+    const context = scene === 'page' ? null : q.get('ctx') === 'word' ? ({ kind: 'text', text: 'idempotent' } as const) : highlighted
+    setTimeout(() => cb({ context, app }), 50)
     if (scene === 'tray' && !trayed.quick) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 150)
     trayed.quick = true
     return () => {}

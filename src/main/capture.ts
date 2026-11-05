@@ -6,6 +6,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import type { AppInfo, PanelOpenPayload } from '../shared/types'
 import { getStored } from './settings'
+import { cleanUrl } from './web'
 
 const run = promisify(execFile)
 const isMac = process.platform === 'darwin'
@@ -145,18 +146,7 @@ const FRONTMOST_SCRIPT = [
   'end tell'
 ]
 
-/** Page address without its query or fragment, which often carry tokens or personal details. */
-function cleanUrl(raw: string): string | undefined {
-  try {
-    const u = new URL(raw)
-    if (!/^https?:$/.test(u.protocol)) return undefined
-    return (u.origin + u.pathname).slice(0, 300)
-  } catch {
-    return undefined
-  }
-}
-
-async function browserUrl(bundle: string): Promise<string | undefined> {
+async function browserUrl(bundle: string): Promise<ReturnType<typeof cleanUrl>> {
   const expr = BROWSERS[bundle]
   if (!expr) return undefined
   try {
@@ -180,8 +170,11 @@ export async function frontmostApp(): Promise<AppInfo | null> {
     if (!name || Number(pid) === process.pid) return null
     const info: AppInfo = { name }
     if (title && title !== name) info.title = title.slice(0, 200)
-    const url = await browserUrl(bundle)
-    if (url) info.url = url
+    const page = await browserUrl(bundle)
+    if (page) {
+      info.url = page.url
+      if (page.trimmed) info.trimmed = true
+    }
     return info
   } catch {
     return null

@@ -139,7 +139,7 @@ export function Panel() {
     else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, focusId, view])
 
-  const actions = settings && !att.reading ? actionsForTray(captures, att.ready, settings.homeLanguage) : []
+  const actions = settings && !att.reading ? actionsForTray(captures, att.ready, settings.homeLanguage, { app, readsPages: settings.readsPages }) : []
 
   /** An empty box with captures or attached files runs the first quick action. `tray` false sends the text alone. */
   const send = useCallback(
@@ -299,7 +299,7 @@ export function Panel() {
               <footer className="composer">
                 {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
                 {app && <AppTag app={app} onRemove={() => setApp(null)} />}
-                {(captures.length > 0 || att.chips.length > 0) && (
+                {(captures.length > 0 || att.chips.length > 0 || actions.length > 0) && (
                   <div className="context-card">
                     {captures.length > 0 && (
                       <CaptureList
@@ -367,7 +367,7 @@ export function Panel() {
                     <button
                       className="send-btn"
                       title="Send"
-                      disabled={(!input.trim() && !captures.length && !att.ready.length) || att.reading}
+                      disabled={(!input.trim() && !actions.length) || att.reading}
                       onClick={() => send(input)}
                     >
                       <Icon name="arrow-small-up" />

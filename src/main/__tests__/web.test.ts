@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { deepseekFetch, deepseekSearch, isDeepSeek, WebError } from '../web'
+import { cleanUrl, deepseekFetch, deepseekSearch, isDeepSeek, WebError } from '../web'
 
 const cfg = { baseUrl: 'https://api.deepseek.com/v1', key: 'sk-test' }
 
@@ -105,5 +105,28 @@ describe('deepseekFetch', () => {
   it('explains pages it can’t read, such as signed-in ones', async () => {
     const f = fakeFetch({ status: 404 })
     await expect(deepseekFetch(cfg, 'https://mail.example/inbox', f.impl)).rejects.toThrow(/sign-in/)
+  })
+})
+
+describe('cleanUrl', () => {
+  it('removes the query and fragment', () => {
+    expect(cleanUrl('https://a.com/page?token=secret#part')?.url).toBe('https://a.com/page')
+  })
+
+  it.each([
+    ['https://a.com/story', false],
+    ['https://a.com/story?utm_source=x&utm_campaign=y', false],
+    ['https://a.com/story?fbclid=1&gclid=2&ref=home', false],
+    ['https://a.com/story#comments', false],
+    ['https://youtube.com/watch?v=abc', true],
+    ['https://a.com/search?q=otters', true],
+    ['https://a.com/story?utm_source=x&id=7', true]
+  ])('marks %s as trimmed: %s', (url, trimmed) => {
+    expect(cleanUrl(url)?.trimmed).toBe(trimmed)
+  })
+
+  it('refuses anything but web pages', () => {
+    expect(cleanUrl('file:///etc/passwd')).toBeUndefined()
+    expect(cleanUrl('not a url')).toBeUndefined()
   })
 })

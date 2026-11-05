@@ -118,6 +118,16 @@ describe('the developer key', () => {
   })
 })
 
+describe('reading pages', () => {
+  it('works on online services and stays off on the Mac, and is never saved', async () => {
+    const s = await launch()
+    expect(s.getPublic().readsPages).toBe(true)
+    s.update({ baseUrl: 'http://localhost:11434/v1' })
+    expect(s.getPublic().readsPages).toBe(false)
+    expect(readFileSync(file(), 'utf8')).not.toContain('readsPages')
+  })
+})
+
 describe('a new install', () => {
   it('starts on DeepSeek with nothing saved', async () => {
     const s = await launch()
