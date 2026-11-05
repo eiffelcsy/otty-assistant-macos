@@ -195,6 +195,11 @@ export function showPickup(dataUrl: string): void {
 }
 
 export const getPickup = () => pickup
+
+/** Every Otty window on screen right now. */
+export function shownWindows(): BrowserWindow[] {
+  return [bubble, panel, quick, pickup].filter((w): w is BrowserWindow => !!w?.isVisible())
+}
 export const pickupPicture = (): PickupPicture | null => pickupImage?.picture ?? null
 
 export function readPickup(): Promise<OcrLine[] | null> {

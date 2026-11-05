@@ -101,7 +101,7 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
           <PermissionRow
             ok={perms?.screen}
             title="Screen Recording"
-            why="Lets your screen snips include other apps’ windows."
+            why="Lets your snips and whole-screen captures include other apps’ windows. A whole-screen capture shows everything on it, and nothing is sent until you ask."
             onOpen={() => window.otty.openPermissionSettings('screen')}
           />
           <p className="hint">Tip: after turning on Screen Recording, macOS may ask you to reopen Otty.</p>

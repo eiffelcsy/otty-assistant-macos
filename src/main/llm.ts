@@ -45,7 +45,7 @@ export function userContent(text: string, captures: Capture[], app: AppInfo | nu
       body = `${prefix}Here is the text I highlighted on my screen:\n"""\n${ctx.text}\n"""\n\n${text}`
     } else if (ctx?.kind === 'image') {
       const which = pictures.length > 1 ? 'The first picture' : 'This'
-      body = `${prefix}${which} is a snip of part of my screen.\n\n${text}`
+      body = `${prefix}${which} is ${ctx.wholeScreen ? 'a picture of my whole screen' : 'a snip of part of my screen'}.\n\n${text}`
     }
   } else {
     let picture = 0
@@ -53,7 +53,7 @@ export function userContent(text: string, captures: Capture[], app: AppInfo | nu
       const label = `[Capture ${i + 1}${fromApp(c.app)}]`
       if (c.context.kind === 'text') return `${label} Text I highlighted:\n"""\n${c.context.text}\n"""`
       picture++
-      return `${label} A snip of part of my screen: picture ${picture}.`
+      return `${label} ${c.context.wholeScreen ? 'A picture of my whole screen' : 'A snip of part of my screen'}: picture ${picture}.`
     })
     body = `I've collected ${captures.length} things from my screen:\n\n${blocks.join('\n\n')}\n\n${fileText}${text}`
   }

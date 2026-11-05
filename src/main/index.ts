@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, shell, Tray } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, screen, shell, Tray } from 'electron'
 import type {
   AnswerLanguage,
   BubbleState,
@@ -11,7 +11,7 @@ import type {
   SettingsUpdate
 } from '../shared/types'
 import * as settings from './settings'
-import { captureScreenshot, captureSelection, frontmostApp } from './capture'
+import { captureScreenshot, captureSelection, captureWholeScreen, frontmostApp, withWindowsHidden } from './capture'
 import { chatStore, closeStore, pruneOldChats } from './store'
 import { discardFile, pickFiles, readFile, registerFiles } from './files'
 import { getPermissions, openPermissionSettings } from './permissions'
@@ -36,6 +36,7 @@ import {
   resizeQuick,
   setQuickState,
   showPanelAtCursor,
+  shownWindows,
   showPanelByBubble,
   showPickup,
   startBubbleDrag
@@ -162,18 +163,37 @@ async function snipScreen(): Promise<void> {
   else openQuick(payload)
 }
 
+/** The display under the cursor, whole, with Otty's own windows left out. It follows the same tray rules as a snip. */
+async function snapWholeScreen(): Promise<void> {
+  const target = captureTarget()
+  const app = frontmostApp()
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+  const payload = await withWindowsHidden(shownWindows(), () => captureWholeScreen(display))
+  payload.app = await app
+  if (target === 'panel') addToPanel(payload)
+  else if (target === 'quick') addToQuick(payload)
+  else openQuick(payload)
+  if (!payload.context) return
+  setBubbleState('happy')
+  if (happyTimer) clearTimeout(happyTimer)
+  happyTimer = setTimeout(() => setBubbleState('idle'), 2500)
+}
+
 function registerHotkeys(): void {
   globalShortcut.unregisterAll()
   const s = settings.getStored()
+  const taken: string[] = []
   const bind = (accel: string, fn: () => void) => {
     try {
-      if (!globalShortcut.register(accel, fn)) console.warn(`Hotkey ${accel} is taken by another app`)
+      if (!globalShortcut.register(accel, fn)) taken.push(accel)
     } catch (err) {
       console.warn(`Invalid hotkey ${accel}`, err)
     }
   }
   bind(s.askHotkey, () => void askAboutSelection('cursor'))
   bind(s.snapHotkey, () => void snipScreen())
+  bind(s.screenHotkey, () => void snapWholeScreen())
+  settings.setTakenHotkeys(taken)
 }
 
 function menuTemplate(): Electron.MenuItemConstructorOptions[] {
@@ -181,6 +201,7 @@ function menuTemplate(): Electron.MenuItemConstructorOptions[] {
   return [
     { label: 'Ask about highlighted text', accelerator: s.askHotkey, click: () => void askAboutSelection('bubble') },
     { label: 'Snap part of my screen', accelerator: s.snapHotkey, click: () => void snipScreen() },
+    { label: 'Capture the whole screen', accelerator: s.screenHotkey, click: () => void snapWholeScreen() },
     { label: 'Open chat', click: () => openPanel({ context: null }, 'bubble') },
     { type: 'separator' },
     {
@@ -203,17 +224,17 @@ function refreshTray(): void {
 }
 
 function applySettings(u: SettingsUpdate) {
-  const result = settings.update(u)
+  settings.update(u)
   if (u.rememberChats === false) void forgetAllChats()
   if (u.keepChats !== undefined) void pruneOldChats()
-  if (u.askHotkey !== undefined || u.snapHotkey !== undefined) registerHotkeys()
+  if (u.askHotkey !== undefined || u.snapHotkey !== undefined || u.screenHotkey !== undefined) registerHotkeys()
   if (u.showBubble !== undefined) {
     const b = getBubble()
     if (u.showBubble) b?.showInactive()
     else b?.hide()
   }
   refreshTray()
-  return result
+  return settings.getPublic()
 }
 
 function registerIpc(): void {

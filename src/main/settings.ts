@@ -12,7 +12,7 @@ interface SavedKey {
   plain?: boolean
 }
 
-interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages'> {
+interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys'> {
   /** One per service, so a key only ever goes to the service it belongs to. */
   apiKeys?: Partial<Record<ServiceId, SavedKey>>
   /** The single key from before 0.5, moved into `apiKeys` on load. */
@@ -29,6 +29,7 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   showBubble: true,
   askHotkey: 'Alt+Space',
   snapHotkey: 'Alt+Shift+Space',
+  screenHotkey: 'Command+Alt+Shift+Space',
   onboarded: false,
   shareAppContext: true,
   rememberChats: true,
@@ -36,6 +37,12 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
 }
 
 let cache: StoredSettings | null = null
+let takenHotkeys: string[] = []
+
+/** Which shortcuts failed to register, so Settings can say so. */
+export function setTakenHotkeys(hotkeys: string[]): void {
+  takenHotkeys = hotkeys
+}
 
 function file(): string {
   return join(app.getPath('userData'), 'settings.json')
@@ -84,6 +91,7 @@ export function getPublic(): PublicSettings {
     hasApiKey: Boolean(apiKeys?.[serviceAt(s.baseUrl)]) || Boolean(envKey(s)),
     needsKey: profileFor(rest.baseUrl, rest.apiFormat).needsKey,
     readsPages: profileFor(rest.baseUrl, rest.apiFormat).web !== 'off',
+    takenHotkeys,
     savedKeys: Object.keys(apiKeys ?? {}) as ServiceId[]
   }
 }

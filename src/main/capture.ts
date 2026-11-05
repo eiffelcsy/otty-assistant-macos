@@ -1,4 +1,4 @@
-import { clipboard, ClipboardItem, nativeImage, systemPreferences, type NativeImage } from 'electron'
+import { clipboard, ClipboardItem, desktopCapturer, nativeImage, systemPreferences, type Display, type NativeImage } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { existsSync, unlinkSync } from 'fs'
@@ -14,11 +14,21 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 const MAX_TEXT = 12_000
 const MAX_IMAGE_SIDE = 1600
+/** A whole screen needs more pixels than a snip, so its text stays readable. */
+const MAX_SCREEN_SIDE = 2048
+/** Long enough for the screen to redraw without Otty's windows. */
+const CLEAR_MS = 80
+
+/** A size that fits inside `max` on its long side, never larger than it started. */
+export function fitTo(width: number, height: number, max: number): { width: number; height: number } {
+  const scale = Math.min(1, max / Math.max(width, height))
+  return { width: Math.round(width * scale), height: Math.round(height * scale) }
+}
 
 /** Downscales a picture to at most 1600px on its long side and encodes it as a JPEG data URL (FR-4.2). */
-export function encodeImage(img: NativeImage): { dataUrl: string; width: number; height: number } {
+export function encodeImage(img: NativeImage, maxSide = MAX_IMAGE_SIDE): { dataUrl: string; width: number; height: number } {
   const { width, height } = img.getSize()
-  const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(width, height))
+  const scale = Math.min(1, maxSide / Math.max(width, height))
   if (scale < 1) {
     img = img.resize({ width: Math.round(width * scale), height: Math.round(height * scale), quality: 'best' })
   }
@@ -92,6 +102,40 @@ export async function captureSelection(delayMs = 0): Promise<PanelOpenPayload> {
 
   text = text.trim()
   return { context: text ? { kind: 'text', text: text.slice(0, MAX_TEXT) } : null }
+}
+
+interface FadingWindow {
+  setOpacity(opacity: number): void
+  isDestroyed(): boolean
+}
+
+/**
+ * Runs `work` with these windows invisible, so they stay out of a capture. Content protection would avoid the blink,
+ * but newer macOS capture APIs may ignore it, while an invisible window can't appear on any version.
+ */
+export async function withWindowsHidden<T>(windows: FadingWindow[], work: () => Promise<T>): Promise<T> {
+  for (const w of windows) w.setOpacity(0)
+  if (windows.length) await sleep(CLEAR_MS)
+  try {
+    return await work()
+  } finally {
+    for (const w of windows) if (!w.isDestroyed()) w.setOpacity(1)
+  }
+}
+
+/** The whole of one display. Without Screen Recording, asking for sources fails outright rather than giving a blank. */
+export async function captureWholeScreen(display: Display): Promise<PanelOpenPayload> {
+  if (!isMac) return { context: null, notice: 'snip-mac-only' }
+  const thumbnailSize = fitTo(display.size.width * display.scaleFactor, display.size.height * display.scaleFactor, MAX_SCREEN_SIDE)
+  try {
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize })
+    const source = sources.find((s) => s.display_id === String(display.id)) ?? sources[0]
+    if (!source || source.thumbnail.isEmpty()) return { context: null, notice: 'needs-screen' }
+    const notice = systemPreferences.getMediaAccessStatus('screen') === 'granted' ? undefined : 'needs-screen'
+    return { context: { kind: 'image', wholeScreen: true, ...encodeImage(source.thumbnail, MAX_SCREEN_SIDE) }, notice }
+  } catch {
+    return { context: null, notice: 'needs-screen' }
+  }
 }
 
 /** Native crosshair snip (`screencapture -i`). Resolves with null context if the user presses Esc. */

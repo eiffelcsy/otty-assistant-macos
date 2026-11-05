@@ -64,10 +64,11 @@ Everything here is built, unless it says *Planned*. Priority: **P0** = core to O
 - FR-4.2 The image is downscaled (max 1600 px on the long side), converted to JPEG and sent to the model as an `image_url` content part (JPEG, PNG, GIF and WebP are supported).
 - FR-4.3 A thumbnail chip of the snip appears in the composer.
 - FR-4.4 If Screen Recording permission is missing, Otty shows the same friendly guide as FR-3.5.
-- FR-4.5 *(Planned, D-14.)* Otty draws its own snip overlay (paw cursor, frozen screen, instant crop), and **⌘⌥⇧Space** captures the whole display under the cursor. Both leave Otty's own windows out of the picture.
+- FR-4.5 *(Planned, D-14.)* Otty draws its own snip overlay (paw cursor, frozen screen, instant crop).
 
 - FR-4.6 **Pick up text** opens a snip in a floating window with its words selectable, for ⌘C. The text is read on the Mac, with no model, and nothing is saved or sent.
 - FR-4.7 **Pick up text** copies table rows with tabs, so they paste as cells.
+- FR-4.8 **⌘⌥⇧Space** captures the whole display under the cursor, with Otty's windows left out, at up to 2048 px on the long side. That costs more tokens than a snip. It can include notifications and other windows, so nothing is sent until the user asks, and the welcome page and Settings say so.
 
 ### FR-5 Chat panel (P0)
 - FR-5.1 Answers stream in token by token, with an "Otty is thinking…" otter animation before the first token.

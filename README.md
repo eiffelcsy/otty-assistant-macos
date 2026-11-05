@@ -6,6 +6,7 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 
 - **Click the otter** or press **⌥ Space** to ask about highlighted text
 - **⌥ ⇧ Space** to snap part of your screen and ask about it
+- **⌘ ⌥ ⇧ Space** to capture the whole screen in one press
 - Collect several highlights and snips from different apps into one question ("compare these")
 - Attach PDFs, Word documents, pictures and text files
 - **Pick up text:** select and copy the words in a snip, on your Mac with no AI involved
