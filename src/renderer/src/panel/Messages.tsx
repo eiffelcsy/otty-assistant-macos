@@ -12,7 +12,7 @@ export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; c
     return (
       <div className="context-text">
         <span className="context-text__label">
-          <Icon name="scissors" /> Screen snip (not saved)
+          <Icon name={ctx.wholeScreen ? 'expand' : 'scissors'} /> {ctx.wholeScreen ? 'Whole screen' : 'Screen snip'} (not saved)
         </span>
       </div>
     )
@@ -21,6 +21,11 @@ export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; c
     const { dataUrl } = ctx
     return (
       <div className="context-picture">
+        {ctx.wholeScreen && (
+          <span className="context-text__label context-picture__label">
+            <Icon name="expand" /> Whole screen
+          </span>
+        )}
         <img className="context-img" src={dataUrl} alt="Your screen snip" />
         <button className="context-picture__pickup" title="Select and copy the words in this picture" onClick={() => void window.otty.pickUpText(dataUrl)}>
           <Icon name="text" /> Pick up text

@@ -11,6 +11,11 @@ const KEEP: { value: KeepChats; label: string }[] = [
   { value: 'forever', label: 'Forever' }
 ]
 
+function TakenHotkey({ settings, hotkey }: { settings: PublicSettings; hotkey: string }) {
+  if (!settings.takenHotkeys.includes(hotkey)) return null
+  return <p className="hint hint--warn">Another app is using this shortcut. Pick a different one.</p>
+}
+
 export function Settings({ settings, onSaved }: { settings: PublicSettings; onSaved: (s: PublicSettings) => void }) {
   const [form, setForm] = useState(settings)
   const [key, setKey] = useState('')
@@ -22,7 +27,7 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
 
   const save = async () => {
     setSaving(true)
-    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, readsPages: _r, ...rest } = form
+    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, readsPages: _r, takenHotkeys: _t, ...rest } = form
     const s = await window.otty.saveSettings({ ...rest, ...(key.trim() ? { apiKey: key.trim() } : {}) })
     setKey('')
     onSaved(s)
@@ -58,10 +63,18 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
           Shortcut: ask about highlighted text
           <input className="field" value={form.askHotkey} onChange={(e) => set('askHotkey', e.target.value)} />
         </label>
+        <TakenHotkey settings={form} hotkey={form.askHotkey} />
         <label className="label">
           Shortcut: snap part of the screen
           <input className="field" value={form.snapHotkey} onChange={(e) => set('snapHotkey', e.target.value)} />
         </label>
+        <TakenHotkey settings={form} hotkey={form.snapHotkey} />
+        <label className="label">
+          Shortcut: capture the whole screen
+          <input className="field" value={form.screenHotkey} onChange={(e) => set('screenHotkey', e.target.value)} />
+        </label>
+        <TakenHotkey settings={form} hotkey={form.screenHotkey} />
+        <p className="hint">The whole screen includes everything on it, such as notifications and other windows. Nothing is sent until you ask.</p>
         <p className="hint">Shortcuts use names like Alt, Shift, Command, Control and Space joined by “+”.</p>
       </section>
 

@@ -5,7 +5,7 @@ import type { ServiceId } from './services'
 export type ScreenContext =
   | { kind: 'text'; text: string }
   /** `dataUrl` is empty for snips in saved chats: pictures are never written to disk. */
-  | { kind: 'image'; dataUrl: string; width: number; height: number }
+  | { kind: 'image'; dataUrl: string; width: number; height: number; wholeScreen?: boolean }
 
 /** One highlight or snip, and the app it came from. A question can carry up to `MAX_CAPTURES`. */
 export interface Capture {
@@ -106,6 +106,9 @@ export interface PublicSettings {
   showBubble: boolean
   askHotkey: string
   snapHotkey: string
+  screenHotkey: string
+  /** Shortcuts another app already owns, so they do nothing. */
+  takenHotkeys: string[]
   onboarded: boolean
   /** Send the frontmost app's name, window title and page address with each question. */
   shareAppContext: boolean
@@ -116,7 +119,7 @@ export interface PublicSettings {
   homeLanguage: HomeLanguage | null
 }
 
-export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages'>> {
+export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys'>> {
   /** Plaintext key from the settings form; main encrypts it. Empty string clears it. */
   apiKey?: string
 }

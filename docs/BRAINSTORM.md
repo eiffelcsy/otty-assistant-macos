@@ -58,6 +58,8 @@ The long-run direction, from something you ask to something that looks after thi
 | Pick up text reads two-column pages properly: spot the columns from the line boxes, so a drag stays in one column | M | M | idea |
 | Pick up text on the screen itself: a hotkey that freezes the whole screen with its words selectable, with no snip first | H | M | idea, after D-14 |
 | More one-tap page actions next to Summarize: key points, and "what should I do here?" | M | S | idea |
+| A soft shutter flash for the whole-screen shortcut, so it feels like taking a picture (needs a brief overlay window; none with reduced motion) | L | S | idea |
+| Capture every display at once for people with two screens, offered from the Whole screen label | M | S | idea |
 | Pick up text: a snip in a floating window with its words selectable, for ⌘C with no model | H | M | shipped |
 | Frontmost app, window title and page URL as context | H | S | shipped |
 | Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | H | L | → D-1 |
@@ -87,7 +89,7 @@ The long-run direction, from something you ask to something that looks after thi
 | Snip a single window: hover highlights the window under the paw, click snaps it (window list from a small Swift helper) | M | M | idea, after D-14 |
 | More cursor moods: a magnifier paw for tiny targets, a "wave" while waiting for a hotkey release | L | S | idea, after D-14 |
 | A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | shipped |
-| Snip the whole window or screen, not just a box | M | S | → D-14 (whole screen and whole display); a single window is below |
+| Snip the whole window or screen, not just a box | M | S | shipped for the whole screen; a single window is below |
 | Local OCR (Apple Vision) for snips: classifier input and text for non-vision models | H | M | → D-1 (part) |
 | Otty's own snip overlay: paw cursor, frozen screen, rounded selection, instant crop | H | M | → D-14 |
 | Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | H | L | → D-1 |

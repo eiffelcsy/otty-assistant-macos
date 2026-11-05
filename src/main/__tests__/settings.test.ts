@@ -118,6 +118,22 @@ describe('the developer key', () => {
   })
 })
 
+describe('shortcuts', () => {
+  it('gives everyone the whole-screen shortcut, including upgraders', async () => {
+    const s = await launch({ askHotkey: 'Alt+Space', onboarded: true })
+    expect(s.getPublic().screenHotkey).toBe('Command+Alt+Shift+Space')
+  })
+
+  it('reports a taken shortcut, and never saves that', async () => {
+    const s = await launch()
+    s.setTakenHotkeys(['Alt+Space'])
+    expect(s.getPublic().takenHotkeys).toEqual(['Alt+Space'])
+    s.update({ thinking: true })
+    expect(readFileSync(file(), 'utf8')).not.toContain('takenHotkeys')
+    s.setTakenHotkeys([])
+  })
+})
+
 describe('reading pages', () => {
   it('works on online services and stays off on the Mac, and is never saved', async () => {
     const s = await launch()

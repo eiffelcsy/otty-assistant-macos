@@ -409,6 +409,14 @@ function EmptyState({ settings, onSnip }: { settings: PublicSettings; onSnip: ()
         </button>
         <div className="how-to__item">
           <span className="how-to__icon">
+            <Icon name="expand" />
+          </span>
+          <span>
+            <b>Capture the whole screen</b> with <kbd>{prettyKey(settings.screenHotkey)}</kbd>
+          </span>
+        </div>
+        <div className="how-to__item">
+          <span className="how-to__icon">
             <Icon name="comment-dots" />
           </span>
           <span>
