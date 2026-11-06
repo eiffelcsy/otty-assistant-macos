@@ -17,6 +17,9 @@ import { discardFile, pickFiles, readFile, registerFiles } from './files'
 import { getPermissions, openPermissionSettings } from './permissions'
 import { ChatSession, explainTerm, testConnection } from './llm'
 import { copyText } from './tools'
+import { loadMath } from './math'
+import { memoryStore } from './memory'
+import { isSecret } from './memory/guard'
 import { startMetrics } from './metrics'
 import { trayIcon } from './trayIcon'
 import {
@@ -268,6 +271,29 @@ function registerIpc(): void {
   ipcMain.handle('files:read', (_e, id: string) => readFile(String(id)))
   ipcMain.handle('files:discard', (_e, id: string) => discardFile(String(id)))
   ipcMain.handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))
+  ipcMain.handle('chat:learn', (_e, on: boolean) => chat.setLearn(Boolean(on)))
+  ipcMain.handle('memory:list', () => memoryStore().list())
+  ipcMain.handle('memory:add', (_e, text: string) => {
+    // Passwords, keys and codes are never kept, even typed here.
+    if (String(text).trim() && !isSecret(String(text))) memoryStore().add({ text: String(text), origin: 'settings' })
+    return memoryStore().list()
+  })
+  ipcMain.handle('memory:update', (_e, id: number, change: { text?: string; status?: 'active' | 'paused' }) => {
+    const { text, status } = change
+    if (text === undefined || (text.trim() && !isSecret(text))) memoryStore().update(Number(id), { text, status })
+    return memoryStore().list()
+  })
+  ipcMain.handle('memory:remove', (_e, id: number) => {
+    memoryStore().remove(Number(id))
+    return memoryStore().list()
+  })
+  ipcMain.handle('memory:clear', () => memoryStore().clear())
+  ipcMain.handle('memory:undo', (_e, answerId: string, memoryId: number) => chat.undoMemory(String(answerId), Number(memoryId)))
+  ipcMain.handle('memory:open', () => {
+    getQuick()?.hide()
+    getPanel()?.webContents.send('panel:open', { context: null, notice: 'open-memory' } satisfies PanelOpenPayload)
+    showPanelByBubble()
+  })
   ipcMain.handle('chat:explain', (_e, term: string, around: string, language?: AnswerLanguage) =>
     explainTerm(term, around, language)
   )
@@ -332,6 +358,8 @@ if (!app.requestSingleInstanceLock()) {
     setImmediate(() => {
       chatStore()
       void pruneOldChats().catch((err) => console.error('Could not forget old chats', err))
+      memoryStore().pruneExpired()
+      void loadMath()
     })
 
     tray = new Tray(trayIcon())

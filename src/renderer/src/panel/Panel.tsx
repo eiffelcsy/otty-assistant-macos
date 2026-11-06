@@ -48,7 +48,9 @@ export function Panel() {
   const [finding, setFinding] = useState<number | null>(null)
   const findingRef = useRef(finding)
   findingRef.current = finding
-  const { messages, busy, setBusy, waitingFirstToken, focusId } = useChat(() => {
+  /** Bumped to scroll Settings to what Otty knows. */
+  const [memoryFocus, setMemoryFocus] = useState(0)
+  const { messages, busy, setBusy, waitingFirstToken, focusId, learn } = useChat(() => {
     setCaptures([])
     setApp(null)
     setNotice(null)
@@ -96,6 +98,11 @@ export function Panel() {
     () =>
       window.otty.onPanelOpen((p: PanelOpenPayload) => {
         if (p.notice === 'open-settings') return setView('settings')
+        if (p.notice === 'open-memory') {
+          setView('settings')
+          setMemoryFocus((n) => n + 1)
+          return
+        }
         take(p, !!p.add)
         setView((v) => (v === 'history' ? 'chat' : v))
         setTimeout(() => inputRef.current?.focus(), 50)
@@ -211,7 +218,7 @@ export function Panel() {
   }
 
   return (
-    <AskContext.Provider value={(t) => send(t, false)}>
+    <AskContext.Provider value={(t, action) => send(t, false, action ? { label: t, action } as ActionItem : undefined)}>
       <HomeContext.Provider value={settings.homeLanguage}>
         <div className="panel" {...drop}>
           {dragging && (
@@ -242,6 +249,16 @@ export function Panel() {
                   <Icon name="search" />
                 </button>
               )}
+              {view === 'chat' && messages.length > 0 && settings.learn && (
+                <button
+                  className={`icon-btn${learn ? '' : ' icon-btn--on'}`}
+                  title={learn ? 'Don’t learn from this chat' : 'Otty isn’t learning from this chat. Press to let it'}
+                  aria-pressed={!learn}
+                  onClick={() => void window.otty.setChatLearn(!learn)}
+                >
+                  <Icon name={learn ? 'brain' : 'eye-crossed'} />
+                </button>
+              )}
               {view === 'chat' && messages.length > 0 && (
                 <button className="icon-btn" title="New chat" onClick={newChat}>
                   <Icon name="comment-medical" />
@@ -261,7 +278,7 @@ export function Panel() {
           </header>
 
           {view === 'settings' ? (
-            <Settings settings={settings} onSaved={setSettings} />
+            <Settings settings={settings} onSaved={setSettings} memoryFocus={memoryFocus} onOpenChat={() => setView('chat')} />
           ) : view === 'history' ? (
             <History onOpen={() => setView('chat')} focusSearch={searchFocus} keep={settings.keepChats} />
           ) : (

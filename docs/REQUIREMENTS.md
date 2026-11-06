@@ -149,6 +149,19 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-15.1 **Check my writing** returns a highlighted draft corrected, with each change marked and a plain reason for it.
 - FR-15.2 The marks are worked out by comparing the texts, never taken from the model. The draft is never translated.
 
+### FR-16 Memory (P1)
+- FR-16.1 Otty saves what the user tells it to remember, and what they reveal that's likely to last, with no confirm card. Every save, change and removal shows under the answer with **Undo**, and stays in the saved chat.
+- FR-16.2 Otty counts apps, answer languages, quick actions and requests for shorter answers on the Mac, and turns repeated use over several days into habits. Only counts are stored. A deleted habit doesn't return.
+- FR-16.3 Settings lists what Otty knows, grouped, with each one's source, and allows edit, pause, delete, add and **Forget everything**. A master switch stops all learning and sending, and **Don't learn from this chat** stops learning for one chat.
+- FR-16.4 Passwords, keys and codes are never kept. Health, money, religion, politics, sexuality, exact addresses and ID numbers are only kept when the user asks. Nothing is learned from captures, files or web pages. All of this is enforced in code.
+- FR-16.5 Memories stay in `otty.db`, and only reach the model as a note of up to about 1,500 characters with a question.
+
+### FR-17 Math (P1)
+- FR-17.1 A question that's only a calculation is answered on the Mac, at once and offline, with **Copy** and **Explain the working**.
+- FR-17.2 Numbers in answers come from a `calculate` tool with exact decimals, percentages, units and statistics, normally one call an answer. It evaluates nothing outside its allowlist.
+- FR-17.3 Only questions that need reasoning turn on thinking, for that turn. **Always think deeper** overrides this. Other questions are no slower.
+- FR-17.4 `$$…$$` renders as math, offline, in the panel and quick view. Prices stay text.
+
 ### FR-11 Later (P2)
 See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language (shipped, D-2) · inserting text back into the source app (planned, D-11) · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
 

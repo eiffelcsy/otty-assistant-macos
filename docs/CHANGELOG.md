@@ -2,6 +2,30 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
+## Unreleased
+
+On `main`, for the next release. Tested with unit tests and the UI preview, not yet with a real model (smoke-test steps 67–76).
+
+### Otty learns about you (D-10, #17, 2026-11-06)
+
+- **Memory that saves itself, in the open.** Otty notes what you tell it and what lasts, with no card. A quiet *Noted* line under the answer shows each one, with **Undo** and **Edit**, and stays in the saved chat. "Forget that…" works too.
+- **Habits, counted on the Mac.** Your main apps, your answer language, the quick actions you use and asking for shorter answers build up over days, with no model call. Only counts are kept. Delete a habit and it stays gone.
+- **Settings → What Otty knows about you:** grouped, each with its source, to edit, pause or delete, plus **Add something**, **Forget everything Otty knows** and a master switch. **Don't learn from this chat** is in the panel's header and the quick view.
+- **The rules are in code, not the prompt.** A memory only counts as told if the user's own words ask for it. Sensitive things need that, and passwords, keys and codes are refused even then. On any turn with a capture, file or web result, a memory has to rest on what the user typed, so a hostile page can't plant one, however the model rewords it.
+- **Cache-safe.** What Otty knows goes at the end of that turn's message, up to about 1,500 characters, and the latest note wins. If an earlier note stops being true, the next one says so.
+
+### Math that's right, and instant (D-12, 2026-11-06)
+
+- **Instant answers.** Type `17.5% of 2,340` and the result is there, with no model call, even offline. **Explain the working** hands it to the model.
+- **A real calculator.** `calculate` takes every step in one call, in exact decimals, with percentages, units and statistics, behind an allowlist that refuses anything else before it runs. The chip appears already done, and tapping it copies the result.
+- **Thinking only where it pays.** `mathTier` sorts each question locally. Only real problems turn on thinking for that turn, so other questions are no slower. **Think deeper** is now **Always think deeper**.
+- **Rendered equations.** `$$…$$` shows as real math with KaTeX, from the bundle. Prices like $5 stay text, and an unfinished equation stays text until it closes.
+
+### Foundations for Keep going (D-22 steps 0–1, 2026-11-06)
+
+- **The tool loop has moved** to `loop.ts`, so a background job can share it. Nothing changes for the user.
+- **Allowed tools are a real limit.** `ToolContext.allowed` is checked first thing in `runTool`, and Claude's web search now has to be asked for. Explain cards and titles no longer carry the search tool.
+
 ## 0.5.0 — Any model, Pick up text and a proofreader (2026-11-05)
 
 ### Whole-screen shortcut (2026-11-05)

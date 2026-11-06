@@ -35,7 +35,8 @@ export function Quick() {
   const [home, setHome] = useState<HomeLanguage | null>(null)
   const [readsPages, setReadsPages] = useState(false)
   const [pick, setPick] = useState<AnswerLanguage | undefined>()
-  const { messages, busy, waitingFirstToken, clear } = useChat()
+  const [learning, setLearning] = useState(false)
+  const { messages, busy, waitingFirstToken, clear, learn } = useChat()
   const cardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const answerRef = useRef<HTMLDivElement>(null)
@@ -61,6 +62,7 @@ export function Quick() {
         window.otty.getSettings().then((s) => {
           setHome(s.homeLanguage)
           setReadsPages(s.readsPages)
+          setLearning(s.learn)
           setAskHotkey(s.askHotkey)
         })
         setCaptures(p.context ? [{ id: crypto.randomUUID(), context: p.context, app: p.app ?? null }] : [])
@@ -164,8 +166,8 @@ export function Quick() {
 
   return (
     <AskContext.Provider
-      value={(t) => {
-        window.otty.sendMessage(t, [])
+      value={(t, action) => {
+        window.otty.sendMessage(t, [], action ? { action } : undefined)
         expand()
       }}
     >
@@ -248,9 +250,21 @@ export function Quick() {
                 <kbd>esc</kbd> close
               </button>
               {asked ? (
-                <button className="quick__key quick__key--go" onClick={expand}>
-                  <kbd>↵</kbd> continue in chat <Icon name="arrow-small-right" />
-                </button>
+                <span className="quick__go">
+                  {learning && (
+                    <button
+                      className={`quick__key${learn ? '' : ' quick__key--on'}`}
+                      title={learn ? 'Otty won’t learn anything from this chat' : 'Let Otty learn from this chat'}
+                      aria-pressed={!learn}
+                      onClick={() => void window.otty.setChatLearn(!learn)}
+                    >
+                      <Icon name="eye-crossed" /> don’t learn
+                    </button>
+                  )}
+                  <button className="quick__key quick__key--go" onClick={expand}>
+                    <kbd>↵</kbd> continue in chat <Icon name="arrow-small-right" />
+                  </button>
+                </span>
               ) : (
                 <span className="quick__go">
                   {captures.length > 0 && captures.length < MAX_CAPTURES && (

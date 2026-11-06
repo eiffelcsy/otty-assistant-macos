@@ -47,7 +47,7 @@ The long-run direction, from something you ask to something that looks after thi
 | Daily greeting and a gentle weekly recap ("3 things learned this week"), with no streaks to lose | L | S | considering, part of Otty's den |
 | Seasonal or unlockable accessories (hat, scarf) | M | M | considering, earned in Otty's den |
 | Float smoothly only while it matters: on hover or just after an answer, and stepped the rest of the time, so Otty looks alive for almost no battery | M | S | idea |
-| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | → D-10 (issue #17): learns on its own and shows a Noted line with Undo, no confirm cards |
+| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | shipped |
 | Painted Otty frames with a blink (idle + eyes-closed) | H | S | shipped |
 | Respect `prefers-reduced-motion` across every new animation | M | S | shipped (a global rule in `styles.css` turns off all animation and transitions) |
 
@@ -127,9 +127,14 @@ The long-run direction, from something you ask to something that looks after thi
 | Sandboxed code runner for data questions on attached CSVs or pasted tables ("which month had the most sales?"): a sealed-off process with no files or network | M | M | idea, after D-12 |
 | Follow-up questions inside the quick view (don't force "continue in chat") | H | S | → D-11 |
 | Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | → D-11 |
-| Math that's right: instant local answers, a one-request batched `calculate` tool, thinking only for real problems, KaTeX-rendered equations | H | M | → D-12 |
+| Math that's right: instant local answers, a one-request batched `calculate` tool, thinking only for real problems, KaTeX-rendered equations | H | M | shipped |
 | Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | shipped (D-9) |
 | Full computer-use actions (click / type for the user) | H | L | parked: the guided overlay gets most of the value without Otty acting |
+
+| Math eval (`tools/math-eval/`, planned in D-12 but not built, because it needs a real key): 40 real-style questions recording correctness, time to first token, tool rounds and cache hits, to tune the tiers. Target: at least 95% correct | M | S | idea, grows into the Otty eval |
+| `calculate` over a table: let the steps name a highlighted table's columns, so "what's the total of this column?" needs no retyping | M | S | idea, from D-12 |
+| Type a sum in the quick view's empty state: show the result live as you type, before ↵ | M | S | idea, from D-12 |
+| Currency in `calculate`, with rates from a daily fetch that's plainly dated, since a stale rate is a wrong answer | M | M | idea, from D-12 |
 
 ## Language and accessibility
 
@@ -174,6 +179,12 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Saved chats with Recent chats | H | M | shipped (on SQLite since D-3) |
 | SQLite storage, retention setting | H | M | shipped (D-3) |
 | Search across chats, the same contract on JSON, SQLite or an online database | H | M | shipped (D-5, on SQLite since D-3) |
+
+| Why does Otty think that? Tap a memory in an answer's Noted line to see the sentence it came from, using `source_message_id` | M | S | idea, from D-10 |
+| Which memories shaped this answer: a small "Used: learning Spanish" line, so memory is visible when it's read as well as when it's written | H | S | idea, from D-10 |
+| Tidy memories now and then: a background pass merges overlaps and asks about stale ones ("still learning Spanish?") | M | S | idea, from D-10; a "Just do it" chore |
+| The otter mentions a new habit in a speech bubble, as D-10 planned. Today it's only a Noted line, because the bubble can't talk yet | M | S | idea, needs speech-bubble micro-replies |
+| Scope memories by job (AUTONOMY idea 6): chat turns see them, a job only if its recipe says so | M | S | idea, with D-22 |
 
 ## Trust, setup and platform
 

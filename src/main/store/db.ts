@@ -125,6 +125,16 @@ const MIGRATIONS: string[] = [
     embedding blob,
     created_at integer not null
   );
+  `,
+  // v2. D-10's habits: each one has a stable key, so a count going up refreshes it instead of adding another.
+  // Deleting a habit records its key, or the same counts would write it straight back.
+  `
+  alter table memories add column habit text;
+  create unique index memories_habit on memories(habit) where habit is not null;
+  create table memory_optouts(
+    key text primary key,
+    created_at integer not null
+  ) without rowid;
   `
 ]
 

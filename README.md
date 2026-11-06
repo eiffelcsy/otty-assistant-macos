@@ -11,6 +11,8 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 - Attach PDFs, Word documents, pictures and text files
 - **Pick up text:** select and copy the words in a snip, on your Mac with no AI involved
 - **Summarize this page** in one tap, and **Check my writing** with each fix marked and explained
+- **Gets to know you,** in the open: it shows what it notes, with Undo, and Settings lists all of it
+- **Math that's right:** a typed sum is answered instantly on your Mac, and equations render properly
 - Copied tables paste as real tables in Word, Pages and spreadsheets
 - Saved chats with search (⇧⌘F) and find in a chat (⌘F)
 - Help in English, or in 繁體中文（香港） when you want it

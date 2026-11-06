@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import type { AppInfo, Capture, ScreenContext } from '../../../shared/types'
+import { useContext, useState } from 'react'
+import type { AppInfo, Capture, MemoryNote, ScreenContext, ToolChipInfo } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { capturedText } from '../../../shared/captures'
 import { withoutFixedFence } from '../../../shared/diff'
 import type { Assistant, UiMessage } from '../lib/useChat'
-import { Markdown, ProofreadContext } from './Markdown'
+import { AskContext, Markdown, ProofreadContext } from './Markdown'
 
 export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; compact?: boolean }) {
   if (ctx.kind === 'image' && !ctx.dataUrl) {
@@ -115,24 +115,85 @@ export function sourceFor(messages: UiMessage[], id: string): string {
   return asked?.role === 'user' ? capturedText(asked.captures) : ''
 }
 
+function ToolChip({ tool: t }: { tool: ToolChipInfo }) {
+  const [copied, setCopied] = useState(false)
+  const words = (
+    <>
+      <Icon name={copied ? 'check' : (t.icon ?? 'tools')} />
+      {copied ? 'Copied' : t.label}
+      {t.status === 'running' && '…'}
+      {t.status === 'denied' && ' (skipped)'}
+      {t.status === 'error' && ' (didn’t work)'}
+    </>
+  )
+  if (!t.copy) return <span className={`tool-chip tool-chip--${t.status}`}>{words}</span>
+  return (
+    <button
+      className={`tool-chip tool-chip--${t.status} tool-chip--tap`}
+      title="Copy the result"
+      onClick={() => {
+        void window.otty.copyText(t.copy!)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      }}
+    >
+      {words}
+    </button>
+  )
+}
+
+const NOTED: Record<MemoryNote['action'], string> = { added: 'Noted', updated: 'Updated', forgotten: 'Forgotten' }
+
+/** What Otty just learned, in the open. Trust comes from seeing it and being able to take it back, not from being asked. */
+function MemoryLine({ answerId, note }: { answerId: string; note: MemoryNote }) {
+  return (
+    <div className={`memory-line${note.undone ? ' memory-line--undone' : ''}`}>
+      <Icon name="bookmark" />
+      <span className="memory-line__text">
+        {NOTED[note.action]}: {note.text}
+      </span>
+      {note.undone ? (
+        <span className="memory-line__done">Undone</span>
+      ) : (
+        <>
+          <button className="memory-line__btn" onClick={() => void window.otty.undoMemory(answerId, note.memoryId)}>
+            Undo
+          </button>
+          {note.action !== 'forgotten' && (
+            <button className="memory-line__btn" onClick={() => void window.otty.openMemories()}>
+              Edit
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+/** A sum Otty worked out by itself, with no model call. */
+function CalcCard({ calc }: { calc: NonNullable<Assistant['calc']> }) {
+  return (
+    <div className="calc-card">
+      <div className="calc-card__sum">{calc.expression}</div>
+      <div className="calc-card__result">= {calc.result}</div>
+    </div>
+  )
+}
+
 export function AssistantMessage({ m, again, found, source = '' }: { m: Assistant; again?: AgainOffer; found?: boolean; source?: string }) {
   const [copied, setCopied] = useState(false)
+  const ask = useContext(AskContext)
   return (
     <div className={`msg msg--otty${found ? ' msg--found' : ''}`} data-msg-id={m.id}>
       {m.tools.length > 0 && (
         <div className="tool-chips">
           {m.tools.map((t) => (
-            <span key={t.callId} className={`tool-chip tool-chip--${t.status}`}>
-              <Icon name={t.icon ?? 'tools'} />
-              {t.label}
-              {t.status === 'running' && '…'}
-              {t.status === 'denied' && ' (skipped)'}
-              {t.status === 'error' && ' (didn’t work)'}
-            </span>
+            <ToolChip key={t.callId} tool={t} />
           ))}
         </div>
       )}
-      {m.text && (
+      {m.calc && <CalcCard calc={m.calc} />}
+      {m.text && !m.calc && (
         <div className="msg__bubble">
           <ProofreadContext.Provider value={{ source, done: !m.streaming }}>
             <Markdown text={m.text} language={m.language} />
@@ -164,7 +225,7 @@ export function AssistantMessage({ m, again, found, source = '' }: { m: Assistan
           <button
             className="copy-btn"
             onClick={() => {
-              window.otty.copyText(withoutFixedFence(m.text).replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
+              window.otty.copyText(m.calc?.result ?? withoutFixedFence(m.text).replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
               setCopied(true)
               setTimeout(() => setCopied(false), 1500)
             }}
@@ -172,7 +233,13 @@ export function AssistantMessage({ m, again, found, source = '' }: { m: Assistan
             <Icon name={copied ? 'check' : 'copy-alt'} />
             {copied ? 'Copied' : 'Copy'}
           </button>
-          {again && (
+          {m.calc && (
+            <button className="copy-btn" onClick={() => ask('Explain the working', 'working')}>
+              <Icon name="list" />
+              Explain the working
+            </button>
+          )}
+          {again && !m.calc && (
             <button className="copy-btn" onClick={again.onClick}>
               <Icon name="language" />
               {again.label}
@@ -180,6 +247,7 @@ export function AssistantMessage({ m, again, found, source = '' }: { m: Assistan
           )}
         </div>
       )}
+      {m.memories?.map((n) => <MemoryLine key={n.memoryId} answerId={m.id} note={n} />)}
     </div>
   )
 }

@@ -210,13 +210,13 @@ Actions stay separate from initiative. A Stage 5 chore still can't send, pay or 
 Cards can turn into a habit people click through, which weakens them, so their number should fall quickly through steps 2 and 3.
 
 **First foundations, cheapest first:**
-1. Move the tool loop out of `ChatSession.run` into a shared function that takes a history, the allowed tools, a `ToolContext` and a signal. No behaviour change, and everything else needs it.
-2. An allowed list enforced in `runTool`, then tool safety labels. Do this before D-10 adds `remember` and `forget`. It must cover Claude's web search too, which `anthropic.ts` adds whatever the tool list says.
+1. ✅ Move the tool loop out of `ChatSession.run` into a shared function that takes a history, the allowed tools, a `ToolContext` and a signal (`loop.ts`).
+2. ✅ An allowed list enforced in `runTool`, covering Claude's web search too. Tool safety labels are still to come, with jobs.
 3. A `jobs` migration and a `JobStore` interface, with confirm cards that can be saved.
 4. One timer set for the next due job, plus `powerMonitor`. No polling, so NFR-3 holds. Re-measure anyway.
 
 **How the current roadmap feeds this:**
-- **D-10 memory:** the Global scope. Keep each memory's source id, because that's the chain in idea 6.
+- **D-10 memory (shipped):** the Global scope, with each memory's source chat and message kept for the chain in idea 6. A job gets no `learn` in its `ToolContext`, so it can't touch memories by default.
 - **D-11 step cards:** a job whose worker is the user. Model them with the same states if it costs nothing extra.
 - **D-1 intents:** its encoder is the gate's local judgement stage.
 - **D-13 history budget:** Inline & Spill for chats.

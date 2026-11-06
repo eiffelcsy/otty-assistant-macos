@@ -15,12 +15,15 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ index.ts       lifecycle, tray, hotkeys, IPC, badge    │
 │ windows.ts     bubble · quick view · panel · pickup    │
 │ capture.ts     selection (⌘C trick), snip, frontmost   │
-│ llm.ts         ChatSession: tool loop, background work │
+│ llm.ts         ChatSession: turns, background work     │
+│ loop.ts        the tool loop, shared by chats and jobs │
+│ memory/        what Otty knows: store, guard, habits   │
+│ math.ts        the calculator, mathjs behind allowlist │
 │ providers/     one adapter per API format, profiles    │
 │ store/         ChatStore on SQLite (otty.db): chats,   │
 │                search, retention; schema in db.ts      │
 │ files/         attachments; fileWorker.js reads docs   │
-│ tools.ts       search_web, read_page, open_url, …      │
+│ tools.ts       search_web, read_page, calculate, …     │
 │ web.ts         DeepSeek Search & Fetch                 │
 │ pageReader.ts  reads public pages from the Mac         │
 │ knownUrls.ts   which addresses read_page may open      │
@@ -59,181 +62,19 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-10 | Otty learns about you: memory that saves itself, in the open, with Undo (#17) | ⏳ | — (schema, `database()` and the per-turn note are in) | M (2–3 days) |
-| D-12 | Math that's right, and instant: local instant answers, one-request batched `calculate`, tiered thinking, rendered equations | ⏳ | — | M (1–2 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏳ | — | M (2 days) |
 | D-11 | Do it with me: step cards that paste, open, click menus and press shortcuts; quick-view follow-ups | ⏳ | — | M (2–3 days) |
-| D-22 | Keep going: answers that carry on, background research jobs, Activity (Stage 1 of AUTONOMY.md) | ⏳ | — (steps 0–1 before D-10) | L (5–7 days) |
+| D-22 | Keep going: answers that carry on, background research jobs, Activity (Stage 1 of AUTONOMY.md) | 🔨 | — (steps 0–1 are in) | L (4–6 days left) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 
-**Where things stand (2026-11-05).** `main` is 0.5.0, waiting for its smoke test and tag; see CHANGELOG. It has any model (D-20), Pick up text (D-21), a stable prompt (D-12 step 0), Read this page (D-15), the idle budget (D-16), warm explain cards (D-18), chat titles (D-19) and the proofread card (D-17). None of that has run against a real Claude, OpenAI or local model yet. 0.4.0 is smoke-tested, with its draft release waiting to be published. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
+**Where things stand (2026-11-06).** 0.4.0 is published. **0.5.0 is tagged**: smoke-test steps 55–58 passed on DeepSeek, and the `dmg` workflow makes its draft release. Steps 59–61 need other services and are **yet to be tested**, so nothing has run against a real Claude, OpenAI or local model. Steps 62–66 haven't been reported either. `main` is getting, unreleased: memory (D-10), math (D-12), and D-22 steps 0–1; see CHANGELOG → Unreleased. These passed their unit tests and the UI preview, but no real model has called `remember` or `calculate` yet, so run steps 67–76 first. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
 **Build order**
-1. **Publish 0.4.0, then smoke-test steps 55–66 on a Mac, fix what they find, and release 0.5.0** by pushing a `v0.5.0` tag on the bump commit (the `dmg` workflow attaches the `.dmg` to a draft release). Start with a first real chat on Claude.
-2. **D-10 memory.** The biggest step towards Otty feeling like *your* otter: it learns on its own and shows what it learned.
-3. **The rest of D-12 math.** It fixes something people notice straight away: wrong sums and raw `\frac` in answers.
-4. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant, catches menus that would vanish, and lets Pick up text open over the original spot.
-5. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how". The proofread card gains **Replace in Pages** here.
-6. **D-22 Keep going.** Otty's first step from reactive to autonomous: work carries on while you look away. Steps 0 and 1 are small and should land before D-10, which adds tools.
-7. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, eval set). The OCR helper is already built. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
-
----
-
-## D-10 · Otty learns about you: memory that just works, in the open (#17) ⏳
-
-**Goal.** Otty gets to know the user the way a good assistant does, without being asked: their apps, their languages, the projects they keep coming back to, how they like answers. It uses that knowledge on its own, so answers feel written for *them* (examples from their apps, Spanish in mind, short answers without being told again). That's what separates Otty from a generic chatbot.
-
-**Principle: trust from visibility and control, not from asking first.** A confirm card for every memory would make learning a chore, and people would say no out of habit. So Otty saves memories on its own and **always shows what it saved**, with **Undo** one click away. Nothing is hidden, everything can be edited, and some things are off limits.
-
-### How Otty learns
-1. **Told.** "Remember that my manager is Sam", or "I'm a nurse" said in passing. The model calls `remember({ text, kind })` and the memory is saved at once (`origin: 'told'`, confidence 1).
-2. **Inferred from conversation.** When a turn reveals something lasting about the user ("I need this for my Spanish class" → *is learning Spanish*), the model calls `remember` with `origin: 'inferred'` and a confidence. The prompt allows at most two per answer, only for things likely to matter in a month.
-3. **Observed on the Mac, no model needed.** Main counts what the user already sends: apps in the app note, answer languages, which quick actions they pick, the "In 中文" button, how often they ask for shorter answers. Past a threshold it writes or refreshes a `habit` memory (`origin: 'observed'`): "Mostly works in Excel and Safari", "Often wants answers in 中文", "Prefers short answers". Counts are kept per day in the `counters` table (kind, key, day, count: never content), so a habit builds over a week of use and across restarts, and old days can be ignored.
-4. **Tidying.** When a new memory overlaps an old one, `remember` takes `replaces: id`, and the old one is updated in place ("now uses Numbers instead of Excel"). Without that, near-duplicates are found with `memories_fts` (trigram overlap) and merged.
-
-### What the user sees
-- **Under the answer**, a quiet line: *Noted: you're learning Spanish* · **Undo** · **Edit** (UIcon `bookmark`). Undo deletes it. Edit opens it in Settings. The line stays in the saved chat, so the source is never a mystery.
-- **On the otter**, observed habits appear as a speech-bubble micro-reply now and then ("I noticed you're in Excel a lot. I'll use its menus in examples."). This shares the "speech-bubble micro-replies" idea in BRAINSTORM.
-- **Settings → What Otty knows about you**: grouped by kind, each with its source ("From a chat on 3 Nov", which opens the chat, or "Noticed from how you use Otty"), and inline edit, pause and delete. **Add something**. **Forget everything Otty knows** (deleted and overwritten on disk, like forgotten chats).
-- **"Forget that…"** in chat calls `forget({ id })`, which deletes it straight away with an Undo line. Removing is always safe, so it never asks.
-- **"Don't learn from this chat"** in the panel's header (and the quick view's ⋯): this chat neither adds memories nor counts towards habits (`chats.learn = 0`). Memories are still used in the answers.
-- A master switch, "Let Otty learn about me" (on by default). Off: nothing is learned or sent, and the list is kept for when it's turned back on.
-
-### What Otty never learns
-- **Sensitive things are only remembered when the user explicitly says "remember"**, never inferred or observed: health, money and debts, religion, politics, sexuality, exact addresses, ID numbers. Passwords, keys and codes are never stored, even when asked. Otty says so kindly instead.
-- **The screen isn't the user.** Captures, files and web pages are other people's words: an email from Sam doesn't teach Otty about Sam. Only what the user says about themself, plus their own observed habits, becomes a memory. The prompt says this, and `remember` rejects text that only appears inside a capture or file of that turn (a substring check in main).
-- Everything stays in `otty.db` on the Mac. Memories reach the model only as the prompt block below.
-
-### How memories are used
-- Each turn, `MemoryStore.forPrompt(question, app)` builds a "What you know about the user" block of up to about 1,500 characters. It goes in that turn's note at the end of the user message (and stays there), not in the system prompt, because it changes per question and would otherwise stop DeepSeek caching the history (see D-12 step 0). The order: everything told or set in Settings, then habits and inferences that match the question or the current app (`memories_fts`, app name), then the most used. Inferences under confidence 0.6 are only sent when they match.
-- The prompt asks Otty to *use* memories quietly (pick examples from their apps, answer in their language, keep it short if they like short), never to recite them, and at most one light reference when it helps ("Since you're learning Spanish…").
-- `use_count` and `last_used_at` are updated for memories that were sent.
-
-### Build
-- Schema (all in v1, so D-10 needs no migration): `memories` with `origin` (`told` / `inferred` / `observed` / `settings`), `status` (`active` / `paused` / `pending`), `confidence`, `kind` (`about` / `preference` / `habit` / `person` / `goal`) and `expires_at` for short-lived facts ("travelling to Japan next week": `remember` takes an optional `until`, and expired memories are deleted with the retention pass); `memories_fts`; `chats.learn`; `counters` for habits. Allowed values are checked in TypeScript, not with CHECK constraints, so adding one never needs a table rebuild.
-- `src/main/memory/`: `MemoryStore` (`list`, `add`, `update`, `remove`, `clear`, `forPrompt`, `findSimilar`), `observe.ts` (habit counters and thresholds), `guard.ts` (sensitive-category and "came from a capture" checks, unit-tested).
-- `tools.ts`: `remember` and `forget`, both without confirm cards. A new `ChatEvent` `{ type: 'memory', id, memoryId, text, action: 'added' | 'updated' | 'forgotten' }` renders the Noted line; the assistant message keeps `memories?: { id, text, action }[]` so it survives reopening.
-- IPC `memory:list/add/update/remove/clear/optout`; `PublicSettings.learn: boolean`; `tools/ui-preview` `scene=memory`.
-
-**Done when:** "I'm learning Spanish for a trip" shows *Noted* without a card, and a later "how do I say thank you?" leans Spanish without being told; Undo removes it; after a week of mostly Excel, Settings shows an Excel habit and answers name Excel's menus; a health detail mentioned in passing is not noted, but "remember I'm diabetic" is; a pasted email from someone else teaches nothing; "Don't learn from this chat" learns nothing; Settings edits change the next answer.
-
----
-
-## D-12 · Math that's right, and instant: calculator, tiered thinking, rendered equations ⏳
-
-**Goal.** Otty gets numbers right, shows math the way a textbook does, and is **never slower for it**. Today it slips, for three fixable reasons:
-1. **Thinking is off by default** (`settings.thinking: false`), so multi-step problems get one pass.
-2. **There's no calculator**, so numbers come from the model's memory.
-3. **Math notation shows raw.** `Markdown.tsx` only has `remark-gfm`.
-
-**The latency rule.** Running the math takes microseconds. What costs time is everything around it:
-- each tool call is **another model request**: the stream pauses, the result goes back, and the model needs time before its next word (0.5–2 s);
-- thinking adds seconds before the first word;
-- a cold mathjs load adds about 100 ms.
-
-So the design aims for **zero extra requests where possible, at most one otherwise, and cache hits on that one**.
-
-### Latency budget (targets, measured on an M1)
-| Path | Target |
-| --- | --- |
-| Instant answer (the whole question is a calculation) | ↵ → result on screen ≤ 50 ms, no model call |
-| `calculate` execution, p95 | ≤ 2 ms, whatever the expression |
-| Calculations inside an answer | at most **one** extra model request per answer, with the history cached |
-| Non-math questions | no slower than today: no thinking, no added work beyond a check of under a millisecond |
-| mathjs ready | warmed at startup in idle time, so the first math question never waits for it |
-
-### 1. Three tiers, decided locally in under a millisecond
-`mathTier(text, captures)` in `src/shared/math.ts` (next to `script.ts`) returns one of four values:
-
-| Tier | Example | What happens | Extra latency |
-| --- | --- | --- | --- |
-| `expression` | `2340*1.175`, `17.5% of 2,340`, `38°C to °F`, `sqrt(2)`, `mean(3, 7, 9)` | **Instant answer:** computed locally and shown at once as a result card (`= 2,749.5`) with **Copy** and **Explain the working**. No model call | none (≤ 50 ms) |
-| `calculation` | "what's 17.5% of 2,340 plus 8% tax?", "split $86.40 between 3" | Model with `calculate`, **thinking off**. The calculator gives the accuracy, and these don't need reasoning | one request, cached |
-| `problem` | "solve 3x + 7 = 25", "a train leaves at…", a homework snip with typed math words, 「解方程」 | Model with `calculate`, **thinking on** for this turn only | thinking plus one request, cached |
-| `none` | everything else | as today | none |
-
-- **`expression`** means the whole typed question parses as an allowlisted mathjs expression after normalising (below), with nothing left over but number words like "of", "to", "in" and units. Anything else falls through to the model.
-- **`problem`** means equations with unknowns, solve / prove / word-problem cues, or a snip with typed math words. **`calculation`** is the other math cues: numbers with operators, %, money splits, how much / how many / average, and 計 / 算 / 幾多 / 百分之 / 打…折.
-- The instant result card is local, so it also works offline and costs nothing. **Explain the working** sends the question to the model as a `problem` turn.
-- It's saved in the chat like any answer: an assistant message with `calc: { expression, result }`, rendered as the card. Search finds it.
-- Settings "Think deeper" becomes "always think", overriding the tiers.
-
-### 2. The `calculate` tool, built for one request
-- **Batch, with names:** `calculate({ steps: string[] })` evaluates the steps in order in one shared scope:
-  ```
-  ["base = 2340 * 17.5%", "tax = base * 8%", "total = base + tax"]
-  ```
-  It returns every named result in one go. The prompt says to plan all the numbers first, then call `calculate` once. Several calls in one model message (parallel tool calls) are also run together.
-- **Exact decimals:** mathjs configured with `number: 'BigNumber'`, `precision: 34`, so `0.1 + 0.2 = 0.3` and money sums are exact without display tricks. Results are formatted to 14 significant digits, with thousands separators in the display text only.
-- **Forgiving input, so a retry is rare** (a retry costs a whole request):
-  - NFKC normalisation (full-width digits);
-  - `×` and `·` → `*`, `÷` → `/`, `−` → `-`, `²` → `^2`;
-  - `%` and "x% of y";
-  - `°C`, `°F`, `km/h` and similar → mathjs unit names;
-  - thousands separators accepted when unambiguous (`2,340` with exactly 3 digits after the comma and no function call around it).
-  
-  Errors are one line with the fix ("unknown unit 'kms', did you mean 'km'?").
-- **Safety without a second process:**
-  - The expression is parsed to an AST and walked against an **allowlist** of node types and functions: arithmetic, `sqrt`, `round`, `abs`, `log`, trig, `min` / `max` / `mean` / `median` / `std` / `sum`, `to` / `in` units, assignments.
-  - Arrays are capped at 1,000 items, the length at 500 characters, and big factorials and powers are capped.
-  - `import`, `createUnit`, `evaluate`, `parse`, `range`, matrices beyond the cap and every function not on the allowlist are rejected before evaluation.
-  
-  So evaluation is bounded and synchronous, and there's **no utility-process round trip**. A worker would add more latency than it could ever save.
-- **Lean and warm:**
-  - `src/main/math.ts` builds the mathjs instance from only the factories the allowlist needs (`create({ …dependencies })`), not `all`, which cuts load and init time.
-  - It's created in `setImmediate` after the windows open, beside the database.
-  - Target: init ≤ 30 ms off the critical path; evaluate ≤ 2 ms p95.
-- **UI with no flicker:** the chip appears already done ("Calculated 2,340 × 17.5% = 409.5"), with no "running" state, since it's faster than a frame. Tap it to copy the result. The text written before the call stays on screen, and the stream picks up again after a single cached request.
-
-### 3. Render math
-- `remark-math` and `rehype-katex` in `Markdown.tsx`: panel, quick view, explain cards.
-- **Only `$$…$$` counts as math** (`singleDollarTextMath: false`), so "$5 and $10" stays text. `$$…$$` inside a sentence is inline; on its own line it's a block.
-- KaTeX's CSS and fonts come from the bundle, not a CDN: the built pages' CSP allows nothing else.
-- `throwOnError: false`, so bad TeX shows as source text. KaTeX inherits `color`, so dark mode works with no new tokens.
-- **Load cost:**
-  - KaTeX and its CSS are imported once with the renderer bundle (the windows are created at startup, so they're already loaded when an answer arrives).
-  - Rendering only runs on messages that contain `$$`; a quick check skips the plugin otherwise, so streaming non-math answers costs nothing extra.
-  - While a math answer streams, an unclosed `$$` renders as text until it closes, so the layout doesn't jump.
-- Find-in-chat (D-7) searches rendered text, so TeX source inside KaTeX won't match; acceptable. Copy keeps `$$…$$`.
-
-### 4. Prompt rules (`prompts.ts`, in the static system prompt)
-- Plan every number first, then **one** `calculate` call with all the steps. Never do arithmetic from memory, even "easy" sums.
-- Homework and "how do I solve": numbered steps, then the answer in bold with units, then a check line (put the answer back in, or estimate the size).
-- Round for the question (money to 2 places, people to whole numbers), then say what it means in plain words.
-- Write math as `$$…$$`; prices stay "$5".
-
-### Tests and measurement
-- `math.test.ts` (no Electron):
-  - exact decimals, percentages, units, statistics;
-  - the batch scope;
-  - normalising `×`, `÷`, `−`, `²`, full-width digits and `2,340`;
-  - the allowlist rejecting `import`, `evaluate`, `range(1,1e9)`, `factorial(1e6)` and long input;
-  - **a timing test**: 1,000 mixed expressions with p95 ≤ 2 ms.
-- `mathTier`: about 60 labelled examples in English and 中文 across the four tiers, including prices in prose, dates, phone numbers and "macOS 15.1" as `none`.
-- **A latency eval** (`tools/math-eval/`, not shipped):
-  - 40 real-style questions run against the API, recording correctness, time to first token, total time, tool rounds and cache-hit tokens;
-  - compared before D-12, D-12 with thinking on every math turn, and D-12 tiered;
-  - the tier thresholds are tuned on this.
-  - Target: **≥ 95% correct, and `calculation`-tier answers no slower to start than today's.**
-- `tools/ui-preview` `scene=math`: an instant result card, inline and block math, light and dark.
-
-### Done when
-- Typing `17.5% of 2,340` shows **409.5** instantly with no model call; **Explain the working** then explains it.
-- "What's 17.5% of 2,340 plus 8% tax?" shows one Calculated chip and the right total, with the second request reading its history from the cache (dev log).
-- "Solve 3x + 7 = 25" thinks, then shows rendered steps and a check.
-- "What's the capital of France?" starts as fast as before.
-- "$3,200 a month, $1,150 rent, what share?" keeps the dollars as text and answers 35.9%.
-- 「3,000 蚊打八折係幾多？」 gets 2,400 with Chinese working.
-- Follow-up turns in any chat show cache hits in the dev log.
-
-### Smoke test (add to the checklist when it ships)
-- Type `17.5% of 2,340` and press ↵ → **409.5** appears at once (no "thinking", works with Wi-Fi off), with **Copy** and **Explain the working**. Explain → the model explains it.
-- Ask "What's 17.5% of 2,340 plus 8% tax?" → one "Calculated … = …" chip, no flicker, and the right total, with the answer starting about as fast as a normal question. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then rendered steps (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
-- Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text, and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400 with Chinese working. Toggle dark mode → equations stay legible. Copy an answer → the pasted text has `$$…$$`.
-- In a dev build, ask a follow-up in a long chat → the log shows `prompt_cache_hit_tokens` covering the history, on the follow-up and on the round after a tool call. Start a new chat → its first request hits the cache for the system prompt and tools. Switch EN / 中 between turns → still hits.
-
-### Later (in BRAINSTORM)
-A sandboxed code runner for data in CSVs and tables; recomputing a worked solution's final answer; dates in `calculate`; instant answers also in the quick view's empty state ("type a sum").
+1. **Try memory and math on a real model:** smoke-test steps 67–76 on DeepSeek. How often a model calls `remember` well, and plans one `calculate`, is the part tests can't show. Then steps 62–66 for 0.5.0, and 59–61 when a Claude or OpenAI key is to hand.
+2. **D-14 Otty's own snip.** The snip is the moment Otty is most visible, and today it's the plain macOS crosshair. Freezing the screen also makes snips instant, catches menus that would vanish, and lets Pick up text open over the original spot.
+3. **D-11 step cards.** Answers become checklists that paste, open, click menus and press shortcuts for you, in any app: the safe first stage of "Show me how". The proofread card gains **Replace in Pages** here.
+4. **D-22 Keep going, from step 2.** Otty's first step from reactive to autonomous: work carries on while you look away.
+5. Then **D-1**, starting with its step 0, which may shrink it. It has the most moving parts (model, eval set). The OCR helper is already built. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets.
 
 ---
 
@@ -359,7 +200,7 @@ A sandboxed code runner for data in CSVs and tables; recomputing a worked soluti
 
 ---
 
-## D-22 · Keep going: Otty works while you look away ⏳
+## D-22 · Keep going: Otty works while you look away 🔨
 
 **Goal.** Stage 1 of [AUTONOMY.md](AUTONOMY.md). Otty stops doing only one thing at a time. An answer carries on when the user moves to another chat, and a bigger question becomes a job that runs in the background, survives a restart and waits as a normal chat when it's done.
 
@@ -431,15 +272,13 @@ Running out gives a partial report that says so, not a failure, using the same "
 
 ### Build (one PR per step, each shippable)
 
-0. **`src/main/loop.ts`.** Move the tool loop out of `ChatSession.run`: it takes a history, tools, a `ToolContext`, a round limit and a signal, and reports events and each appended message. No behaviour change, and `llm.test.ts` must pass untouched.
-1. **Allowed tools.** `ToolContext.allowed` enforced first thing in `runTool`, with `toolDefs` filtered to match. Add `ChatRequest.serverSearch`, because `anthropic.ts` adds Claude's web search whatever the tool list says, so today the list isn't a real limit.
+0. ✅ **`src/main/loop.ts`.** The tool loop, out of `ChatSession.run`: it takes a history, tools, a `ToolContext`, a round limit and a signal, and reports events and each appended message. `llm.test.ts` passed untouched.
+1. ✅ **Allowed tools.** `ToolContext.allowed` is enforced first thing in `runTool`, with `toolDefs(allowed)` to match. `ChatRequest.serverSearch` is opt-in, so Claude's web search only comes with a request that asks for it. That also took it off explain cards and titles, which never needed it.
 2. **Turns per chat** (section 1), with the `load` and `forward()` changes.
 3. **Migration, `JobStore`, runner and limits**, with a fake provider, and no UI yet.
 4. **`start_job`, the card, results as chats, forgetting.** IPC `jobs:list/stop/answer/resume/open` and an `onJobs` event, separate from `ChatEvent`.
 5. **Activity view**, with `scene=activity` in `tools/ui-preview`.
 6. **Sleep, wake and the 24-hour rule.** Then re-measure NFR-3 with a job running and after it ends.
-
-Steps 0 and 1 are worth doing before D-10, which adds `remember` and `forget`.
 
 ### Tests
 - Chat: moving to another chat leaves the answer running and saving to its own thread; a same-chat question still replaces it; only the shown chat's events reach the windows; a deleted chat's running turn never writes back.
@@ -610,6 +449,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 56. Snip something with text → press **Pick up text** beside the picture in the quick view → a window opens by the cursor with the picture at about its real size. "Reading the words…" shows, then "Drag across the words". The first read after installing can take up to a minute. Repeat from the panel's tray and from a picture in a sent message.
 57. Drag across some words → they highlight exactly where they are in the picture. Press ⌘C and paste into Notes → the same words. Press ⌘A then ⌘C, and try **Copy all**. Snip a table, drag across a row, and paste into Word → real table cells. Try Chinese and English together.
 58. With the window open, switch to another app, paste, and come back → it's still there on top. Press Esc → it closes, and the app you were in has focus. Snip something with no words → "Otty couldn't find any words in this picture". Turn the Wi-Fi off → it still works.
+> **Status (2026-11-06):** steps 55–58 passed on 0.5.0. Steps 59–61 are **yet to be tested**, because they need other services. Steps 62–66 have no result yet.
+
 59. Settings → pick **Claude** → paste a key → **Save**: the test names the model. Ask something that needs a tool → the chip and answer work. Ask a follow-up, then reopen the chat from Recent chats and ask another.
 60. On Claude, ask "What's new in macOS this month?" → a "Searching the web" chip, then an answer citing sources. Ask it to read one of those sources → no card. Ask it to read an address nobody gave it → a "Read this page?" card.
 61. On OpenAI or a custom address, ask Otty to read a public page → a "Reading <site>" chip and a summary. Ask it to read `http://192.168.1.1` → it says it can only read public pages. Switch services mid-chat → the conversation carries on, and switching back keeps each key.
@@ -618,3 +459,13 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 64. Highlight a long paragraph → ⌥Space → ↵ → Recent chats shows a short real title, not the cut-off text. Search a word from the title → the chat is found. Ask a question in 中文 → a Chinese title.
 65. Highlight a draft with mistakes in Mail → ⌥Space → **check writing** → the marked-up card, with a reason for each fix. **Copy fixed text** → paste → no marks. Press **In 中文** → the reasons change and the fixed text doesn't. Check a correct paragraph → it says it reads well. Reopen the chat → the same card. Toggle dark mode → the changes stay legible.
 66. Press **⌘⌥⇧Space** → Otty blinks out for a moment, then a picture labelled **Whole screen** of the display under the cursor, without the floating otter or any Otty window in it, readable when opened. Ask about it → the answer treats it as the whole screen. With the panel open, it's added to the tray. On a second display, it snaps that one. With Screen Recording off → the friendly notice. Settings shows the third shortcut, and setting one another app uses shows "Another app is using this shortcut" after saving.
+67. Say "I'm learning Spanish for a trip" → the answer shows *Noted: Is learning Spanish* with **Undo** and **Edit**, and no card. In a new chat, "how do I say thank you?" leans Spanish without being told. Press **Undo** → it says Undone, and the next new chat doesn't know it. Reopen the chat → the line is still there, still Undone.
+68. Mention a health detail in passing ("I have diabetes, what can I eat?") → nothing is noted. Say "remember I'm diabetic" → it's noted. Say "remember my wifi password is otter123" → Otty kindly says it doesn't keep those, and nothing is noted.
+69. Highlight an email from someone else → **Summarize** → nothing is noted. Say "forget that I'm learning Spanish" → *Forgotten*, with an Undo.
+70. Press the brain button in the panel's header (or **don't learn** in the quick view), then say "remember I have a dog" → nothing is noted, and Otty doesn't claim it was. Reopen the chat → still off.
+71. Settings → **What Otty knows about you** → edit one, and the next answer uses the new words. Pause one → it stops being used. Add "I'm a nurse", then "my password is x" → the second is turned down. **From a chat on…** opens that chat. **Forget everything Otty knows** asks once, then the list is empty. Turn **Let Otty learn about me** off → no Noted lines, and answers stop using the list.
+72. Over a few days of use, mostly in one app → *Noted: Mostly works in Excel*. Delete it → it doesn't come back.
+73. Type `17.5% of 2,340` and press ↵ → **409.5** at once, with Wi-Fi off too, and **Copy** and **Explain the working**. Explain → the model explains it. Try `38°C to °F`, `10 km to miles` and `what is 2 + 2?`. `macOS 15.1`, `12/25/2026` and `1 in 3` go to the model.
+74. Ask "What's 17.5% of 2,340 plus 8% tax?" → one "Calculated … = …" chip with no flicker, and the right total. Tap the chip → it copies. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then rendered steps (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
+75. Ask "I earn $3,200 a month and spend $1,150 on rent, what share is that?" → the dollar amounts stay plain text, and the answer is about 35.9%. Ask 「3,000 蚊打八折係幾多？」 → 2,400 with Chinese working. Toggle dark mode → equations stay legible. Copy an answer → the pasted text has `$$…$$`.
+76. In a dev build, ask a follow-up in a long chat with memories → the `[cache]` line covers the history, on the follow-up and on the round after a tool call. Check that in a built app (not `npm run dev`) equations render, which confirms the fonts get past the page's CSP.

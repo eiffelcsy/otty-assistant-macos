@@ -2,6 +2,7 @@ import { clipboard, ClipboardItem, shell } from 'electron'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { copyFormats } from './copyFormats'
+import { calculate } from './math'
 import { readPageFromMac } from './pageReader'
 import { profileFor, searchesOnServer } from './providers/profiles'
 import { getApiKey, getStored } from './settings'
@@ -14,11 +15,23 @@ export interface ToolContext {
   confirm(title: string, detail: string): Promise<boolean>
   /** True when this exact address came from the user, a search or a page, not from the model. */
   knownUrl(url: string): boolean
+  /**
+   * The only tools this work may use, checked first thing in `runTool`, because a model can call a tool it wasn't
+   * offered. Left out, every tool is allowed: a chat turn, which the user is watching.
+   */
+  allowed?: ReadonlySet<string>
+  /** How `remember` and `forget` reach the chat. Left out, this work can't touch what Otty knows. */
+  learn?: {
+    remember(args: Record<string, unknown>): ToolOutcome
+    forget(args: Record<string, unknown>): ToolOutcome
+  }
 }
 
 export interface ToolOutcome {
   result: string
   status: 'done' | 'denied' | 'error'
+  /** Replaces the chip's words once the result is known. `copy` is what tapping the chip copies. */
+  chip?: { label: string; copy?: string }
 }
 
 const searchWebDef = {
@@ -83,12 +96,18 @@ function webConfig(): WebConfig | null {
 }
 
 /** The tools offered to the model. Claude brings its own search, and pages are read from the Mac unless DeepSeek does it. */
-export function toolDefs() {
-  if (webOff()) return otherDefs
+export function toolDefs(allowed?: ReadonlySet<string>) {
+  const defs = serviceDefs()
+  return allowed ? defs.filter((d) => allowed.has(d.function.name)) : defs
+}
+
+function serviceDefs() {
+  const local = getStored().learn ? [...otherDefs, ...learnDefs] : otherDefs
+  if (webOff()) return local
   const { baseUrl, apiFormat, model } = getStored()
-  if (webConfig()) return [searchWebDef, readPageDef, ...otherDefs]
-  if (searchesOnServer(profileFor(baseUrl, apiFormat), model)) return [readPageDef, ...otherDefs]
-  return [lookupDef, readPageDef, ...otherDefs]
+  if (webConfig()) return [searchWebDef, readPageDef, ...local]
+  if (searchesOnServer(profileFor(baseUrl, apiFormat), model)) return [readPageDef, ...local]
+  return [lookupDef, readPageDef, ...local]
 }
 
 const otherDefs = [
@@ -134,13 +153,70 @@ const otherDefs = [
         required: ['title']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'calculate',
+      description:
+        'Work out numbers exactly. Plan every number first and send all the steps in one call. Later steps can use names from earlier ones. Handles %, units ("38 degC to degF", "10 km to miles"), sqrt, round, abs, log, trig, min, max, mean, median, std and sum.',
+      parameters: {
+        type: 'object',
+        properties: {
+          steps: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'In order, e.g. ["base = 2340 * 17.5%", "tax = base * 8%", "total = base + tax"]'
+          }
+        },
+        required: ['steps']
+      }
+    }
+  }
+] as const
+
+/** Only offered with "Let Otty learn about me" on. */
+const learnDefs = [
+  {
+    type: 'function',
+    function: {
+      name: 'remember',
+      description:
+        'Save something lasting about the user: when they ask you to, or when they reveal something likely to matter in a month. Otty shows them what you saved, with an Undo.',
+      parameters: {
+        type: 'object',
+        properties: {
+          text: { type: 'string', description: 'One short plain sentence with no subject, e.g. "Is learning Spanish"' },
+          kind: { type: 'string', enum: ['about', 'preference', 'person', 'goal'], description: 'Who they are, how they like answers, someone they mention, or what they’re working towards' },
+          confidence: { type: 'number', description: 'From 0 to 1, how sure you are, when you worked it out yourself' },
+          replaces: { type: 'number', description: 'The # of a memory this updates' },
+          until: { type: 'string', description: 'For short-lived facts: when it stops being true, in ISO 8601' }
+        },
+        required: ['text']
+      }
+    }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'forget',
+      description: 'Delete a memory when the user says it’s wrong or asks you to forget it. Otty shows them, with an Undo.',
+      parameters: {
+        type: 'object',
+        properties: { id: { type: 'number', description: 'The # of the memory' } },
+        required: ['id']
+      }
+    }
   }
 ] as const
 
 type Args = Record<string, unknown>
 
-/** Chip text plus a UIcon name (rounded set) for the renderer. */
-export function toolLabel(name: string, args: Args): { label: string; icon: string } {
+/**
+ * Chip text plus a UIcon name (rounded set) for the renderer. `show` says when the chip appears: from the start
+ * (the default), only once it's done, or never, for a tool that shows itself some other way.
+ */
+export function toolLabel(name: string, args: Args): { label: string; icon: string; show?: 'running' | 'after' | 'never' } {
   switch (name) {
     case 'search_web':
       return { icon: 'search', label: `Looking up “${String(args.query ?? '')}”` }
@@ -152,6 +228,12 @@ export function toolLabel(name: string, args: Args): { label: string; icon: stri
       return { icon: 'copy-alt', label: 'Copied to your clipboard' }
     case 'create_reminder':
       return { icon: 'alarm-clock', label: `Reminder: “${String(args.title ?? '')}”` }
+    case 'calculate':
+      // Faster than a frame, so it appears already done.
+      return { icon: 'calculator', label: 'Calculated', show: 'after' }
+    case 'remember':
+    case 'forget':
+      return { icon: 'bookmark', label: 'Noted', show: 'never' }
     default:
       return { icon: 'tools', label: name }
   }
@@ -166,6 +248,7 @@ function hostOf(url: string): string {
 }
 
 export async function runTool(name: string, args: Args, ctx: ToolContext): Promise<ToolOutcome> {
+  if (ctx.allowed && !ctx.allowed.has(name)) return { result: `The tool ${name} isn't available here.`, status: 'error' }
   try {
     switch (name) {
       case 'search_web':
@@ -211,6 +294,16 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
         await createReminder(title, when)
         return { result: `Reminder added: ${detail}`, status: 'done' }
       }
+
+      case 'calculate': {
+        const out = await calculate(args.steps)
+        return { result: out.result, status: out.ok ? 'done' : 'error', ...(out.label ? { chip: { label: out.label, copy: out.value } } : {}) }
+      }
+
+      case 'remember':
+      case 'forget':
+        if (!ctx.learn) return { result: 'Otty isn’t learning here. Don’t say this was saved.', status: 'denied' }
+        return ctx.learn[name](args)
 
       default:
         return { result: `Unknown tool ${name}`, status: 'error' }

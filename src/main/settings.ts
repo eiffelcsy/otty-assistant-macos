@@ -33,7 +33,8 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   onboarded: false,
   shareAppContext: true,
   rememberChats: true,
-  keepChats: '1y'
+  keepChats: '1y',
+  learn: true
 }
 
 let cache: StoredSettings | null = null

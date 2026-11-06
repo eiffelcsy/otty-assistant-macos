@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, ToolChipInfo } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, MemoryNote, ToolChipInfo } from '../../../shared/types'
 
 export type ToolChip = ToolChipInfo
 
@@ -22,6 +22,8 @@ export type UiMessage =
       error?: string
       streaming: boolean
       language?: AnswerLanguage
+      memories?: MemoryNote[]
+      calc?: { expression: string; result: string }
     }
 
 export type Assistant = Extract<UiMessage, { role: 'assistant' }>
@@ -30,6 +32,8 @@ export type Assistant = Extract<UiMessage, { role: 'assistant' }>
 export function useChat(onReset?: () => void) {
   const [messages, setMessages] = useState<UiMessage[]>([])
   const [busy, setBusy] = useState(false)
+  /** False for "Don't learn from this chat". */
+  const [learn, setLearn] = useState(true)
   /** A message to scroll to, set when a search result reopens a chat. Cleared by the next question. */
   const [focusId, setFocusId] = useState<string | null>(null)
   const resetRef = useRef(onReset)
@@ -44,6 +48,7 @@ export function useChat(onReset?: () => void) {
           setMessages([])
           setBusy(false)
           setFocusId(null)
+          setLearn(true)
           currentId.current = null
           resetRef.current?.()
           return
@@ -51,6 +56,7 @@ export function useChat(onReset?: () => void) {
         if (e.type === 'load') {
           setMessages(e.messages.map((m) => (m.role === 'assistant' ? { ...m, streaming: false } : m)))
           setFocusId(e.focusMessageId ?? null)
+          setLearn(e.learn !== false)
           setBusy(false)
           currentId.current = null
           return
@@ -64,6 +70,8 @@ export function useChat(onReset?: () => void) {
           return
         }
 
+        if (e.type === 'learn') return setLearn(e.on)
+
         const patch = (fn: (m: Assistant) => Assistant) =>
           setMessages((ms) => ms.map((m) => (m.id === e.id && m.role === 'assistant' ? fn(m) : m)))
 
@@ -75,11 +83,21 @@ export function useChat(onReset?: () => void) {
           case 'delta':
             patch((m) => ({ ...m, text: m.text + e.text }))
             break
+          case 'calc':
+            patch((m) => ({ ...m, text: `**${e.result}**`, calc: { expression: e.expression, result: e.result } }))
+            break
+          case 'memory':
+            patch((m) => {
+              const notes = m.memories ?? []
+              const known = notes.some((n) => n.memoryId === e.note.memoryId)
+              return { ...m, memories: known ? notes.map((n) => (n.memoryId === e.note.memoryId ? e.note : n)) : [...notes, e.note] }
+            })
+            break
           case 'tool':
             patch((m) => {
               const others = m.tools.filter((t) => t.callId !== e.callId)
               const confirm = e.status === 'running' ? m.confirm : undefined
-              return { ...m, confirm, tools: [...others, { callId: e.callId, label: e.label, icon: e.icon, status: e.status }] }
+              return { ...m, confirm, tools: [...others, { callId: e.callId, label: e.label, icon: e.icon, status: e.status, copy: e.copy }] }
             })
             break
           case 'confirm':
@@ -106,5 +124,5 @@ export function useChat(onReset?: () => void) {
     setBusy(false)
   }
 
-  return { messages, busy, setBusy, waitingFirstToken, clear, focusId }
+  return { messages, busy, setBusy, waitingFirstToken, clear, focusId, learn }
 }

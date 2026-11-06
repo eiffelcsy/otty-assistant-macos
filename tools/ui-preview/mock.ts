@@ -5,6 +5,7 @@ import type {
   ChatEvent,
   ChatMessage,
   FileAttachment,
+  Memory,
   OttyApi,
   PanelOpenPayload,
   PublicSettings
@@ -12,7 +13,7 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|history|find (pickup: reading|nowords|failed)  ?home=none
+// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|history|find (pickup: reading|nowords|failed)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -61,7 +62,8 @@ const settings: PublicSettings = {
   shareAppContext: true,
   rememberChats: true,
   keepChats: '1y',
-  homeLanguage: q.get('home') === 'none' ? null : 'zh-HK'
+  homeLanguage: q.get('home') === 'none' ? null : 'zh-HK',
+  learn: true
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -84,6 +86,50 @@ const proofreadSample: ChatMessage[] = [
     tools: [],
     text: '```fixed\nI have two cats and they are very friendly. Yesterday we went to the park.\n```\n\n- **has → have:** “I” takes “have”.\n- **cat → cats:** two of them, so it’s plural.\n- **is → are:** “they” takes “are”.\n- **goes → went:** “yesterday” needs the past tense.'
   }
+]
+
+const mathSample: ChatMessage[] = [
+  { id: 'u1', role: 'user', text: '17.5% of 2,340', captures: [], app: null },
+  { id: 'a1', role: 'assistant', tools: [], text: '**409.5**', calc: { expression: '17.5% of 2,340', result: '409.5' } },
+  { id: 'u2', role: 'user', text: 'Solve 3x + 7 = 25', captures: [], app: null },
+  {
+    id: 'a2',
+    role: 'assistant',
+    tools: [{ callId: 't1', label: 'Calculated (25 − 7) ÷ 3 = 6', icon: 'calculator', status: 'done', copy: '6' }],
+    text: `1. Take 7 from both sides:
+
+$$3x = 18$$
+
+2. Divide both sides by 3, which is the same as $$x = \\frac{18}{3}$$ here.
+
+**Answer: x = 6**
+
+Check: $$3 \\times 6 + 7 = 25$$ ✓ That costs $5 and $10, which stay as plain text.
+
+$$\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}$$`
+  }
+]
+
+const memorySample: ChatMessage[] = [
+  { id: 'u1', role: 'user', text: 'I’m learning Spanish for a trip to Madrid. How do I say thank you?', captures: [], app: null },
+  {
+    id: 'a1',
+    role: 'assistant',
+    tools: [],
+    text: 'It’s **gracias**. For “thank you very much”, say **muchas gracias**.',
+    memories: [
+      { memoryId: 1, text: 'Is learning Spanish', action: 'added' },
+      { memoryId: 2, text: 'Mostly works in Excel and Safari', action: 'updated', before: 'Mostly works in Excel' }
+    ]
+  }
+]
+
+let memories: Memory[] = [
+  { id: 1, text: 'Is learning Spanish', kind: 'goal', origin: 'inferred', status: 'active', confidence: 0.8, sourceChatId: '1', createdAt: Date.now() - 3e8, updatedAt: Date.now() - 3e8 },
+  { id: 2, text: 'Mostly works in Excel and Safari', kind: 'habit', origin: 'observed', status: 'active', confidence: 1, createdAt: Date.now(), updatedAt: Date.now() },
+  { id: 3, text: 'Manager is Sam', kind: 'person', origin: 'told', status: 'active', confidence: 1, sourceChatId: '2', createdAt: Date.now() - 9e8, updatedAt: Date.now() - 9e8 },
+  { id: 4, text: 'Prefers short answers', kind: 'preference', origin: 'observed', status: 'paused', confidence: 1, createdAt: Date.now(), updatedAt: Date.now() },
+  { id: 5, text: 'Works as a nurse', kind: 'about', origin: 'settings', status: 'active', confidence: 1, createdAt: Date.now(), updatedAt: Date.now() }
 ]
 
 const sample: ChatMessage[] = [
@@ -184,6 +230,28 @@ const api: OttyApi = {
   deleteChat: noop,
   clearChats: noop,
   respondConfirm: noop,
+  setChatLearn: async (on) => emit({ type: 'learn', on }),
+  listMemories: async () => memories,
+  addMemory: async (text) => {
+    memories = [{ id: Date.now(), text, kind: 'about', origin: 'settings', status: 'active', confidence: 1, createdAt: Date.now(), updatedAt: Date.now() }, ...memories]
+    return memories
+  },
+  updateMemory: async (id, change) => {
+    memories = memories.map((m) => (m.id === id ? { ...m, ...change } : m))
+    return memories
+  },
+  removeMemory: async (id) => {
+    memories = memories.filter((m) => m.id !== id)
+    return memories
+  },
+  clearMemories: async () => {
+    memories = []
+  },
+  undoMemory: async (answerId, memoryId) => {
+    const note = (memorySample[1] as Extract<ChatMessage, { role: 'assistant' }>).memories!.find((n) => n.memoryId === memoryId)!
+    emit({ type: 'memory', id: answerId, note: { ...note, undone: true } })
+  },
+  openMemories: async () => openCb?.({ context: null, notice: 'open-memory' }),
   explain: async (term, _around, language) =>
     new Promise((r) =>
       setTimeout(
@@ -220,6 +288,8 @@ const api: OttyApi = {
   onChatEvent: (cb) => {
     chatCb = cb
     if (scene === 'proofread') setTimeout(() => cb({ type: 'load', messages: proofreadSample }), 50)
+    if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
+    if (scene === 'memory') setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}
   },
@@ -231,6 +301,7 @@ const api: OttyApi = {
     if (scene === 'tray' && !trayed.panel) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 160)
     trayed.panel = true
     if (scene === 'settings' || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    if (scene === 'memories') setTimeout(() => cb({ context: null, notice: 'open-memory' }), 80)
     if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)
     if (scene === 'history') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 120)
     return () => {}
