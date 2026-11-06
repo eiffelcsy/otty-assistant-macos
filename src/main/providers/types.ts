@@ -28,6 +28,8 @@ export interface ChatRequest {
   tools?: readonly object[]
   /** Don't let the model call them this time. */
   toolsOff?: boolean
+  /** Let the service search the web by itself, if it can. It isn't in `tools`, so it has to be asked for here. */
+  serverSearch?: boolean
   maxTokens?: number
   /** How hard to think. Left out, the user's setting decides. */
   reasoning?: 'least' | 'normal' | 'deep'

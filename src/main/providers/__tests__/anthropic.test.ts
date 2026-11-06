@@ -101,7 +101,7 @@ describe('the request', () => {
   it('only asks for fallbacks on models that take them', async () => {
     answerWith(() => sse([{ type: 'text', text: 'Hi' }]))
     const haiku = anthropicProvider(() => ({ ...config, model: 'claude-haiku-5-5' }))
-    for await (const _ of haiku.stream({ messages: [] }, new AbortController().signal));
+    for await (const _ of haiku.stream({ messages: [], serverSearch: true }, new AbortController().signal));
     expect(sent[0].body).not.toHaveProperty('fallbacks')
     expect(sent[0].headers.get('anthropic-beta')).not.toContain('server-side-fallback')
   })
@@ -321,9 +321,15 @@ describe('web search on Claude', () => {
 
   it('adds the search tool, with a limit, after Otty’s own tools', async () => {
     answerWith(() => sse([{ type: 'text', text: 'Hi' }]))
-    await collect({ messages: [], tools: [{ type: 'function', function: { name: 'find', parameters: {} } }] })
+    await collect({ messages: [], serverSearch: true, tools: [{ type: 'function', function: { name: 'find', parameters: {} } }] })
     expect(sent[0].body.tools.map((t: { name: string }) => t.name)).toEqual(['find', 'web_search'])
     expect(sent[0].body.tools[1]).toEqual({ type: 'web_search_20260209', name: 'web_search', max_uses: 5 })
+  })
+
+  it('only searches when asked, so a list of allowed tools is a real limit', async () => {
+    answerWith(() => sse([{ type: 'text', text: 'Hi' }]))
+    await collect({ messages: [], tools: [{ type: 'function', function: { name: 'find', parameters: {} } }] })
+    expect(sent[0].body.tools.map((t: { name: string }) => t.name)).toEqual(['find'])
   })
 
   it('never adds web_fetch, which would skip Otty’s checks', async () => {
@@ -335,9 +341,9 @@ describe('web search on Claude', () => {
   it('keeps it off models and servers that can’t take it', async () => {
     answerWith(() => sse([{ type: 'text', text: 'Hi' }]))
     const haiku = anthropicProvider(() => ({ ...config, model: 'claude-haiku-5-5' }))
-    for await (const _ of haiku.stream({ messages: [] }, new AbortController().signal));
+    for await (const _ of haiku.stream({ messages: [], serverSearch: true }, new AbortController().signal));
     const other = anthropicProvider(() => ({ ...config, baseUrl: 'https://models.example.com', profile: profileFor('https://models.example.com', 'anthropic') }))
-    for await (const _ of other.stream({ messages: [] }, new AbortController().signal));
+    for await (const _ of other.stream({ messages: [], serverSearch: true }, new AbortController().signal));
     expect(sent[0].body).not.toHaveProperty('tools')
     expect(sent[1].body).not.toHaveProperty('tools')
   })
