@@ -1,4 +1,5 @@
 import type {
+  ActivityItem,
   AnswerLanguage,
   AttachResult,
   Capture,
@@ -13,7 +14,7 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|history|find (pickup: reading|nowords|failed)  ?home=none
+// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|steps|activity|history|find (pickup: reading|nowords|failed)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -124,6 +125,37 @@ const memorySample: ChatMessage[] = [
   }
 ]
 
+const stepsSample: ChatMessage[] = [
+  { id: 'u1', role: 'user', text: 'How do I export this as a PDF and add up column B?', captures: [], app: { name: 'Excel', title: 'Budget.xlsx' } },
+  {
+    id: 'a1',
+    role: 'assistant',
+    tools: [],
+    text: 'Here’s how. Press a button and Otty does that step for you.',
+    steps: {
+      title: 'Add up and export',
+      app: { name: 'Excel', bundleId: 'com.microsoft.Excel' },
+      steps: [
+        { text: 'Click the empty cell under column B', done: true },
+        { text: 'Paste the formula', action: { kind: 'paste', text: '=SUM(B:B)', mode: 'replace' } },
+        { text: 'Export the sheet', action: { kind: 'menu', path: ['File', 'Export To', 'PDF…'] } },
+        { text: 'Take a screenshot of the result', action: { kind: 'keys', combo: '⌘⇧4' } },
+        { text: 'Delete the old copy', risky: true, action: { kind: 'menu', path: ['File', 'Delete'] } },
+        { text: 'Check the privacy settings', action: { kind: 'open', target: 'x-apple.systempreferences:com.apple.preference.security' }, manual: true, note: 'Otty couldn’t find that menu.' }
+      ]
+    }
+  }
+]
+
+const activitySample: ActivityItem[] = [
+  { id: 'j1', kind: 'job', title: 'Cheapest way from Hong Kong to Tokyo', state: 'done', pages: 12, chatId: '1', partial: true, unseen: true },
+  { id: 'j2', kind: 'job', title: 'Compare three laptops', state: 'waiting', pages: 4, waitUrl: 'https://reviews.example/laptops?id=42', unseen: true },
+  { id: 'j3', kind: 'job', title: 'Best rail passes', state: 'paused', pages: 7, note: 'This has been sitting a while. Keep going?', unseen: false },
+  { id: 'j4', kind: 'job', title: 'Visa rules for Japan', state: 'working', pages: 3, unseen: false },
+  { id: 'j5', kind: 'job', title: 'Hotels near Ueno', state: 'queued', pages: 0, unseen: false },
+  { id: 'a1', kind: 'answer', title: 'Explain this simply “Requests beyond…”', state: 'working', pages: 0, chatId: '1', unseen: false }
+]
+
 let memories: Memory[] = [
   { id: 1, text: 'Is learning Spanish', kind: 'goal', origin: 'inferred', status: 'active', confidence: 0.8, sourceChatId: '1', createdAt: Date.now() - 3e8, updatedAt: Date.now() - 3e8 },
   { id: 2, text: 'Mostly works in Excel and Safari', kind: 'habit', origin: 'observed', status: 'active', confidence: 1, createdAt: Date.now(), updatedAt: Date.now() },
@@ -230,6 +262,24 @@ const api: OttyApi = {
   deleteChat: noop,
   clearChats: noop,
   respondConfirm: noop,
+  runStep: async (answerId, index) => {
+    const answer = stepsSample[1] as Extract<ChatMessage, { role: 'assistant' }>
+    answer.steps!.steps[index].done = true
+    emit({ type: 'steps', id: answerId, card: structuredClone(answer.steps!) })
+  },
+  tickStep: async (answerId, index, done) => {
+    const answer = stepsSample[1] as Extract<ChatMessage, { role: 'assistant' }>
+    answer.steps!.steps[index].done = done
+    emit({ type: 'steps', id: answerId, card: structuredClone(answer.steps!) })
+  },
+  stuckOnStep: noop,
+  listActivity: async () => (scene === 'activity' ? activitySample : []),
+  stopActivity: noop,
+  answerActivity: noop,
+  resumeActivity: noop,
+  openActivity: noop,
+  seenActivity: noop,
+  onActivity: () => () => {},
   setChatLearn: async (on) => emit({ type: 'learn', on }),
   listMemories: async () => memories,
   addMemory: async (text) => {
@@ -288,6 +338,7 @@ const api: OttyApi = {
   onChatEvent: (cb) => {
     chatCb = cb
     if (scene === 'proofread') setTimeout(() => cb({ type: 'load', messages: proofreadSample }), 50)
+    if (scene === 'steps') setTimeout(() => cb({ type: 'load', messages: stepsSample }), 50)
     if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
     if (scene === 'memory') setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
@@ -314,6 +365,7 @@ const api: OttyApi = {
     return () => {}
   },
   onBubbleState: () => () => {},
+  onBubbleWorking: () => () => {},
   onBubbleBadge: () => () => {},
   onWindowVisible: () => () => {}
 }

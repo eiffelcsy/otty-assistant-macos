@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, MemoryNote, ToolChipInfo } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, MemoryNote, StepCard, ToolChipInfo } from '../../../shared/types'
 
 export type ToolChip = ToolChipInfo
 
@@ -24,6 +24,7 @@ export type UiMessage =
       language?: AnswerLanguage
       memories?: MemoryNote[]
       calc?: { expression: string; result: string }
+      steps?: StepCard
     }
 
 export type Assistant = Extract<UiMessage, { role: 'assistant' }>
@@ -54,11 +55,12 @@ export function useChat(onReset?: () => void) {
           return
         }
         if (e.type === 'load') {
-          setMessages(e.messages.map((m) => (m.role === 'assistant' ? { ...m, streaming: false } : m)))
+          // Coming back to an answer still running: it picks up from here.
+          setMessages(e.messages.map((m) => (m.role === 'assistant' ? { ...m, streaming: m.id === e.streaming } : m)))
           setFocusId(e.focusMessageId ?? null)
           setLearn(e.learn !== false)
-          setBusy(false)
-          currentId.current = null
+          setBusy(Boolean(e.streaming))
+          currentId.current = e.streaming ?? null
           return
         }
         if (e.type === 'user') {
@@ -85,6 +87,9 @@ export function useChat(onReset?: () => void) {
             break
           case 'calc':
             patch((m) => ({ ...m, text: `**${e.result}**`, calc: { expression: e.expression, result: e.result } }))
+            break
+          case 'steps':
+            patch((m) => ({ ...m, steps: e.card }))
             break
           case 'memory':
             patch((m) => {

@@ -37,7 +37,7 @@ export function encodeImage(img: NativeImage, maxSide = MAX_IMAGE_SIDE): { dataU
 }
 
 /** Eagerly copies every format on the clipboard so it survives being overwritten. */
-async function snapshot(): Promise<ClipboardItem[]> {
+export async function snapshotClipboard(): Promise<ClipboardItem[]> {
   const items = await clipboard.read().catch(() => [])
   const copies: ClipboardItem[] = []
   for (const item of items) {
@@ -55,7 +55,7 @@ async function snapshot(): Promise<ClipboardItem[]> {
   return copies
 }
 
-async function restore(items: ClipboardItem[]): Promise<void> {
+export async function restoreClipboard(items: ClipboardItem[]): Promise<void> {
   clipboard.clear()
   if (items.length) await clipboard.write(items).catch(() => {})
 }
@@ -78,14 +78,14 @@ export async function captureSelection(delayMs = 0): Promise<PanelOpenPayload> {
 
   if (delayMs) await sleep(delayMs)
 
-  const before = await snapshot()
+  const before = await snapshotClipboard()
   const sentinel = `__otty_${Date.now()}_${Math.random()}`
   await clipboard.writeText(sentinel)
 
   try {
     await run('osascript', ['-e', 'tell application "System Events" to keystroke "c" using {command down}'])
   } catch {
-    await restore(before)
+    await restoreClipboard(before)
     return { context: null, notice: 'needs-accessibility' }
   }
 
@@ -98,7 +98,7 @@ export async function captureSelection(delayMs = 0): Promise<PanelOpenPayload> {
       break
     }
   }
-  await restore(before)
+  await restoreClipboard(before)
 
   text = text.trim()
   return { context: text ? { kind: 'text', text: text.slice(0, MAX_TEXT) } : null }
@@ -212,7 +212,7 @@ export async function frontmostApp(): Promise<AppInfo | null> {
     const { stdout } = await run('osascript', FRONTMOST_SCRIPT.flatMap((l) => ['-e', l]), { timeout: 800 })
     const [pid, name, bundle, title] = stdout.replace(/\n$/, '').split('\n')
     if (!name || Number(pid) === process.pid) return null
-    const info: AppInfo = { name }
+    const info: AppInfo = { name, pid: Number(pid), ...(bundle ? { bundleId: bundle } : {}) }
     if (title && title !== name) info.title = title.slice(0, 200)
     const page = await browserUrl(bundle)
     if (page) {

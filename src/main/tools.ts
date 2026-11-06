@@ -3,6 +3,7 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { copyFormats } from './copyFormats'
 import { calculate } from './math'
+import { ToolPause } from './pause'
 import { readPageFromMac } from './pageReader'
 import { profileFor, searchesOnServer } from './providers/profiles'
 import { getApiKey, getStored } from './settings'
@@ -25,6 +26,10 @@ export interface ToolContext {
     remember(args: Record<string, unknown>): ToolOutcome
     forget(args: Record<string, unknown>): ToolOutcome
   }
+  /** Shows a step card under the answer. Only a chat turn can. */
+  showSteps?(args: Record<string, unknown>): ToolOutcome
+  /** Asks to start a background job. Only a chat turn can, so a job can never start another. */
+  startJob?(args: Record<string, unknown>): Promise<ToolOutcome>
 }
 
 export interface ToolOutcome {
@@ -105,9 +110,9 @@ function serviceDefs() {
   const local = getStored().learn ? [...otherDefs, ...learnDefs] : otherDefs
   if (webOff()) return local
   const { baseUrl, apiFormat, model } = getStored()
-  if (webConfig()) return [searchWebDef, readPageDef, ...local]
-  if (searchesOnServer(profileFor(baseUrl, apiFormat), model)) return [readPageDef, ...local]
-  return [lookupDef, readPageDef, ...local]
+  if (webConfig()) return [searchWebDef, readPageDef, ...local, startJobDef]
+  if (searchesOnServer(profileFor(baseUrl, apiFormat), model)) return [readPageDef, ...local, startJobDef]
+  return [lookupDef, readPageDef, ...local, startJobDef]
 }
 
 const otherDefs = [
@@ -172,8 +177,56 @@ const otherDefs = [
         required: ['steps']
       }
     }
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'show_steps',
+      description:
+        'Show steps the user carries out on their Mac as a checklist, instead of a numbered list. Use it for 2 or more such steps. Give a step an action whenever one fits: the user presses a button and Otty does it for them.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'What these steps get done' },
+          steps: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                text: { type: 'string', description: 'One short step' },
+                action: {
+                  type: 'object',
+                  description:
+                    '{kind:"paste",text,mode:"replace"|"insert"} pastes into the user’s app. {kind:"open",target} opens a web page, an app by name or a Settings pane (x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture). {kind:"menu",path:["File","Export To","PDF…"]} clicks a menu in their app. {kind:"keys",combo:"⌘⇧4"} presses a shortcut. {kind:"copy",text} copies.'
+                }
+              },
+              required: ['text']
+            }
+          },
+          replaces: { type: 'boolean', description: 'True to update the last card instead of adding one, after the user got stuck' }
+        },
+        required: ['title', 'steps']
+      }
+    }
   }
 ] as const
+
+const startJobDef = {
+  type: 'function',
+  function: {
+    name: 'start_job',
+    description:
+      'Look into something big in the background, for questions that need many sources or a long comparison. The user is shown the brief and decides. The job only sees the brief, so put everything it needs in it, and nothing private.',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'A few words naming what’s being looked into' },
+        brief: { type: 'string', description: 'What to find out, in full, standing on its own' }
+      },
+      required: ['title', 'brief']
+    }
+  }
+} as const
 
 /** Only offered with "Let Otty learn about me" on. */
 const learnDefs = [
@@ -234,6 +287,10 @@ export function toolLabel(name: string, args: Args): { label: string; icon: stri
     case 'remember':
     case 'forget':
       return { icon: 'bookmark', label: 'Noted', show: 'never' }
+    case 'show_steps':
+      return { icon: 'list-check', label: 'Steps', show: 'never' }
+    case 'start_job':
+      return { icon: 'binoculars', label: `Looking into “${String(args.title ?? 'this')}”` }
     default:
       return { icon: 'tools', label: name }
   }
@@ -305,10 +362,18 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
         if (!ctx.learn) return { result: 'Otty isn’t learning here. Don’t say this was saved.', status: 'denied' }
         return ctx.learn[name](args)
 
+      case 'show_steps':
+        return ctx.showSteps ? ctx.showSteps(args) : { result: 'Steps can’t be shown here.', status: 'error' }
+
+      case 'start_job':
+        if (webOff()) return { result: 'Background work needs the web, which is off with this model.', status: 'error' }
+        return ctx.startJob ? await ctx.startJob(args) : { result: 'That isn’t available here.', status: 'error' }
+
       default:
         return { result: `Unknown tool ${name}`, status: 'error' }
     }
   } catch (err) {
+    if (err instanceof ToolPause) throw err
     return { result: `Tool failed: ${(err as Error).message}`, status: 'error' }
   }
 }

@@ -5,7 +5,7 @@ import { openAiProvider } from './openai'
 import { profileFor, type Profile } from './profiles'
 import type { Provider } from './types'
 
-export { FriendlyError, NoVisionError } from './errors'
+export { ConnectionError, FriendlyError, NoVisionError } from './errors'
 export type { Profile } from './profiles'
 export type { ChatRequest, Completion, ContentPart, Message, Provider, ProviderEvent, ProviderReplay, ToolCall } from './types'
 

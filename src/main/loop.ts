@@ -26,6 +26,12 @@ export interface LoopOptions {
   signal: AbortSignal
   /** How hard to think this turn. Left out, the user's setting decides. */
   reasoning?: ChatRequest['reasoning']
+  /** Asked before each request. True ends the tools early, and the next request has to answer. */
+  stopTools?: () => boolean
+  /** Told to the model when its tools end, so it can write up what it has. */
+  wrapUp?: string
+  /** Picks up a history that stopped part way: tool calls with no result yet run first. */
+  resume?: boolean
   onEvent(e: LoopEvent): void
   /** Each message as it's added to `history`. */
   onMessage?(m: Message): void
@@ -39,16 +45,46 @@ function parseArgs(call: ToolCall): Record<string, unknown> {
   }
 }
 
+/** The tool calls in the last reply that have no result yet. */
+export function unanswered(history: Message[]): ToolCall[] {
+  const at = history.map((m) => m.role).lastIndexOf('assistant')
+  const reply = history[at]
+  if (reply?.role !== 'assistant' || !reply.tool_calls) return []
+  const answered = new Set(history.slice(at).flatMap((m) => (m.role === 'tool' ? [m.tool_call_id] : [])))
+  return reply.tool_calls.filter((c) => !answered.has(c.id))
+}
+
 export async function runLoop(o: LoopOptions): Promise<void> {
   const add = (m: Message) => {
     o.history.push(m)
     o.onMessage?.(m)
   }
+
+  const runCalls = async (calls: ToolCall[]) => {
+    for (const call of calls) {
+      const args = parseArgs(call)
+      const { label, icon, show = 'running' } = toolLabel(call.function.name, args)
+      if (show === 'running') o.onEvent({ type: 'tool', callId: call.id, label, icon, status: 'running' })
+      const out = await runTool(call.function.name, args, o.context)
+      if (o.signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
+      if (show !== 'never') o.onEvent({ type: 'tool', callId: call.id, label: out.chip?.label ?? label, icon, status: out.status, ...(out.chip?.copy ? { copy: out.chip.copy } : {}) })
+      o.onEvent({ type: 'tool-result', name: call.function.name, outcome: out })
+      add({ role: 'tool', tool_call_id: call.id, content: out.result })
+    }
+  }
+
+  if (o.resume) await runCalls(unanswered(o.history))
+
   // Claude's own search isn't in the tool list, so an allowed list has to switch it off separately.
   const serverSearch = !o.context.allowed || o.context.allowed.has('search_web')
 
+  let wrapped = false
   for (let round = 0; round <= o.maxRounds; round++) {
-    const toolsOff = round >= o.maxRounds
+    const toolsOff = Boolean(o.stopTools?.()) || round >= o.maxRounds
+    if (toolsOff && o.wrapUp && !wrapped) {
+      wrapped = true
+      add({ role: 'user', content: o.wrapUp })
+    }
     const replies = o.provider().stream(
       { system: o.system, messages: o.history, tools: o.tools(), toolsOff, serverSearch, ...(o.reasoning ? { reasoning: o.reasoning } : {}) },
       o.signal
@@ -78,22 +114,12 @@ export async function runLoop(o: LoopOptions): Promise<void> {
     add({
       role: 'assistant',
       content: content || null,
-      ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
+      ...(toolCalls.length && !toolsOff ? { tool_calls: toolCalls } : {}),
       ...(reasoning ? { reasoning_content: reasoning } : {}),
       ...(replay ? { provider: replay } : {})
     })
     if (paused) continue // the same chat, sent again, resumes it
-    if (!toolCalls.length) return
-
-    for (const call of toolCalls) {
-      const args = parseArgs(call)
-      const { label, icon, show = 'running' } = toolLabel(call.function.name, args)
-      if (show === 'running') o.onEvent({ type: 'tool', callId: call.id, label, icon, status: 'running' })
-      const out = await runTool(call.function.name, args, o.context)
-      if (o.signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
-      if (show !== 'never') o.onEvent({ type: 'tool', callId: call.id, label: out.chip?.label ?? label, icon, status: out.status, ...(out.chip?.copy ? { copy: out.chip.copy } : {}) })
-      o.onEvent({ type: 'tool-result', name: call.function.name, outcome: out })
-      add({ role: 'tool', tool_call_id: call.id, content: out.result })
-    }
+    if (!toolCalls.length || toolsOff) return
+    await runCalls(toolCalls)
   }
 }

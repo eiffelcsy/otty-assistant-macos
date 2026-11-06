@@ -121,7 +121,7 @@ export function createQuick(): BrowserWindow {
   // A popover: clicking anywhere else puts it away (the chat keeps going in the panel),
   // unless it's pinned to collect more captures, or the blur was a switch to another desktop.
   quick.on('blur', () => {
-    if (quickState.pinned) return
+    if (quickState.pinned || quickState.working) return
     quickBlurAt = Date.now()
     if (blurTimer) clearTimeout(blurTimer)
     blurTimer = setTimeout(() => {
@@ -219,7 +219,7 @@ let quickBlurAt = 0
 let blurTimer: NodeJS.Timeout | null = null
 
 export function setQuickState(s: QuickState): void {
-  quickState = { collecting: !!s.collecting, pinned: !!s.collecting && !!s.pinned }
+  quickState = { collecting: !!s.collecting, pinned: !!s.collecting && !!s.pinned, working: !!s.working }
 }
 
 /** True when a hotkey should add to the quick view: it's open, collecting, and another app has focus. */

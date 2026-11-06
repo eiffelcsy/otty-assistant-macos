@@ -9,6 +9,9 @@ export class NoVisionError extends FriendlyError {}
 /** The model can't use tools. Many local ones can't, so the request goes again without them. */
 export class NoToolsError extends FriendlyError {}
 
+/** The service couldn't be reached. Unlike other failures, it's worth trying again later. */
+export class ConnectionError extends FriendlyError {}
+
 /** A failed request in plain words, the same whichever API format it used. */
 export function friendlyStatus(status: number, body: string, profile: Profile): FriendlyError {
   if (status === 401) return new FriendlyError('Otty’s key doesn’t look right. Please check it in Settings.')
@@ -31,6 +34,6 @@ export function friendlyStatus(status: number, body: string, profile: Profile): 
 }
 
 export function friendlyConnection(profile: Profile): FriendlyError {
-  if (profile.id === 'local') return new FriendlyError('Otty can’t reach your local model. Check that Ollama or LM Studio is running.')
-  return new FriendlyError('Otty can’t reach the internet. Check your connection and try again.')
+  if (profile.id === 'local') return new ConnectionError('Otty can’t reach your local model. Check that Ollama or LM Studio is running.')
+  return new ConnectionError('Otty can’t reach the internet. Check your connection and try again.')
 }

@@ -211,3 +211,158 @@ describe('math in a chat', () => {
     expect(requests[2].thinking).toEqual({ type: 'enabled' })
   })
 })
+
+describe('answers that keep running', () => {
+  /** Holds a reply open until `release`. */
+  function held() {
+    let release = () => {}
+    const gate = new Promise<void>((r) => (release = r))
+    vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
+      requests.push(JSON.parse(String(init.body)))
+      const first = requests.length === 1
+      if (first) {
+        const stopped = new Promise((_, reject) => init.signal?.addEventListener('abort', () => reject(Object.assign(new Error('x'), { name: 'AbortError' }))))
+        await Promise.race([gate, stopped])
+      }
+      return new Response(`data: ${JSON.stringify(say(first ? 'First answer' : 'Second answer')[0])}\n\ndata: [DONE]\n\n`)
+    })
+    return () => release()
+  }
+
+  it('carries on when the user moves to a new chat, and only the shown chat reaches the windows', async () => {
+    const release = held()
+    const { chat, events } = session()
+    const first = chat.send('Long question', [], null)
+    const firstChat = chat.threadId
+    await new Promise((r) => setImmediate(r))
+    chat.reset()
+    await chat.send('Other question', [], null)
+    expect(chat.running().map((t) => t.threadId)).toEqual([firstChat])
+    release()
+    await first
+    const deltas = events.flatMap((e) => (e.type === 'delta' ? [e.text] : []))
+    expect(deltas).toEqual(['Second answer'])
+    expect(chat.running()).toEqual([])
+  })
+
+  it('shows a running answer when the user comes back to it', async () => {
+    const release = held()
+    const { chat, events } = session()
+    const first = chat.send('Long question', [], null)
+    const firstChat = chat.threadId
+    await new Promise((r) => setImmediate(r))
+    chat.reset()
+    await chat.open(firstChat)
+    expect(events.at(-1)).toMatchObject({ type: 'load', streaming: expect.any(String) })
+    release()
+    await first
+    expect(events.at(-2)).toMatchObject({ type: 'delta', text: 'First answer' })
+  })
+
+  it('still replaces the answer on a new question in the same chat', async () => {
+    held()
+    const { chat, events } = session()
+    void chat.send('First', [], null)
+    await new Promise((r) => setImmediate(r))
+    await chat.send('Second', [], null)
+    expect(chat.running()).toEqual([])
+    expect(events.filter((e) => e.type === 'delta')).toMatchObject([{ text: 'Second answer' }])
+  })
+
+  it('never writes back a chat deleted while it was answering', async () => {
+    const release = held()
+    const { chat } = session()
+    const first = chat.send('Long question', [], null)
+    const id = chat.threadId
+    await new Promise((r) => setImmediate(r))
+    chat.forget(id)
+    release()
+    await first
+    expect(chat.running()).toEqual([])
+    expect(chat.threadId).not.toBe(id)
+  })
+})
+
+describe('step cards', () => {
+  it('shows a card with no chip, flags risky steps and acts only in the asking app', async () => {
+    const { chat, events } = session()
+    replies = [
+      call('show_steps', {
+        title: 'Export',
+        steps: [{ text: 'Copy it', action: { kind: 'copy', text: 'x' } }, { text: 'Delete', action: { kind: 'menu', path: ['File', 'Delete'] } }]
+      }),
+      say('Done.')
+    ]
+    await chat.send('how do I do it', [], { name: 'Pages', bundleId: 'com.apple.Pages', pid: 9 })
+    const card = events.find((e) => e.type === 'steps') as Extract<ChatEvent, { type: 'steps' }>
+    expect(card.card.app).toEqual({ name: 'Pages', bundleId: 'com.apple.Pages', pid: 9 })
+    expect(card.card.steps[1].risky).toBe(true)
+    expect(events.filter((e) => e.type === 'tool')).toEqual([])
+  })
+
+  it('never sends the app’s ids to the model', async () => {
+    const { chat } = session()
+    await chat.send('hello', [], { name: 'Pages', bundleId: 'com.apple.Pages', pid: 9 })
+    expect(lastUser()).toContain('Pages')
+    expect(lastUser()).not.toContain('com.apple.Pages')
+  })
+
+  it('needs a second click for a risky step, and keeps ticks', async () => {
+    const { chat, events } = session()
+    replies = [call('show_steps', { title: 'T', steps: [{ text: 'Delete it', action: { kind: 'menu', path: ['File', 'Delete'] } }, { text: 'Tick me' }] }), say('OK')]
+    await chat.send('how', [], { name: 'Pages' })
+    const id = (events.find((e) => e.type === 'steps') as Extract<ChatEvent, { type: 'steps' }>).id
+    const before = events.length
+    await chat.runStep(id, 0)
+    expect(events.length).toBe(before) // nothing happened without "Sure?"
+    chat.tickStep(id, 1, true)
+    expect(events.at(-1)).toMatchObject({ type: 'steps', card: { steps: [{}, { done: true }] } })
+  })
+
+  it('updates the last card after the user gets stuck', async () => {
+    const { chat, events } = session()
+    replies = [call('show_steps', { title: 'One', steps: [{ text: 'A' }] }), say('OK'), call('show_steps', { title: 'Two', replaces: true, steps: [{ text: 'B' }] }), say('OK')]
+    await chat.send('how', [], null)
+    const first = events.find((e) => e.type === 'steps') as Extract<ChatEvent, { type: 'steps' }>
+    expect(chat.stuckQuestion(first.id, 0)).toContain('step 1')
+    await chat.send(chat.stuckQuestion(first.id, 0)!, [], null)
+    expect(events.filter((e) => e.type === 'steps').at(-1)).toMatchObject({ id: first.id, card: { title: 'Two' } })
+  })
+})
+
+describe('starting a job', () => {
+  it('asks on a card first, and a no starts nothing', async () => {
+    const started: unknown[] = []
+    const events: ChatEvent[] = []
+    const chat = new ChatSession((e) => events.push(e), {
+      startJob: async (j) => {
+        started.push(j)
+        return null
+      }
+    })
+    replies = [call('start_job', { title: 'Flights', brief: 'Compare flights' }), say('OK')]
+    const turn = chat.send('compare the cheapest flights', [], null)
+    await vi.waitFor(() => expect(events.some((e) => e.type === 'confirm')).toBe(true))
+    expect(events.find((e) => e.type === 'confirm')).toMatchObject({ detail: expect.stringContaining('Compare flights') })
+    chat.respondConfirm((events.find((e) => e.type === 'confirm') as Extract<ChatEvent, { type: 'confirm' }>).confirmId, false)
+    await turn
+    expect(started).toEqual([])
+  })
+
+  it('seeds only addresses the chat already knew, not ones the model wrote', async () => {
+    const started: { seedUrls: string[] }[] = []
+    const events: ChatEvent[] = []
+    const chat = new ChatSession((e) => events.push(e), {
+      startJob: async (j) => {
+        started.push(j)
+        return null
+      }
+    })
+    replies = [call('start_job', { title: 'T', brief: 'See https://user.example/a and https://model.example/b' }), say('OK')]
+    const turn = chat.send('look at https://user.example/a', [], null)
+    await vi.waitFor(() => expect(events.some((e) => e.type === 'confirm')).toBe(true))
+    chat.respondConfirm((events.find((e) => e.type === 'confirm') as Extract<ChatEvent, { type: 'confirm' }>).confirmId, true)
+    await turn
+    expect(started[0].seedUrls).toEqual(['https://user.example/a'])
+  })
+})

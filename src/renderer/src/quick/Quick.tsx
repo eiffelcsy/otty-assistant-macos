@@ -30,6 +30,7 @@ export function Quick() {
   const [askHotkey, setAskHotkey] = useState('')
   const [question, setQuestion] = useState<string | null>(null)
   const [input, setInput] = useState('')
+  const [followUp, setFollowUp] = useState('')
   const [popover, setPopover] = useState(false)
   const [opened, setOpened] = useState(0)
   const [home, setHome] = useState<HomeLanguage | null>(null)
@@ -71,6 +72,7 @@ export function Quick() {
         setFull(false)
         setQuestion(null)
         setInput('')
+        setFollowUp('')
         setPick(undefined)
         setOpened((n) => n + 1) // re-report our size even if it hasn't changed, so main can reveal us
         setTimeout(() => inputRef.current?.focus(), 30)
@@ -81,10 +83,13 @@ export function Quick() {
   const asked = question !== null
   askedRef.current = asked
 
+  // While there are steps to do, the user will be in other apps, so a click elsewhere mustn't close this.
+  const working = messages.some((m) => m.role === 'assistant' && m.steps?.steps.some((s) => !s.done))
+
   // Main needs to know whether a hotkey should add to us, and whether a click elsewhere should put us away.
   useEffect(() => {
-    window.otty.quickState({ collecting: !asked, pinned: !asked && pinned })
-  }, [asked, pinned, opened])
+    window.otty.quickState({ collecting: !asked, pinned: !asked && pinned, working })
+  }, [asked, pinned, opened, working])
   const answers = messages.filter((m) => m.role === 'assistant')
   const again = againOffer(messages, home, busy)
 
@@ -101,6 +106,15 @@ export function Quick() {
     setQuestion(text)
     setFull(false)
     window.otty.sendMessage(text, captures, { app, fresh: true, action: item?.action, language: pick })
+  }
+
+  /** A follow-up in the same chat. An empty box still means "continue in chat". */
+  const follow = () => {
+    const text = followUp.trim()
+    if (!text) return expand()
+    if (busy) return
+    setFollowUp('')
+    window.otty.sendMessage(text, [])
   }
 
   const close = () => window.otty.closeQuick()
@@ -233,9 +247,15 @@ export function Quick() {
             {asked && (
               <div className="quick__answer" ref={answerRef}>
                 <div className="quick__answer-body" ref={answerBodyRef}>
-                  {answers.map((m) => (
-                    <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} source={sourceFor(messages, m.id)} />
-                  ))}
+                  {messages.slice(1).map((m) =>
+                    m.role === 'user' ? (
+                      <div key={m.id} className="quick__asked">
+                        {m.text}
+                      </div>
+                    ) : (
+                      <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} source={sourceFor(messages, m.id)} />
+                    )
+                  )}
                   {waitingFirstToken && (
                     <div className="thinking">
                       <span className="dots">Otty is thinking</span>
@@ -243,6 +263,23 @@ export function Quick() {
                   )}
                 </div>
               </div>
+            )}
+
+            {asked && answers.length > 0 && (
+              <textarea
+                className="quick__follow"
+                rows={1}
+                placeholder="Ask a follow-up…"
+                aria-label="Ask a follow-up"
+                value={followUp}
+                onChange={(e) => setFollowUp(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault()
+                    follow()
+                  }
+                }}
+              />
             )}
 
             <div className="quick__hint">

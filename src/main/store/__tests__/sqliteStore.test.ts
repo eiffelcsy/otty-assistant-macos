@@ -107,7 +107,7 @@ describe('SqliteChatStore', () => {
     const file = join(tmpDir(), 'otty.db')
     const old = openDatabase(file)
     old.exec(`
-      drop index memories_habit; drop table memory_optouts; alter table memories drop column habit;
+      drop table job_steps; drop table jobs; drop index memories_habit; drop table memory_optouts; alter table memories drop column habit;
       pragma user_version = 1;
       insert into memories(text, origin, created_at, updated_at) values ('Likes tea', 'told', 1, 1);
     `)

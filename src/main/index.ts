@@ -1,5 +1,6 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, screen, shell, Tray } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor, screen, shell, Tray } from 'electron'
 import type {
+  ActivityItem,
   AnswerLanguage,
   BubbleState,
   ChatEvent,
@@ -10,6 +11,7 @@ import type {
   SendOptions,
   SettingsUpdate
 } from '../shared/types'
+import { randomUUID } from 'crypto'
 import * as settings from './settings'
 import { captureScreenshot, captureSelection, captureWholeScreen, frontmostApp, withWindowsHidden } from './capture'
 import { chatStore, closeStore, pruneOldChats } from './store'
@@ -20,6 +22,8 @@ import { copyText } from './tools'
 import { loadMath } from './math'
 import { memoryStore } from './memory'
 import { isSecret } from './memory/guard'
+import { createRunner } from './jobs'
+import { retentionCutoff } from './store/retention'
 import { startMetrics } from './metrics'
 import { trayIcon } from './trayIcon'
 import {
@@ -48,6 +52,9 @@ import {
 /** Recent chats shows this many; search reaches the rest. */
 const RECENT_CHATS = 500
 
+/** The network needs a moment after waking. */
+const WAKE_DELAY = 5_000
+
 let tray: Tray | null = null
 let happyTimer: NodeJS.Timeout | null = null
 
@@ -59,12 +66,14 @@ function setBadge(on: boolean): void {
   getBubble()?.webContents.send('bubble:badge', on)
 }
 
+/** Only the chat on show gets here, so the otter follows what the user is looking at. */
 function forward(e: ChatEvent): void {
   getPanel()?.webContents.send('chat:event', e)
   getQuick()?.webContents.send('chat:event', e)
   if (happyTimer) clearTimeout(happyTimer)
   if (e.type === 'start') setBubbleState('thinking')
-  if (e.type === 'error') setBubbleState('idle')
+  if (e.type === 'error' || e.type === 'reset') setBubbleState('idle')
+  if (e.type === 'load') setBubbleState(e.streaming ? 'thinking' : 'idle')
   // The quick view hides when it loses focus, so an answer can finish with nobody looking.
   const seen = getPanel()?.isVisible() || getQuick()?.isVisible()
   if ((e.type === 'done' || e.type === 'error') && !seen) setBadge(true)
@@ -74,7 +83,27 @@ function forward(e: ChatEvent): void {
   }
 }
 
-const chat = new ChatSession(forward)
+/** Background work and answers in other chats. */
+async function activity(): Promise<ActivityItem[]> {
+  const answers = chat
+    .running()
+    .filter((t) => !t.shown)
+    .map((t): ActivityItem => ({ id: t.threadId, kind: 'answer', title: t.title, state: 'working', pages: 0, chatId: t.threadId, unseen: false }))
+  return [...answers, ...(await jobs.list())]
+}
+
+async function activityChanged(news: boolean): Promise<void> {
+  const items = await activity()
+  getPanel()?.webContents.send('activity:changed', items)
+  getBubble()?.webContents.send('bubble:working', items.some((i) => i.state === 'working'))
+  if (news && !getPanel()?.isVisible()) setBadge(true)
+}
+
+const chat = new ChatSession(forward, {
+  onTurn: (unseen) => void activityChanged(unseen),
+  startJob: (job) => jobs.start(job)
+})
+const jobs = createRunner((news) => void activityChanged(news))
 
 function resetChat(): void {
   chat.reset()
@@ -83,9 +112,21 @@ function resetChat(): void {
 
 /** "Forget all chats", or turning off "Remember my chats": the open one goes too, even mid-answer. */
 async function forgetAllChats(): Promise<void> {
+  for (const { threadId } of chat.running()) chat.forget(threadId)
   chat.forget(chat.threadId)
   forward({ type: 'reset' })
+  await jobs.forgetAll()
   await chatStore().clear()
+}
+
+/** The otter's snip of what's on screen, for "I'm stuck". Without Screen Recording, the words go alone. */
+async function stuckOnStep(answerId: string, index: number): Promise<void> {
+  const question = chat.stuckQuestion(answerId, index)
+  if (!question) return
+  const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
+  const { context } = await withWindowsHidden(shownWindows(), () => captureWholeScreen(display))
+  const captures: Capture[] = context ? [{ id: randomUUID(), context, app: null }] : []
+  void chat.send(question, captures, null)
 }
 
 function openPanel(payload: PanelOpenPayload, where: 'cursor' | 'bubble'): void {
@@ -226,10 +267,17 @@ function refreshTray(): void {
   tray?.setContextMenu(Menu.buildFromTemplate(menuTemplate()))
 }
 
+/** Chats past the "Keep chats" setting, and the finished jobs from the same time. */
+async function tidyOldChats(): Promise<void> {
+  await pruneOldChats()
+  const cutoff = retentionCutoff(settings.getStored().keepChats)
+  if (cutoff !== null) await jobs.prune(cutoff)
+}
+
 function applySettings(u: SettingsUpdate) {
   settings.update(u)
   if (u.rememberChats === false) void forgetAllChats()
-  if (u.keepChats !== undefined) void pruneOldChats()
+  if (u.keepChats !== undefined) void tidyOldChats()
   if (u.askHotkey !== undefined || u.snapHotkey !== undefined || u.screenHotkey !== undefined) registerHotkeys()
   if (u.showBubble !== undefined) {
     const b = getBubble()
@@ -262,6 +310,7 @@ function registerIpc(): void {
   ipcMain.handle('chats:delete', async (_e, id: string) => {
     const open = chat.threadId === id
     chat.forget(id)
+    await jobs.forgetChat(id)
     await chatStore().delete(id)
     if (open) forward({ type: 'reset' })
   })
@@ -271,6 +320,20 @@ function registerIpc(): void {
   ipcMain.handle('files:read', (_e, id: string) => readFile(String(id)))
   ipcMain.handle('files:discard', (_e, id: string) => discardFile(String(id)))
   ipcMain.handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))
+  ipcMain.handle('steps:run', (_e, answerId: string, index: number, sure?: boolean) => chat.runStep(String(answerId), Number(index), sure === true))
+  ipcMain.handle('steps:tick', (_e, answerId: string, index: number, done: boolean) => chat.tickStep(String(answerId), Number(index), Boolean(done)))
+  ipcMain.handle('steps:stuck', (_e, answerId: string, index: number) => stuckOnStep(String(answerId), Number(index)))
+  ipcMain.handle('activity:list', () => activity())
+  ipcMain.handle('activity:stop', (_e, item: ActivityItem) => (item.kind === 'job' ? jobs.stop(item.id) : chat.stopChat(item.id)))
+  ipcMain.handle('activity:answer', (_e, id: string, allow: boolean) => jobs.answer(String(id), Boolean(allow)))
+  ipcMain.handle('activity:resume', (_e, id: string) => jobs.resume(String(id)))
+  ipcMain.handle('activity:seen', () => jobs.markSeen())
+  ipcMain.handle('activity:open', async (_e, item: ActivityItem) => {
+    if (!item.chatId) return
+    const report = jobs.report(item.chatId)
+    if (report && !settings.getStored().rememberChats) chat.showThread(report)
+    else await chat.open(item.chatId)
+  })
   ipcMain.handle('chat:learn', (_e, on: boolean) => chat.setLearn(Boolean(on)))
   ipcMain.handle('memory:list', () => memoryStore().list())
   ipcMain.handle('memory:add', (_e, text: string) => {
@@ -357,10 +420,13 @@ if (!app.requestSingleInstanceLock()) {
     // Open the database (and import any chats.json) now, off the first click's path, then tidy old chats.
     setImmediate(() => {
       chatStore()
-      void pruneOldChats().catch((err) => console.error('Could not forget old chats', err))
       memoryStore().pruneExpired()
       void loadMath()
+      void tidyOldChats().catch((err) => console.error('Could not tidy old jobs', err))
+      void jobs.launch().catch((err) => console.error('Could not resume background work', err))
     })
+    powerMonitor.on('suspend', () => jobs.suspend())
+    powerMonitor.on('resume', () => setTimeout(() => void jobs.wake(), WAKE_DELAY))
 
     tray = new Tray(trayIcon())
     tray.setToolTip('Otty')

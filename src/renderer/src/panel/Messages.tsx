@@ -1,6 +1,7 @@
 import { useContext, useState } from 'react'
 import type { AppInfo, Capture, MemoryNote, ScreenContext, ToolChipInfo } from '../../../shared/types'
 import { Icon } from '../components/Icon'
+import { StepCard } from '../components/StepCard'
 import { capturedText } from '../../../shared/captures'
 import { withoutFixedFence } from '../../../shared/diff'
 import type { Assistant, UiMessage } from '../lib/useChat'
@@ -200,10 +201,11 @@ export function AssistantMessage({ m, again, found, source = '' }: { m: Assistan
           </ProofreadContext.Provider>
         </div>
       )}
+      {m.steps && <StepCard answerId={m.id} card={m.steps} stuck={!m.streaming} />}
       {m.confirm && (
         <div className="confirm-card">
           <div className="confirm-card__title">{m.confirm.title}</div>
-          <div className="confirm-card__detail">{m.confirm.detail}</div>
+          <div className="confirm-card__detail confirm-card__detail--long">{m.confirm.detail}</div>
           <div className="confirm-card__row">
             <button className="btn btn--primary" onClick={() => window.otty.respondConfirm(m.confirm!.confirmId, true)}>
               Yes, go ahead
