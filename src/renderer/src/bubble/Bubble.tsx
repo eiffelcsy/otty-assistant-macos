@@ -5,9 +5,11 @@ import { Otter } from '../components/Otter'
 export function Bubble() {
   const [state, setState] = useState<BubbleState>('idle')
   const [badge, setBadge] = useState(false)
+  const [working, setWorking] = useState(false)
 
   useEffect(() => window.otty.onBubbleState(setState), [])
   useEffect(() => window.otty.onBubbleBadge(setBadge), [])
+  useEffect(() => window.otty.onBubbleWorking(setWorking), [])
 
   return (
     <div
@@ -30,6 +32,7 @@ export function Bubble() {
       <span className="bubble__avatar">
         <Otter state={state} size={70} />
       </span>
+      {working && <span className="bubble__working" />}
       {badge && <span className="bubble__badge" />}
     </div>
   )

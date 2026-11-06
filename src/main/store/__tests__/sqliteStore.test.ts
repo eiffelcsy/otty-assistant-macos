@@ -94,6 +94,30 @@ describe('SqliteChatStore', () => {
     expect(await store.prune(2500)).toBe(0)
   })
 
+  it('keeps “Don’t learn from this chat”, and only then says so', async () => {
+    const store = memory()
+    const [chat] = fixtures()
+    await store.write({ ...chat, learn: false })
+    expect((await store.get(chat.id))?.learn).toBe(false)
+    await store.write(chat)
+    expect(await store.get(chat.id)).not.toHaveProperty('learn')
+  })
+
+  it('moves a database from the first release forward, keeping its memories', () => {
+    const file = join(tmpDir(), 'otty.db')
+    const old = openDatabase(file)
+    old.exec(`
+      drop table job_steps; drop table jobs; drop index memories_habit; drop table memory_optouts; alter table memories drop column habit;
+      pragma user_version = 1;
+      insert into memories(text, origin, created_at, updated_at) values ('Likes tea', 'told', 1, 1);
+    `)
+    old.close()
+    const db = openDatabase(file)
+    expect(db.prepare('pragma user_version').get()).toEqual({ user_version: SCHEMA_VERSION })
+    expect(db.prepare('select text, habit from memories').all()).toEqual([{ text: 'Likes tea', habit: null }])
+    db.close()
+  })
+
   it('never prunes a pinned chat', async () => {
     const db = openDatabase(':memory:')
     const store = new SqliteChatStore(db)

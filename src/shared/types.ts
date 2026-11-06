@@ -44,6 +44,38 @@ export interface AppInfo {
   url?: string
   /** The address lost a query that matters, so `url` may not be the page the user sees. */
   trimmed?: boolean
+  /** Where a step card acts. Never sent to the model. */
+  bundleId?: string
+  pid?: number
+}
+
+/** What a step's button does. These are the general verbs of using a Mac, not app integrations. */
+export type StepAction =
+  | { kind: 'paste'; text: string; mode?: 'replace' | 'insert' }
+  | { kind: 'open'; target: string }
+  | { kind: 'menu'; path: string[] }
+  | { kind: 'keys'; combo: string }
+  | { kind: 'copy'; text: string }
+
+export interface Step {
+  text: string
+  action?: StepAction
+  done?: boolean
+  /** Says what went wrong, or what happened. */
+  note?: string
+  /** The button can't work here, so this is a step to do by hand. */
+  manual?: boolean
+  /** Asks "Sure?" first. Set by Otty, never the model. */
+  risky?: boolean
+}
+
+/** The app a step card acts in. */
+export type StepApp = Pick<AppInfo, 'name' | 'bundleId' | 'pid'>
+
+export interface StepCard {
+  title: string
+  steps: Step[]
+  app?: StepApp
 }
 
 /** The language an answer is written in. Keyed by language (not "Chinese") so zh-TW can slot in later. */
@@ -62,6 +94,8 @@ export type QuickAction =
   | 'read-text'
   | 'read-page'
   | 'proofread'
+  /** "Explain the working" on an instant answer. */
+  | 'working'
   | 'explain-home'
   | 'define'
   /** For attached documents. */
@@ -117,6 +151,8 @@ export interface PublicSettings {
   keepChats: KeepChats
   /** "My other language". null = none, and Otty behaves as English-only. */
   homeLanguage: HomeLanguage | null
+  /** "Let Otty learn about me". Off, nothing is learned or sent, and the list is kept. */
+  learn: boolean
 }
 
 export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys'>> {
@@ -140,6 +176,8 @@ export interface ToolChipInfo {
   /** UIcon name (rounded set). Optional so chats saved before icons existed still load. */
   icon?: string
   status: 'running' | 'done' | 'denied' | 'error'
+  /** What tapping the chip copies. */
+  copy?: string
 }
 
 /** A finished message as the UI shows it. Saved chats store these, so reopening one needs no model call. */
@@ -166,7 +204,60 @@ export type ChatMessage =
       language?: AnswerLanguage
       /** When the answer started (ms since epoch). Absent in chats saved before 0.4. */
       at?: number
+      memories?: MemoryNote[]
+      /** An instant answer: worked out on the Mac, with no model call. */
+      calc?: { expression: string; result: string }
+      steps?: StepCard
     }
+
+export type MemoryKind = 'about' | 'preference' | 'habit' | 'person' | 'goal'
+
+/** How Otty learned it: said to remember, worked out from a chat, counted on the Mac, or typed in Settings. */
+export type MemoryOrigin = 'told' | 'inferred' | 'observed' | 'settings'
+
+/** Something Otty knows about the user. `text` is one plain sentence, written to be shown back to them. */
+export interface Memory {
+  id: number
+  text: string
+  kind: MemoryKind
+  origin: MemoryOrigin
+  /** Paused memories are kept but never sent. */
+  status: 'active' | 'paused'
+  confidence: number
+  sourceChatId?: string
+  createdAt: number
+  updatedAt: number
+  expiresAt?: number
+}
+
+/** The "Noted" line under an answer. It stays in the saved chat, so where a memory came from is never a mystery. */
+export interface MemoryNote {
+  memoryId: number
+  text: string
+  action: 'added' | 'updated' | 'forgotten'
+  /** What Undo puts back: the old words, or the kind of a forgotten memory. */
+  before?: string
+  kind?: MemoryKind
+  undone?: boolean
+}
+
+/** A row in Activity: background work, or an answer still running in another chat. */
+export interface ActivityItem {
+  id: string
+  kind: 'job' | 'answer'
+  title: string
+  state: 'queued' | 'working' | 'waiting' | 'done' | 'paused' | 'failed'
+  /** Pages read and searches made. */
+  pages: number
+  /** The address it wants to read, when waiting. */
+  waitUrl?: string
+  note?: string
+  /** The chat to open. */
+  chatId?: string
+  /** Only part of the answer, because it ran out of room. */
+  partial?: boolean
+  unseen: boolean
+}
 
 export interface ChatSummary {
   id: string
@@ -191,14 +282,22 @@ export interface ChatSearchHit {
 export type ChatEvent =
   | { type: 'reset' }
   /** A saved chat was reopened: replace everything shown with these messages. */
-  | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string }
+  | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string; learn?: false; streaming?: string }
   | ({ type: 'user' } & Omit<Extract<ChatMessage, { role: 'user' }>, 'role'>)
   | { type: 'start'; id: string; language?: AnswerLanguage }
   | { type: 'delta'; id: string; text: string }
+  /** An instant answer, in place of any deltas. */
+  | { type: 'calc'; id: string; expression: string; result: string }
   | ({ type: 'tool'; id: string } & ToolChipInfo)
   | { type: 'confirm'; id: string; confirmId: string; title: string; detail: string }
   | { type: 'done'; id: string }
   | { type: 'error'; id: string; message: string }
+  /** Otty saved, changed or forgot a memory, or Undo was pressed on one (`note.undone`). */
+  | { type: 'memory'; id: string; note: MemoryNote }
+  /** A step card appeared or changed. */
+  | { type: 'steps'; id: string; card: StepCard }
+  /** "Don't learn from this chat" changed. */
+  | { type: 'learn'; on: boolean }
 
 /** Pushed to the panel when it is opened via hotkey/bubble with fresh context. */
 export interface PanelOpenPayload {
@@ -216,6 +315,8 @@ export interface QuickState {
   collecting: boolean
   /** "＋ Add more" was pressed: stay open while the user clicks into other apps. */
   pinned: boolean
+  /** A step card is being worked through, so the user will be in other apps. */
+  working?: boolean
 }
 
 /** A line of text found in a picture. `box` runs from 0 to 1 across the picture, from its top left. */
@@ -248,6 +349,32 @@ export interface OttyApi {
   deleteChat(id: string): Promise<void>
   clearChats(): Promise<void>
   respondConfirm(confirmId: string, allow: boolean): Promise<void>
+  /** Presses a step's button. `sure` is the second click on a risky step. */
+  runStep(answerId: string, index: number, sure?: boolean): Promise<void>
+  tickStep(answerId: string, index: number, done: boolean): Promise<void>
+  /** "I'm stuck on this step": looks at the screen and asks. */
+  stuckOnStep(answerId: string, index: number): Promise<void>
+  listActivity(): Promise<ActivityItem[]>
+  stopActivity(item: ActivityItem): Promise<void>
+  /** Allow or Don't Allow, for an address a job came across. */
+  answerActivity(id: string, allow: boolean): Promise<void>
+  /** Keep going. */
+  resumeActivity(id: string): Promise<void>
+  openActivity(item: ActivityItem): Promise<void>
+  /** Activity is on show, so finished work has been seen. */
+  seenActivity(): Promise<void>
+  onActivity(cb: (items: ActivityItem[]) => void): () => void
+  /** "Don't learn from this chat", for the open chat. */
+  setChatLearn(on: boolean): Promise<void>
+  listMemories(): Promise<Memory[]>
+  addMemory(text: string): Promise<Memory[]>
+  updateMemory(id: number, change: { text?: string; status?: Memory['status'] }): Promise<Memory[]>
+  removeMemory(id: number): Promise<Memory[]>
+  clearMemories(): Promise<void>
+  /** Undo on the Noted line under an answer. */
+  undoMemory(answerId: string, memoryId: number): Promise<void>
+  /** Edit on the Noted line: Settings, at the list of what Otty knows. */
+  openMemories(): Promise<void>
   /** Resolves to the explanation; with a home language it starts with a `中文：…` line. */
   explain(term: string, around: string, language?: AnswerLanguage): Promise<string>
 
@@ -288,6 +415,8 @@ export interface OttyApi {
   onPanelOpen(cb: (p: PanelOpenPayload) => void): () => void
   onQuickOpen(cb: (p: PanelOpenPayload) => void): () => void
   onBubbleState(cb: (s: BubbleState) => void): () => void
+  /** True while Otty is working on something in the background. */
+  onBubbleWorking(cb: (on: boolean) => void): () => void
   /** True while an answer is waiting that the user hasn't seen. */
   onBubbleBadge(cb: (on: boolean) => void): () => void
   /** Whether this window is on screen. */

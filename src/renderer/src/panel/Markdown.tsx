@@ -1,13 +1,17 @@
 import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
+import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
-import type { AnswerLanguage, HomeLanguage } from '../../../shared/types'
+import remarkMath from 'remark-math'
+import 'katex/dist/katex.min.css'
+import type { AnswerLanguage, HomeLanguage, QuickAction } from '../../../shared/types'
 import { wordDiff } from '../../../shared/diff'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { Icon } from '../components/Icon'
+import { closedMath } from '../lib/closedMath'
 
 /** Lets explain-term pop-ups send follow-up questions into the chat. */
-export const AskContext = createContext<(text: string) => void>(() => {})
+export const AskContext = createContext<(text: string, action?: QuickAction) => void>(() => {})
 
 /** The user's home language, so explain cards can offer the other language. null = English only. */
 export const HomeContext = createContext<HomeLanguage | null>(null)
@@ -247,14 +251,19 @@ function CodeBlock({ children }: { children?: ReactNode }) {
 // every explain term (which closed an open card whenever the quick view re-rendered).
 const components = { a: MarkdownLink, blockquote: TipCard, img: NoRemoteImage, pre: CodeBlock }
 const remarkPlugins = [remarkGfm]
+// Only $$…$$ is math, so "$5 and $10" stays text.
+const mathRemarkPlugins = [remarkGfm, [remarkMath, { singleDollarTextMath: false }] as never]
+const mathRehypePlugins = [[rehypeKatex, { throwOnError: false }] as never]
 
 export function Markdown({ text, language = 'en' }: { text: string; language?: AnswerLanguage }) {
+  // Most answers have no math, so they skip the plugins altogether.
+  const math = text.includes('$$')
   return (
     <div className="md">
       <AnswerContext.Provider value={{ text, language }}>
-        <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
+        <ReactMarkdown remarkPlugins={math ? mathRemarkPlugins : remarkPlugins} rehypePlugins={math ? mathRehypePlugins : undefined} components={components}>
           {/* Tips arrive as `> 💡 …`; the card draws its own icon, so drop the emoji. */}
-          {text.replace(/^(\s*>\s*)💡\s*/gm, '$1')}
+          {(math ? closedMath(text) : text).replace(/^(\s*>\s*)💡\s*/gm, '$1')}
         </ReactMarkdown>
       </AnswerContext.Provider>
     </div>

@@ -24,6 +24,7 @@ interface ChatRow {
   app: string | null
   created_at: number
   updated_at: number
+  learn: number
 }
 
 export class SqliteChatStore implements ChatStore {
@@ -48,8 +49,8 @@ export class SqliteChatStore implements ChatStore {
     const p = (sql: string) => db.prepare(sql)
     this.q = {
       upsertChat: p(
-        `insert into chats(id, title, app, created_at, updated_at) values (?, ?, ?, ?, ?)
-         on conflict(id) do update set title = excluded.title, app = excluded.app, updated_at = excluded.updated_at
+        `insert into chats(id, title, app, created_at, updated_at, learn) values (?, ?, ?, ?, ?, ?)
+         on conflict(id) do update set title = excluded.title, app = excluded.app, updated_at = excluded.updated_at, learn = excluded.learn
          returning num`
       ),
       clearMessagesFrom: p('delete from messages where chat_id = ? and seq >= ?'),
@@ -160,7 +161,7 @@ export class SqliteChatStore implements ChatStore {
   }
 
   private writeRows(t: Thread, from: WriteFrom): void {
-    const { num } = this.q.upsertChat.get(t.id, t.title, t.app ?? null, t.createdAt, t.updatedAt) as { num: number }
+    const { num } = this.q.upsertChat.get(t.id, t.title, t.app ?? null, t.createdAt, t.updatedAt, t.learn === false ? 0 : 1) as { num: number }
     this.q.clearMessagesFrom.run(t.id, from.messages)
     for (let i = from.messages; i < t.messages.length; i++) {
       const m = stripMessage(t.messages[i])
@@ -188,7 +189,8 @@ export class SqliteChatStore implements ChatStore {
       createdAt: chat.created_at,
       updatedAt: chat.updated_at,
       messages: messages.map((m) => JSON.parse(m.json) as ChatMessage),
-      history: history.map((m) => JSON.parse(m.json) as Message)
+      history: history.map((m) => JSON.parse(m.json) as Message),
+      ...(chat.learn === 0 ? { learn: false as const } : {})
     })
   }
 }

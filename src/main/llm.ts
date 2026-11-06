@@ -1,7 +1,8 @@
 import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, SendOptions } from '../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, MemoryNote, QuickAction, SendOptions, StepApp, StepCard } from '../shared/types'
 import { capturedText } from '../shared/captures'
+import { mathTier } from '../shared/math'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
 import { fileBudget, fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
@@ -9,13 +10,86 @@ import { getStored } from './settings'
 import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
 import { createExplainCache, termsToWarm } from './explainCache'
-import { runTool, toolDefs, toolLabel } from './tools'
+import { toolDefs, type ToolOutcome } from './tools'
+import { runLoop } from './loop'
+import { instantAnswer } from './math'
+import { act, isRisky } from './act'
+import { stepCard } from './act/card'
+import { urlsIn } from './knownUrls'
+import { forget as forgetMemory, MEMORY_NOTE, memoryStore, observe, remember, undo, type LearnTurn } from './memory'
 import { isKnownUrl } from './knownUrls'
-import { activeProfile, activeProvider, FriendlyError, NoVisionError, type ContentPart, type ProviderReplay, type ToolCall } from './providers'
+import { activeProfile, activeProvider, FriendlyError, NoVisionError, type ContentPart } from './providers'
 
 // The conversation: what's sent, what comes back and what's saved. Talking to the model service is `providers/`.
 
 const MAX_TOOL_ROUNDS = 6
+
+/** Tools whose results are someone else's words. */
+const OUTSIDE_TOOLS = new Set(['search_web', 'read_page'])
+
+/** Answers running at once. A fourth stops the oldest that isn't on show. */
+const MAX_TURNS = 3
+
+type Answer = Extract<ChatMessage, { role: 'assistant' }>
+
+/** An answer in progress. It belongs to its chat, so moving to another chat leaves it running. */
+interface LiveTurn {
+  thread: Thread
+  answerId: string
+  abort: AbortController
+  confirms: Map<string, (ok: boolean) => void>
+  /** The confirm card on show, so coming back to the chat shows it again. */
+  asking?: { confirmId: string; title: string; detail: string }
+}
+
+/** What a job needs from the chat that started it. */
+export interface JobRequest {
+  title: string
+  brief: string
+  sourceThread: string
+  /** Addresses in the brief that the chat already knew. The brief itself is the model's words, so it proves nothing. */
+  seedUrls: string[]
+  language: AnswerLanguage
+}
+
+export interface SessionHooks {
+  /** An answer started or ended. `unseen` means it finished in a chat that isn't on show. */
+  onTurn?(unseen: boolean): void
+  /** Starts a job. The user has already agreed. Resolves to words for the model, if it couldn't start. */
+  startJob?(job: JobRequest): Promise<string | null>
+}
+
+/** Memory is a nice extra: it must never be the reason an answer fails. */
+function safely<T>(fallback: T, fn: () => T): T {
+  try {
+    return fn()
+  } catch (err) {
+    console.error('Memory problem', err)
+    return fallback
+  }
+}
+
+/** What's sent with this question. An earlier note stays in the history, so if nothing's left to say, that has to be said. */
+function memoryNote(question: string, app: string | null, history: Thread['history']): string {
+  const { note, ids } = getStored().learn ? safely({ note: '', ids: [] as number[] }, () => memoryStore().forPrompt(question, app)) : { note: '', ids: [] }
+  safely(undefined, () => ids.length && memoryStore().markUsed(ids))
+  if (note) return note
+  const told = history.some((m) => m.role === 'user' && JSON.stringify(m.content).includes(MEMORY_NOTE))
+  return told ? `${MEMORY_NOTE}: nothing at the moment.]` : ''
+}
+
+interface Turn {
+  /** What the user typed or tapped. */
+  typed: string
+  /** What the model is asked: `typed`, or a quick action's own prompt. */
+  prompt: string
+  action?: QuickAction
+  captures: Capture[]
+  app: AppInfo | null
+  files: FileOutput[]
+  language: AnswerLanguage
+  home: HomeLanguage | null
+}
 
 function appLine(app: AppInfo | null): string {
   if (!app) return ''
@@ -80,38 +154,107 @@ function newThread(): Thread {
 }
 
 export class ChatSession {
+  /** The chat on show. */
   private thread = newThread()
-  private abort: AbortController | null = null
-  private running: Promise<void> = Promise.resolve()
-  private confirms = new Map<string, (ok: boolean) => void>()
+  /** Answers in progress, by chat. */
+  private live = new Map<string, LiveTurn>()
+  /** Each chat's last turn, so a stopped one can finish cleaning up before the next adds to its history. */
+  private queues = new Map<string, Promise<void>>()
   /** Chats the user deleted while a turn was still running: that turn must not write them back. */
   private forgotten = new Set<string>()
+  /** What went wrong with a step, for the model to hear with the next question. */
+  private stepNotes = new Map<string, string[]>()
 
-  constructor(private emit: (e: ChatEvent) => void) {}
+  constructor(
+    private emit: (e: ChatEvent) => void,
+    private hooks: SessionHooks = {}
+  ) {}
 
   get threadId(): string {
     return this.thread.id
   }
 
-  /** Starts a new conversation. The old one stays in Recent chats. */
+  /** Only the chat on show reaches the windows. */
+  private tell(thread: Thread, e: ChatEvent): void {
+    if (thread.id === this.thread.id) this.emit(e)
+  }
+
+  /** Answers in progress, for Activity. */
+  running(): { threadId: string; title: string; shown: boolean }[] {
+    return [...this.live.values()].map((t) => ({ threadId: t.thread.id, title: t.thread.title, shown: t.thread.id === this.thread.id }))
+  }
+
+  /** Whether this chat teaches Otty anything. Memories are still used in its answers either way. */
+  private learns(thread: Thread): boolean {
+    return Boolean(getStored().learn) && thread.learn !== false
+  }
+
+  /** "Don't learn from this chat". */
+  setLearn(on: boolean): void {
+    const thread = this.thread
+    if (on) delete thread.learn
+    else thread.learn = false
+    this.persist(thread, { messages: thread.messages.length, history: thread.history.length })
+    this.emit({ type: 'learn', on })
+  }
+
+  /** Undo on a Noted line. Only the open chat shows one, so that's where it lives. */
+  undoMemory(answerId: string, memoryId: number): void {
+    const thread = this.thread
+    const at = thread.messages.findIndex((m) => m.id === answerId)
+    const answer = thread.messages[at]
+    if (answer?.role !== 'assistant') return
+    const note = answer.memories?.find((n) => n.memoryId === memoryId && !n.undone)
+    if (!note) return
+    const undone = safely(note, () => undo(memoryStore(), note))
+    answer.memories = answer.memories!.map((n) => (n === note ? undone : n))
+    this.persist(thread, { messages: at, history: thread.history.length })
+    this.emit({ type: 'memory', id: answerId, note: undone })
+  }
+
+  /** Starts a new conversation. The old one stays in Recent chats, and carries on if it's still answering. */
   reset(): void {
-    this.stop()
     this.thread = newThread()
   }
 
   /** Reopens a saved chat and shows it. Returns false if it no longer exists. */
   async open(id: string, focusMessageId?: string): Promise<boolean> {
+    const turn = this.live.get(id)
+    if (turn) {
+      this.show(turn.thread, focusMessageId, turn)
+      return true
+    }
+    if (this.thread.id === id) {
+      this.show(this.thread, focusMessageId)
+      return true
+    }
     const saved = await chatStore().get(id)
     if (!saved) return false
-    this.stop()
-    this.thread = structuredClone(saved)
-    this.emit({ type: 'load', messages: this.thread.messages, focusMessageId })
+    this.show(structuredClone(saved), focusMessageId)
     return true
+  }
+
+  /** Shows a chat that may not be saved, such as a report with "Remember my chats" off. */
+  showThread(thread: Thread): void {
+    this.show(structuredClone(thread))
+  }
+
+  private show(thread: Thread, focusMessageId?: string, turn?: LiveTurn): void {
+    this.thread = thread
+    this.emit({
+      type: 'load',
+      messages: thread.messages,
+      focusMessageId,
+      ...(thread.learn === false ? { learn: false as const } : {}),
+      ...(turn ? { streaming: turn.answerId } : {})
+    })
+    if (turn?.asking) this.emit({ type: 'confirm', id: turn.answerId, ...turn.asking })
   }
 
   /** The user deleted this chat (or all of them): stop and never save it again. */
   forget(id: string): void {
     this.forgotten.add(id)
+    this.stopChat(id)
     if (this.thread.id === id) this.reset()
   }
 
@@ -123,16 +266,28 @@ export class ChatSession {
       .catch((err) => console.error('Could not save chat', err))
   }
 
+  /** Stops the answer on show. */
   stop(): void {
-    this.abort?.abort()
-    this.abort = null
-    for (const resolve of this.confirms.values()) resolve(false)
-    this.confirms.clear()
+    this.stopChat(this.thread.id)
+  }
+
+  stopChat(id: string): void {
+    const turn = this.live.get(id)
+    if (!turn) return
+    turn.abort.abort()
+    for (const resolve of turn.confirms.values()) resolve(false)
+    turn.confirms.clear()
+    turn.asking = undefined
   }
 
   respondConfirm(id: string, allow: boolean): void {
-    this.confirms.get(id)?.(allow)
-    this.confirms.delete(id)
+    for (const turn of this.live.values()) {
+      const resolve = turn.confirms.get(id)
+      if (!resolve) continue
+      turn.confirms.delete(id)
+      turn.asking = undefined
+      resolve(allow)
+    }
   }
 
   /** `text` is what the user sees; a quick action swaps in its own prompt for the model. */
@@ -142,8 +297,10 @@ export class ChatSession {
     app: AppInfo | null,
     opts: Pick<SendOptions, 'language' | 'action' | 'files'> = {}
   ): Promise<void> {
-    this.stop()
     const thread = this.thread
+    // A new question in the same chat replaces its answer: one history can't take two turns at once.
+    this.stopChat(thread.id)
+    this.makeRoom(thread.id)
     const home = getStored().homeLanguage
     const language = resolveLanguage({
       typed: opts.action ? '' : text,
@@ -174,32 +331,74 @@ export class ChatSession {
     }
     thread.messages.push(userMsg)
     thread.updatedAt = Date.now()
-    this.emit({ type: 'user', ...userMsg })
+    this.tell(thread, { type: 'user', ...userMsg })
 
     // Let a stopped turn finish cleaning up its own history before this one adds to it.
-    const prev = this.running
-    this.running = prev.then(() => this.run(thread, prompt, captures, app, fitted, language, home))
+    const turn: Turn = { typed: text, prompt, action: opts.action, captures, app, files: fitted, language, home }
+    const running = (this.queues.get(thread.id) ?? Promise.resolve()).then(() => this.answer(thread, turn))
+    this.queues.set(thread.id, running)
     // Save the question now, so a crash mid-answer keeps it. setImmediate runs after the request has been sent,
     // so the write is never on the way to the first token.
     const at = thread.messages.length - 1
     setImmediate(() => this.persist(thread, { messages: at, history: thread.history.length }))
-    return this.running
+    return running.finally(() => {
+      if (this.queues.get(thread.id) === running) this.queues.delete(thread.id)
+    })
   }
 
-  private async run(
-    thread: Thread,
-    text: string,
-    captures: Capture[],
-    app: AppInfo | null,
-    files: FileOutput[],
-    language: AnswerLanguage,
-    home: HomeLanguage | null
-  ): Promise<void> {
+  private makeRoom(keep: string): void {
+    const others = [...this.live.values()].filter((t) => t.thread.id !== keep && t.thread.id !== this.thread.id)
+    if (this.live.size >= MAX_TURNS && others[0]) this.stopChat(others[0].thread.id)
+  }
+
+  /** A question that's only a sum is answered right here. Anything else goes to the model. */
+  private async answer(thread: Thread, turn: Turn): Promise<void> {
+    const tier = mathTier(turn.typed, turn.captures.length > 0)
+    const local = tier === 'expression' && !turn.action && !turn.captures.length && !turn.files.length
+    const calc = local ? await instantAnswer(turn.typed).catch(() => null) : null
+    if (calc) return this.answerLocally(thread, turn, calc)
+    // "Think deeper" means always think. Otherwise only a real problem is worth the wait.
+    const reasons = (tier === 'problem' || turn.action === 'working') && !getStored().thinking
+    return this.run(thread, turn, reasons ? 'normal' : undefined)
+  }
+
+  /** Saved like any answer, so the next question can follow on from it. No request, so it works offline. */
+  private answerLocally(thread: Thread, turn: Turn, calc: NonNullable<Answer['calc']>): void {
+    const id = randomUUID()
+    const text = `**${calc.result}**`
+    const answer: Answer = { id, role: 'assistant', text, tools: [], calc, language: turn.language, at: Date.now() }
+    const answerAt = thread.messages.push(answer) - 1
+    const turnStart = thread.history.length
+    thread.history.push({ role: 'user', content: withNote(turn.typed, turnNote(turn.language, turn.home)) })
+    thread.history.push({ role: 'assistant', content: `${calc.expression} = ${calc.result}` })
+    this.tell(thread, { type: 'start', id, language: turn.language })
+    this.tell(thread, { type: 'calc', id, ...calc })
+    this.noticeHabits(thread, turn, answer)
+    this.tell(thread, { type: 'done', id })
+    thread.updatedAt = Date.now()
+    this.persist(thread, { messages: answerAt, history: turnStart })
+  }
+
+  /** Adds a Noted line to an answer. */
+  private note(thread: Thread, answer: Answer, note: MemoryNote): void {
+    answer.memories = [...(answer.memories ?? []), note]
+    this.tell(thread, { type: 'memory', id: answer.id, note })
+  }
+
+  /** Counts this question towards the user's habits. A habit that's new gets shown, like anything else Otty learns. */
+  private noticeHabits(thread: Thread, turn: Turn, answer: Answer): void {
+    if (!this.learns(thread)) return
+    const app = (turn.captures[0]?.app ?? turn.app)?.name ?? null
+    const fresh = safely([], () => observe(memoryStore(), { app, language: turn.language, action: turn.action, typed: turn.typed }))
+    for (const m of fresh) this.note(thread, answer, { memoryId: m.id, text: m.text, action: 'added' })
+  }
+
+  private async run(thread: Thread, turn: Turn, reasoning?: 'normal'): Promise<void> {
+    const { prompt: text, captures, app, files, language, home } = turn
     const id = randomUUID()
     const abort = new AbortController()
-    this.abort = abort
     const history = thread.history
-    const answer: Extract<ChatMessage, { role: 'assistant' }> = {
+    const answer: Answer = {
       id,
       role: 'assistant',
       text: '',
@@ -208,91 +407,96 @@ export class ChatSession {
       at: Date.now()
     }
     const answerAt = thread.messages.push(answer) - 1
+    const live: LiveTurn = { thread, answerId: id, abort, confirms: new Map() }
+    this.live.set(thread.id, live)
+    this.hooks.onTurn?.(false)
     let finished = false
 
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
     const turnStart = history.length
     // Saved as sent: nothing already sent may change, or DeepSeek's cache misses from that point on.
-    history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), turnNote(language, home)) })
-    const system = systemPrompt(home, activeProfile().web !== 'off')
-    this.emit({ type: 'start', id, language })
+    const where = (captures[0]?.app ?? app)?.name ?? null
+    const known = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
+    const stepNotes = this.stepNotes.get(thread.id) ?? []
+    this.stepNotes.delete(thread.id)
+    const note = [turnNote(language, home), known, ...stepNotes].filter(Boolean).join('\n')
+    history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), note) })
+    const system = systemPrompt(home, activeProfile().web !== 'off', Boolean(getStored().learn))
+    this.tell(thread, { type: 'start', id, language })
+    this.noticeHabits(thread, turn, answer)
+
+    // What came in from outside this turn, so that nothing in it can become a memory.
+    const heard: LearnTurn = {
+      typed: turn.typed,
+      outside: [capturedText(captures), ...files.map((f) => f.text)].join('\n'),
+      hadOutside: captures.length > 0 || files.length > 0
+    }
+    const place = { chatId: thread.id, messageId: id, inferred: 0 }
+    const learning = (act: () => ReturnType<typeof remember>) => {
+      if (!this.learns(thread)) return { result: 'Not saved: the user turned learning off for this chat. Don’t say it was saved.', status: 'denied' as const }
+      const { outcome, note } = safely({ outcome: { result: 'That didn’t work.', status: 'error' as const } }, act)
+      if (note) this.note(thread, answer, note)
+      return outcome
+    }
 
     try {
-      for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
-        const allowTools = round < MAX_TOOL_ROUNDS
-        const replies = activeProvider().stream({ system, messages: history, tools: toolDefs(), toolsOff: !allowTools }, abort.signal)
-
-        let content = ''
-        let reasoning = ''
-        const toolCalls: ToolCall[] = []
-        let replay: ProviderReplay | undefined
-        let paused = false
-
-        for await (const event of replies) {
-          if (event.type === 'reasoning') reasoning += event.text
-          if (event.type === 'tool') toolCalls.push(event.call)
-          if (event.type === 'done') {
-            if (event.stop === 'refusal') throw new FriendlyError('Otty can’t help with that one. Try asking in a different way.')
-            replay = event.replay
-            paused = event.stop === 'paused'
+      await runLoop({
+        provider: activeProvider,
+        system,
+        history,
+        tools: toolDefs,
+        context: {
+          confirm: (title, detail) => this.askConfirm(live, title, detail),
+          knownUrl: (url) => isKnownUrl(url, history),
+          showSteps: (args) => this.showSteps(thread, answer, args, captures[0]?.app ?? app),
+          startJob: (args) => this.offerJob(live, args, language),
+          learn: {
+            remember: (args) => learning(() => remember(memoryStore(), args, heard, place)),
+            forget: (args) => learning(() => forgetMemory(memoryStore(), args, heard))
           }
-          if (event.type === 'search') {
-            const chip = { callId: `${id}-search-${round}`, label: 'Searching the web', icon: 'search' }
-            if (event.status === 'done') answer.tools = [...answer.tools.filter((t) => t.callId !== chip.callId), { ...chip, status: 'done' }]
-            this.emit({ type: 'tool', id, ...chip, status: event.status })
+        },
+        maxRounds: MAX_TOOL_ROUNDS,
+        signal: abort.signal,
+        reasoning,
+        onEvent: (e) => {
+          if (e.type === 'text') {
+            answer.text += e.text
+            this.tell(thread, { type: 'delta', id, text: e.text })
           }
-          if (event.type === 'text') {
-            content += event.text
-            answer.text += event.text
-            this.emit({ type: 'delta', id, text: event.text })
+          if (e.type === 'tool-result' && OUTSIDE_TOOLS.has(e.name)) {
+            heard.hadOutside = true
+            heard.outside += `\n${e.outcome.result}`
+          }
+          if (e.type === 'search') {
+            heard.hadOutside = true
+            const chip = { callId: `${id}-search-${e.round}`, label: 'Searching the web', icon: 'search' }
+            if (e.status === 'done') answer.tools = [...answer.tools.filter((t) => t.callId !== chip.callId), { ...chip, status: 'done' }]
+            this.tell(thread, { type: 'tool', id, ...chip, status: e.status })
+          }
+          if (e.type === 'tool') {
+            const { type: _type, ...chip } = e
+            if (chip.status !== 'running') answer.tools = [...answer.tools.filter((t) => t.callId !== chip.callId), chip]
+            this.tell(thread, { type: 'tool', id, ...chip })
           }
         }
-
-        history.push({
-          role: 'assistant',
-          content: content || null,
-          ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
-          ...(reasoning ? { reasoning_content: reasoning } : {}),
-          ...(replay ? { provider: replay } : {})
-        })
-        if (paused) continue // the same chat, sent again, resumes it
-        if (!toolCalls.length) break
-
-        for (const call of toolCalls) {
-          let args: Record<string, unknown> = {}
-          try {
-            args = JSON.parse(call.function.arguments || '{}')
-          } catch {
-            /* model sent bad JSON; tool will see empty args */
-          }
-          const { label, icon } = toolLabel(call.function.name, args)
-          this.emit({ type: 'tool', id, callId: call.id, label, icon, status: 'running' })
-          const out = await runTool(call.function.name, args, {
-            confirm: (title, detail) => this.askConfirm(id, title, detail),
-            knownUrl: (url) => isKnownUrl(url, history)
-          })
-          if (abort.signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
-          answer.tools = [...answer.tools.filter((t) => t.callId !== call.id), { callId: call.id, label, icon, status: out.status }]
-          this.emit({ type: 'tool', id, callId: call.id, label, icon, status: out.status })
-          history.push({ role: 'tool', tool_call_id: call.id, content: out.result })
-        }
-      }
-      this.emit({ type: 'done', id })
+      })
+      this.tell(thread, { type: 'done', id })
       finished = true
     } catch (err) {
       // Drop the unfinished turn so a dangling tool call can't break the next request.
       history.length = turnStart
       if ((err as Error).name === 'AbortError') {
-        this.emit({ type: 'done', id })
+        this.tell(thread, { type: 'done', id })
       } else {
         const message = err instanceof FriendlyError ? err.message : 'Oops — something unexpected happened. Please try again.'
         if (!(err instanceof FriendlyError)) console.error(err)
         answer.error = message
-        this.emit({ type: 'error', id, message })
+        this.tell(thread, { type: 'error', id, message })
       }
     } finally {
-      if (this.abort === abort) this.abort = null
+      if (this.live.get(thread.id) === live) this.live.delete(thread.id)
+      this.hooks.onTurn?.(finished && thread.id !== this.thread.id)
       thread.updatedAt = Date.now()
       // Only this turn's rows: the cost doesn't grow with the length of the chat.
       this.persist(thread, { messages: answerAt, history: turnStart })
@@ -302,7 +506,7 @@ export class ChatSession {
   }
 
   /** Background work once an answer is complete. None of it touches the chat's history. */
-  private afterAnswer(thread: Thread, answer: Extract<ChatMessage, { role: 'assistant' }>, first: boolean): void {
+  private afterAnswer(thread: Thread, answer: Answer, first: boolean): void {
     for (const term of termsToWarm(answer.text)) void explainTerm(term, answer.text, answer.language ?? 'en')
     if (first) void this.writeTitle(thread, answer.text)
   }
@@ -324,12 +528,82 @@ export class ChatSession {
     }
   }
 
-  private askConfirm(id: string, title: string, detail: string): Promise<boolean> {
+  private askConfirm(turn: LiveTurn, title: string, detail: string): Promise<boolean> {
     const confirmId = randomUUID()
     return new Promise((resolve) => {
-      this.confirms.set(confirmId, resolve)
-      this.emit({ type: 'confirm', id, confirmId, title, detail })
+      turn.confirms.set(confirmId, resolve)
+      turn.asking = { confirmId, title, detail }
+      this.tell(turn.thread, { type: 'confirm', id: turn.answerId, confirmId, title, detail })
     })
+  }
+
+  /** The model only asks. The card is what starts a job, so a hostile page can't. */
+  private async offerJob(turn: LiveTurn, args: Record<string, unknown>, language: AnswerLanguage): Promise<ToolOutcome> {
+    const title = String(args.title ?? '').trim().slice(0, 80)
+    const brief = String(args.brief ?? '').trim().slice(0, 2_000)
+    if (!title || !brief || !this.hooks.startJob) return { result: 'That needs a title and a brief.', status: 'error' }
+    const detail = `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.`
+    if (!(await this.askConfirm(turn, 'Look into this in the background?', detail))) return { result: 'The user declined.', status: 'denied' }
+    const thread = turn.thread
+    const seedUrls = urlsIn(brief).filter((url) => isKnownUrl(url, thread.history))
+    const problem = await this.hooks.startJob({ title, brief, sourceThread: thread.id, seedUrls, language })
+    return problem ? { result: problem, status: 'error' } : { result: 'Started. The user will find the report in Activity.', status: 'done' }
+  }
+
+  /** The card under an answer. `replaces` puts right the chat's last one, after the user got stuck. */
+  private showSteps(thread: Thread, answer: Answer, args: Record<string, unknown>, app: AppInfo | null): ToolOutcome {
+    const earlier = [...thread.messages].reverse().find((m): m is Answer => m.role === 'assistant' && !!m.steps)
+    const where: StepApp | null = app ? { name: app.name, bundleId: app.bundleId, pid: app.pid } : (earlier?.steps?.app ?? null)
+    const card = stepCard(args, where)
+    if (!card) return { result: 'There were no steps to show.', status: 'error' }
+    for (const step of card.steps) if (step.action && isRisky(step.action)) step.risky = true
+    const target = args.replaces && earlier ? earlier : answer
+    target.steps = card
+    this.tell(thread, { type: 'steps', id: target.id, card })
+    if (target !== answer) this.persist(thread, { messages: thread.messages.indexOf(target), history: thread.history.length })
+    return { result: 'Shown to the user.', status: 'done' }
+  }
+
+  private card(answerId: string, index: number): { at: number; card: StepCard } | null {
+    const at = this.thread.messages.findIndex((m) => m.id === answerId)
+    const answer = this.thread.messages[at]
+    return answer?.role === 'assistant' && answer.steps?.steps[index] ? { at, card: answer.steps } : null
+  }
+
+  private saveCard(answerId: string, at: number, card: StepCard): void {
+    this.persist(this.thread, { messages: at, history: this.thread.history.length })
+    this.emit({ type: 'steps', id: answerId, card })
+  }
+
+  /** The user pressed a step's button. The step is looked up here, so only what's on the card can run. */
+  async runStep(answerId: string, index: number, sure = false): Promise<void> {
+    const found = this.card(answerId, index)
+    const step = found?.card.steps[index]
+    if (!found || !step?.action || step.manual) return
+    if (isRisky(step.action) && !sure) return
+    const thread = this.thread
+    const result = await act(step.action, found.card.app ?? null)
+    step.note = result.message
+    if (result.ok) step.done = true
+    if (result.manual) step.manual = true
+    if (!result.ok) {
+      const notes = this.stepNotes.get(thread.id) ?? []
+      this.stepNotes.set(thread.id, [...notes, `[The step “${step.text}” didn't work: ${result.message}]`])
+    }
+    if (thread === this.thread) this.saveCard(answerId, found.at, found.card)
+  }
+
+  tickStep(answerId: string, index: number, done: boolean): void {
+    const found = this.card(answerId, index)
+    if (!found) return
+    found.card.steps[index].done = done
+    this.saveCard(answerId, found.at, found.card)
+  }
+
+  /** "I'm stuck": the words of the follow-up. */
+  stuckQuestion(answerId: string, index: number): string | null {
+    const found = this.card(answerId, index)
+    return found && `I’m on step ${index + 1} (“${found.card.steps[index].text}”) and I’m stuck.`
   }
 }
 

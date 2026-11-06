@@ -2040,3 +2040,381 @@ html[data-view='pickup'] #root {
 .hint--warn {
   color: var(--danger-ink);
 }
+
+/* ---------- What Otty learns ---------- */
+/* Quiet on purpose: it's a note in the margin, not a message. */
+.memory-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.memory-line > .icon {
+  font-size: 11px;
+  color: var(--brand);
+}
+.memory-line__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.memory-line--undone .memory-line__text {
+  text-decoration: line-through;
+}
+.memory-line__btn {
+  flex: none;
+  border: none;
+  background: none;
+  padding: 1px 5px;
+  border-radius: var(--r-xs);
+  font-size: 12px;
+  color: var(--brand-strong);
+}
+.memory-line__btn:hover {
+  background: var(--brand-soft);
+}
+.memory-line__done {
+  flex: none;
+}
+.memory-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.memory-group__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.memory-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--r-sm);
+  background: var(--fill);
+}
+.memory {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 6px 7px 10px;
+}
+.memory + .memory {
+  border-top: 1px solid var(--hairline);
+}
+.memory__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.memory__body .field {
+  width: 100%;
+}
+.memory__text {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.memory--paused .memory__text {
+  color: var(--muted);
+}
+.memory__source {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.memory__source--link:hover {
+  color: var(--brand-strong);
+  text-decoration: underline;
+}
+.memory__actions {
+  flex: none;
+  display: flex;
+}
+.memory__actions .icon-btn {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+.memory-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.memory-add .field {
+  flex: 1;
+  min-width: 0;
+}
+.icon-btn--on {
+  color: var(--brand-strong);
+  background: var(--brand-soft);
+}
+
+/* ---------- Math ---------- */
+.calc-card {
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.calc-card__sum {
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.calc-card__result {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--heading);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.tool-chip--tap {
+  border: none;
+  background: none;
+  padding: 0;
+}
+.tool-chip--tap:hover {
+  color: var(--text);
+}
+/* A long equation scrolls by itself, rather than widening the chat. */
+.md .katex-display {
+  margin: 8px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+/* ---------- Step cards ---------- */
+.step-card {
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+.step-card__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.step-card__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--heading);
+}
+.step-card__count {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.step-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.step {
+  display: flex;
+  gap: 8px;
+  padding: 5px 4px;
+  border-radius: var(--r-sm);
+}
+.step--current {
+  background: var(--brand-soft);
+}
+.step__tick {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 50%;
+  background: none;
+  font-size: 11.5px;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.step--current .step__tick {
+  border-color: var(--brand-line);
+  color: var(--brand-strong);
+}
+.step--done .step__tick {
+  border-color: transparent;
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+.step__body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.step__text {
+  font-size: 13.5px;
+  line-height: 22px;
+}
+.step--done .step__text {
+  color: var(--muted);
+}
+.step__paste {
+  max-width: 100%;
+  max-height: 72px;
+  overflow: auto;
+  padding: 3px 6px;
+  border-radius: var(--r-xs);
+  background: var(--fill);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.step__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.step__note {
+  font-size: 12px;
+  color: var(--muted);
+}
+.step__stuck {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--brand-strong);
+}
+.step__stuck:hover {
+  text-decoration: underline;
+}
+.btn--warn {
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+}
+
+/* ---------- Activity ---------- */
+.activity {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.activity--empty {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.activity--empty .icon {
+  font-size: 24px;
+}
+.activity--empty p {
+  margin: 0;
+}
+.activity-row {
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.activity-row__title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--heading);
+  overflow-wrap: anywhere;
+}
+.activity-row__state,
+.activity-row__note {
+  font-size: 12px;
+  color: var(--muted);
+}
+.activity-row__url {
+  display: block;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.activity-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.activity-row__actions:empty {
+  display: none;
+}
+.icon-btn__dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand);
+}
+.icon-btn--dot {
+  position: relative;
+}
+/* Still, not animated: minutes of smooth motion is what the idle budget warns about. */
+.bubble__working {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--straw);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* ---------- Quick view follow-ups ---------- */
+.quick__follow {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--hairline);
+  background: none;
+  padding: 8px 2px 2px;
+  resize: none;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--text);
+  outline: none;
+}
+.quick__asked {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  background: var(--fill);
+  font-size: 13px;
+}
+.confirm-card__detail--long {
+  white-space: pre-wrap;
+  max-height: 180px;
+  overflow-y: auto;
+}

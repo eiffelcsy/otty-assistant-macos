@@ -76,3 +76,10 @@ describe('other services', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 })
+
+describe('the calculator', () => {
+  it('stays on with nothing leaving the Mac', async () => {
+    expect(names()).toContain('calculate')
+    expect(await runTool('calculate', { steps: ['2 + 2'] }, ctx)).toMatchObject({ status: 'done', chip: { copy: '4' } })
+  })
+})

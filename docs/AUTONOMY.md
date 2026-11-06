@@ -16,14 +16,12 @@ Where Otty's design is heading in the long run: from something you ask, to somet
 
 Otty already has most of the *safety* design for this: the levels and Rule of Two in Otty's chores, confirm cards, "the model proposes, code decides", `webOff` enforced inside `runTool`. What's missing is the *runtime* underneath.
 
+Stage 1 is built ([D-22](DEVLOG.md)), so most of the runtime gap has closed: turns belong to chats, the tool loop is shared (`loop.ts`), allowed tools are a real limit, jobs are saved step by step, and a confirm can wait until tomorrow. What's left:
+
 | Today | Why it matters |
 | --- | --- |
-| One `ChatSession`, one thread, one `AbortController` (`index.ts`, `llm.ts`) | Otty can do one thing at a time |
-| `send()`, `open()` and `reset()` all call `stop()` | A new question or another chat cancels the running turn |
-| The tool loop lives inside `ChatSession.run` | Nothing else can run a model with tools |
-| A confirm card is a promise held in memory (`askConfirm`) | It can't wait for tomorrow, or survive a restart |
-| `toolDefs()` is one global list, and Claude's search is added outside it | A job can't be limited to the tools it was given |
-| No jobs table, scheduler, `powerMonitor` or launch at login | Nothing happens unless a person starts it |
+| Which tools are safe where is kept in hand-written lists | Stage 2 needs one source of truth ([D-26](DEVLOG.md)) |
+| No timer or launch at login | Nothing happens unless a person starts it ([D-27](DEVLOG.md)) |
 | The only input is a person (hotkey, bubble, typing) | Otty can't react to anything else |
 
 ## The ideas, in general form
@@ -197,6 +195,7 @@ Each stage is useful alone, and Otty takes more initiative at each one. Move up 
 | **3. Noticing** | The Mac, with nothing sent until you tap | Paw-raise on an error dialog | Local events, the gate, the attention budget, Swift AX helper |
 | **4. Anticipating** | An opted-in source | Prep note before a meeting | Calendar access, speculation rules, evals proving precision |
 | **5. Initiating** | Otty suggests, you agree | Offers a chore from your habits | D-10 habits, plus everything above |
+| **6. Looking after you** | Otty, inside one permission you gave | A greeting with a focus list; "time for some water" | [Look after me](#look-after-me), plus everything above |
 
 Actions stay separate from initiative. A Stage 5 chore still can't send, pay or delete. The levels in [Otty's chores](BRAINSTORM.md#ottys-chores-safe-proactive-work) decide that.
 
@@ -209,15 +208,45 @@ Actions stay separate from initiative. A Stage 5 chore still can't send, pay or 
 
 Cards can turn into a habit people click through, which weakens them, so their number should fall quickly through steps 2 and 3.
 
+### Look after me
+
+The furthest this direction goes for now: Otty greets you with a short priority list for the next few hours, and offers wellbeing and productivity suggestions nobody asked for.
+
+**Priority: medium, and on purpose.** Autonomy compounds, so it builds on whatever is underneath it, flaws included. This waits for a strong foundation: the eval, tool labels, standing work and real use of what has shipped.
+
+**One permission, not a recipe per nudge.** Recipes suit jobs you can name in advance, and "remind me about something I didn't think of" can't be one. So wellbeing and productivity suggestions sit under a single **Look after me** permission, asked for during onboarding and changeable in Settings. This is step 3 of "How limits widen": one big decision, with Otty free inside it.
+
+| Inside the permission | Still needs its own yes |
+| --- | --- |
+| Deciding when a suggestion is worth making, and how to word it | Each connection, and what it may read |
+| Using memories, habits and what connections already share | Anything that acts: sending, changing, deleting, paying |
+| Choosing when to look again | Spending past the daily limit |
+
+It only ever **suggests**. A suggestion can offer a button, but pressing it is still the user's click. Onboarding has to say this plainly, including what gets sent to the model and how often, because the user is agreeing before Otty has earned it.
+
+**Who decides what.** The model decides whether something is worth saying and how to say it, so wellbeing needs a prompt rather than rules. Code decides when the model is asked, what it can see, and how often it may speak, because a prompt improves the typical day and only structure bounds the worst one.
+
+**Otty picks its own next look.** Each time it thinks, it also says when to look again, which replaces a fixed check and sends far less. Around that:
+- Code enforces a shortest gap, a daily cap and a longest gap, so a bad guess or a hostile page can't make it wake every minute, and a failed call can't leave it silent for good.
+- Cheap local signals can wake it early, such as the user coming back, or a call ending.
+- When the time comes, local checks run first: are they at the Mac, on a call, or in Focus mode? If so, it skips the call and tries later, which costs nothing and sends nothing.
+- After sleep, it looks once, and doesn't catch up on what it missed.
+
+**It needs a record of itself.** Each model call starts fresh, so what Otty said, when, and how the user reacted are saved and handed back. Without it, every nudge looks reasonable alone and the day adds up to nagging. Dismissals feed the attention budget.
+
+**Connections are the source of context.** Tasks, calendars and messages live in other apps and services, so Otty needs a general way to connect to them, not a one-off per app. Calendar and Reminders are simply the first two. Every connection sits behind one interface, is opted into separately, and starts read-only. Connection content is **private data and outside text at once**: a stranger can write a calendar invite's title. So it's handled as data, never a decision, and a run holding it has no web and no tools with side effects.
+
+This doesn't reopen "Watching". Context comes from connections and local signals the user agreed to, never from sending the screen to a model.
+
 **First foundations, cheapest first:**
-1. Move the tool loop out of `ChatSession.run` into a shared function that takes a history, the allowed tools, a `ToolContext` and a signal. No behaviour change, and everything else needs it.
-2. An allowed list enforced in `runTool`, then tool safety labels. Do this before D-10 adds `remember` and `forget`. It must cover Claude's web search too, which `anthropic.ts` adds whatever the tool list says.
-3. A `jobs` migration and a `JobStore` interface, with confirm cards that can be saved.
-4. One timer set for the next due job, plus `powerMonitor`. No polling, so NFR-3 holds. Re-measure anyway.
+1. ✅ Move the tool loop out of `ChatSession.run` into a shared function that takes a history, the allowed tools, a `ToolContext` and a signal (`loop.ts`).
+2. ✅ An allowed list enforced in `runTool`, covering Claude's web search too. Tool safety labels are still to come, with jobs.
+3. ✅ A `jobs` migration and a `JobStore` interface, with confirm cards that can be saved.
+4. `powerMonitor` is in ✅. One timer set for the next due job comes with D-27. No polling, so NFR-3 holds. Re-measure anyway.
 
 **How the current roadmap feeds this:**
-- **D-10 memory:** the Global scope. Keep each memory's source id, because that's the chain in idea 6.
-- **D-11 step cards:** a job whose worker is the user. Model them with the same states if it costs nothing extra.
+- **D-10 memory (shipped):** the Global scope, with each memory's source chat and message kept for the chain in idea 6. A job gets no `learn` in its `ToolContext`, so it can't touch memories by default.
+- **D-11 step cards (shipped):** a job whose worker is the user. They kept their own simple state, since sharing job states would have cost more than it saved.
 - **D-1 intents:** its encoder is the gate's local judgement stage.
 - **D-13 history budget:** Inline & Spill for chats.
 
@@ -246,7 +275,8 @@ Not every feature needs all of this now, but none should make the direction hard
 
 ## Open decisions
 
-- **NFR-5 needs rewording before Stage 2.** It says nothing is sent until the user asks a question, and a standing recipe sends later. Something like "until the user asks, or has agreed to a recipe that says so" would keep its spirit. It's the one place this direction changes a promise made to users.
+- **NFR-5 needs rewording before Stage 2.** It says nothing is sent until the user asks a question, and a standing recipe sends later. Something like "until the user asks, or has agreed to something that says so" would keep its spirit, and it also covers Look after me. It's the one place this direction changes a promise made to users.
+- **What exactly does Look after me send, and how often?** Decided: one permission, asked for at onboarding, for suggestions only. Still open: the wording of that screen, whether it starts on or off, and how existing users get asked.
 - **How small should the attention budget start?** It should probably begin at one unprompted thing a day, and grow only if people engage.
 - **Where do jobs run?** Most of a job is waiting on the network, so main is fine to start, but a utility process (like `fileWorker.js`) gives stronger isolation. Measure before deciding.
 - **What does "private" cover for cloud models?** Already open in Otty's chores, and it decides how far Stage 4 can go.

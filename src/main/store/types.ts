@@ -14,6 +14,8 @@ export interface Thread {
   messages: ChatMessage[]
   /** What the model sees, so a reopened chat can carry on where it left off. */
   history: Message[]
+  /** False for "Don't learn from this chat" (D-10). Left out otherwise. */
+  learn?: false
 }
 
 /** Where to start writing: everything before these positions is already stored. */

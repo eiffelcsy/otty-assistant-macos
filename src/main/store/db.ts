@@ -125,6 +125,48 @@ const MIGRATIONS: string[] = [
     embedding blob,
     created_at integer not null
   );
+  `,
+  // v2. D-10's habits: each one has a stable key, so a count going up refreshes it instead of adding another.
+  // Deleting a habit records its key, or the same counts would write it straight back.
+  `
+  alter table memories add column habit text;
+  create unique index memories_habit on memories(habit) where habit is not null;
+  create table memory_optouts(
+    key text primary key,
+    created_at integer not null
+  ) without rowid;
+  `,
+  // v3. D-22's background work. Jobs hold no chat text beyond their brief, and the steps go as soon as one finishes,
+  // because the report is what's kept. Allowed statuses are checked in TypeScript.
+  `
+  create table jobs(
+    id text primary key,
+    title text not null,
+    brief text not null,
+    status text not null,
+    seed_urls text not null default '[]',
+    denied_urls text not null default '[]',
+    -- Links, so "why did this happen?" can be answered: the chat that asked and the chat with the report.
+    source_thread text,
+    result_thread text,
+    language text not null default 'en',
+    rounds integer not null default 0,
+    lookups integer not null default 0,
+    worked_ms integer not null default 0,
+    -- The address it's asking about. Saved, because no promise can wait until tomorrow.
+    wait_url text,
+    error text,
+    partial integer not null default 0,
+    created_at integer not null,
+    updated_at integer not null,
+    seen_at integer
+  );
+  create table job_steps(
+    job_id text not null references jobs(id) on delete cascade,
+    seq integer not null,
+    json text not null,
+    primary key (job_id, seq)
+  ) without rowid;
   `
 ]
 

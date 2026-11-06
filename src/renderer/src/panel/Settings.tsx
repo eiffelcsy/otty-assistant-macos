@@ -4,6 +4,7 @@ import { serviceAt, serviceById } from '../../../shared/services'
 import { connectionReady, ConnectionFields } from '../components/ConnectionFields'
 import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
 import { Icon } from '../components/Icon'
+import { MemorySection } from './MemorySection'
 
 const KEEP: { value: KeepChats; label: string }[] = [
   { value: '30d', label: '30 days' },
@@ -16,7 +17,18 @@ function TakenHotkey({ settings, hotkey }: { settings: PublicSettings; hotkey: s
   return <p className="hint hint--warn">Another app is using this shortcut. Pick a different one.</p>
 }
 
-export function Settings({ settings, onSaved }: { settings: PublicSettings; onSaved: (s: PublicSettings) => void }) {
+export function Settings({
+  settings,
+  onSaved,
+  memoryFocus = 0,
+  onOpenChat
+}: {
+  settings: PublicSettings
+  onSaved: (s: PublicSettings) => void
+  /** Bumped when Edit on a Noted line asks for the list. */
+  memoryFocus?: number
+  onOpenChat: () => void
+}) {
   const [form, setForm] = useState(settings)
   const [key, setKey] = useState('')
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
@@ -46,7 +58,7 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
         <label className="toggle">
           <input type="checkbox" checked={form.thinking} onChange={(e) => set('thinking', e.target.checked)} />
           <span>
-            <b>Think deeper</b> — better for hard questions, but slower
+            <b>Always think deeper</b> — Otty already does for math problems. This does it for every question, which is slower
           </span>
         </label>
       </section>
@@ -85,6 +97,8 @@ export function Settings({ settings, onSaved }: { settings: PublicSettings; onSa
         <p className="hint">For when a word or a step is easier in your own language. The app itself stays in English.</p>
         <HomeLanguagePicker value={form.homeLanguage} onChange={(v) => set('homeLanguage', v)} />
       </section>
+
+      <MemorySection learn={form.learn} onLearn={(on) => set('learn', on)} focus={memoryFocus} onOpenChat={onOpenChat} />
 
       <section>
         <h3>

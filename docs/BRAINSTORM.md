@@ -33,7 +33,7 @@ The long-run direction, from something you ask to something that looks after thi
 | --- | --- | --- | --- |
 | Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | S | considering, part of Otty's den |
 | Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | considering |
-| Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering |
+| Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering, Look after me needs it to speak |
 | Feed Otty: drop a file or dragged text on the otter to ask about it, with a munching animation | H | S–M | considering |
 | More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
 | A simplified small-size head for the 34px header and quick view, where painted fur gets soft | M | S | idea |
@@ -44,10 +44,10 @@ The long-run direction, from something you ask to something that looks after thi
 | Cursor-following mini otter or a "?" that pops up near a fresh text selection (needs an AX selection observer, Swift helper) | H | L | idea |
 | Sound effects (opt-in, soft squeak on pop-up) | L | S | idea |
 | Desktop-pet Otty: full-body sprite or Rive rig that swims around the desktop, floats on its back, peeks from screen edges, and paw-presses buttons (pairs with the "Show me how" ghost cursor) | H | L | idea |
-| Daily greeting and a gentle weekly recap ("3 things learned this week"), with no streaks to lose | L | S | considering, part of Otty's den |
+| Daily greeting and a gentle weekly recap ("3 things learned this week"), with no streaks to lose | L | S | considering, part of Otty's den; the useful greeting is under Look after me |
 | Seasonal or unlockable accessories (hat, scarf) | M | M | considering, earned in Otty's den |
 | Float smoothly only while it matters: on hover or just after an answer, and stepped the rest of the time, so Otty looks alive for almost no battery | M | S | idea |
-| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | → D-10 (issue #17): learns on its own and shows a Noted line with Undo, no confirm cards |
+| Light memory of the user ("prefers short answers", "learning Spanish"): an editable facts list in Settings, added to the prompt | H | M | shipped |
 | Painted Otty frames with a blink (idle + eyes-closed) | H | S | shipped |
 | Respect `prefers-reduced-motion` across every new animation | M | S | shipped (a global rule in `styles.css` turns off all animation and transitions) |
 
@@ -104,8 +104,8 @@ The long-run direction, from something you ask to something that looks after thi
 | --- | --- | --- | --- |
 | Show what Claude's web searches cost in the usage meter, since each one is billed | M | S | idea |
 | Copy a proofread reason as a note, or send a whole fix to the phrasebook | L | S | idea |
-| Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | → D-11 |
-| Follow-up questions inside the quick view (don't force "continue in chat") | H | S | → D-11 |
+| Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | shipped |
+| Follow-up questions inside the quick view (don't force "continue in chat") | H | S | shipped |
 | Tables copied from Otty paste as real tables in Word, Pages and spreadsheets | H | S | shipped |
 | Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | shipped (D-9) |
 | **Sources row** under answers that searched: site icons, names and dates from the search results (`site_icon`, `site_name`, `date`), each opening the page | M | S | idea, after D-9 |
@@ -125,11 +125,19 @@ The long-run direction, from something you ask to something that looks after thi
 | Timers and alarms | L | S | idea |
 | `open_app` / simple app control ("open System Settings → Wi-Fi") | M | M | idea |
 | Sandboxed code runner for data questions on attached CSVs or pasted tables ("which month had the most sales?"): a sealed-off process with no files or network | M | M | idea, after D-12 |
-| Follow-up questions inside the quick view (don't force "continue in chat") | H | S | → D-11 |
-| Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | → D-11 |
-| Math that's right: instant local answers, a one-request batched `calculate` tool, thinking only for real problems, KaTeX-rendered equations | H | M | → D-12 |
+| Follow-up questions inside the quick view (don't force "continue in chat") | H | S | shipped |
+| Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | shipped |
+| Math that's right: instant local answers, a one-request batched `calculate` tool, thinking only for real problems, KaTeX-rendered equations | H | M | shipped |
 | Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | shipped (D-9) |
 | Full computer-use actions (click / type for the user) | H | L | parked: the guided overlay gets most of the value without Otty acting |
+
+| Math eval (`tools/math-eval/`, planned in D-12 but not built, because it needs a real key): 40 real-style questions recording correctness, time to first token, tool rounds and cache hits, to tune the tiers. Target: at least 95% correct | M | S | → D-23 |
+| `calculate` over a table: let the steps name a highlighted table's columns, so "what's the total of this column?" needs no retyping | M | S | idea, from D-12 |
+| Type a sum in the quick view's empty state: show the result live as you type, before ↵ | M | S | idea, from D-12 |
+| Currency in `calculate`, with rates from a daily fetch that's plainly dated, since a stale rate is a wrong answer | M | M | idea, from D-12 |
+
+| Step cards from a document: a checklist from a PDF's instructions, where the steps are the user's and the text is only the source | M | S | idea, from D-11 |
+| Replay a step card: save one as "how I do this", and offer it next time, so the checklist becomes a personal recipe | H | M | idea, from D-11; leads towards chores |
 
 ## Language and accessibility
 
@@ -175,14 +183,20 @@ Language users: **bilingual / multilingual people who work in English** and some
 | SQLite storage, retention setting | H | M | shipped (D-3) |
 | Search across chats, the same contract on JSON, SQLite or an online database | H | M | shipped (D-5, on SQLite since D-3) |
 
+| Why does Otty think that? Tap a memory in an answer's Noted line to see the sentence it came from, using `source_message_id` | M | S | idea, from D-10 |
+| Which memories shaped this answer: a small "Used: learning Spanish" line, so memory is visible when it's read as well as when it's written | H | S | → D-24 |
+| Tidy memories now and then: a background pass merges overlaps and asks about stale ones ("still learning Spanish?") | M | S | idea, from D-10; a "Just do it" chore |
+| The otter mentions a new habit in a speech bubble, as D-10 planned. Today it's only a Noted line, because the bubble can't talk yet | M | S | idea, needs speech-bubble micro-replies |
+| Scope memories by job (AUTONOMY idea 6): chat turns see them, a job only if its recipe says so | M | S | idea, with D-22 |
+
 ## Trust, setup and platform
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Launch at login | H | S | considering, the first step of an always-there Otty; needs signed builds |
+| Launch at login | H | S | → D-27 |
 | "What Otty sent" transparency view per message (context, app note) | M | S | idea |
 | Say where web lookups really go: with another provider, or when DeepSeek's search fails, queries go to Wikipedia and DuckDuckGo, but Settings → Privacy only mentions DeepSeek | M | S | idea |
-| Sign and notarize (Developer ID) so permissions survive updates; custom `.icns` | H | M | considering, needed before sharing builds |
+| Sign and notarize (Developer ID) so permissions survive updates | H | M | considering, needed before sharing builds |
 | Auto-update (electron-updater) | M | M | idea |
 | Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | idea |
 | An Otty test harness: drive the real overlay and windows in Electron with real input, as a repeatable `npm` script rather than one-off scripts | M | M | idea |
@@ -254,9 +268,9 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Remember the model chosen for each service, so switching back doesn't reset it | L | S | idea |
 | Close the DNS gap in reading pages from the Mac: pin the checked address for the connection, so a name can't change between the check and the fetch | M | S | idea |
 | Otty says plainly when a model can't use tools, instead of quietly going without them | M | S | idea |
-| Two model slots, Fast and Best: features ask for a role, not a model name, so background work and hard tasks upgrade separately | H | S | considering, after D-20 step 1 |
+| Two model slots, Fast and Best: features ask for a role, not a model name, so background work and hard tasks upgrade separately | H | S | → D-25 |
 | Scaffold ledger: note which model weakness each prompt rule or routing step works around, and retest on every upgrade | M | S | idea, needs the Otty eval |
-| Otty eval: 50–100 real-style tasks, scored for quality, speed and cost, so any new model is judged in an hour. Grows out of `tools/math-eval/` | H | M | considering, do first |
+| Otty eval: 50–100 real-style tasks, scored for quality, speed and cost, so any new model is judged in an hour. Grows out of `tools/math-eval/` | H | M | → D-23 |
 | Tools before pipelines: let the model pull context when it needs it (read the window, find a file, check the calendar) rather than deciding in code what it sees | H | M | idea |
 | Trust ladder: give every tool a risk level and undo, so autonomy widens per action as evals prove reliability (show, then suggest, then do with a confirm) | H | M | idea, the path back to parked computer use |
 | Re-read history: after a model upgrade, offer to refresh memories, titles and summaries from saved chats, so old data improves too | M | S–M | idea, after D-10; opt-in, shows the cost first |
@@ -286,18 +300,21 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Pick up where you left off: reopen the last chat's context with a light "Still on the budget?" | M | S | idea, after D-10 |
 | The otter shows what's happening: moods mirror jobs (working, waiting for you, something ready), so nobody needs a dashboard. Must stay inside the idle budget | H | S–M | idea, after the first background job |
 | Surface budgets: a job returns a headline and a body, and each surface uses what fits (bubble a few words, inbox a few lines, panel the lot) | M | S | idea, with the inbox |
-| Ask me later: "check this tomorrow at 9", run read-only, with the result waiting in a small inbox | H | M | considering, needs a jobs table |
+| Ask me later: "check this tomorrow at 9", run read-only, with the result waiting in a small inbox | H | M | → D-27 |
 | Watch for me: check a page on a schedule and tell the user when it changes (price, delivery, results) | H | M | idea, after Ask me later; web reads are billed per call, so show the cost |
-| "Do not disturb" for Otty: a quiet mode, plus automatic quiet during full-screen video and screen sharing | M | S–M | idea |
+| "Do not disturb" for Otty: a quiet mode, plus automatic quiet during full-screen video and screen sharing | M | S–M | idea, Look after me needs it |
 | Local-only noticing: opt-in triggers from app switches and error dialogs on the Mac; nothing is sent until the user taps | H | L | considering, replaces the paw-raise idea's design; uses the AX helper |
-| Morning note: an opt-in daily summary from memories, reminders and the calendar | M | M | idea, after calendar access |
+| Morning note: an opt-in daily summary from memories, reminders and the calendar | M | M | idea, grows into the Look after me greeting |
 | Finish the idle budget: a run with the panel open, more memory runs to set a limit, and pausing the otter when the display sleeps | M | S | idea |
 | Create the panel and quick view on first use, or free them after a long idle, to cut memory (about 100 MB each). Measure the cost to NFR-1 first | M | S | idea |
 | An idle check in CI or a script that fails when a change goes over the CPU budget, so an animation can't creep back in | M | M | idea |
-| Background activity list: everything running or scheduled, with a stop button | H | S | → D-22 (a panel view, not in Settings) |
-| Survive sleep and wake: pause on sleep, resume on wake, retry after a dropped connection (`powerMonitor`) | M | S | → D-22 |
-| Keep going after closing: a long task carries on when the panel closes, and the unseen-answer dot says when it's ready | M | S–M | → D-22 |
+| Background activity list: everything running or scheduled, with a stop button | H | S | shipped |
+| Survive sleep and wake: pause on sleep, resume on wake, retry after a dropped connection (`powerMonitor`) | M | S | shipped |
+| Keep going after closing: a long task carries on when the panel closes, and the unseen-answer dot says when it's ready | M | S–M | shipped |
 | Idle budget: set and test limits for CPU, memory and battery, because an always-on app that drains the laptop gets quit | H | S | shipped |
+
+| Say how far it got: a job's report ends with what it read and what it skipped, so a partial answer can be judged | M | S | idea, from D-22 |
+| Keep several jobs moving: most of a job is waiting on the network, so two at once may cost little. Measure first | L | S | idea, from D-22 |
 
 ## Otty's chores: work Otty starts itself
 
@@ -305,22 +322,38 @@ Otty spots something useful, suggests a small repeatable job, checks it against 
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Plain-words approval card: "Every Monday at 9, Otty will read this page and leave a note. It won't send anything." | H | S | considering |
-| Tool safety labels: each tool declares what it reads, whether it brings in untrusted content, whether data can leave, and what it changes | H | S–M | considering, the base for everything here |
+| Plain-words approval card: "Every Monday at 9, Otty will read this page and leave a note. It won't send anything." | H | S | → D-27 |
+| Tool safety labels: each tool declares what it reads, whether it brings in untrusted content, whether data can leave, and what it changes | H | S–M | → D-26 |
 | Daily chore budget and auto-pause on repeated failures or surprises | M | S | considering |
-| Injection test set in the Otty eval: hostile pages and documents that try to leak data or trigger tools | H | S–M | considering |
+| Injection test set in the Otty eval: hostile pages and documents that try to leak data or trigger tools | H | S–M | → D-23 |
 | Private role for chores: send private data only to a chosen model, ideally a local one | M | S | idea, extends Fast and Best slots |
 | "Why did this happen?" on every note: follow the links from note to job, trigger, recipe and the chat where the user agreed | M | S | idea, needs ids linked from the start |
 | Locked tool set per run: code hands a chore only the tools and sites in its recipe, whatever the model asks for | H | M | considering |
 | Standing limits: the user sets a monthly budget and a trusted-sites list once, and Otty works freely inside them, so cards become rare | H | M | idea, after the first chores (see AUTONOMY.md) |
 | Chore recipes: a typed plan (trigger, steps, data, sites, output) that the model drafts and code checks | H | M | considering |
-| Read first, then lock the doors: fetch public pages with no private data, then do the private step with every tool off | H | M | considering |
-| Calendar and Reminders reading, opt-in per source, so chores have useful material | H | M | idea |
+| Read first, then lock the doors: fetch public pages with no private data, then do the private step with every tool off | H | M | considering, see also private-only runs |
+| Calendar and Reminders reading, opt-in per source, so chores have useful material | H | M | idea, the first connections |
 | First chores: page watch, Monday prep, deadline nudge, phrasebook quiz | H | M | idea |
 | Chore inbox and history: what ran, what it read, what it cost, with pause and delete | H | M | considering, ships with the first chore |
 | Chore suggestions from local habits: Otty notices repeats and offers a chore, at most one a day, and "no thanks" sticks | H | M | idea, after D-10 |
 | "Stop asking?": after the user approves the same thing many times, Otty offers to make it standing. Only the user can say yes | M | M | idea, after standing limits |
-| Reply to a note: answering an inbox note continues that job with its context, instead of starting a new chat | M | S | → D-22 (a job's report is a normal chat) |
+| Reply to a note: answering an inbox note continues that job with its context, instead of starting a new chat | M | S | shipped |
+
+## Look after me: help nobody asked for
+
+A greeting with a priority list for the next few hours, and wellbeing and productivity suggestions, under one permission. The design is in [AUTONOMY.md](AUTONOMY.md#look-after-me). **All of it is medium priority on purpose:** autonomy compounds, so it waits for a strong foundation (D-23 to D-27, and real use). The model decides what's worth saying. Code decides when it's asked, what it sees and how often it speaks.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| **Look after me** permission: one choice at onboarding, also in Settings, covering wellbeing and productivity suggestions. It only suggests, and says plainly what's sent and how often | M | S | considering, after D-27; NFR-5 first |
+| Nudge record: what Otty said, when, and how the user reacted, saved and handed back to the model, so timing can learn and nothing repeats | M | S | considering, with the first nudge |
+| Wellbeing nudges: water, breaks, stretching, stopping for the day, from a wellbeing prompt rather than rules | M | S | idea, needs the permission, a way to speak and the attention budget |
+| Is the user around? Local checks for at the Mac, idle, on a call and macOS Focus, so nothing interrupts and no call is wasted | M | S–M | idea; extends "Do not disturb" |
+| Otty picks its own next look: each run says when to look again, with a shortest gap, a daily cap and a longest gap in code, and local signals can wake it early | M | S–M | idea, after D-27's timer |
+| Focus list: a short priority list for the next few hours, from tasks, deadlines and free time | M | M | idea, needs connections |
+| Greeting: on first use of the day, a hello with the focus list, in the quick view or a note. Grows out of Morning note | M | M | idea, needs the focus list |
+| Private-only runs: a run that holds private data, with web and side-effecting tools off. The reverse of a job, which holds no private data | M | M | considering, needed by the focus list; uses D-26's labels |
+| Connections: one general way to link other apps and services as read-only sources of tasks, calendars and messages, each opted into separately. Calendar and Reminders come first | M | L | considering; content counts as private data and outside text at once |
 
 ## Parked / rejected (with reasons)
 

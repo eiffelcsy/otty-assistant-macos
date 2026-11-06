@@ -119,7 +119,7 @@ function claudeExtras(c: AnthropicConfig, req: ChatRequest): Partial<Params> {
 }
 
 function toolParams(c: AnthropicConfig, req: ChatRequest): Partial<Params> {
-  const search = searchesOnServer(c.profile, c.model) ? [{ type: 'web_search_20260209' as const, name: 'web_search' as const, max_uses: MAX_SEARCHES }] : []
+  const search = req.serverSearch && searchesOnServer(c.profile, c.model) ? [{ type: 'web_search_20260209' as const, name: 'web_search' as const, max_uses: MAX_SEARCHES }] : []
   const tools = [...toAnthropicTools(req.tools ?? []), ...search]
   if (!tools.length) return {}
   return { tools, ...(req.toolsOff ? { tool_choice: { type: 'none' as const } } : {}) }

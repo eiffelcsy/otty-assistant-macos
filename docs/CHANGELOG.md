@@ -2,6 +2,51 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
+## Unreleased
+
+On `main`, for the next release. Tested with unit tests and the UI preview, not yet with a real model or in the real app (smoke-test steps 67–87).
+
+### Otty's own app icon (2026-11-06)
+
+- **The app and the `.dmg` now show painted Otty** on a meadow tile, instead of Electron's default icon. `tools/otty-art/prepare.py` makes it from the same art as the rest.
+
+### Do it with me: step cards (D-11, 2026-11-06)
+
+- **Answers become checklists.** Steps carried out on the Mac appear as a card with progress, ticks saved with the chat, and a button wherever Otty can do the step: **Replace in Excel**, **Open**, **Click File › Export To › PDF…**, **Press for me** and **Copy**.
+- **Nothing happens without a click,** and only in the app the question came from. Actions are looked up in main, so only what's on the card can run. Paste never sends Return and won't go into a password field. `open` only reaches web pages, installed apps, a list of Settings panes, and revealing files in the home folder.
+- **Risky steps ask twice.** Delete, Send, Sign Out, ⌘Q and the like show a warning and **Sure?**, decided in code.
+- **I'm stuck on this step** looks at the screen and asks, and the card updates in place. A menu that isn't there becomes a step to do by hand, and the next answer hears about it.
+- **Quick view:** it stays open while there are steps to do, and has a slim box for follow-ups.
+
+### Keep going: Otty works while you look away (D-22, 2026-11-06)
+
+- **Answers keep running.** Moving to another chat, or asking something new from a hotkey, no longer stops an answer. Each chat has its own turn, up to three at once, and coming back picks it up, confirm card included.
+- **Background research.** For a big question Otty offers a job on a card showing the whole brief. The job sees only that brief, can only search and read, and its report arrives as a normal chat with follow-ups.
+- **Survives anything.** Jobs are saved step by step in `otty.db`, so they carry on after a quit or sleep. An unfamiliar address waits for an answer, even until tomorrow. One left for over a day asks before spending again.
+- **Limits in plain code:** 24 rounds, 30 lookups, 15 minutes, and the same call three times each end in a partial report that says so. A lost connection retries, then pauses.
+- **Activity** lists everything, with Stop, Allow, Keep going and Open. The otter shows a still marker while work runs.
+- **Forgetting holds.** With **Remember my chats** off, nothing about a job is written. Forgetting a chat stops and removes its jobs.
+
+### Otty learns about you (D-10, #17, 2026-11-06)
+
+- **Memory that saves itself, in the open.** Otty notes what you tell it and what lasts, with no card. A quiet *Noted* line under the answer shows each one, with **Undo** and **Edit**, and stays in the saved chat. "Forget that…" works too.
+- **Habits, counted on the Mac.** Your main apps, your answer language, the quick actions you use and asking for shorter answers build up over days, with no model call. Only counts are kept. Delete a habit and it stays gone.
+- **Settings → What Otty knows about you:** grouped, each with its source, to edit, pause or delete, plus **Add something**, **Forget everything Otty knows** and a master switch. **Don't learn from this chat** is in the panel's header and the quick view.
+- **The rules are in code, not the prompt.** A memory only counts as told if the user's own words ask for it. Sensitive things need that, and passwords, keys and codes are refused even then. On any turn with a capture, file or web result, a memory has to rest on what the user typed, so a hostile page can't plant one, however the model rewords it.
+- **Cache-safe.** What Otty knows goes at the end of that turn's message, up to about 1,500 characters, and the latest note wins. If an earlier note stops being true, the next one says so.
+
+### Math that's right, and instant (D-12, 2026-11-06)
+
+- **Instant answers.** Type `17.5% of 2,340` and the result is there, with no model call, even offline. **Explain the working** hands it to the model.
+- **A real calculator.** `calculate` takes every step in one call, in exact decimals, with percentages, units and statistics, behind an allowlist that refuses anything else before it runs. The chip appears already done, and tapping it copies the result.
+- **Thinking only where it pays.** `mathTier` sorts each question locally. Only real problems turn on thinking for that turn, so other questions are no slower. **Think deeper** is now **Always think deeper**.
+- **Rendered equations.** `$$…$$` shows as real math with KaTeX, from the bundle. Prices like $5 stay text, and an unfinished equation stays text until it closes.
+
+### Foundations for Keep going (D-22 steps 0–1, 2026-11-06)
+
+- **The tool loop has moved** to `loop.ts`, so a background job can share it. Nothing changes for the user.
+- **Allowed tools are a real limit.** `ToolContext.allowed` is checked first thing in `runTool`, and Claude's web search now has to be asked for. Explain cards and titles no longer carry the search tool.
+
 ## 0.5.0 — Any model, Pick up text and a proofreader (2026-11-05)
 
 ### Whole-screen shortcut (2026-11-05)

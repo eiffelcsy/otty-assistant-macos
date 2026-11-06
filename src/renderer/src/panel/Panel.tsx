@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, Capture, PanelOpenPayload, PublicSettings } from '../../../shared/types'
+import type { ActivityItem, AnswerLanguage, AppInfo, Capture, PanelOpenPayload, PublicSettings } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
 import { Icon } from '../components/Icon'
@@ -11,6 +11,7 @@ import { prettyKey } from '../lib/keys'
 import { useAttachments } from '../lib/useAttachments'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
+import { Activity } from './Activity'
 import { History } from './History'
 import { AppTag, AssistantMessage, CaptureList, sourceFor } from './Messages'
 import { FindBar } from './FindBar'
@@ -37,7 +38,7 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
 
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
-  const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history'>('chat')
+  const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history' | 'activity'>('chat')
   /** The capture tray: highlights and snips waiting to be asked about, each with its own app. */
   const [captures, setCaptures] = useState<Capture[]>([])
   /** The app the user was in, for a question without captures. */
@@ -48,7 +49,10 @@ export function Panel() {
   const [finding, setFinding] = useState<number | null>(null)
   const findingRef = useRef(finding)
   findingRef.current = finding
-  const { messages, busy, setBusy, waitingFirstToken, focusId } = useChat(() => {
+  const [activity, setActivity] = useState<ActivityItem[]>([])
+  /** Bumped to scroll Settings to what Otty knows. */
+  const [memoryFocus, setMemoryFocus] = useState(0)
+  const { messages, busy, setBusy, waitingFirstToken, focusId, learn } = useChat(() => {
     setCaptures([])
     setApp(null)
     setNotice(null)
@@ -75,6 +79,11 @@ export function Panel() {
     })
   }, [])
 
+  useEffect(() => {
+    void window.otty.listActivity().then(setActivity)
+    return window.otty.onActivity(setActivity)
+  }, [])
+
   /** Adds a capture to the tray, or starts a new tray with it. A full tray says so instead. */
   const take = useCallback((p: PanelOpenPayload, add: boolean) => {
     if (!p.context) {
@@ -96,8 +105,13 @@ export function Panel() {
     () =>
       window.otty.onPanelOpen((p: PanelOpenPayload) => {
         if (p.notice === 'open-settings') return setView('settings')
+        if (p.notice === 'open-memory') {
+          setView('settings')
+          setMemoryFocus((n) => n + 1)
+          return
+        }
         take(p, !!p.add)
-        setView((v) => (v === 'history' ? 'chat' : v))
+        setView((v) => (v === 'history' || v === 'activity' ? 'chat' : v))
         setTimeout(() => inputRef.current?.focus(), 50)
       }),
     []
@@ -211,7 +225,7 @@ export function Panel() {
   }
 
   return (
-    <AskContext.Provider value={(t) => send(t, false)}>
+    <AskContext.Provider value={(t, action) => send(t, false, action ? { label: t, action } as ActionItem : undefined)}>
       <HomeContext.Provider value={settings.homeLanguage}>
         <div className="panel" {...drop}>
           {dragging && (
@@ -222,8 +236,18 @@ export function Panel() {
           )}
           <header className="panel__header">
             <Otter state={busy ? 'thinking' : 'idle'} size={34} />
-            <div className="panel__title">{view === 'history' ? 'Recent chats' : 'Otty'}</div>
+            <div className="panel__title">{view === 'history' ? 'Recent chats' : view === 'activity' ? 'Activity' : 'Otty'}</div>
             <div className="panel__actions">
+              {(activity.length > 0 || view === 'activity') && (
+                <button
+                  className="icon-btn icon-btn--dot"
+                  title={view === 'activity' ? 'Back to chat' : 'Activity'}
+                  onClick={() => setView(view === 'activity' ? 'chat' : 'activity')}
+                >
+                  <Icon name={view === 'activity' ? 'comment-alt' : 'binoculars'} />
+                  {view !== 'activity' && activity.some((i) => i.unseen) && <span className="icon-btn__dot" />}
+                </button>
+              )}
               {settings.rememberChats && (
                 <button
                   className="icon-btn"
@@ -240,6 +264,16 @@ export function Panel() {
                   onClick={() => setFinding((n) => (n === null ? 1 : null))}
                 >
                   <Icon name="search" />
+                </button>
+              )}
+              {view === 'chat' && messages.length > 0 && settings.learn && (
+                <button
+                  className={`icon-btn${learn ? '' : ' icon-btn--on'}`}
+                  title={learn ? 'Don’t learn from this chat' : 'Otty isn’t learning from this chat. Press to let it'}
+                  aria-pressed={!learn}
+                  onClick={() => void window.otty.setChatLearn(!learn)}
+                >
+                  <Icon name={learn ? 'brain' : 'eye-crossed'} />
                 </button>
               )}
               {view === 'chat' && messages.length > 0 && (
@@ -261,7 +295,9 @@ export function Panel() {
           </header>
 
           {view === 'settings' ? (
-            <Settings settings={settings} onSaved={setSettings} />
+            <Settings settings={settings} onSaved={setSettings} memoryFocus={memoryFocus} onOpenChat={() => setView('chat')} />
+          ) : view === 'activity' ? (
+            <Activity items={activity} onOpen={() => setView('chat')} />
           ) : view === 'history' ? (
             <History onOpen={() => setView('chat')} focusSearch={searchFocus} keep={settings.keepChats} />
           ) : (
