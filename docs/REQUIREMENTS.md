@@ -96,6 +96,10 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 | `open_url` | Opens an http(s) link in the default browser | **Yes**: an "Allow / No thanks" card |
 | `copy_to_clipboard` | Puts text (such as a rewritten email) on the clipboard. A table pastes as a real table | No |
 | `create_reminder` | Adds an item to Apple Reminders, with an optional due date | **Yes** |
+| `calculate` | Works out numbers exactly, in steps (FR-17) | No: it changes nothing |
+| `remember`, `forget` | Saves or removes a memory (FR-16) | No: shown with an Undo |
+| `show_steps` | Shows a step card (FR-18) | Each step's action is the user's click |
+| `start_job` | Asks to look into something in the background (FR-19) | **Yes**, every time, showing the whole brief |
 
 - FR-7.1 At most 6 tool round-trips per question, to prevent loops.
 - FR-7.2 Tool failures go back to the model as text, so it can apologise and carry on.
@@ -161,6 +165,27 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-17.2 Numbers in answers come from a `calculate` tool with exact decimals, percentages, units and statistics, normally one call an answer. It evaluates nothing outside its allowlist.
 - FR-17.3 Only questions that need reasoning turn on thinking, for that turn. **Always think deeper** overrides this. Other questions are no slower.
 - FR-17.4 `$$…$$` renders as math, offline, in the panel and quick view. Prices stay text.
+
+### FR-18 Step cards (P1)
+- FR-18.1 Steps the user carries out on the Mac appear as a checklist under the answer, with ticks and progress saved with the chat.
+- FR-18.2 A step can paste, open, click a menu, press a shortcut or copy, only when the user presses its button, and only in the app the question came from.
+- FR-18.3 Steps that can't be undone ask a second time, decided in code. Paste never sends Return and never goes into a password field. `open` only reaches web pages, installed apps, a list of Settings panes, and revealing files in the home folder.
+- FR-18.4 **I'm stuck** looks at the screen and asks, and the card updates in place. A menu that can't be found becomes a step to do by hand.
+- FR-18.5 The quick view stays open while there are steps to do, and takes follow-ups.
+
+### FR-19 Keep going (P1)
+- FR-19.1 An answer carries on when the user moves to another chat, up to three at once, and only the chat on show reaches the windows. A new question in the same chat replaces its answer.
+- FR-19.2 A background job only starts from a card showing its whole brief. It sees only that brief, can only search and read public pages, and never runs on a service where nothing may leave the Mac.
+- FR-19.3 Jobs run one at a time, up to five waiting, and survive quitting and sleep. An unfamiliar address waits for the user's answer. A job left over 24 hours asks before going on.
+- FR-19.4 Limits in code end a job with a partial report that says so: 24 rounds, 30 lookups, 15 minutes, or the same call three times.
+- FR-19.5 A report is a normal chat. **Activity** shows every job and running answer, with Stop, Allow, Keep going and Open.
+- FR-19.6 With **Remember my chats** off, nothing about a job is written to disk. Forgetting a chat removes its jobs.
+
+### FR-20 Look after me (P2, *Planned*)
+- FR-20.1 One permission, asked for at onboarding and changeable in Settings, lets Otty offer wellbeing and productivity suggestions unprompted, including a greeting with a priority list for the next few hours. It says plainly what's sent and how often.
+- FR-20.2 Suggestions never act. Anything with side effects stays the user's click, and each connection is opted into separately.
+- FR-20.3 How often Otty looks and speaks is limited in code, and local checks come first, so it stays quiet when the user is away, on a call or in Focus mode.
+- FR-20.4 Tasks and calendars come from read-only connections to other apps and services. Their content is treated as data, never as instructions.
 
 ### FR-11 Later (P2)
 See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language (shipped, D-2) · inserting text back into the source app (planned, D-11) · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.

@@ -4,7 +4,28 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
-On `main`, for the next release. Tested with unit tests and the UI preview, not yet with a real model (smoke-test steps 67–76).
+On `main`, for the next release. Tested with unit tests and the UI preview, not yet with a real model or in the real app (smoke-test steps 67–87).
+
+### Otty's own app icon (2026-11-06)
+
+- **The app and the `.dmg` now show painted Otty** on a meadow tile, instead of Electron's default icon. `tools/otty-art/prepare.py` makes it from the same art as the rest.
+
+### Do it with me: step cards (D-11, 2026-11-06)
+
+- **Answers become checklists.** Steps carried out on the Mac appear as a card with progress, ticks saved with the chat, and a button wherever Otty can do the step: **Replace in Excel**, **Open**, **Click File › Export To › PDF…**, **Press for me** and **Copy**.
+- **Nothing happens without a click,** and only in the app the question came from. Actions are looked up in main, so only what's on the card can run. Paste never sends Return and won't go into a password field. `open` only reaches web pages, installed apps, a list of Settings panes, and revealing files in the home folder.
+- **Risky steps ask twice.** Delete, Send, Sign Out, ⌘Q and the like show a warning and **Sure?**, decided in code.
+- **I'm stuck on this step** looks at the screen and asks, and the card updates in place. A menu that isn't there becomes a step to do by hand, and the next answer hears about it.
+- **Quick view:** it stays open while there are steps to do, and has a slim box for follow-ups.
+
+### Keep going: Otty works while you look away (D-22, 2026-11-06)
+
+- **Answers keep running.** Moving to another chat, or asking something new from a hotkey, no longer stops an answer. Each chat has its own turn, up to three at once, and coming back picks it up, confirm card included.
+- **Background research.** For a big question Otty offers a job on a card showing the whole brief. The job sees only that brief, can only search and read, and its report arrives as a normal chat with follow-ups.
+- **Survives anything.** Jobs are saved step by step in `otty.db`, so they carry on after a quit or sleep. An unfamiliar address waits for an answer, even until tomorrow. One left for over a day asks before spending again.
+- **Limits in plain code:** 24 rounds, 30 lookups, 15 minutes, and the same call three times each end in a partial report that says so. A lost connection retries, then pauses.
+- **Activity** lists everything, with Stop, Allow, Keep going and Open. The otter shows a still marker while work runs.
+- **Forgetting holds.** With **Remember my chats** off, nothing about a job is written. Forgetting a chat stops and removes its jobs.
 
 ### Otty learns about you (D-10, #17, 2026-11-06)
 
