@@ -80,7 +80,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 3. **D-24 Used.** Half a day, and it finishes the visibility story for memory.
 4. **D-25 Fast and Best.** Jobs and titles are the first features that clearly want different models.
 5. **D-26 Tool safety labels,** then **D-27 Ask me later**, which needs them, and needs NFR-5 reworded first.
-6. **Later: Look after me** (AUTONOMY.md, BRAINSTORM). The greeting, focus list and wellbeing suggestions are medium priority on purpose, because autonomy compounds on whatever is under it. They come after a strong foundation, and aren't planned here yet.
+6. **Later: Look after me** (AUTONOMY.md, BRAINSTORM). The greeting, focus list and wellbeing suggestions are medium priority on purpose, because autonomy compounds on whatever is under it. They come after a strong foundation, and aren't planned here yet. Past that, AUTONOMY.md sets the long-term direction, and [the trust ceiling](AUTONOMY.md#the-trust-ceiling) sets the pace: each new level of reach ships with its undo, visibility and attack tests.
 7. Then **D-1**, starting with its step 0, which may shrink it. The OCR helper is already built. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets. **D-14** waits until it's picked back up.
 
 ---

@@ -12,7 +12,9 @@ Three pillars. An idea should push at least one of them without hurting the othe
 2. **Aware**: it understands what's on screen and what you're trying to do.
 3. **Able**: it can actually help you get the thing done, safely.
 
-Under all three: **trust**. Non-technical users first, privacy by default, confirm cards before anything with side effects.
+Under all three: **trust**. Non-technical users first, privacy by default, confirm cards before anything with side effects. Trust is also Otty's ceiling, so it gets real engineering of its own: see [Trust: the ceiling](#trust-the-ceiling).
+
+The **relationship** comes first. One otter that grows with you, knows you and tells you the truth is what a generic agent can't copy.
 
 The long-run direction, from something you ask to something that looks after things for you, is in [AUTONOMY.md](AUTONOMY.md). Check big features against its checklist.
 
@@ -355,6 +357,45 @@ A greeting with a priority list for the next few hours, and wellbeing and produc
 | Private-only runs: a run that holds private data, with web and side-effecting tools off. The reverse of a job, which holds no private data | M | M | considering, needed by the focus list; uses D-26's labels |
 | Connections: one general way to link other apps and services as read-only sources of tasks, calendars and messages, each opted into separately. Calendar and Reminders come first | M | L | considering; content counts as private data and outside text at once |
 
+## Beyond Look after me: where Otty can go
+
+Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY.md](AUTONOMY.md#beyond-look-after-me). Every idea reaches the user through the otter.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| Honest pushback: "you said this was your priority, but it's slipped three weeks". Warm, rare and easy to turn down. Maybe Otty's most distinctive trait | H | M | considering, needs goals and the nudge record |
+| Prepared, not done: the meeting brief ready, the reply drafted, the form filled in, one tap from finished | H | M | considering, needs connections |
+| Patterns you can't see: "you always overcommit the week before a deadline", worked out from habits and past chats | H | M | idea, needs `recall` |
+| Goals, not tasks: "get my visa sorted" or "conversational Spanish by May", owned for weeks with a plan, deadlines and progress. Goes further than goal mode | H | L | considering, needs saved goals, after Stage 2 |
+| Long-run memory: "what did I decide about this last spring?" across years of chats | H | L | idea, builds on `recall` and D-10 |
+| Tools it builds for you: Otty spots a repeat and makes a small automation, starting as sandboxed, read-only recipes you can read in plain words | H | L | idea, needs chore recipes and the sandbox |
+| A character that grows: Otty's manner and in-jokes change with your history together, so it's clearly yours after a year | H | L | idea, extends Otty's den |
+| Do, with undo: routine changes just happen, with "tap to reverse" | H | L | idea, needs the action ledger |
+| Full app view: an expanded panel and control hub, and the home for goals, connections, the ledger and more. See [Three sizes of Otty](#three-sizes-of-otty-quick-view-panel-full-app) | H | L | considering, long-term |
+| Phone app: Otty goes with you, one relationship across devices | H | L | long-term; reopens the cloud decision |
+| Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
+| Otties that talk to each other: yours finds a meeting time with a colleague's | L | L | idea, not picked |
+
+## Trust: the ceiling
+
+How much Otty can do is limited by how much can be undone, explained and defended. A large, ongoing part of the work. The thinking is in [AUTONOMY.md](AUTONOMY.md#the-trust-ceiling). **A new level of reach ships only with its undo, visibility and attack tests, and they're built first.**
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| One stop control: pause everything Otty is doing, from the otter or the menu bar, in reach of anyone | H | S | considering, before Stage 2 ships widely |
+| Red-team sets: attacks in the eval that grow with every feature and every real attack, run before each release. Extends D-23's injection set | H | S–M | considering |
+| What left the Mac: a plain record of what was sent, to where and why | H | M | considering |
+| Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | considering, the base for "do, with undo" |
+| Why did you do that? on everything: one plain trail from action to job, trigger and the moment you agreed. Extends "Why did this happen?" | H | M | considering |
+| Taint tracking: code knows which runs touched outside text, and what they may do narrows to match | H | M | considering, builds on D-26's labels |
+| Earned limits: a record per action of how often Otty was right and how often it was undone, widening and narrowing what it may do | H | M | idea, extends the trust ladder |
+| Memory forensics: find where a memory came from, and remove it and everything it shaped, as the recovery for memory poisoning | M | M | idea, from D-10 |
+| Time to change your mind: a delay on anything leaving the Mac, like undo send | M | S | idea, with the first action that leaves |
+| Reversibility per connection: each one declares which actions can truly be undone, and the rest stay at Prepare | H | M | idea, with connections |
+| Rewind: undo everything from one job or one day, including what Otty learned from it | H | L | idea, needs the ledger |
+| Sandbox for anything generated: automations Otty writes run with the least they need | H | L | idea, before tools it builds |
+| Protect `otty.db`: encrypt it at rest, with the key in the Keychain, because a memory of someone's life is worth stealing | M | M | idea |
+
 ## Parked / rejected (with reasons)
 
 - **Open the panel without trying ⌘C when nothing is highlighted.** *Rejected:* Otty can only find out whether something is highlighted by trying to copy it, and showing the panel first would take focus and lose the selection. If the wait feels slow, shorten the clipboard poll instead (it currently waits up to about 420 ms).
@@ -397,6 +438,30 @@ Longer sketches for big ideas, so the thinking isn't lost. Not plans: a sketch m
 4. *(Much later, opt-in)* narrow "do this one step for me" actions with a confirm card, if users ask for them.
 
 **Depends on:** the D-1 OCR helper (text boxes), a Swift AX helper (also wanted for the selection observer), vision-capable models with decent grounding, and signed builds (so permissions survive updates).
+
+### Three sizes of Otty: quick view, panel, full app
+
+Otty has two sizes today, and a third is planned for the long term. Each one suits a different kind of moment, and all three show the same conversation from main.
+
+| View | For | Holds |
+| --- | --- | --- |
+| **Quick view** | A few seconds, at the cursor | Quick snips and highlights, one answer, a follow-up |
+| **Panel** | A conversation beside your work | Chat, Recent chats, Activity, Settings, as today |
+| **Full app** | Sitting down with Otty | An expanded panel, and the control hub for everything Otty does |
+
+**The full app** is a normal window, and a place regular users want to spend time, not a back room for settings. It's where things go that need room or don't belong beside your work:
+- Chats, Activity and what Otty knows, side by side rather than one view at a time.
+- Control: connections, limits, the Look after me permission, budgets and the stop control.
+- The trust work, which needs a place to live: the action ledger, what left the Mac, and rewind.
+- Future homes: goals and their progress, tools Otty built for you, chores and their inbox, and Otty's den.
+
+**Rules so it stays Otty:**
+- Otty the otter is still the most important thing, in all three views. The full app is the otter's home, not an admin console, so the pet is at the centre of it.
+- It's for everyone. Regular users should want to open it, so it has to be inviting and in plain words, with a reason to come back.
+- It complements the floating Otty and the overlays, in function and in look. They're one product: the same painted art, tokens and voice, and what starts in one carries on in the others.
+- Same conversation, same `ChatEvent`s: the ↵ "continue in chat" swap should simply go one size further.
+
+**What it changes:** Otty hides from the Dock (`LSUIElement`, `app.dock.hide()`), and a full window needs a Dock icon and a menu bar while it's open, then has to go back to hiding. Panel views that assume one narrow column will need to work wider too, so new ones should be built with that in mind.
 
 ### Desktops (Spaces) and full-screen apps
 
