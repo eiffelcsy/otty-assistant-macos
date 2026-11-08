@@ -272,11 +272,13 @@ const api: OttyApi = {
     answer.steps!.steps[index].done = done
     emit({ type: 'steps', id: answerId, card: structuredClone(answer.steps!) })
   },
+  checkStep: noop,
   stuckOnStep: noop,
   listActivity: async () => (scene === 'activity' ? activitySample : []),
   stopActivity: noop,
   answerActivity: noop,
   resumeActivity: noop,
+  retryActivity: noop,
   openActivity: noop,
   seenActivity: noop,
   onActivity: () => () => {},

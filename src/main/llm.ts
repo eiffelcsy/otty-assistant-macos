@@ -605,6 +605,16 @@ export class ChatSession {
     const found = this.card(answerId, index)
     return found && `I’m on step ${index + 1} (“${found.card.steps[index].text}”) and I’m stuck.`
   }
+
+  /** "I did it, check?": the user finished a step and wants Otty to look and say what's next. */
+  checkQuestion(answerId: string, index: number): string | null {
+    const found = this.card(answerId, index)
+    const next = found?.card.steps[index + 1]
+    return (
+      found &&
+      `I’ve done step ${index + 1} (“${found.card.steps[index].text}”). Can you check it worked${next ? ` and tell me if I’m ready for step ${index + 2}` : ' and tell me if I’m all done'}?`
+    )
+  }
 }
 
 /** An explanation, or a failure with friendly words. Only real explanations are kept. */

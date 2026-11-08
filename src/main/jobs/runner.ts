@@ -79,7 +79,7 @@ export class JobRunner {
 
   private async change(job: Job, change: JobChange): Promise<void> {
     Object.assign(job, change)
-    for (const key of ['waitUrl', 'error', 'resultThread'] as const) if (job[key] === null) delete job[key]
+    for (const key of ['waitUrl', 'error', 'resultThread', 'seenAt'] as const) if (job[key] === null) delete job[key]
     await this.store.update(job.id, { ...change, updatedAt: this.now() })
     job.updatedAt = this.now()
   }
@@ -180,6 +180,9 @@ export class JobRunner {
           this.deps.onChange(true)
           return
         }
+        // Say so, rather than sitting there looking busy. The next thing that arrives clears it.
+        await this.change(job, { error: 'Lost the connection. Trying again…' })
+        this.deps.onChange(false)
         await (this.deps.wait ?? pause)(this.limits.retryMs[tries], abort.signal)
         if (abort.signal.aborted) return this.afterInterrupt(job)
       }
@@ -202,6 +205,10 @@ export class JobRunner {
       history.push(brief)
       await store.appendStep(job.id, 0, brief)
     }
+
+    // A retry after a failure that came after the last reply: the report is there, so there's nothing to ask for.
+    const last = history.at(-1)
+    if (last?.role === 'assistant' && last.content && !last.tool_calls?.length) return new Supervisor({ rounds: job.rounds, lookups: job.lookups, workedMs: job.workedMs }, this.limits)
 
     const started = this.now()
     const workedBefore = job.workedMs
@@ -235,6 +242,7 @@ export class JobRunner {
         },
         wrapUp: WRAP_UP,
         resume: true,
+        idleMs: this.limits.idleMs,
         onEvent: (e) => {
           if ((e.type === 'tool-result' && JOB_TOOLS.has(e.name)) || (e.type === 'search' && e.status === 'done')) {
             job.lookups++
@@ -242,6 +250,12 @@ export class JobRunner {
           }
         },
         onMessage: (m) => {
+          // Something came through, so any "trying again" note is out of date.
+          if (job.error && job.status === 'working') {
+            delete job.error
+            void store.update(job.id, { error: null })
+            this.deps.onChange(false)
+          }
           void store.appendStep(job.id, history.length - 1, m)
           if (m.role === 'assistant') {
             job.rounds++
@@ -266,7 +280,8 @@ export class JobRunner {
   private async saveReport(job: Job, report: string): Promise<string> {
     const at = this.now()
     const thread: Thread = {
-      id: randomUUID(),
+      // A retry writes over the earlier partial report instead of leaving two.
+      id: job.resultThread ?? randomUUID(),
       title: job.title,
       createdAt: at,
       updatedAt: at,
@@ -299,8 +314,8 @@ export class JobRunner {
     const error = err instanceof FriendlyError ? err.message : 'Something went wrong along the way.'
     const report = this.reportIn(await this.store.steps(job.id))
     const resultThread = report ? await this.saveReport(job, report) : undefined
+    // The steps stay, so "Try again" carries on from the last one instead of paying for them twice.
     await this.change(job, { status: 'failed', error, waitUrl: null, ...(resultThread ? { resultThread, partial: true } : {}) })
-    await this.store.clearSteps(job.id)
     this.deps.onChange(true)
   }
 
@@ -333,6 +348,15 @@ export class JobRunner {
     const job = await this.store.get(id)
     if (job?.status !== 'paused') return
     await this.change(job, { status: 'queued', error: null })
+    this.deps.onChange(false)
+    void this.next()
+  }
+
+  /** Try again, from the last saved step. */
+  async retry(id: string): Promise<void> {
+    const job = await this.store.get(id)
+    if (job?.status !== 'failed') return
+    await this.change(job, { status: 'queued', error: null, seenAt: null })
     this.deps.onChange(false)
     void this.next()
   }
@@ -390,6 +414,7 @@ export class JobRunner {
       ...(j.error ? { note: j.error } : {}),
       ...(j.resultThread ? { chatId: j.resultThread } : {}),
       partial: j.partial,
+      ...(j.status === 'failed' ? { retry: true } : {}),
       unseen: j.status === 'waiting' || ((j.status === 'done' || j.status === 'failed') && !j.seenAt)
     }))
   }

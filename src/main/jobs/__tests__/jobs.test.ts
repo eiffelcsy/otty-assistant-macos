@@ -363,6 +363,70 @@ describe('surviving', () => {
   })
 })
 
+describe('trying again', () => {
+  it('carries on from the last saved step, and writes over the partial report', async () => {
+    const r = rig()
+    r.turns.push(search('1'), () => {
+      throw new FriendlyError('Your balance is empty.')
+    })
+    await r.runner.start(job)
+    const failed = await settled(r)
+    expect(failed).toMatchObject({ status: 'failed' })
+    expect((await r.runner.list())[0]).toMatchObject({ retry: true })
+
+    r.turns.push(say('Full report'))
+    await r.runner.retry(failed.id)
+    const done = await settled(r)
+    expect(done).toMatchObject({ status: 'done' })
+    // The retry's request still holds the first search, so nothing was paid for twice.
+    expect(r.requests.at(-1)!.messages.some((m) => m.role === 'tool')).toBe(true)
+    expect(r.requests.filter((q) => q.messages.length === 1)).toHaveLength(1)
+    expect(r.saved.at(-1)!.messages[1].text).toBe('Full report')
+  })
+
+  it('says so while it waits to reconnect, and clears the note once it’s through', async () => {
+    const lost = () => {
+      throw new ConnectionError('Otty can’t reach the internet.')
+    }
+    const r = rig()
+    let seen: string | undefined
+    r.turns.push(lost, () => {
+      void r.store.list().then((j) => (seen = j[0].error))
+      return say('Report') as never
+    })
+    await r.runner.start(job)
+    const done = await settled(r)
+    expect(seen).toBe('Lost the connection. Trying again…')
+    expect(done).toMatchObject({ status: 'done' })
+    expect(done.error).toBeUndefined()
+  })
+
+  it('treats a reply that goes quiet as a lost connection', async () => {
+    const store = new MemoryJobStore()
+    const hang: Provider = {
+      async *stream(_req, signal) {
+        await new Promise<void>((_, reject) => signal.addEventListener('abort', () => reject(Object.assign(new Error('x'), { name: 'AbortError' }))))
+        yield { type: 'done', stop: 'end' } as ProviderEvent
+      },
+      complete: async () => ({ text: '' })
+    }
+    const runner = new JobRunner({
+      store: () => store,
+      provider: () => hang,
+      tools: () => [],
+      webOff: () => false,
+      home: () => null,
+      saveThread: async () => {},
+      onChange: () => {},
+      wait: async () => {},
+      limits: { ...LIMITS, idleMs: 20, retryMs: [] }
+    })
+    await runner.start(job)
+    await new Promise((x) => setTimeout(x, 150))
+    expect((await store.list())[0]).toMatchObject({ status: 'paused' })
+  })
+})
+
 describe('stopping and forgetting', () => {
   it('stops a job that’s waiting', async () => {
     const r = rig()

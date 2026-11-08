@@ -6,6 +6,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 On `main`, for the next release. Tested with unit tests and the UI preview, not yet with a real model or in the real app (smoke-test steps 67–87).
 
+### Fixes from the first smoke test (2026-11-08)
+
+- **Math shows up even when the model writes `$x^2$`** or puts a ✓ inside a formula. `lib/mathText.ts` tidies both before drawing (prices and code are left alone), and the prompt now asks for `$$…$$` everywhere. The calculation in the linear-algebra example was right; only the drawing was wrong.
+- **Step cards have Done and Done, check it** on the current step, next to *I'm stuck*. The second ticks it, looks at the screen and has Otty say whether it worked and what's next.
+- **A dropped connection no longer leaves a job looking busy.** A reply that goes quiet for 90 seconds counts as a lost connection, the row says "Lost the connection. Trying again…", and after three tries it pauses with Keep going.
+- **Try again on a job that couldn't finish** (including one you stopped). Failed jobs now keep their saved steps, so it carries on from the last one instead of paying for them twice, and a later report writes over the partial one.
+
 ### Otty's own app icon (2026-11-06)
 
 - **The app and the `.dmg` now show painted Otty** on a meadow tile, instead of Electron's default icon. `tools/otty-art/prepare.py` makes it from the same art as the rest.

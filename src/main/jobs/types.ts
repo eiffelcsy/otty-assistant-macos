@@ -33,7 +33,8 @@ export interface Job {
   seenAt?: number
 }
 
-export type JobChange = Partial<Omit<Job, 'id' | 'createdAt' | 'waitUrl' | 'error' | 'resultThread'>> & {
+export type JobChange = Partial<Omit<Job, 'id' | 'createdAt' | 'waitUrl' | 'error' | 'resultThread' | 'seenAt'>> & {
+  seenAt?: number | null
   waitUrl?: string | null
   error?: string | null
   resultThread?: string | null

@@ -120,9 +120,10 @@ async function forgetAllChats(): Promise<void> {
 }
 
 /** The otter's snip of what's on screen, for "I'm stuck". Without Screen Recording, the words go alone. */
-async function stuckOnStep(answerId: string, index: number): Promise<void> {
-  const question = chat.stuckQuestion(answerId, index)
+async function stuckOnStep(answerId: string, index: number, check = false): Promise<void> {
+  const question = check ? chat.checkQuestion(answerId, index) : chat.stuckQuestion(answerId, index)
   if (!question) return
+  if (check) chat.tickStep(answerId, index, true)
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint())
   const { context } = await withWindowsHidden(shownWindows(), () => captureWholeScreen(display))
   const captures: Capture[] = context ? [{ id: randomUUID(), context, app: null }] : []
@@ -322,10 +323,12 @@ function registerIpc(): void {
   ipcMain.handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))
   ipcMain.handle('steps:run', (_e, answerId: string, index: number, sure?: boolean) => chat.runStep(String(answerId), Number(index), sure === true))
   ipcMain.handle('steps:tick', (_e, answerId: string, index: number, done: boolean) => chat.tickStep(String(answerId), Number(index), Boolean(done)))
+  ipcMain.handle('steps:check', (_e, answerId: string, index: number) => stuckOnStep(String(answerId), Number(index), true))
   ipcMain.handle('steps:stuck', (_e, answerId: string, index: number) => stuckOnStep(String(answerId), Number(index)))
   ipcMain.handle('activity:list', () => activity())
   ipcMain.handle('activity:stop', (_e, item: ActivityItem) => (item.kind === 'job' ? jobs.stop(item.id) : chat.stopChat(item.id)))
   ipcMain.handle('activity:answer', (_e, id: string, allow: boolean) => jobs.answer(String(id), Boolean(allow)))
+  ipcMain.handle('activity:retry', (_e, id: string) => jobs.retry(String(id)))
   ipcMain.handle('activity:resume', (_e, id: string) => jobs.resume(String(id)))
   ipcMain.handle('activity:seen', () => jobs.markSeen())
   ipcMain.handle('activity:open', async (_e, item: ActivityItem) => {

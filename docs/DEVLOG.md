@@ -415,3 +415,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 86. Turn off **Remember my chats**, run a job, quit → no trace in `otty.db`. **Forget all chats** with a job running → it stops and is gone. Delete the chat that started a job → it stops.
 87. On a model on this Mac → Otty never offers a job. Measure idle with `OTTY_METRICS=1`: with a job running, and once nothing is → under NFR-3 when idle.
 88. `npm run build:mac`, open the `.dmg` → Otty's icon on the mounted disk and on the app, in Finder and in `/Applications` after dragging it there.
+89. Ask for a formula with inline math (a matrix, then "check: trace = 7") → every formula is drawn, none shows `$` or red text. A price like "$5 and $10" stays text.
+90. On a step card, press **Done** on step 1 → it ticks and step 2 becomes current. Press **Done, check it** → Otty looks at the screen and says whether it worked.
+91. Start a job, turn Wi-Fi off → within about 2 minutes the row says "Lost the connection. Trying again…", then Paused. Turn Wi-Fi on → Keep going continues from where it was. Stop a job → **Try again** carries on from its last step, and the report replaces the partial one.

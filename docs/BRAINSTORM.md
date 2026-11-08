@@ -213,6 +213,9 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Retry, edit and rewind on your own messages, like other chat apps: run a question again, change it and resend, or go back to that point. Cutting the history there keeps the cache valid, because what's left is a prefix. Anything the later turns did stays shown with its own Undo: memories, step cards, jobs | H | S–M | idea |
+| Copy on your own messages, beside the Copy that answers already have | M | S | idea |
+| Keep each version after a retry or an edit, with ‹ 1/2 › to switch between them, as other chat apps do. Needs branching history in `otty.db` | M | M | idea, after retry and edit |
 | Customisable hotkeys with a key recorder (not a text field) | M | S | idea |
 | File picker's filter leaves out TIFF, BMP and code files that Otty can read (they only show under All files) | L | S | idea |
 | Remember the panel's size and position per display | L | S | idea |
