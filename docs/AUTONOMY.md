@@ -114,6 +114,7 @@ Long work returns a handle, and the result arrives later as an event. Waiting is
 | Quick view | A short answer |
 | Inbox note | A headline and a few lines |
 | Panel | As long as it needs |
+| Full app (planned) | Everything at once, and the controls |
 
 ### 9. State outlives the process
 
@@ -176,7 +177,7 @@ Chat turn        Jobs         own history, locked tools, budget, saved step by s
    ├───────────────┘
 Attention    quiet mode, daily allowance, confidence
    │
-Surfaces     otter's mood · speech bubble · quick view · inbox · panel
+Surfaces     otter's mood · speech bubble · quick view · inbox · panel · full app
 ```
 
 A question from the user skips straight to a chat turn, so NFR-1 and NFR-2 are unaffected.
@@ -210,7 +211,7 @@ Cards can turn into a habit people click through, which weakens them, so their n
 
 ### Look after me
 
-The furthest this direction goes for now: Otty greets you with a short priority list for the next few hours, and offers wellbeing and productivity suggestions nobody asked for.
+The first level where Otty speaks up unasked. It greets you with a short priority list for the next few hours, and offers wellbeing and productivity suggestions nobody asked for. It only suggests, so it's a step on the way, not the top. See [Beyond Look after me](#beyond-look-after-me).
 
 **Priority: medium, and on purpose.** Autonomy compounds, so it builds on whatever is underneath it, flaws included. This waits for a strong foundation: the eval, tool labels, standing work and real use of what has shipped.
 
@@ -250,6 +251,62 @@ This doesn't reopen "Watching". Context comes from connections and local signals
 - **D-1 intents:** its encoder is the gate's local judgement stage.
 - **D-13 history budget:** Inline & Spill for chats.
 
+## Beyond Look after me
+
+The stages above measure who starts the work, not how much Otty takes on. By that ladder alone, Otty tops out as a thoughtful assistant that hands everything back. This is where it goes after that. It's long-term, and it all sits behind [the trust ceiling](#the-trust-ceiling).
+
+**The relationship comes first.** The further Otty goes, the more it risks becoming a generic agent with an otter on top. One character that grows with you, knows you and is allowed to tell you the truth is what a big assistant can't easily copy. So every capability here reaches the user through the otter, and any feature that makes Otty feel less like *your* otter is the wrong design, however capable.
+
+**A second ladder: reach.** How far Otty goes on its own, separate from who starts it:
+
+| Reach | What it means | Example |
+| --- | --- | --- |
+| **Show** | It tells you | Answers, today |
+| **Suggest** | It offers | Look after me |
+| **Prepare** | It does the work, and stops one tap short | The brief is ready, the reply is drafted, the form is filled in |
+| **Do, with undo** | It does it, and says how to reverse it | "Moved your 3pm, tap to reverse" |
+| **Act in your name** | It does what can't be taken back | Sending, booking, paying |
+
+Each action climbs separately, and only as its record earns it. **Prepare is the sweet spot:** it gives most of the value of acting, and it has nothing to undo. Acting in your name isn't a goal for now.
+
+**Where Otty grows:**
+- **Prepared, not done.** You sit down and the work is waiting, one tap from finished.
+- **Goals, not tasks.** You say "get my Japan visa sorted" or "conversational Spanish by May", and Otty owns it for weeks: it keeps the plan, tracks deadlines, notices when things stall, and adjusts. Goals outlive any one job, so they need their own saved state.
+- **Understanding you, not only remembering.** It can answer "what did I decide about this last spring?" across years of chats, and spot what you can't see, like overcommitting the week before a deadline. That goes beyond D-10's facts, and needs `recall` and long-run memory.
+- **Honest pushback.** "You said this was your priority, but it's slipped three weeks." Few assistants risk disagreeing with you, so this may be Otty's most distinctive trait. It has to come from warmth, stay rare, and be easy to turn down. It's the attention budget's hardest case, because being wrong here hurts more than being quiet.
+- **Tools it builds for you.** Otty notices a repeat and makes a small automation, so over time you have skills nobody else has, learned from how you work. Generated code is the riskiest thing it can run, so these start as sandboxed, read-only recipes you can read in plain words.
+- **A full app view, in the long term.** Beside the quick view and panel, a normal window that's an expanded panel and a control hub. It's a place regular users want to spend time, where connections, limits, goals and the action ledger have room to live. It complements the floating otter and overlays in function and look, and the otter stays the most important thing in it. See [Three sizes of Otty](BRAINSTORM.md#three-sizes-of-otty-quick-view-panel-full-app).
+- **A phone app, in the long term.** Otty goes with you, so one relationship spans your devices. It reopens the cloud decision below, because something has to run and sync while the Mac sleeps, and it can't weaken the privacy promises to do so.
+
+## The trust ceiling
+
+**Trust is Otty's ceiling, not model ability.** Better models keep arriving. What limits how much Otty can do is how much can safely be undone, how well it can explain itself, and how well it holds up against people trying to misuse it. So trust is one of the largest engineering efforts in Otty, not a layer of safety on top. Rented models improve by themselves, and this has to be built.
+
+**1. Version control for a digital life.** A coding agent has git, and Otty needs something like it for everything it touches:
+- **A ledger of every change:** what changed, where, why and what it looked like before, saved before the action runs.
+- **Reversible by design:** each action declares how it's undone. Anything that can't be undone can't be done without a click.
+- **Time to change your mind:** a delay on things that leave the Mac, like Gmail's undo send, so a mistake can be caught.
+- **Rewind:** undo one action, or everything from one job or one day, including what Otty learned from it.
+- **The honest limit:** a sent email stays sent. Connections have to say which of their actions are truly reversible, and the rest stay at Prepare.
+
+**2. Visibility.** The user should never have to wonder:
+- **"Why did you do that?"** on anything, following the links from action to job, trigger and the moment they agreed.
+- **What left the Mac:** a plain record of what was sent, to where, and why.
+- **What it knows and what it cost,** in everyday words, with honest uncertainty.
+- It has to stay readable for someone non-technical. A log nobody can read isn't visibility.
+
+**3. Defending against attacks.** Once Otty reads the world and acts on it, people will try to steer it:
+- **Prompt injection** through pages, emails, documents and calendar invites. Outside text stays data, and code tracks which runs have touched it, so what a run may do depends on what it has read.
+- **Memory poisoning:** planting a false "fact" that shapes answers for months. D-10's guard is the start, and rewind is the recovery.
+- **Leaking data:** the Rule of Two in code, and no private data and outside text in a run with a way out.
+- **Tools that turn hostile:** connections and generated automations run with the least they need, in a sandbox.
+- **The Mac itself:** signed updates, and protecting `otty.db`, because a memory of someone's life is worth stealing.
+- **Attacking ourselves:** red-team sets in the eval that grow with every feature and every real attack, run before each release.
+
+**4. Autonomy that's earned.** Limits widen from a measured record, not a hunch: how often Otty was right, how often it was undone, per action. A mistake narrows them again. Above it all sits one control that stops everything at once, in reach of anyone.
+
+**The rule:** a new level of reach ships only when its undo, its visibility and its attack tests ship with it, and they're built first.
+
 ## What we're not taking
 
 - **Cloud compute.** It conflicts with privacy and bring-your-own-key, for a benefit (running while the Mac sleeps) that catch-up on wake mostly covers.
@@ -272,11 +329,14 @@ Not every feature needs all of this now, but none should make the direction hard
 7. **What does it cost?** In attention as well as tokens. Does it fit the budget, and is that visible?
 8. **Can it be seen, stopped and undone?** And can Otty say why it happened?
 9. **Does a better model make it better?** Or is it a scaffold to remove later?
+10. **Does it strengthen the relationship?** Does it feel like *your* otter did this, or a generic agent?
+11. **Could it be misused?** What would an attacker do with it, and is that in the red-team set?
 
 ## Open decisions
 
 - **NFR-5 needs rewording before Stage 2.** It says nothing is sent until the user asks a question, and a standing recipe sends later. Something like "until the user asks, or has agreed to something that says so" would keep its spirit, and it also covers Look after me. It's the one place this direction changes a promise made to users.
 - **What exactly does Look after me send, and how often?** Decided: one permission, asked for at onboarding, for suggestions only. Still open: the wording of that screen, whether it starts on or off, and how existing users get asked.
+- **Does a phone app need the cloud?** Something has to run and sync while the Mac sleeps. That reopens "Cloud compute" below, and it has to work without weakening privacy or bring-your-own-key. Long-term.
 - **How small should the attention budget start?** It should probably begin at one unprompted thing a day, and grow only if people engage.
 - **Where do jobs run?** Most of a job is waiting on the network, so main is fine to start, but a utility process (like `fileWorker.js`) gives stronger isolation. Measure before deciding.
 - **What does "private" cover for cloud models?** Already open in Otty's chores, and it decides how far Stage 4 can go.
