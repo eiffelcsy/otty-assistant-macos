@@ -382,7 +382,7 @@ How much Otty can do is limited by how much can be undone, explained and defende
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| One stop control: pause everything Otty is doing, from the otter or the menu bar, in reach of anyone | H | S | considering, before Stage 2 ships widely |
+| One stop control: pause everything Otty is doing, from the otter or the menu bar, in reach of anyone | H | S | → D-27 |
 | Red-team sets: attacks in the eval that grow with every feature and every real attack, run before each release. Extends D-23's injection set | H | S–M | considering |
 | What left the Mac: a plain record of what was sent, to where and why | H | M | considering |
 | Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | considering, the base for "do, with undo" |

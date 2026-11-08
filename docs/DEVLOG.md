@@ -65,23 +65,30 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-23 | Otty eval: real-model runs for math, memory, steps, jobs and injection | ⏳ | a key | M (2–3 days) |
-| D-24 | Used: show which memories shaped an answer | ⏳ | — | S (half a day) |
-| D-25 | Fast and Best: two model slots | ⏳ | — | S (1 day) |
 | D-26 | Tool safety labels, and the Rule of Two in code | ⏳ | — | S–M (1–2 days) |
-| D-27 | Ask me later: scheduled read-only jobs, launch at login (Stage 2) | ⏳ | D-26, NFR-5 reworded | M (3–4 days) |
+| D-24 | Used: show which memories shaped an answer | ⏳ | — | S (half a day) |
+| D-27 | Ask me later: scheduled read-only jobs, a stop control, launch at login (Stage 2) | ⏳ | D-26, NFR-5 reworded; launch at login needs signed builds | M (3–4 days) |
+| D-25 | Fast and Best: two model slots | ⏳ | — | S (1 day) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
 
-**Where things stand (2026-11-06).** 0.5.0 is tagged, and its release is a draft waiting to be published. Smoke-test steps 55–58 passed on DeepSeek. Steps 59–61 need other services and are **yet to be tested**, and steps 62–66 have no result yet. On the way for the next release: memory (D-10), math (D-12), step cards (D-11) and Keep going (D-22); see CHANGELOG → Unreleased. All of it passes unit tests and the UI preview, but **none of it has run against a real model or on a real Mac app yet**: System Events actions, sleep and wake, and NFR-3 with a job running are all unmeasured. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
+**Where things stand (2026-11-08).** 0.5.0 is tagged, and its release is a draft waiting to be published. Smoke-test steps 55–58 passed on DeepSeek. Steps 59–61 need other services and are **yet to be tested**, and steps 62–66 have no result yet. On `main` for the next release: memory (D-10), math (D-12), step cards (D-11) and Keep going (D-22); see CHANGELOG → Unreleased. All of it passes unit tests and the UI preview, but **none of it has run against a real model or on a real Mac app yet**: System Events actions, sleep and wake, and NFR-3 with a job running are all unmeasured. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
-**Build order**
-1. **Try it on a Mac:** smoke-test steps 67–87 on DeepSeek, then re-measure NFR-3 with a job running and after it ends. This comes first because everything since 0.5.0 is untried.
-2. **D-23 Otty eval.** It turns that trying into something repeatable, and it's how the tiers and prompts get tuned.
-3. **D-24 Used.** Half a day, and it finishes the visibility story for memory.
-4. **D-25 Fast and Best.** Jobs and titles are the first features that clearly want different models.
-5. **D-26 Tool safety labels,** then **D-27 Ask me later**, which needs them, and needs NFR-5 reworded first.
-6. **Later: Look after me** (AUTONOMY.md, BRAINSTORM). The greeting, focus list and wellbeing suggestions are medium priority on purpose, because autonomy compounds on whatever is under it. They come after a strong foundation, and aren't planned here yet. Past that, AUTONOMY.md sets the long-term direction, and [the trust ceiling](AUTONOMY.md#the-trust-ceiling) sets the pace: each new level of reach ships with its undo, visibility and attack tests.
-7. Then **D-1**, starting with its step 0, which may shrink it. The OCR helper is already built. Signing and notarization (BRAINSTORM, "Trust") should land before builds go to other people; the `dmg` workflow can then sign with secrets. **D-14** waits until it's picked back up.
+**Build order** (reassessed 2026-11-08 against the long-term direction: the relationship first, and trust as the ceiling)
+1. **Try it on a Mac:** smoke-test steps 67–88 on DeepSeek, then re-measure NFR-3 with a job running and after it ends. Everything since 0.5.0 is untried, and its safety rules depend on how a real model behaves, so building on it now would compound unknowns. Then publish 0.5.0, or replace it with the next release.
+2. **D-23 Otty eval.** It turns that trying into something repeatable, and tunes the tiers and prompts. Its injection set is the first piece of [the trust ceiling](AUTONOMY.md#the-trust-ceiling).
+3. **D-26 Tool safety labels.** Moved up: taint tracking, earned limits and D-27 all stand on one source of truth about what each tool does.
+4. **D-24 Used.** Half a day. It makes memory visible when it's read, not only when it's written, which is trust and relationship at once.
+5. **D-27 Ask me later,** with **one stop control** shipped alongside it, because the trust rule says a new level of reach comes with its controls. Needs NFR-5 reworded first. Launch at login needs signed builds, which needs an Apple Developer account. Without one, D-27 ships without launch at login.
+6. **D-25 Fast and Best.** Moved down: it saves money, but nothing waits on it.
+7. **Next candidates,** to promote when the above is done:
+   - **The otter shows what's happening:** moods that mirror background work. It's a cheap relationship win now that jobs exist.
+   - **What left the Mac:** a plain record of what was sent, to where and why. Most useful once Otty starts work unasked.
+   - **Signing and notarization:** needed before builds go to other people, and for launch at login. The `dmg` workflow can then sign with secrets.
+8. **Later: Look after me** (AUTONOMY.md, BRAINSTORM). The greeting, focus list and wellbeing suggestions are medium priority on purpose, because autonomy compounds on whatever is under it. Past that, AUTONOMY.md sets the long-term direction, and the trust ceiling sets the pace: each new level of reach ships with its undo, visibility and attack tests.
+9. Then **D-1**, starting with its step 0, which may shrink it. The OCR helper is already built. **D-14** waits until it's picked back up.
+
+**Design now for later:** new panel views should work at any width, because a full app view is planned (BRAINSTORM, "Three sizes of Otty").
 
 ---
 
@@ -221,11 +228,12 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - **A `schedule_job({ title, brief, at })` tool**, always with a card in plain words: "Tomorrow at 9, Otty will look this up and leave a note. It won't send anything." It's the same job as today, with a `due_at` column (migration v4) and a new state, **scheduled**.
 - **One timer** set for the next due job, reset when the list changes. No polling, so NFR-3 holds.
 - **Asleep or quit at that time:** it runs once on wake or launch, and says it ran late. A missed job runs once, not three times. Past 24 hours, it asks first, like any other job.
-- **Launch at login** comes with this, as a setting that's off by default, and the card says Otty has to be running.
+- **Launch at login** comes with this, as a setting that's off by default, and the card says Otty has to be running. It needs signed builds, so without them it waits.
+- **One stop control** ships with it: pause everything Otty is doing, from the otter's menu or the menu bar. It's the first unprompted work, so the trust rule says its control comes too.
 - **NFR-5 is reworded first**, as AUTONOMY.md says: "until the user asks, or has agreed to something that says so". That's a promise to users, so it's the user's call before this ships.
 - **Attention:** a finished job only sets the dot. Nothing pops up.
 
-**Build.** 1. NFR-5, and the Settings copy. 2. Migration, `scheduled`, and the timer. 3. The tool, the card and the rule in `prompts.ts`. 4. Late and missed jobs. 5. Activity rows with a time, and Cancel. 6. Launch at login. Then re-measure NFR-3.
+**Build.** 0. The stop control. 1. NFR-5, and the Settings copy. 2. Migration, `scheduled`, and the timer. 3. The tool, the card and the rule in `prompts.ts`. 4. Late and missed jobs. 5. Activity rows with a time, and Cancel. 6. Launch at login. Then re-measure NFR-3.
 
 **Done when.** "Check the Tokyo rail pass price tomorrow at 9" shows the card, runs at 9 with the Mac awake, runs once on wake if it was asleep, and shows up as a normal chat. Cancelling stops it, and idle CPU stays under NFR-3 with jobs scheduled.
 
