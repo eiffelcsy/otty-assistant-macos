@@ -53,6 +53,11 @@ function Row({ item, onOpen }: { item: ActivityItem; onOpen: () => void }) {
             Keep going
           </button>
         )}
+        {item.state === 'failed' && item.retry && (
+          <button className="btn btn--primary btn--small" onClick={() => void window.otty.retryActivity(item.id)}>
+            Try again
+          </button>
+        )}
         {item.chatId && (
           <button className="btn btn--soft btn--small" onClick={open}>
             Open

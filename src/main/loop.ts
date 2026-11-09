@@ -1,4 +1,4 @@
-import { FriendlyError, type ChatRequest, type Message, type Provider, type ProviderReplay, type ToolCall } from './providers'
+import { ConnectionError, FriendlyError, type ChatRequest, type Message, type Provider, type ProviderReplay, type ToolCall } from './providers'
 import { runTool, toolLabel, type ToolContext, type ToolOutcome } from './tools'
 
 // The tool loop: ask the model, run what it calls, and ask again until it answers. It knows nothing about chats, so
@@ -30,6 +30,8 @@ export interface LoopOptions {
   stopTools?: () => boolean
   /** Told to the model when its tools end, so it can write up what it has. */
   wrapUp?: string
+  /** A reply that goes quiet this long counts as a lost connection, so a dropped network can't leave it hanging. */
+  idleMs?: number
   /** Picks up a history that stopped part way: tool calls with no result yet run first. */
   resume?: boolean
   onEvent(e: LoopEvent): void
@@ -78,16 +80,30 @@ export async function runLoop(o: LoopOptions): Promise<void> {
   // Claude's own search isn't in the tool list, so an allowed list has to switch it off separately.
   const serverSearch = !o.context.allowed || o.context.allowed.has('search_web')
 
-  let wrapped = false
+  // A retry after a stop or failure may already hold the wrap-up note; saying it twice would cost tokens for nothing.
+  let wrapped = Boolean(o.wrapUp && o.history.some((m) => m.role === 'user' && m.content === o.wrapUp))
   for (let round = 0; round <= o.maxRounds; round++) {
     const toolsOff = Boolean(o.stopTools?.()) || round >= o.maxRounds
     if (toolsOff && o.wrapUp && !wrapped) {
       wrapped = true
       add({ role: 'user', content: o.wrapUp })
     }
+    const quiet = new AbortController()
+    let stalled = false
+    let watchdog: ReturnType<typeof setTimeout> | undefined
+    const arm = () => {
+      clearTimeout(watchdog)
+      if (o.idleMs) {
+        watchdog = setTimeout(() => {
+          stalled = true
+          quiet.abort()
+        }, o.idleMs)
+      }
+    }
+    arm()
     const replies = o.provider().stream(
       { system: o.system, messages: o.history, tools: o.tools(), toolsOff, serverSearch, ...(o.reasoning ? { reasoning: o.reasoning } : {}) },
-      o.signal
+      o.idleMs ? AbortSignal.any([o.signal, quiet.signal]) : o.signal
     )
 
     let content = ''
@@ -96,7 +112,9 @@ export async function runLoop(o: LoopOptions): Promise<void> {
     let replay: ProviderReplay | undefined
     let paused = false
 
-    for await (const event of replies) {
+    try {
+      for await (const event of replies) {
+        arm()
       if (event.type === 'reasoning') reasoning += event.text
       if (event.type === 'tool') toolCalls.push(event.call)
       if (event.type === 'done') {
@@ -109,6 +127,12 @@ export async function runLoop(o: LoopOptions): Promise<void> {
         content += event.text
         o.onEvent({ type: 'text', text: event.text })
       }
+      }
+    } catch (err) {
+      if (stalled && !o.signal.aborted) throw new ConnectionError('Otty can’t reach the internet. Check your connection and try again.')
+      throw err
+    } finally {
+      clearTimeout(watchdog)
     }
 
     add({

@@ -14,7 +14,7 @@ const MATH = `Numbers and math:
 - Never do arithmetic from memory, even easy sums. Plan every number first, then make ONE calculate call with all the steps. If there's only a formula to explain and no number to find, you don't need it.
 - Homework and "how do I solve this": numbered steps, then the answer in bold with its units, then a check line (put the answer back in, or estimate the size).
 - Round for the question (money to 2 places, people to whole numbers), then say what it means in plain words.
-- Write math as $$…$$, on its own line for a block. Prices stay plain, like $5, with no $$.`
+- Write ALL math as $$…$$, inline too (like $$x^2$$ in a sentence), and on its own line for a block. Never a single $ for math. Prices stay plain, like $5. Inside math use only LaTeX: no ✓ or other symbols.`
 
 const STEPS = `Things the user does on their Mac:
 - For 2 or more steps the user carries out on their Mac, call show_steps instead of writing a numbered list, then add at most one short line. Not for explanations, one-liners or anything only you are doing.

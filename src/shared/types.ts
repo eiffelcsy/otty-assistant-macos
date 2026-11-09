@@ -256,6 +256,8 @@ export interface ActivityItem {
   chatId?: string
   /** Only part of the answer, because it ran out of room. */
   partial?: boolean
+  /** "Try again" can carry on from the last saved step. */
+  retry?: boolean
   unseen: boolean
 }
 
@@ -352,6 +354,8 @@ export interface OttyApi {
   /** Presses a step's button. `sure` is the second click on a risky step. */
   runStep(answerId: string, index: number, sure?: boolean): Promise<void>
   tickStep(answerId: string, index: number, done: boolean): Promise<void>
+  /** "I've done this step": ticks it, looks at the screen and has Otty check it worked. */
+  checkStep(answerId: string, index: number): Promise<void>
   /** "I'm stuck on this step": looks at the screen and asks. */
   stuckOnStep(answerId: string, index: number): Promise<void>
   listActivity(): Promise<ActivityItem[]>
@@ -360,6 +364,8 @@ export interface OttyApi {
   answerActivity(id: string, allow: boolean): Promise<void>
   /** Keep going. */
   resumeActivity(id: string): Promise<void>
+  /** Try again, from the last saved step. */
+  retryActivity(id: string): Promise<void>
   openActivity(item: ActivityItem): Promise<void>
   /** Activity is on show, so finished work has been seen. */
   seenActivity(): Promise<void>

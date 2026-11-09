@@ -9,6 +9,7 @@ import { wordDiff } from '../../../shared/diff'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { Icon } from '../components/Icon'
 import { closedMath } from '../lib/closedMath'
+import { tidyMath } from '../lib/mathText'
 
 /** Lets explain-term pop-ups send follow-up questions into the chat. */
 export const AskContext = createContext<(text: string, action?: QuickAction) => void>(() => {})
@@ -257,13 +258,14 @@ const mathRehypePlugins = [[rehypeKatex, { throwOnError: false }] as never]
 
 export function Markdown({ text, language = 'en' }: { text: string; language?: AnswerLanguage }) {
   // Most answers have no math, so they skip the plugins altogether.
-  const math = text.includes('$$')
+  const tidy = tidyMath(text)
+  const math = tidy.includes('$$')
   return (
     <div className="md">
       <AnswerContext.Provider value={{ text, language }}>
         <ReactMarkdown remarkPlugins={math ? mathRemarkPlugins : remarkPlugins} rehypePlugins={math ? mathRehypePlugins : undefined} components={components}>
           {/* Tips arrive as `> 💡 …`; the card draws its own icon, so drop the emoji. */}
-          {(math ? closedMath(text) : text).replace(/^(\s*>\s*)💡\s*/gm, '$1')}
+          {(math ? closedMath(tidy) : tidy).replace(/^(\s*>\s*)💡\s*/gm, '$1')}
         </ReactMarkdown>
       </AnswerContext.Provider>
     </div>

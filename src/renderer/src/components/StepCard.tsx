@@ -63,9 +63,17 @@ function StepRow({ answerId, step, index, current, app, stuck }: { answerId: str
         )}
         {step.note && <div className="step__note">{step.note}</div>}
         {current && stuck && (
-          <button className="step__stuck" onClick={() => void window.otty.stuckOnStep(answerId, index)}>
-            I’m stuck on this step
-          </button>
+          <div className="step__row">
+            <button className="btn btn--small btn--soft" onClick={() => void window.otty.tickStep(answerId, index, true)}>
+              Done
+            </button>
+            <button className="btn btn--small btn--soft" onClick={() => void window.otty.checkStep(answerId, index)}>
+              Done, check it
+            </button>
+            <button className="step__stuck" onClick={() => void window.otty.stuckOnStep(answerId, index)}>
+              I’m stuck
+            </button>
+          </div>
         )}
       </div>
     </li>

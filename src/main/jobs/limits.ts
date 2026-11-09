@@ -8,6 +8,8 @@ export interface Limits {
   sameCall: number
   /** Dropped connections in a row before pausing, with the wait before each retry. */
   retryMs: readonly number[]
+  /** No word from the model for this long counts as a dropped connection. */
+  idleMs: number
   /** Left this long, a job asks before spending again. */
   staleMs: number
   /** Jobs waiting their turn. */
@@ -19,6 +21,7 @@ export const LIMITS: Limits = {
   lookups: 30,
   workMs: 15 * 60_000,
   sameCall: 3,
+  idleMs: 90_000,
   retryMs: [5_000, 20_000, 60_000],
   staleMs: 24 * 3_600_000,
   queue: 5
