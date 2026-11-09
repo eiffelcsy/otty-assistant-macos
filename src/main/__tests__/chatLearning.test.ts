@@ -99,6 +99,29 @@ describe('learning in a chat', () => {
     expect(lastUser()).toContain('Has a cat')
   })
 
+  it('shows which memories matched the question, and only those', async () => {
+    store.add({ text: 'Is learning Spanish', origin: 'told' })
+    store.add({ text: 'Has a cat', origin: 'told' })
+    const { chat, events } = session()
+    await chat.send('How do I say thank you in Spanish?', [], null)
+    const used = events.find((e) => e.type === 'memory-used') as Extract<ChatEvent, { type: 'memory-used' }>
+    expect(used.used.map((u) => u.text)).toEqual(['Is learning Spanish'])
+    // Both were sent. Being sent isn't being used.
+    expect(lastUser()).toContain('Has a cat')
+
+    const { chat: other, events: quiet } = session()
+    await other.send('What is the capital of France?', [], null)
+    expect(quiet.some((e) => e.type === 'memory-used')).toBe(false)
+  })
+
+  it('shows nothing when learning is off', async () => {
+    store.add({ text: 'Is learning Spanish', origin: 'told' })
+    learn = false
+    const { chat, events } = session()
+    await chat.send('How do I say thank you in Spanish?', [], null)
+    expect(events.some((e) => e.type === 'memory-used')).toBe(false)
+  })
+
   it('says so when an earlier note no longer holds', async () => {
     const told = store.add({ text: 'Likes tea', origin: 'told' })
     const { chat } = session()

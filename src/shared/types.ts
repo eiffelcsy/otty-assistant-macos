@@ -205,6 +205,8 @@ export type ChatMessage =
       /** When the answer started (ms since epoch). Absent in chats saved before 0.4. */
       at?: number
       memories?: MemoryNote[]
+      /** Memories that matched the question or the app, so the answer may lean on them (D-24). At most two. */
+      used?: UsedMemory[]
       /** An instant answer: worked out on the Mac, with no model call. */
       calc?: { expression: string; result: string }
       steps?: StepCard
@@ -228,6 +230,12 @@ export interface Memory {
   createdAt: number
   updatedAt: number
   expiresAt?: number
+}
+
+/** A memory shown under an answer as "Used". The words are kept with the answer, so the line stays true if the memory changes later. */
+export interface UsedMemory {
+  memoryId: number
+  text: string
 }
 
 /** The "Noted" line under an answer. It stays in the saved chat, so where a memory came from is never a mystery. */
@@ -296,6 +304,8 @@ export type ChatEvent =
   | { type: 'error'; id: string; message: string }
   /** Otty saved, changed or forgot a memory, or Undo was pressed on one (`note.undone`). */
   | { type: 'memory'; id: string; note: MemoryNote }
+  /** Which memories matched this question. Sent once, as the answer starts. */
+  | { type: 'memory-used'; id: string; used: UsedMemory[] }
   /** A step card appeared or changed. */
   | { type: 'steps'; id: string; card: StepCard }
   /** "Don't learn from this chat" changed. */

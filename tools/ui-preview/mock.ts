@@ -118,6 +118,7 @@ const memorySample: ChatMessage[] = [
     role: 'assistant',
     tools: [],
     text: 'It’s **gracias**. For “thank you very much”, say **muchas gracias**.',
+    used: [{ memoryId: 3, text: 'Is learning Spanish' }],
     memories: [
       { memoryId: 1, text: 'Is learning Spanish', action: 'added' },
       { memoryId: 2, text: 'Mostly works in Excel and Safari', action: 'updated', before: 'Mostly works in Excel' }

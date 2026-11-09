@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, MemoryNote, QuickAction, SendOptions, StepApp, StepCard } from '../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, MemoryNote, QuickAction, UsedMemory, SendOptions, StepApp, StepCard } from '../shared/types'
 import { capturedText } from '../shared/captures'
 import { mathTier } from '../shared/math'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
@@ -68,12 +68,14 @@ function safely<T>(fallback: T, fn: () => T): T {
 }
 
 /** What's sent with this question. An earlier note stays in the history, so if nothing's left to say, that has to be said. */
-function memoryNote(question: string, app: string | null, history: Thread['history']): string {
-  const { note, ids } = getStored().learn ? safely({ note: '', ids: [] as number[] }, () => memoryStore().forPrompt(question, app)) : { note: '', ids: [] }
+function memoryNote(question: string, app: string | null, history: Thread['history']): { note: string; used: UsedMemory[] } {
+  const none = { note: '', ids: [] as number[], matched: [] as { id: number; text: string }[] }
+  const { note, ids, matched } = getStored().learn ? safely(none, () => memoryStore().forPrompt(question, app)) : none
   safely(undefined, () => ids.length && memoryStore().markUsed(ids))
-  if (note) return note
+  const used = matched.slice(0, 2).map((m) => ({ memoryId: m.id, text: m.text }))
+  if (note) return { note, used }
   const told = history.some((m) => m.role === 'user' && JSON.stringify(m.content).includes(MEMORY_NOTE))
-  return told ? `${MEMORY_NOTE}: nothing at the moment.]` : ''
+  return { note: told ? `${MEMORY_NOTE}: nothing at the moment.]` : '', used }
 }
 
 interface Turn {
@@ -415,13 +417,17 @@ export class ChatSession {
     const turnStart = history.length
     // Saved as sent: nothing already sent may change, or DeepSeek's cache misses from that point on.
     const where = (captures[0]?.app ?? app)?.name ?? null
-    const known = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
+    const { note: known, used } = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
     const stepNotes = this.stepNotes.get(thread.id) ?? []
     this.stepNotes.delete(thread.id)
     const note = [turnNote(language, home), known, ...stepNotes].filter(Boolean).join('\n')
     history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), note) })
     const system = systemPrompt(home, activeProfile().web !== 'off', Boolean(getStored().learn))
     this.tell(thread, { type: 'start', id, language })
+    if (used.length) {
+      answer.used = used
+      this.tell(thread, { type: 'memory-used', id, used })
+    }
     this.noticeHabits(thread, turn, answer)
 
     // What came in from outside this turn, so that nothing in it can become a memory.

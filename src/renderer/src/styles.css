@@ -2079,6 +2079,33 @@ html[data-view='pickup'] #root {
 .memory-line__done {
   flex: none;
 }
+.used-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  border-radius: var(--r-xs);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: left;
+}
+.used-line > .icon {
+  flex: none;
+  font-size: 11px;
+}
+.used-line > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.used-line:hover {
+  color: var(--brand-strong);
+  background: var(--brand-soft);
+}
 .memory-group {
   display: flex;
   flex-direction: column;
