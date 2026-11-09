@@ -213,9 +213,10 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Retry, edit and rewind on your own messages, like other chat apps: run a question again, change it and resend, or go back to that point. Cutting the history there keeps the cache valid, because what's left is a prefix. Anything the later turns did stays shown with its own Undo: memories, step cards, jobs | H | S–M | idea |
+| Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | idea |
+| Rewind a chat to any earlier message: the chat-sized version of Rewind. Lists what the removed turns did, undo ticked by default and untickable, because a rewind is often just a typo fix and shouldn't silently forget what was said later | H | M | idea, after the action ledger |
 | Copy on your own messages, beside the Copy that answers already have | M | S | idea |
-| Keep each version after a retry or an edit, with ‹ 1/2 › to switch between them, as other chat apps do. Needs branching history in `otty.db` | M | M | idea, after retry and edit |
+| Keep each version after a retry, an edit or a rewind, with ‹ 1/2 › to switch between them, as other chat apps do. Needs branching history in `otty.db` | M | M | idea, after retry and edit |
 | Customisable hotkeys with a key recorder (not a text field) | M | S | idea |
 | File picker's filter leaves out TIFF, BMP and code files that Otty can read (they only show under All files) | L | S | idea |
 | Remember the panel's size and position per display | L | S | idea |
@@ -395,7 +396,7 @@ How much Otty can do is limited by how much can be undone, explained and defende
 | Memory forensics: find where a memory came from, and remove it and everything it shaped, as the recovery for memory poisoning | M | M | idea, from D-10 |
 | Time to change your mind: a delay on anything leaving the Mac, like undo send | M | S | idea, with the first action that leaves |
 | Reversibility per connection: each one declares which actions can truly be undone, and the rest stay at Prepare | H | M | idea, with connections |
-| Rewind: undo everything from one job or one day, including what Otty learned from it | H | L | idea, needs the ledger |
+| Rewind: undo everything from one job, one chat from a given message, or one day, including what Otty learned from it | H | L | idea, needs the ledger |
 | Sandbox for anything generated: automations Otty writes run with the least they need | H | L | idea, before tools it builds |
 | Protect `otty.db`: encrypt it at rest, with the key in the Keychain, because a memory of someone's life is worth stealing | M | M | idea |
 
