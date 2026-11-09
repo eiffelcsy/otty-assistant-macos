@@ -13,7 +13,9 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 - **Tool safety labels:** `toolSafety.ts` is the one table of what each tool reads, whether it brings in outside text, whether data can leave and what it changes. The outside and job tool lists come from it, a test fails for a tool with no row, `ruleOfTwo` runs when a job is built, and `claimOnce` is ready for the first tool in a job that changes something.
 - **Otty eval:** `npm run eval` runs seed sets for math, memory, steps, jobs and injection through the real loop and prompts against a real model, and `npm run eval:compare` sets two runs side by side. Not yet run on a real key.
 
-On `main`, for the next release. Tested with unit tests and the UI preview, not yet with a real model or in the real app (smoke-test steps 67–87).
+## 0.5.0 — Any model, Pick up text and a proofreader (2026-11-05)
+
+*Re-tagged on 2026-11-09 to include everything below, which was built after the first 0.5.0 draft.*
 
 ### Fixes from the first smoke test (2026-11-08)
 
@@ -62,8 +64,6 @@ On `main`, for the next release. Tested with unit tests and the UI preview, not 
 
 - **The tool loop has moved** to `loop.ts`, so a background job can share it. Nothing changes for the user.
 - **Allowed tools are a real limit.** `ToolContext.allowed` is checked first thing in `runTool`, and Claude's web search now has to be asked for. Explain cards and titles no longer carry the search tool.
-
-## 0.5.0 — Any model, Pick up text and a proofreader (2026-11-05)
 
 ### Whole-screen shortcut (2026-11-05)
 
