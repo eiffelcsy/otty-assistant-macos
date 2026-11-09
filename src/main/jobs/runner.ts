@@ -4,14 +4,16 @@ import { isKnownUrl } from '../knownUrls'
 import { turnNote, withNote } from '../language'
 import { runLoop } from '../loop'
 import { ToolPause } from '../pause'
+import { JOB_TOOLS, ruleOfTwo } from '../toolSafety'
 import { jobPrompt } from '../prompts'
 import { ConnectionError, FriendlyError, type Message, type Provider } from '../providers'
 import type { Thread } from '../store'
 import { LIMITS, Supervisor, type Limits } from './limits'
 import type { Job, JobChange, JobStore } from './types'
 
-/** Reading only. Stage 2 must add a once-only check before any tool with side effects can go here. */
-export const JOB_TOOLS: ReadonlySet<string> = new Set(['search_web', 'read_page'])
+// Worked out from the table in `toolSafety.ts`: reading the public web, changing nothing. A tool that changes
+// something can only be added there with `claimOnce` in place, so a resumed job can't do it twice.
+export { JOB_TOOLS }
 
 const WRAP_UP = 'That’s all the looking up there’s room for. Write your report now from what you have, and say plainly that it’s only part of the answer and what’s missing.'
 
@@ -218,6 +220,9 @@ export class JobRunner {
 
     // The brief is the model's own text, so it never counts as knowing an address. Only what's seeded or found does.
     const known = (url: string) => job.seedUrls.includes(normalized(url)) || isKnownUrl(url, history.slice(1))
+
+    // A job holds only its brief, but the tools it was given are checked every time one is built.
+    ruleOfTwo(JOB_TOOLS)
 
     try {
       await runLoop({

@@ -11,6 +11,7 @@ import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
 import { createExplainCache, termsToWarm } from './explainCache'
 import { toolDefs, type ToolOutcome } from './tools'
+import { OUTSIDE_TOOLS } from './toolSafety'
 import { runLoop } from './loop'
 import { instantAnswer } from './math'
 import { act, isRisky } from './act'
@@ -23,9 +24,6 @@ import { activeProfile, activeProvider, FriendlyError, NoVisionError, type Conte
 // The conversation: what's sent, what comes back and what's saved. Talking to the model service is `providers/`.
 
 const MAX_TOOL_ROUNDS = 6
-
-/** Tools whose results are someone else's words. */
-const OUTSIDE_TOOLS = new Set(['search_web', 'read_page'])
 
 /** Answers running at once. A fourth stops the oldest that isn't on show. */
 const MAX_TURNS = 3
