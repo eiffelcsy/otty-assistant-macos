@@ -1,5 +1,6 @@
-import { ConnectionError, FriendlyError, type ChatRequest, type Message, type Provider, type ProviderReplay, type ToolCall } from './providers'
+import { ConnectionError, FriendlyError, type ChatRequest, type Message, type Provider, type ProviderReplay, type ToolCall, type Usage } from './providers'
 import { runTool, toolLabel, type ToolContext, type ToolOutcome } from './tools'
+import { count } from './usage'
 
 // The tool loop: ask the model, run what it calls, and ask again until it answers. It knows nothing about chats, so
 // a chat turn and a background job (D-22) can share it. Whoever calls it owns the history and what happens on failure.
@@ -12,6 +13,8 @@ export type LoopEvent =
   | { type: 'tool'; callId: string; label: string; icon: string; status: 'running' | ToolOutcome['status']; copy?: string }
   /** A tool ran. `outcome` is the whole result, for anything that needs more than the chip. */
   | { type: 'tool-result'; name: string; outcome: ToolOutcome }
+  /** What one request used, for whoever keeps a tally (a job keeps its own). */
+  | { type: 'usage'; usage: Usage }
 
 export interface LoopOptions {
   provider: () => Provider
@@ -70,6 +73,8 @@ export async function runLoop(o: LoopOptions): Promise<void> {
       const out = await runTool(call.function.name, args, o.context)
       if (o.signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
       if (show !== 'never') o.onEvent({ type: 'tool', callId: call.id, label: out.chip?.label ?? label, icon, status: out.status, ...(out.chip?.copy ? { copy: out.chip.copy } : {}) })
+      if (out.status === 'done' && call.function.name === 'search_web') count('searches')
+      if (out.status === 'done' && call.function.name === 'read_page') count('pages')
       o.onEvent({ type: 'tool-result', name: call.function.name, outcome: out })
       add({ role: 'tool', tool_call_id: call.id, content: out.result })
     }
@@ -121,8 +126,12 @@ export async function runLoop(o: LoopOptions): Promise<void> {
         if (event.stop === 'refusal') throw new FriendlyError('Otty can’t help with that one. Try asking in a different way.')
         replay = event.replay
         paused = event.stop === 'paused'
+        if (event.usage) o.onEvent({ type: 'usage', usage: event.usage })
       }
-      if (event.type === 'search') o.onEvent({ type: 'search', status: event.status, round })
+      if (event.type === 'search') {
+        if (event.status === 'done') count('searches')
+        o.onEvent({ type: 'search', status: event.status, round })
+      }
       if (event.type === 'text') {
         content += event.text
         o.onEvent({ type: 'text', text: event.text })

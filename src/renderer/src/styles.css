@@ -2418,6 +2418,26 @@ html[data-view='pickup'] #root {
   background: var(--straw);
   box-shadow: 0 0 0 2px var(--surface);
 }
+/* Waiting for the user's OK: the brand colour, so it reads as "your turn" rather than "busy". */
+.bubble__working--waiting {
+  width: 11px;
+  height: 11px;
+  background: var(--brand);
+}
+.bubble__paused {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+  color: var(--muted);
+  font-size: 9px;
+}
 
 /* ---------- Quick view follow-ups ---------- */
 .quick__follow {
@@ -2483,4 +2503,15 @@ html[data-view='pickup'] #root {
 }
 .health__close:hover {
   background: var(--fill-strong);
+}
+
+/* ---------- Usage meter ---------- */
+.usage {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.toggle--off {
+  opacity: 0.6;
 }

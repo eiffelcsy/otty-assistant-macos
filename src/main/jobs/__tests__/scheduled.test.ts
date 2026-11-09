@@ -31,7 +31,7 @@ function rig() {
         hang = false
         await new Promise<void>((_, reject) => signal.addEventListener('abort', () => reject(Object.assign(new Error('x'), { name: 'AbortError' }))))
       }
-      yield* [{ type: 'text', text: 'Report' }, { type: 'done', stop: 'end' }] as ProviderEvent[]
+      yield* [{ type: 'text', text: 'Report' }, { type: 'done', stop: 'end', usage: { input: 900, output: 100 } }] as ProviderEvent[]
     },
     complete: async () => ({ text: '' })
   }
@@ -224,5 +224,25 @@ describe.each([
     expect(await s.get('a')).toMatchObject({ status: 'scheduled', dueAt: NINE })
     await s.update('a', { status: 'queued', ranLate: true })
     expect(await s.get('a')).toMatchObject({ status: 'queued', dueAt: NINE, ranLate: true })
+  })
+})
+
+describe('what a job costs', () => {
+  it('keeps the tokens a job used, for the next card', async () => {
+    const runner = rig()
+    await runner.start({ title: 'Flights', brief: 'Compare flights', seedUrls: [], language: 'en' })
+    await settle()
+    expect((await store.list())[0]).toMatchObject({ status: 'done', tokens: 1000 })
+    expect(await runner.recentTokens()).toEqual([1000])
+  })
+
+  it('says where a job stops, and how it compares once there is enough to go on', async () => {
+    const { jobCost } = await import('../index')
+    const runner = rig()
+    expect(await jobCost(runner, () => null)).toBe('It stops after 30 searches or pages, or 15 minutes, whichever comes first.')
+    await runner.start({ title: 'Flights', brief: 'Compare flights', seedUrls: [], language: 'en' })
+    await settle()
+    const summary = { days: 30, questions: 10, requests: 0, tokens: 1000, searches: 0, pages: 0, jobs: 1 }
+    expect(await jobCost(runner, () => summary)).toMatch(/about as much as 10 of your questions\.$/)
   })
 })

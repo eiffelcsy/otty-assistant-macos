@@ -23,6 +23,8 @@ export interface Job {
   rounds: number
   lookups: number
   workedMs: number
+  /** Tokens the model used on it, for the usage meter and the next card's estimate. */
+  tokens?: number
   /** The address it's waiting to hear about. Saved, so the question can sit there until tomorrow. */
   waitUrl?: string
   /** Friendly words for why it stopped. */

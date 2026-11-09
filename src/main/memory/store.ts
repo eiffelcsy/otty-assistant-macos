@@ -105,7 +105,7 @@ export class MemoryStore {
       optOut: p('insert or ignore into memory_optouts(key, created_at) values (?, ?)'),
       optedOut: p('select 1 from memory_optouts where key = ?'),
       count: p('insert into counters(kind, key, day, count) values (?, ?, ?, 1) on conflict do update set count = count + 1'),
-      counts: p('select kind, key, day, count from counters where day >= ?')
+      counts: p("select kind, key, day, count from counters where day >= ? and kind <> 'usage'")
     }
   }
 
@@ -160,9 +160,9 @@ export class MemoryStore {
     compact(this.db)
   }
 
-  /** "Forget everything Otty knows": memories, the counts behind habits, and which habits were turned down. */
+  /** "Forget everything Otty knows": memories, the counts behind habits, and which habits were turned down. The usage meter stays. */
   clear(): void {
-    transaction(this.db, () => this.db.exec('delete from memories; delete from counters; delete from memory_optouts;'))
+    transaction(this.db, () => this.db.exec("delete from memories; delete from counters where kind <> 'usage'; delete from memory_optouts;"))
     compact(this.db)
   }
 

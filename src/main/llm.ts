@@ -14,6 +14,7 @@ import { createExplainCache, termsToWarm } from './explainCache'
 import { toolDefs, type ToolOutcome } from './tools'
 import { OUTSIDE_TOOLS } from './toolSafety'
 import { runLoop } from './loop'
+import { count } from './usage'
 import { instantAnswer } from './math'
 import { act, isRisky } from './act'
 import { stepCard } from './act/card'
@@ -58,6 +59,8 @@ export interface SessionHooks {
   onTurn?(unseen: boolean): void
   /** Starts a job. The user has already agreed. Resolves to words for the model, if it couldn't start. */
   startJob?(job: JobRequest): Promise<string | null>
+  /** One line for the job card about what a look like this costs and where it stops. */
+  jobCost?(): Promise<string>
 }
 
 /** Memory is a nice extra: it must never be the reason an answer fails. */
@@ -405,6 +408,7 @@ export class ChatSession {
 
   private async run(thread: Thread, turn: Turn, reasoning?: 'normal'): Promise<void> {
     const { prompt: text, captures, app, files, language, home } = turn
+    count('questions')
     const id = randomUUID()
     const abort = new AbortController()
     const history = thread.history
@@ -559,9 +563,11 @@ export class ChatSession {
     if (!title || !brief || !this.hooks.startJob) return { result: 'That needs a title and a brief.', status: 'error' }
     const dueAt = later ? parseDue(args.at) : null
     if (later && !dueAt) return { result: 'That time isn’t usable: it has passed, is under a minute away, is more than a month off, or isn’t a time. Ask the user when they mean.', status: 'error' }
+    const cost = (await this.hooks.jobCost?.().catch(() => '')) ?? ''
+    const costLine = cost ? `\n\n${cost}` : ''
     const detail = dueAt
-      ? `${capitalised(describeWhen(dueAt))}, Otty will look this up on public web pages, using your AI key, and leave a note in Activity. It won’t send or change anything. Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.`
-      : `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.`
+      ? `${capitalised(describeWhen(dueAt))}, Otty will look this up on public web pages, using your AI key, and leave a note in Activity. It won’t send or change anything. Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.${costLine}`
+      : `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.${costLine}`
     if (!(await this.askConfirm(turn, dueAt ? 'Look into this later?' : 'Look into this in the background?', detail))) return { result: 'The user declined.', status: 'denied' }
     const thread = turn.thread
     const seedUrls = urlsIn(brief).filter((url) => isKnownUrl(url, thread.history))

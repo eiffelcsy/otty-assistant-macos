@@ -65,7 +65,10 @@ const settings: PublicSettings = {
   keepChats: '1y',
   homeLanguage: q.get('home') === 'none' ? null : 'zh-HK',
   learn: true,
-  workPaused: false
+  workPaused: false,
+  notifyDone: false,
+  openAtLogin: false,
+  canOpenAtLogin: true
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -255,6 +258,7 @@ const api: OttyApi = {
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
   relaunch: noop,
+  getUsage: async () => ({ days: 30, questions: 142, tokens: 1_840_000, searches: 37, pages: 21, jobs: 4, service: 'DeepSeek', usageUrl: 'https://platform.deepseek.com/usage' }),
   sendMessage: async (text, captures, opts) => fakeAnswer(text, captures, opts?.language, opts?.files),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
@@ -372,7 +376,7 @@ const api: OttyApi = {
     return () => {}
   },
   onBubbleState: () => () => {},
-  onBubbleWorking: () => () => {},
+  onBubbleMood: () => () => {},
   onBubbleBadge: () => () => {},
   onWindowVisible: () => () => {}
 }

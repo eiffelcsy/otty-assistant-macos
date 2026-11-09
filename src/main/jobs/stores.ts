@@ -24,6 +24,7 @@ interface Row {
   partial: number
   due_at: number | null
   ran_late: number
+  tokens: number
   created_at: number
   updated_at: number
   seen_at: number | null
@@ -42,6 +43,7 @@ const toJob = (r: Row): Job => ({
   rounds: r.rounds,
   lookups: r.lookups,
   workedMs: r.worked_ms,
+  ...(r.tokens ? { tokens: r.tokens } : {}),
   ...(r.wait_url ? { waitUrl: r.wait_url } : {}),
   ...(r.error ? { error: r.error } : {}),
   partial: Boolean(r.partial),
@@ -64,7 +66,8 @@ const COLUMNS: Record<string, string> = {
   error: 'error',
   updatedAt: 'updated_at',
   seenAt: 'seen_at',
-  dueAt: 'due_at'
+  dueAt: 'due_at',
+  tokens: 'tokens'
 }
 
 export class SqliteJobStore implements JobStore {

@@ -415,6 +415,17 @@ describe('asking for a job later', () => {
     expect(started[0].dueAt).toBe(tomorrow9().getTime())
   })
 
+  it('says on the card what a look costs', async () => {
+    const events: ChatEvent[] = []
+    const chat = new ChatSession((e) => events.push(e), { startJob: async () => null, jobCost: async () => 'It stops after 30 searches or pages.' })
+    replies = [call('start_job', { title: 'T', brief: 'Compare flights' }), say('OK')]
+    const turn = chat.send('compare flights', [], null)
+    await vi.waitFor(() => expect(events.some((e) => e.type === 'confirm')).toBe(true))
+    expect(confirmOf(events).detail).toMatch(/Compare flights[\s\S]*It stops after 30 searches or pages\.$/)
+    chat.respondConfirm(confirmOf(events).confirmId, false)
+    await turn
+  })
+
   it('schedules nothing when the user says no', async () => {
     const started: unknown[] = []
     const events: ChatEvent[] = []

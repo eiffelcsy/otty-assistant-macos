@@ -155,9 +155,28 @@ export interface PublicSettings {
   learn: boolean
   /** The user paused everything Otty does in the background. Stays on across restarts. */
   workPaused: boolean
+  /** A macOS notification when something Otty did on its own is ready or needs an OK. Off until chosen. */
+  notifyDone: boolean
+  /** Otty opens when the user logs in. macOS keeps this, not Otty's settings file. */
+  openAtLogin: boolean
+  /** Only the installed app can be a login item; a development build can't. */
+  canOpenAtLogin: boolean
 }
 
-export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys'>> {
+/** The usage meter, for Settings. Counts only, from this Mac. */
+export interface UsageReport {
+  days: number
+  questions: number
+  tokens: number
+  searches: number
+  pages: number
+  jobs: number
+  /** The service's name, and where it shows what this cost. */
+  service: string
+  usageUrl?: string
+}
+
+export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'canOpenAtLogin'>> {
   /** Plaintext key from the settings form; main encrypts it. Empty string clears it. */
   apiKey?: string
 }
@@ -171,6 +190,9 @@ export interface Permissions {
 export type PermissionKind = 'accessibility' | 'screen'
 
 export type BubbleState = 'idle' | 'thinking' | 'happy'
+
+/** What the otter shows about work it's doing on its own: busy, waiting for an OK, or paused by the user. */
+export type BubbleMood = 'working' | 'waiting' | 'paused' | null
 
 export interface ToolChipInfo {
   callId: string
@@ -358,6 +380,7 @@ export interface OttyApi {
   openPermissionSettings(kind: PermissionKind): Promise<void>
   /** Quits and reopens Otty, which macOS needs before a new Screen Recording permission takes effect. */
   relaunch(): Promise<void>
+  getUsage(): Promise<UsageReport>
 
   sendMessage(text: string, captures: Capture[], opts?: SendOptions): Promise<void>
   stop(): Promise<void>
@@ -440,7 +463,7 @@ export interface OttyApi {
   onQuickOpen(cb: (p: PanelOpenPayload) => void): () => void
   onBubbleState(cb: (s: BubbleState) => void): () => void
   /** True while Otty is working on something in the background. */
-  onBubbleWorking(cb: (on: boolean) => void): () => void
+  onBubbleMood(cb: (mood: BubbleMood) => void): () => void
   /** True while an answer is waiting that the user hasn't seen. */
   onBubbleBadge(cb: (on: boolean) => void): () => void
   /** Whether this window is on screen. */

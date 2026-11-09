@@ -5,6 +5,7 @@ import { isKnownUrl } from '../knownUrls'
 import { turnNote, withNote } from '../language'
 import { runLoop } from '../loop'
 import { ToolPause } from '../pause'
+import { count } from '../usage'
 import { JOB_TOOLS, ruleOfTwo } from '../toolSafety'
 import { jobPrompt } from '../prompts'
 import { ConnectionError, FriendlyError, type Message, type Provider } from '../providers'
@@ -351,6 +352,7 @@ export class JobRunner {
         resume: true,
         idleMs: this.limits.idleMs,
         onEvent: (e) => {
+          if (e.type === 'usage') job.tokens = (job.tokens ?? 0) + e.usage.input + e.usage.output
           if ((e.type === 'tool-result' && JOB_TOOLS.has(e.name)) || (e.type === 'search' && e.status === 'done')) {
             job.lookups++
             this.deps.onChange(false)
@@ -369,7 +371,7 @@ export class JobRunner {
             for (const call of m.tool_calls ?? []) supervisor.sawCall(call.function.name, call.function.arguments)
           }
           job.workedMs = counts().workedMs
-          void store.update(job.id, { rounds: job.rounds, lookups: job.lookups, workedMs: job.workedMs, updatedAt: this.now() })
+          void store.update(job.id, { rounds: job.rounds, lookups: job.lookups, workedMs: job.workedMs, tokens: job.tokens ?? 0, updatedAt: this.now() })
         }
       })
       return supervisor
@@ -411,6 +413,7 @@ export class JobRunner {
     if (!report) return this.fail(job, new FriendlyError('Otty couldn’t put a report together.'))
     const resultThread = await this.saveReport(job, report)
     await this.change(job, { status: 'done', resultThread, partial: supervisor.reached !== null, waitUrl: null })
+    count('jobs')
     await this.store.clearSteps(job.id)
     this.deps.onChange(true)
   }
@@ -480,6 +483,12 @@ export class JobRunner {
       if (!job.seenAt && (job.status === 'done' || job.status === 'failed')) await this.store.update(job.id, { seenAt: this.now() })
     }
     this.deps.onChange(false)
+  }
+
+  /** Tokens used by the most recent finished jobs, for "about as much as N questions" on the next card. */
+  async recentTokens(n = 20): Promise<number[]> {
+    const done = (await this.store.list()).filter((j) => j.status === 'done' && j.tokens)
+    return done.slice(-n).map((j) => j.tokens!)
   }
 
   /** The chat holding a job's report, if it isn't saved. */

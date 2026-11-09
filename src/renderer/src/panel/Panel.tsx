@@ -106,6 +106,7 @@ export function Panel() {
     () =>
       window.otty.onPanelOpen((p: PanelOpenPayload) => {
         if (p.notice === 'open-settings') return setView('settings')
+        if (p.notice === 'open-activity') return setView('activity')
         if (p.notice === 'open-memory') {
           setView('settings')
           setMemoryFocus((n) => n + 1)
