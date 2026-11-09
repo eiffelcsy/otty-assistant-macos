@@ -1,3 +1,4 @@
+import { suggestionsFor } from '../../../shared/suggestions'
 import { HealthBanner } from './HealthBanner'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ActivityItem, AnswerLanguage, AppInfo, Capture, PanelOpenPayload, PublicSettings } from '../../../shared/types'
@@ -299,7 +300,12 @@ export function Panel() {
           {view === 'settings' ? (
             <Settings settings={settings} onSaved={setSettings} memoryFocus={memoryFocus} onOpenChat={() => setView('chat')} />
           ) : view === 'activity' ? (
-            <Activity items={activity} onOpen={() => setView('chat')} />
+            <Activity
+              items={activity}
+              onOpen={() => setView('chat')}
+              paused={settings.workPaused}
+              onPause={(on) => void window.otty.saveSettings({ workPaused: on }).then(setSettings)}
+            />
           ) : view === 'history' ? (
             <History onOpen={() => setView('chat')} focusSearch={searchFocus} keep={settings.keepChats} />
           ) : (
@@ -309,7 +315,17 @@ export function Panel() {
               )}
               <HealthBanner settings={settings} onOpenSettings={() => setView('settings')} />
               <div className="chat" ref={scrollRef}>
-                {messages.length === 0 && <EmptyState settings={settings} onSnip={snip} />}
+                {messages.length === 0 && (
+                  <EmptyState
+                    settings={settings}
+                    onSnip={snip}
+                    app={app?.name ?? captures[0]?.app?.name ?? null}
+                    onSuggest={(text) => {
+                      setInput(text)
+                      setTimeout(() => inputRef.current?.focus(), 0)
+                    }}
+                  />
+                )}
                 {messages.map((m) =>
                   m.role === 'user' ? (
                     <div key={m.id} className={`msg msg--user${m.id === focusId ? ' msg--found' : ''}`} data-msg-id={m.id}>
@@ -423,7 +439,8 @@ export function Panel() {
   )
 }
 
-function EmptyState({ settings, onSnip }: { settings: PublicSettings; onSnip: () => void }) {
+function EmptyState({ settings, onSnip, app, onSuggest }: { settings: PublicSettings; onSnip: () => void; app: string | null; onSuggest: (text: string) => void }) {
+  const suggestions = suggestionsFor(app, settings.learn, settings.readsPages)
   return (
     <div className="empty">
       <Otter state="happy" size={84} />
@@ -463,6 +480,17 @@ function EmptyState({ settings, onSnip }: { settings: PublicSettings; onSnip: ()
           </span>
         </div>
       </div>
+      {suggestions.length > 0 && (
+        <div className="try">
+          <span className="try__label">Try asking</span>
+          {suggestions.map((s) => (
+            <button key={s.text} className="try__chip" onClick={() => onSuggest(s.text)}>
+              <Icon name={s.icon} />
+              <span>{s.text}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

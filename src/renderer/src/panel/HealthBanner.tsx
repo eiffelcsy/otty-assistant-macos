@@ -32,10 +32,10 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
 
   const text =
     problem.kind === 'accessibility'
-      ? `Highlighting won’t work yet: ${prettyKey(settings.askHotkey)} needs Otty to be allowed under Accessibility.`
+      ? `${prettyKey(settings.askHotkey)} can’t read highlighted text until Otty is allowed under Accessibility.`
       : problem.kind === 'screen'
-        ? 'Snips only show your wallpaper until Otty is allowed under Screen Recording. If you just allowed it, reopen Otty.'
-        : `${prettyKey(problem.hotkey)} belongs to another app, so ${problem.what} won’t work with it.`
+        ? 'Snips can only see your wallpaper. Allow Screen Recording, then reopen Otty.'
+        : `Another app uses ${prettyKey(problem.hotkey)}, so it won’t work for ${problem.what}.`
 
   return (
     <div className="health" role="status">

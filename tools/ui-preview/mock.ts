@@ -253,7 +253,7 @@ const noop = async () => {}
 const trayed = { panel: false, quick: false }
 const api: OttyApi = {
   getSettings: async () => settings,
-  saveSettings: async (u) => Object.assign(settings, u),
+  saveSettings: async (u) => ({ ...Object.assign(settings, u) }),
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
