@@ -23,6 +23,7 @@ export function createRunner(onChange: (news: boolean) => void): JobRunner {
     tools: toolDefs,
     webOff: () => activeProfile().web === 'off',
     home: () => getStored().homeLanguage,
+    held: () => getStored().workPaused,
     saveThread: async (thread) => {
       if (getStored().rememberChats) await chatStore().write(thread)
     },

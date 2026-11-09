@@ -30,6 +30,8 @@ export interface ToolContext {
   showSteps?(args: Record<string, unknown>): ToolOutcome
   /** Asks to start a background job. Only a chat turn can, so a job can never start another. */
   startJob?(args: Record<string, unknown>): Promise<ToolOutcome>
+  /** Asks to run a read-only job later. Only a chat turn can, and always with a card. */
+  scheduleJob?(args: Record<string, unknown>): Promise<ToolOutcome>
 }
 
 export interface ToolOutcome {
@@ -110,9 +112,9 @@ function serviceDefs() {
   const local = getStored().learn ? [...otherDefs, ...learnDefs] : otherDefs
   if (webOff()) return local
   const { baseUrl, apiFormat, model } = getStored()
-  if (webConfig()) return [searchWebDef, readPageDef, ...local, startJobDef]
-  if (searchesOnServer(profileFor(baseUrl, apiFormat), model)) return [readPageDef, ...local, startJobDef]
-  return [lookupDef, readPageDef, ...local, startJobDef]
+  if (webConfig()) return [searchWebDef, readPageDef, ...local, startJobDef, scheduleJobDef]
+  if (searchesOnServer(profileFor(baseUrl, apiFormat), model)) return [readPageDef, ...local, startJobDef, scheduleJobDef]
+  return [lookupDef, readPageDef, ...local, startJobDef, scheduleJobDef]
 }
 
 const otherDefs = [
@@ -228,6 +230,24 @@ const startJobDef = {
   }
 } as const
 
+const scheduleJobDef = {
+  type: 'function',
+  function: {
+    name: 'schedule_job',
+    description:
+      'Look something up later, when the user asks for it at a time ("check this tomorrow at 9"). The user is shown the time and the brief and decides. The job only reads public web pages and leaves a note in Activity. It cannot send or change anything. Like start_job, it only sees the brief.',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'A few words naming what’s being checked' },
+        brief: { type: 'string', description: 'What to find out, in full, standing on its own, with nothing private' },
+        at: { type: 'string', description: 'When to look, in ISO 8601 local time, e.g. 2026-11-10T09:00:00. Work it out from the current local time in the user’s message.' }
+      },
+      required: ['title', 'brief', 'at']
+    }
+  }
+} as const
+
 /** Only offered with "Let Otty learn about me" on. */
 const learnDefs = [
   {
@@ -291,6 +311,8 @@ export function toolLabel(name: string, args: Args): { label: string; icon: stri
       return { icon: 'list-check', label: 'Steps', show: 'never' }
     case 'start_job':
       return { icon: 'binoculars', label: `Looking into “${String(args.title ?? 'this')}”` }
+    case 'schedule_job':
+      return { icon: 'alarm-clock', label: `Checking later: “${String(args.title ?? 'this')}”` }
     default:
       return { icon: 'tools', label: name }
   }
@@ -368,6 +390,10 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
       case 'start_job':
         if (webOff()) return { result: 'Background work needs the web, which is off with this model.', status: 'error' }
         return ctx.startJob ? await ctx.startJob(args) : { result: 'That isn’t available here.', status: 'error' }
+
+      case 'schedule_job':
+        if (webOff()) return { result: 'Background work needs the web, which is off with this model.', status: 'error' }
+        return ctx.scheduleJob ? await ctx.scheduleJob(args) : { result: 'That isn’t available here.', status: 'error' }
 
       default:
         return { result: `Unknown tool ${name}`, status: 'error' }

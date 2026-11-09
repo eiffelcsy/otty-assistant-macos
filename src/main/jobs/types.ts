@@ -4,7 +4,8 @@ import type { Message } from '../providers'
 // Background work (D-22). The truth about a job lives here, not in a process or a promise, so any of it can die and
 // the work carries on. Only the runner changes `status`.
 
-export type JobStatus = 'queued' | 'working' | 'waiting' | 'done' | 'paused' | 'failed'
+/** `scheduled` waits for `dueAt`. Only the runner moves it on. */
+export type JobStatus = 'scheduled' | 'queued' | 'working' | 'waiting' | 'done' | 'paused' | 'failed'
 
 export interface Job {
   id: string
@@ -28,13 +29,18 @@ export interface Job {
   error?: string
   /** It ran out of a limit, so the report is only part of the answer. */
   partial: boolean
+  /** When a scheduled job is due (ms since epoch). Kept after it runs, to say if it ran late. */
+  dueAt?: number
+  /** It started well after `dueAt`, because Otty wasn't running or the Mac was asleep. */
+  ranLate?: boolean
   createdAt: number
   updatedAt: number
   seenAt?: number
 }
 
-export type JobChange = Partial<Omit<Job, 'id' | 'createdAt' | 'waitUrl' | 'error' | 'resultThread' | 'seenAt'>> & {
+export type JobChange = Partial<Omit<Job, 'id' | 'createdAt' | 'waitUrl' | 'error' | 'resultThread' | 'seenAt' | 'dueAt'>> & {
   seenAt?: number | null
+  dueAt?: number | null
   waitUrl?: string | null
   error?: string | null
   resultThread?: string | null

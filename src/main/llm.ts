@@ -3,6 +3,7 @@ import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, MemoryNote, QuickAction, UsedMemory, SendOptions, StepApp, StepCard } from '../shared/types'
 import { capturedText } from '../shared/captures'
 import { mathTier } from '../shared/math'
+import { describeWhen, parseDue } from '../shared/when'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
 import { fileBudget, fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
@@ -48,6 +49,8 @@ export interface JobRequest {
   /** Addresses in the brief that the chat already knew. The brief itself is the model's words, so it proves nothing. */
   seedUrls: string[]
   language: AnswerLanguage
+  /** Run it then, not now (ms since epoch). */
+  dueAt?: number
 }
 
 export interface SessionHooks {
@@ -90,6 +93,8 @@ interface Turn {
   language: AnswerLanguage
   home: HomeLanguage | null
 }
+
+const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 function appLine(app: AppInfo | null): string {
   if (!app) return ''
@@ -280,6 +285,11 @@ export class ChatSession {
     turn.asking = undefined
   }
 
+  /** Stops every answer in progress, for the one stop control. */
+  stopAll(): void {
+    for (const id of [...this.live.keys()]) this.stopChat(id)
+  }
+
   respondConfirm(id: string, allow: boolean): void {
     for (const turn of this.live.values()) {
       const resolve = turn.confirms.get(id)
@@ -455,6 +465,7 @@ export class ChatSession {
           knownUrl: (url) => isKnownUrl(url, history),
           showSteps: (args) => this.showSteps(thread, answer, args, captures[0]?.app ?? app),
           startJob: (args) => this.offerJob(live, args, language),
+          scheduleJob: (args) => this.offerJob(live, args, language, true),
           learn: {
             remember: (args) => learning(() => remember(memoryStore(), args, heard, place)),
             forget: (args) => learning(() => forgetMemory(memoryStore(), args, heard))
@@ -542,16 +553,21 @@ export class ChatSession {
   }
 
   /** The model only asks. The card is what starts a job, so a hostile page can't. */
-  private async offerJob(turn: LiveTurn, args: Record<string, unknown>, language: AnswerLanguage): Promise<ToolOutcome> {
+  private async offerJob(turn: LiveTurn, args: Record<string, unknown>, language: AnswerLanguage, later = false): Promise<ToolOutcome> {
     const title = String(args.title ?? '').trim().slice(0, 80)
     const brief = String(args.brief ?? '').trim().slice(0, 2_000)
     if (!title || !brief || !this.hooks.startJob) return { result: 'That needs a title and a brief.', status: 'error' }
-    const detail = `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.`
-    if (!(await this.askConfirm(turn, 'Look into this in the background?', detail))) return { result: 'The user declined.', status: 'denied' }
+    const dueAt = later ? parseDue(args.at) : null
+    if (later && !dueAt) return { result: 'That time isn’t usable: it has passed, is under a minute away, is more than a month off, or isn’t a time. Ask the user when they mean.', status: 'error' }
+    const detail = dueAt
+      ? `${capitalised(describeWhen(dueAt))}, Otty will look this up on public web pages, using your AI key, and leave a note in Activity. It won’t send or change anything. Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.`
+      : `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.`
+    if (!(await this.askConfirm(turn, dueAt ? 'Look into this later?' : 'Look into this in the background?', detail))) return { result: 'The user declined.', status: 'denied' }
     const thread = turn.thread
     const seedUrls = urlsIn(brief).filter((url) => isKnownUrl(url, thread.history))
-    const problem = await this.hooks.startJob({ title, brief, sourceThread: thread.id, seedUrls, language })
-    return problem ? { result: problem, status: 'error' } : { result: 'Started. The user will find the report in Activity.', status: 'done' }
+    const problem = await this.hooks.startJob({ title, brief, sourceThread: thread.id, seedUrls, language, ...(dueAt ? { dueAt } : {}) })
+    if (problem) return { result: problem, status: 'error' }
+    return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in Activity.` : 'Started. The user will find the report in Activity.', status: 'done' }
   }
 
   /** The card under an answer. `replaces` puts right the chat's last one, after the user got stuck. */

@@ -133,7 +133,7 @@ The long-run direction, from something you ask to something that looks after thi
 | Better web search plus a `read_page` tool: DeepSeek Search & Fetch, same key (Brave / Tavily if other providers need it) | H | M | shipped (D-9) |
 | Full computer-use actions (click / type for the user) | H | L | parked: the guided overlay gets most of the value without Otty acting |
 
-| Math eval (`tools/math-eval/`, planned in D-12 but not built, because it needs a real key): 40 real-style questions recording correctness, time to first token, tool rounds and cache hits, to tune the tiers. Target: at least 95% correct | M | S | → D-23 |
+| Math eval (`tools/math-eval/`, planned in D-12 but not built, because it needs a real key): 40 real-style questions recording correctness, time to first token, tool rounds and cache hits, to tune the tiers. Target: at least 95% correct | M | S | seed sets shipped (D-23); baseline needs a key |
 | `calculate` over a table: let the steps name a highlighted table's columns, so "what's the total of this column?" needs no retyping | M | S | idea, from D-12 |
 | Type a sum in the quick view's empty state: show the result live as you type, before ↵ | M | S | idea, from D-12 |
 | Currency in `calculate`, with rates from a daily fetch that's plainly dated, since a stale rate is a wrong answer | M | M | idea, from D-12 |
@@ -186,7 +186,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Search across chats, the same contract on JSON, SQLite or an online database | H | M | shipped (D-5, on SQLite since D-3) |
 
 | Why does Otty think that? Tap a memory in an answer's Noted line to see the sentence it came from, using `source_message_id` | M | S | idea, from D-10 |
-| Which memories shaped this answer: a small "Used: learning Spanish" line, so memory is visible when it's read as well as when it's written | H | S | → D-24 |
+| Which memories shaped this answer: a small "Used: learning Spanish" line, so memory is visible when it's read as well as when it's written | H | S | shipped (D-24) |
 | Tidy memories now and then: a background pass merges overlaps and asks about stale ones ("still learning Spanish?") | M | S | idea, from D-10; a "Just do it" chore |
 | The otter mentions a new habit in a speech bubble, as D-10 planned. Today it's only a Noted line, because the bubble can't talk yet | M | S | idea, needs speech-bubble micro-replies |
 | Scope memories by job (AUTONOMY idea 6): chat turns see them, a job only if its recipe says so | M | S | idea, with D-22 |
@@ -195,7 +195,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Launch at login | H | S | → D-27 |
+| Launch at login | H | S | → D-27, waits for signed builds |
 | "What Otty sent" transparency view per message (context, app note) | M | S | idea |
 | Say where web lookups really go: with another provider, or when DeepSeek's search fails, queries go to Wikipedia and DuckDuckGo, but Settings → Privacy only mentions DeepSeek | M | S | idea |
 | Sign and notarize (Developer ID) so permissions survive updates | H | M | considering, needed before sharing builds |
@@ -276,7 +276,7 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Otty says plainly when a model can't use tools, instead of quietly going without them | M | S | idea |
 | Two model slots, Fast and Best: features ask for a role, not a model name, so background work and hard tasks upgrade separately | H | S | → D-25 |
 | Scaffold ledger: note which model weakness each prompt rule or routing step works around, and retest on every upgrade | M | S | idea, needs the Otty eval |
-| Otty eval: 50–100 real-style tasks, scored for quality, speed and cost, so any new model is judged in an hour. Grows out of `tools/math-eval/` | H | M | → D-23 |
+| Otty eval: 50–100 real-style tasks, scored for quality, speed and cost, so any new model is judged in an hour. Grows out of `tools/math-eval/` | H | M | seed sets shipped (D-23); baseline needs a key |
 | Tools before pipelines: let the model pull context when it needs it (read the window, find a file, check the calendar) rather than deciding in code what it sees | H | M | idea |
 | Trust ladder: give every tool a risk level and undo, so autonomy widens per action as evals prove reliability (show, then suggest, then do with a confirm) | H | M | idea, the path back to parked computer use |
 | Re-read history: after a model upgrade, offer to refresh memories, titles and summaries from saved chats, so old data improves too | M | S–M | idea, after D-10; opt-in, shows the cost first |
@@ -306,7 +306,7 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Pick up where you left off: reopen the last chat's context with a light "Still on the budget?" | M | S | idea, after D-10 |
 | The otter shows what's happening: moods mirror jobs (working, waiting for you, something ready), so nobody needs a dashboard. Must stay inside the idle budget | H | S–M | idea, after the first background job |
 | Surface budgets: a job returns a headline and a body, and each surface uses what fits (bubble a few words, inbox a few lines, panel the lot) | M | S | idea, with the inbox |
-| Ask me later: "check this tomorrow at 9", run read-only, with the result waiting in a small inbox | H | M | → D-27 |
+| Ask me later: "check this tomorrow at 9", run read-only, with the result waiting in a small inbox | H | M | shipped (D-27) |
 | Watch for me: check a page on a schedule and tell the user when it changes (price, delivery, results) | H | M | idea, after Ask me later; web reads are billed per call, so show the cost |
 | "Do not disturb" for Otty: a quiet mode, plus automatic quiet during full-screen video and screen sharing | M | S–M | idea, Look after me needs it |
 | Local-only noticing: opt-in triggers from app switches and error dialogs on the Mac; nothing is sent until the user taps | H | L | considering, replaces the paw-raise idea's design; uses the AX helper |
@@ -328,10 +328,10 @@ Otty spots something useful, suggests a small repeatable job, checks it against 
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Plain-words approval card: "Every Monday at 9, Otty will read this page and leave a note. It won't send anything." | H | S | → D-27 |
-| Tool safety labels: each tool declares what it reads, whether it brings in untrusted content, whether data can leave, and what it changes | H | S–M | → D-26 |
+| Plain-words approval card: "Every Monday at 9, Otty will read this page and leave a note. It won't send anything." | H | S | shipped (D-27) |
+| Tool safety labels: each tool declares what it reads, whether it brings in untrusted content, whether data can leave, and what it changes | H | S–M | shipped (D-26) |
 | Daily chore budget and auto-pause on repeated failures or surprises | M | S | considering |
-| Injection test set in the Otty eval: hostile pages and documents that try to leak data or trigger tools | H | S–M | → D-23 |
+| Injection test set in the Otty eval: hostile pages and documents that try to leak data or trigger tools | H | S–M | seed sets shipped (D-23); baseline needs a key |
 | Private role for chores: send private data only to a chosen model, ideally a local one | M | S | idea, extends Fast and Best slots |
 | "Why did this happen?" on every note: follow the links from note to job, trigger, recipe and the chat where the user agreed | M | S | idea, needs ids linked from the start |
 | Locked tool set per run: code hands a chore only the tools and sites in its recipe, whatever the model asks for | H | M | considering |
@@ -386,12 +386,19 @@ How much Otty can do is limited by how much can be undone, explained and defende
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| One stop control: pause everything Otty is doing, from the otter or the menu bar, in reach of anyone | H | S | → D-27 |
+| One stop control: pause everything Otty is doing, from the otter or the menu bar, in reach of anyone | H | S | shipped (D-27) |
 | Red-team sets: attacks in the eval that grow with every feature and every real attack, run before each release. Extends D-23's injection set | H | S–M | considering |
 | What left the Mac: a plain record of what was sent, to where and why | H | M | considering |
 | Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | considering, the base for "do, with undo" |
 | Why did you do that? on everything: one plain trail from action to job, trigger and the moment you agreed. Extends "Why did this happen?" | H | M | considering |
 | Taint tracking: code knows which runs touched outside text, and what they may do narrows to match | H | M | considering, builds on D-26's labels |
+| Grow the eval sets from the seed sizes (8 / 8 / 5 / 7 / 7) to the planned 40 / 30 / 20 / 15 / 20, adding a case for every real failure and every real attack | H | M | idea, from D-23 |
+| Run the eval's injection and safety sets in CI on a schedule, with a small key budget, so a prompt change that weakens a rule is caught before release | H | S | idea, from D-23 |
+| Cache hits in the eval's table: needs `Provider` to report usage, which no caller reads yet | L | S | idea, from D-23 |
+| Recurring jobs ("every Monday at 9"): the same card, with a daily cap and a longest gap in code, and a way to see and end it | H | M | idea, after D-27's one-off jobs |
+| Say "Used" in the quick view as well as the panel, and for a job's report: which memories (none, today) a scheduled look relied on | L | S | idea, from D-24 |
+| Pause until: the stop control offers "for an hour" or "until tomorrow", so a meeting doesn't need a remembered undo | M | S | idea, from D-27 |
+| Shorten the time Otty is paused in the menu bar icon itself (a small dot), so a paused Otty is visible without opening the menu | M | S | idea, from D-27 |
 | Earned limits: a record per action of how often Otty was right and how often it was undone, widening and narrowing what it may do | H | M | idea, extends the trust ladder |
 | Memory forensics: find where a memory came from, and remove it and everything it shaped, as the recovery for memory poisoning | M | M | idea, from D-10 |
 | Time to change your mind: a delay on anything leaving the Mac, like undo send | M | S | idea, with the first action that leaves |

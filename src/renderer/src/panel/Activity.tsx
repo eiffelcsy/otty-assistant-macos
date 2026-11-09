@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import type { ActivityItem } from '../../../shared/types'
+import { describeWhen } from '../../../shared/when'
 import { Icon } from '../components/Icon'
 
 const STATES: Record<ActivityItem['state'], string> = {
+  scheduled: 'Scheduled',
   queued: 'Waiting its turn',
   working: 'Working',
   waiting: 'Waiting for you',
@@ -13,6 +15,7 @@ const STATES: Record<ActivityItem['state'], string> = {
 
 function detail(item: ActivityItem): string {
   if (item.kind === 'answer') return 'Still answering'
+  if (item.state === 'scheduled' && item.dueAt) return `Will look ${describeWhen(item.dueAt)}`
   const pages = item.pages ? ` · ${item.pages} ${item.pages === 1 ? 'page' : 'pages'} read` : ''
   const part = item.state === 'done' && item.partial ? ' · only part of the answer' : ''
   return `${STATES[item.state]}${pages}${part}`
@@ -23,7 +26,7 @@ function Row({ item, onOpen }: { item: ActivityItem; onOpen: () => void }) {
     void window.otty.openActivity(item)
     onOpen()
   }
-  const live = item.state === 'queued' || item.state === 'working' || item.state === 'waiting' || item.state === 'paused'
+  const live = item.state === 'scheduled' || item.state === 'queued' || item.state === 'working' || item.state === 'waiting' || item.state === 'paused'
   return (
     <li className="activity-row">
       <div className="activity-row__body">
@@ -48,7 +51,12 @@ function Row({ item, onOpen }: { item: ActivityItem; onOpen: () => void }) {
             </button>
           </>
         )}
-        {item.state === 'paused' && (
+        {item.held && (
+          <button className="btn btn--primary btn--small" onClick={() => void window.otty.saveSettings({ workPaused: false })}>
+            Let Otty carry on
+          </button>
+        )}
+        {item.state === 'paused' && !item.held && (
           <button className="btn btn--primary btn--small" onClick={() => void window.otty.resumeActivity(item.id)}>
             Keep going
           </button>
@@ -65,7 +73,7 @@ function Row({ item, onOpen }: { item: ActivityItem; onOpen: () => void }) {
         )}
         {live && (
           <button className="btn btn--soft btn--small" onClick={() => void window.otty.stopActivity(item)}>
-            Stop
+            {item.state === 'scheduled' ? 'Cancel' : 'Stop'}
           </button>
         )}
       </div>

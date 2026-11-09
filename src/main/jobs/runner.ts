@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto'
 import type { ActivityItem, AnswerLanguage, HomeLanguage } from '../../shared/types'
+import { describeWhen } from '../../shared/when'
 import { isKnownUrl } from '../knownUrls'
 import { turnNote, withNote } from '../language'
 import { runLoop } from '../loop'
@@ -28,6 +29,8 @@ export interface RunnerDeps {
   saveThread(thread: Thread): Promise<void>
   /** Something changed. `news` means there's something for the user to see. */
   onChange(news: boolean): void
+  /** True while the user has paused everything. Saved, so a restart doesn't quietly undo it. */
+  held?(): boolean
   now?(): number
   wait?(ms: number, signal: AbortSignal): Promise<void>
   limits?: Limits
@@ -40,6 +43,11 @@ export interface NewJob {
   seedUrls: string[]
   language: AnswerLanguage
 }
+
+/** Started this long after it was due, it counts as late. */
+const LATE_AFTER = 2 * 60_000
+/** The longest a timer can wait. A job due later is picked up when this one goes off. */
+const MAX_TIMER = 2 ** 31 - 1
 
 const normalized = (url: string) => {
   try {
@@ -63,7 +71,9 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
 export class JobRunner {
   private current: { id: string; abort: AbortController; done: Promise<void> } | null = null
   /** Why the running job was interrupted, if it was. */
-  private interrupted: 'sleep' | 'gone' | 'stopped' | null = null
+  private interrupted: 'sleep' | 'gone' | 'stopped' | 'held' | null = null
+  /** The one timer, set for the soonest scheduled job. No polling. */
+  private timer: ReturnType<typeof setTimeout> | null = null
   private asleep = false
   /** Reports that aren't saved as chats, with "Remember my chats" off. */
   private reports = new Map<string, Thread>()
@@ -75,13 +85,17 @@ export class JobRunner {
     this.limits = deps.limits ?? LIMITS
   }
 
+  private get held(): boolean {
+    return Boolean(this.deps.held?.())
+  }
+
   private get store(): JobStore {
     return this.deps.store()
   }
 
   private async change(job: Job, change: JobChange): Promise<void> {
     Object.assign(job, change)
-    for (const key of ['waitUrl', 'error', 'resultThread', 'seenAt'] as const) if (job[key] === null) delete job[key]
+    for (const key of ['waitUrl', 'error', 'resultThread', 'seenAt', 'dueAt'] as const) if (job[key] === null) delete job[key]
     await this.store.update(job.id, { ...change, updatedAt: this.now() })
     job.updatedAt = this.now()
   }
@@ -112,10 +126,97 @@ export class JobRunner {
     return null
   }
 
+  /**
+   * A job for later. The user has agreed on a card; it reads the public web and changes nothing, like any job.
+   * Words for the model if it can't be scheduled, or null once it is.
+   */
+  async schedule(req: NewJob & { dueAt: number }): Promise<string | null> {
+    const waiting = (await this.store.list()).filter((j) => j.status === 'scheduled' || j.status === 'queued').length
+    if (waiting >= this.limits.queue) return 'Otty already has plenty waiting. Ask the user to try again once some of it is done.'
+    const at = this.now()
+    await this.store.add({
+      id: randomUUID(),
+      title: req.title,
+      brief: req.brief,
+      status: 'scheduled',
+      dueAt: req.dueAt,
+      seedUrls: req.seedUrls.map(normalized),
+      denied: [],
+      ...(req.sourceThread ? { sourceThread: req.sourceThread } : {}),
+      language: req.language,
+      rounds: 0,
+      lookups: 0,
+      workedMs: 0,
+      partial: false,
+      createdAt: at,
+      updatedAt: at
+    })
+    this.deps.onChange(false)
+    await this.arm()
+    return null
+  }
+
+  /**
+   * Scheduled jobs that are due become queued, once each, however long ago they were due (so waking after three
+   * missed 9ams runs it once). Past a day late it asks first, like any job left sitting.
+   */
+  private async promoteDue(): Promise<void> {
+    if (this.held) return
+    const now = this.now()
+    for (const job of await this.store.list()) {
+      if (job.status !== 'scheduled' || !job.dueAt || job.dueAt > now) continue
+      if (now - job.dueAt > this.limits.staleMs) {
+        await this.change(job, { status: 'paused', error: `This was due ${describeWhen(job.dueAt, now)}, while Otty wasn’t running. Look into it now?` })
+        this.deps.onChange(true)
+      } else {
+        await this.change(job, { status: 'queued', ranLate: now - job.dueAt > LATE_AFTER })
+        this.deps.onChange(false)
+      }
+    }
+  }
+
+  /** Sets the one timer for the soonest scheduled job, or none. Called whenever the list changes. */
+  private async arm(): Promise<void> {
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = null
+    if (this.held) return
+    const due = (await this.store.list()).flatMap((j) => (j.status === 'scheduled' && j.dueAt ? [j.dueAt] : []))
+    if (!due.length) return
+    this.timer = setTimeout(() => {
+      this.timer = null
+      void this.tick()
+    }, Math.min(Math.max(0, Math.min(...due) - this.now()), MAX_TIMER))
+    this.timer.unref?.()
+  }
+
+  private async tick(): Promise<void> {
+    await this.promoteDue()
+    await this.arm()
+    await this.next()
+  }
+
+  /** The user paused everything. The running job stops where it is, with every step saved, and nothing new starts. */
+  async hold(): Promise<void> {
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = null
+    if (this.current) {
+      this.interrupted = 'held'
+      this.current.abort.abort()
+      await this.current.done
+    }
+    this.deps.onChange(false)
+  }
+
+  /** The user let Otty carry on. */
+  async release(): Promise<void> {
+    await this.tick()
+    this.deps.onChange(false)
+  }
+
   /** At launch: carry on with what was going, unless it has sat so long it should ask first. */
   async launch(): Promise<void> {
     await this.pauseStale()
-    await this.next()
+    await this.tick()
   }
 
   private async pauseStale(): Promise<void> {
@@ -139,12 +240,12 @@ export class JobRunner {
     this.asleep = false
     await this.current?.done
     await this.pauseStale()
-    await this.next()
+    await this.tick()
   }
 
   /** Runs the next job, unless one is running. */
   private async next(): Promise<void> {
-    if (this.current || this.asleep) return
+    if (this.current || this.asleep || this.held) return
     const jobs = await this.store.list()
     if (this.current) return
     const job = jobs.find((j) => j.status === 'working') ?? jobs.find((j) => j.status === 'queued')
@@ -195,7 +296,8 @@ export class JobRunner {
     const why = this.interrupted
     this.interrupted = null
     if (why === 'stopped') await this.fail(job, new FriendlyError('You stopped this.'))
-    // Asleep: the job stays `working`, with every step saved, and carries on after waking. Gone: it was forgotten.
+    // Asleep or paused: the job stays `working`, with every step saved, and carries on after waking or when the user
+    // lets Otty go on. Gone: it was forgotten.
   }
 
   /** The loop, from wherever the saved history got to. */
@@ -331,6 +433,13 @@ export class JobRunner {
       return
     }
     const job = await this.store.get(id)
+    if (job?.status === 'scheduled') {
+      // Cancelled before it ever ran: nothing happened, so there's nothing to keep.
+      await this.drop(job)
+      this.deps.onChange(false)
+      await this.arm()
+      return
+    }
     if (job && job.status !== 'done' && job.status !== 'failed') await this.fail(job, new FriendlyError('You stopped this.'))
   }
 
@@ -413,10 +522,19 @@ export class JobRunner {
       id: j.id,
       kind: 'job',
       title: j.title,
-      state: j.status,
+      // While everything is paused, what would be running or starting says so.
+      state: this.held && (j.status === 'working' || j.status === 'queued') ? 'paused' : j.status,
       pages: j.lookups,
+      ...(j.status === 'scheduled' && j.dueAt ? { dueAt: j.dueAt } : {}),
+      ...(this.held && (j.status === 'working' || j.status === 'queued') ? { held: true } : {}),
       ...(j.waitUrl ? { waitUrl: j.waitUrl } : {}),
-      ...(j.error ? { note: j.error } : {}),
+      ...(this.held && (j.status === 'working' || j.status === 'queued' || j.status === 'scheduled')
+        ? { note: 'Paused until you let Otty carry on.' }
+        : j.ranLate && j.dueAt && j.status === 'done'
+          ? { note: `Looked a little late: it was due ${describeWhen(j.dueAt, j.updatedAt)}, but Otty wasn’t running then.` }
+          : j.error
+            ? { note: j.error }
+            : {}),
       ...(j.resultThread ? { chatId: j.resultThread } : {}),
       partial: j.partial,
       ...(j.status === 'failed' ? { retry: true } : {}),

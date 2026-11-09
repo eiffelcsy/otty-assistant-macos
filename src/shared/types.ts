@@ -153,6 +153,8 @@ export interface PublicSettings {
   homeLanguage: HomeLanguage | null
   /** "Let Otty learn about me". Off, nothing is learned or sent, and the list is kept. */
   learn: boolean
+  /** The user paused everything Otty does in the background. Stays on across restarts. */
+  workPaused: boolean
 }
 
 export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys'>> {
@@ -254,7 +256,11 @@ export interface ActivityItem {
   id: string
   kind: 'job' | 'answer'
   title: string
-  state: 'queued' | 'working' | 'waiting' | 'done' | 'paused' | 'failed'
+  state: 'scheduled' | 'queued' | 'working' | 'waiting' | 'done' | 'paused' | 'failed'
+  /** When a scheduled job is due (ms since epoch). */
+  dueAt?: number
+  /** Paused because the user paused everything, not by itself. Keep going is for them to press in the menu. */
+  held?: boolean
   /** Pages read and searches made. */
   pages: number
   /** The address it wants to read, when waiting. */

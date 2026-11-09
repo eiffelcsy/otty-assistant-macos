@@ -101,7 +101,7 @@ async function activityChanged(news: boolean): Promise<void> {
 
 const chat = new ChatSession(forward, {
   onTurn: (unseen) => void activityChanged(unseen),
-  startJob: (job) => jobs.start(job)
+  startJob: (job) => (job.dueAt ? jobs.schedule({ ...job, dueAt: job.dueAt }) : jobs.start(job))
 })
 const jobs = createRunner((news) => void activityChanged(news))
 
@@ -249,6 +249,8 @@ function menuTemplate(): Electron.MenuItemConstructorOptions[] {
     { label: 'Capture the whole screen', accelerator: s.screenHotkey, click: () => void snapWholeScreen() },
     { label: 'Open chat', click: () => openPanel({ context: null }, 'bubble') },
     { type: 'separator' },
+    // The one stop control: whatever Otty is doing on its own stops, and nothing new starts, until this is undone.
+    { label: s.workPaused ? 'Let Otty carry on' : 'Pause everything Otty is doing', click: () => applySettings({ workPaused: !s.workPaused }) },
     {
       label: s.showBubble ? 'Hide floating Otty' : 'Show floating Otty',
       click: () => applySettings({ showBubble: !s.showBubble })
@@ -279,6 +281,11 @@ function applySettings(u: SettingsUpdate) {
   settings.update(u)
   if (u.rememberChats === false) void forgetAllChats()
   if (u.keepChats !== undefined) void tidyOldChats()
+  if (u.workPaused !== undefined) {
+    if (u.workPaused) chat.stopAll()
+    void (u.workPaused ? jobs.hold() : jobs.release()).catch((err) => console.error('Could not change what Otty does on its own', err))
+    tray?.setToolTip(u.workPaused ? 'Otty (paused)' : 'Otty')
+  }
   if (u.askHotkey !== undefined || u.snapHotkey !== undefined || u.screenHotkey !== undefined) registerHotkeys()
   if (u.showBubble !== undefined) {
     const b = getBubble()
@@ -432,7 +439,7 @@ if (!app.requestSingleInstanceLock()) {
     powerMonitor.on('resume', () => setTimeout(() => void jobs.wake(), WAKE_DELAY))
 
     tray = new Tray(trayIcon())
-    tray.setToolTip('Otty')
+    tray.setToolTip(settings.getStored().workPaused ? 'Otty (paused)' : 'Otty')
     refreshTray()
 
     if (!settings.getStored().onboarded) {

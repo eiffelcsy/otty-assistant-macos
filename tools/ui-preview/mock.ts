@@ -64,7 +64,8 @@ const settings: PublicSettings = {
   rememberChats: true,
   keepChats: '1y',
   homeLanguage: q.get('home') === 'none' ? null : 'zh-HK',
-  learn: true
+  learn: true,
+  workPaused: false
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -154,6 +155,8 @@ const activitySample: ActivityItem[] = [
   { id: 'j3', kind: 'job', title: 'Best rail passes', state: 'paused', pages: 7, note: 'This has been sitting a while. Keep going?', unseen: false },
   { id: 'j4', kind: 'job', title: 'Visa rules for Japan', state: 'working', pages: 3, unseen: false },
   { id: 'j5', kind: 'job', title: 'Hotels near Ueno', state: 'queued', pages: 0, unseen: false },
+  { id: 'j6', kind: 'job', title: 'Tokyo rail pass price', state: 'scheduled', pages: 0, dueAt: Date.now() + 14 * 3.6e6, unseen: false },
+  { id: 'j7', kind: 'job', title: 'Flight prices to Osaka', state: 'done', pages: 6, chatId: '1', note: 'Looked a little late: it was due today at 9:00 AM, but Otty wasn’t running then.', unseen: false },
   { id: 'a1', kind: 'answer', title: 'Explain this simply “Requests beyond…”', state: 'working', pages: 0, chatId: '1', unseen: false }
 ]
 

@@ -100,6 +100,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 | `remember`, `forget` | Saves or removes a memory (FR-16) | No: shown with an Undo |
 | `show_steps` | Shows a step card (FR-18) | Each step's action is the user's click |
 | `start_job` | Asks to look into something in the background (FR-19) | **Yes**, every time, showing the whole brief |
+| `schedule_job` | The same, at a later time (FR-19.6) | **Yes**, every time, showing the time and the whole brief |
 
 - FR-7.1 At most 6 tool round-trips per question, to prevent loops.
 - FR-7.2 Tool failures go back to the model as text, so it can apologise and carry on.
@@ -178,6 +179,9 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-19.2 A background job only starts from a card showing its whole brief. It sees only that brief, can only search and read public pages, and never runs on a service where nothing may leave the Mac.
 - FR-19.3 Jobs run one at a time, up to five waiting, and survive quitting and sleep. An unfamiliar address waits for the user's answer. A job left over 24 hours asks before going on.
 - FR-19.4 Limits in code end a job with a partial report that says so: 24 rounds, 30 lookups, 15 minutes, or the same call three times.
+- FR-19.6 *Ask me later.* "Check this tomorrow at 9" shows a card ("Tomorrow at 9:00 AM, Otty will look this up and leave a note. It won't send or change anything. Otty has to be running then.") and, on a yes, runs a normal read-only job at that time. One timer is set for the next due job, with no polling. If the Mac was asleep or Otty was quit, it runs once on wake or launch and says it ran late; more than a day late, it asks first. A scheduled row in Activity has Cancel. Launch at login is not built yet: it needs signed builds.
+- FR-19.7 *Pause everything Otty is doing,* in the otter's menu and the menu bar: running answers stop, a running job stops where it is with every step saved, and nothing scheduled starts until *Let Otty carry on*. It stays paused across restarts.
+- FR-19.8 Under an answer, a quiet line says **Used: …** (at most two) for saved memories that matched the question or the app, stays with the saved chat, and opens the list when tapped. It follows "Let Otty learn about me".
 - FR-19.5 A report is a normal chat. **Activity** shows every job and running answer, with Stop, Allow, Keep going and Open.
 - FR-19.6 With **Remember my chats** off, nothing about a job is written to disk. Forgetting a chat removes its jobs.
 
@@ -198,7 +202,7 @@ See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice
 | NFR-2 | First token is under 2 s on a normal connection with thinking off |
 | NFR-3 | Idle: under 0.5% of one core on average, measured with `OTTY_METRICS=1`. On an M4 on battery, with the bubble showing: about 0.25% today, against 1.6% before the otter's float was stepped and hidden windows were paused, and 0.02% with no animation at all. Memory read 150–700 MB, because macOS compresses idle apps, so no memory limit is set until there are more runs. Re-measure when what runs while idle changes |
 | NFR-4 | Security: `contextIsolation` on, `nodeIntegration` off, sandboxed renderer, a narrow typed preload API, all network calls from the main process, and a Content Security Policy on built pages so they can only reach their own files |
-| NFR-5 | Privacy: nothing is sent anywhere until the user asks a question. Screenshots are deleted from disk right after encoding and are never saved with chats; attached files are only read, never copied, and pictures from them are never saved. App context and chat saving can each be turned off. With DeepSeek, web searches and page reads send only the query or the page address, to the same provider as the model, and never the user's cookies; DeepSeek fetches the page itself. With another provider, or when DeepSeek's search fails, the query goes straight from the Mac to Wikipedia and DuckDuckGo, which see the user's IP address |
+| NFR-5 | Privacy: nothing is sent anywhere until the user asks, or has agreed to something that says so, such as a job scheduled for later (FR-19.6). Pause everything stops it at once. Screenshots are deleted from disk right after encoding and are never saved with chats; attached files are only read, never copied, and pictures from them are never saved. App context and chat saving can each be turned off. With DeepSeek, web searches and page reads send only the query or the page address, to the same provider as the model, and never the user's cookies; DeepSeek fetches the page itself. With another provider, or when DeepSeek's search fails, the query goes straight from the Mac to Wikipedia and DuckDuckGo, which see the user's IP address |
 | NFR-6 | Accessibility: keyboard usable, 4.5:1 contrast, works in light and dark mode, respects `prefers-reduced-motion` |
 | NFR-7 | Supports macOS 13+ on Apple Silicon and Intel (Electron 45's minimum) |
 | NFR-8 | Saved chats: saving a turn ≤ 1 ms for a typical chat (and never before the request is sent), opening a chat ≤ 5 ms, searching 2,000 chats ≤ 50 ms |

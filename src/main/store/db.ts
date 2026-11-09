@@ -167,6 +167,12 @@ const MIGRATIONS: string[] = [
     json text not null,
     primary key (job_id, seq)
   ) without rowid;
+  `,
+  // v4. D-27: jobs that wait for a time. `ran_late` is kept so the row can say why it started after it was due.
+  `
+  alter table jobs add column due_at integer;
+  alter table jobs add column ran_late integer not null default 0;
+  create index jobs_due on jobs(due_at) where status = 'scheduled';
   `
 ]
 
