@@ -6,3 +6,4 @@ dist/
 *.tsbuildinfo
 .venv/
 build/bin/
+tools/eval/results/

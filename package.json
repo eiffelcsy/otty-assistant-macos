@@ -12,6 +12,8 @@
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "test": "vitest run",
+    "eval": "vitest run --config tools/eval/vitest.config.ts",
+    "eval:compare": "node tools/eval/compare.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "build:mac": "node tools/otty-ocr/build.mjs && electron-vite build && electron-builder --mac --publish never"
   },
