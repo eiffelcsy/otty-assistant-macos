@@ -4,6 +4,17 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Easier to trust and to find (2026-11-09, after a UX review)
+
+- **Is it working?** A quiet line at the top of the chat says when a shortcut can't work yet (Accessibility off, Screen Recording off, or a shortcut another app owns), with **Allow**, **Change it** or **Reopen Otty**. It checks again when the panel comes back into view, with no polling.
+- **What Otty has used,** in Settings: questions, background look-ups, searches, pages and a rough token count for the last 30 days, kept on this Mac, with a link to the service's own usage page. Every request is counted in `providers/`, whoever made it, and DeepSeek and OpenAI now send their token counts with each streamed reply.
+- **Job cards say what a look costs:** where it stops (30 searches or pages, or 15 minutes) and, once there's enough history, "about as much as N of your questions". Each job keeps its own token count (schema v5).
+- **Tell me when something is ready:** an optional Mac notification when a look-up finishes, fails or needs an OK, only while the panel is closed. Clicking it opens Activity.
+- **The otter shows its own work:** a straw dot while something runs, a green one when it's waiting for you, and a pause badge while everything is paused.
+- **Open Otty when I log in** (D-28), so things scheduled for later survive a restart. Only the installed app can turn it on.
+- **Try asking:** an empty chat suggests real things to ask, starting with one for the app you came from, then checking later, looking into something big and remembering. A chip fills the box; it never sends.
+- **Activity** puts **Coming up** first, soonest at the top, and has **Pause everything** right there.
+
 ### Ask me later, Pause everything, Used, tool labels and the eval (D-27, D-24, D-26, D-23, 2026-11-09)
 
 - **"Check this tomorrow at 9"** shows a card in plain words and, on a yes, runs a normal read-only job at that time, with the note waiting in Activity as **Will look tomorrow at 9:00 AM** and a Cancel. One timer is set for the next due job, so nothing polls while idle. Asleep or quit at the time, it runs **once** on wake or launch and says it looked late; more than a day late, it asks first. A page can't schedule anything: the card always asks. Schema v4 adds `due_at` and `ran_late`. Launch at login waits for signed builds (D-28).

@@ -21,7 +21,7 @@ Stage 1 is built ([D-22](DEVLOG.md)), so most of the runtime gap has closed: tur
 | Today | Why it matters |
 | --- | --- |
 | ~~Which tools are safe where is kept in hand-written lists~~ | Done: `toolSafety.ts` is the one table, and the Rule of Two is checked in code (D-26) |
-| ~~No timer~~ Launch at login | A timer and a stop control exist (D-27). Launch at login waits for signed builds, so Otty only works while it's running |
+| ~~No timer or launch at login~~ | A timer, a stop control (D-27) and launch at login (D-28) exist. An unsigned build may not be allowed to register at login |
 | The only input is a person (hotkey, bubble, typing) | Otty can't react to anything else |
 
 ## The ideas, in general form

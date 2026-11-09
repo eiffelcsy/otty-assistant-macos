@@ -195,12 +195,12 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Launch at login | H | S | → D-27, waits for signed builds |
+| Launch at login | H | S | shipped (D-28); check it on an unsigned installed build |
 | "What Otty sent" transparency view per message (context, app note) | M | S | idea |
 | Say where web lookups really go: with another provider, or when DeepSeek's search fails, queries go to Wikipedia and DuckDuckGo, but Settings → Privacy only mentions DeepSeek | M | S | idea |
 | Sign and notarize (Developer ID) so permissions survive updates | H | M | considering, needed before sharing builds |
 | Auto-update (electron-updater) | M | M | idea |
-| Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | idea |
+| Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | shipped (counts and tokens; money needs a price table, see below) |
 | An Otty test harness: drive the real overlay and windows in Electron with real input, as a repeatable `npm` script rather than one-off scripts | M | M | idea |
 | Only run the `dmg` workflow on PRs that change packaging, and allow auto-merge, because Mac runner queues held up a release | M | S | idea |
 | Provider presets in Settings (DeepSeek, OpenAI, local Ollama) with a model picker | M | S | shipped |
@@ -437,6 +437,11 @@ How much Otty can do is limited by how much can be undone, explained and defende
 | Cache hits in the eval's table: needs `Provider` to report usage, which no caller reads yet | L | S | idea, from D-23 |
 | Recurring jobs ("every Monday at 9"): the same card, with a daily cap and a longest gap in code, and a way to see and end it | H | M | idea, after D-27's one-off jobs |
 | Say "Used" in the quick view as well as the panel, and for a job's report: which memories (none, today) a scheduled look relied on | L | S | idea, from D-24 |
+| Money, not tokens: a maintained price table per service and model, so the meter and job cards can say "about $0.40 this month". Prices change, so it needs a date and a way to stay current | M | S | idea, from the usage meter |
+| A monthly spending cap the user sets, enforced in code: past it, background work asks first and the meter says why | H | S | idea, from the usage meter |
+| The health line in the quick view too, and after a hotkey that did nothing, instead of only on the next panel open | M | S | idea, from the health banner |
+| Try-asking chips that learn: drop ones the user has already used, and add ones for features they haven't found yet (pairs with the feature-teaching collection) | M | S | idea, from try-asking |
+| Group notifications: several finished looks in one, and none during Focus or screen sharing | M | S | idea, from notifications |
 | Pause until: the stop control offers "for an hour" or "until tomorrow", so a meeting doesn't need a remembered undo | M | S | idea, from D-27 |
 | Shorten the time Otty is paused in the menu bar icon itself (a small dot), so a paused Otty is visible without opening the menu | M | S | idea, from D-27 |
 | Earned limits: a record per action of how often Otty was right and how often it was undone, widening and narrowing what it may do | H | M | idea, extends the trust ladder |
