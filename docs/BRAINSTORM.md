@@ -21,7 +21,7 @@ The long-run direction, from something you ask to something that looks after thi
 ## How to use this doc
 
 - Add ideas freely, one line each, in the right section. Give each one **Impact** (H/M/L), **Effort** (S/M/L) and a pillar.
-- Status: `idea` · `considering` (worth a design sketch) · `→ D-n` (promoted to [DEVLOG.md](DEVLOG.md)) · `shipped` (see [CHANGELOG.md](CHANGELOG.md)) · `parked` / `rejected` (always with a reason, so we don't re-argue it).
+- Status: `idea` · `considering` (worth a design sketch) · `→ D-n` (promoted to [DEVLOG.md](DEVLOG.md)) · `shipped` (see [CHANGELOG.md](CHANGELOG.md)) · `parked` / `rejected` (always with a reason, so we don't re-argue it) · `dream` (the far horizon: not for planning, there to show where the road goes).
 - Each table is ordered by **value per effort**: Impact (H 3, M 2, L 1) divided by Effort (S 1, S–M 1.5, M 2, M–L 2.5, L 3). On a tie, ideas nothing blocks come first, then `considering` before `idea`. Below the open ideas come `→ D-n`, then `shipped`, then `parked`.
 - At the start of each iteration, re-sort, then promote 1–3 of the best unblocked ideas to the dev log.
 - Ask of every idea: **does this get better on its own when the model does?** See "Scaling with better models" below.
@@ -379,6 +379,46 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | Phone app: Otty goes with you, one relationship across devices | H | L | long-term; reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
 | Otties that talk to each other: yours finds a meeting time with a colleague's | L | L | idea, not picked |
+
+## The far horizon: the dream, unconstrained
+
+How far an assistant like Otty could go, with no regard for what's achievable today. It's a compass for the sections above, not a backlog: nothing here gets promoted until the trust ceiling has risen to meet it. Ideas already listed elsewhere (honest pushback, patterns you can't see, goals, long-run memory, tools it builds, a character that grows, do with undo, phone app, acting in your name, voice input) aren't repeated; the rows below go past them.
+
+**What it all stands on.** Every row needs the same few things, and they decide how far the dream can reach: trust that's earned and visible, memory that can be inspected and can't be poisoned, presence across devices, proactivity that helps without nagging or manipulating, and loyalty to the person rather than to engagement. The last one is a design rule, not a feature: **the dream fails if Otty is built to keep people hooked.**
+
+**Where Otty can be strongest.** A private companion you can inspect, that works for you alone (the "It's mine" rows), is something platforms built on ads or engagement structurally can't offer. "Understands me" and "Works while I live" are where the otter earns the word friend. "Acts as me" comes last, once everything else has proven the trust.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| **Understands me:** a model of your values, not just your preferences, so it can say "this goes against what you told me mattered last year". Goes deeper than honest pushback | H | L | dream |
+| **Understands me:** serendipity. It remembers what you read, said and promised, and brings it back at the right moment: the book someone mentioned at a party, on your list a week later | H | L | dream |
+| **Understands me:** knows what you'd never hand over, and keeps those things yours without being told each time | M | L | dream |
+| **Acts as me:** whole errands end to end, such as negotiating a bill, disputing a charge or rebooking a cancelled flight, with you only signing off on exceptions | H | L | dream, after acting in your name |
+| **Acts as me:** life admin on autopilot: renewals, insurance, paperwork and taxes, with a monthly "here's what I handled" | H | L | dream |
+| **Acts as me:** goes to the meeting you didn't need to attend, and brings back the three decisions that mattered | M | L | dream |
+| **Acts as me:** writes in your voice well enough that people who know you can't tell, and marks what it wrote so you always can | M | L | dream |
+| **Everywhere I am:** ambient rather than opened. One otter across Mac, phone, watch, glasses, car and home, carrying the conversation from room to room | H | L | dream, beyond the phone app |
+| **Everywhere I am:** reads the room. It knows a meeting from a bad day from a focused hour, and interrupts the way a considerate person would | H | L | dream, beyond "Is the user around?" |
+| **Everywhere I am:** sees and hears what you do, with consent, as a companion rather than a recorder | M | L | dream |
+| **Works while I live:** a small team behind one otter. Many jobs run in parallel and you see one calm status, never twenty threads | H | L | dream, grows from jobs |
+| **Works while I live:** watches the world for you beyond web pages: rules that affect you, your health data, a friend who's gone quiet. It says what changed and what you might do | H | L | dream, beyond "Watch for me" |
+| **Works while I live:** the answer is there before the question, because it saw what you were about to need | M | L | dream, beyond "Prepared, not done" |
+| **Builds for me:** "I wish there were an app for this", and an hour later there is one, running on your Mac, explained in plain words | H | L | dream, beyond tools it builds |
+| **Builds for me:** improves its own approach. It notices a kind of task it keeps getting wrong and changes how it works, and tells you | M | L | dream |
+| **A mind to think with:** a thinking partner that argues the other side, finds the hole in the plan and doesn't just agree | H | M | dream |
+| **A mind to think with:** a tutor for anything that knows what you've really understood and what you only nodded along to | H | L | dream, beyond the phrasebook quiz |
+| **A mind to think with:** creative work together (writing, music, design) with your taste as the target | M | L | dream |
+| **A mind to think with:** support on hard days that helps you lean on people, not on it | M | L | dream; needs great care |
+| **Looks after the person:** health, joined up: wearable, results and calendar read together, trouble spotted early, the appointment booked and the result explained | H | L | dream, beyond wellbeing nudges |
+| **Looks after the person:** money planned against what you actually want from life, not against a budget template | M | L | dream |
+| **Looks after the person:** an attention shield. It reads the internet for you, filters out ads and manipulation, and tells you what was worth your time | H | L | dream |
+| **Looks after the person:** notices overcommitment, loneliness or burnout, and does something about it with your permission | H | L | dream |
+| **Connects people:** remembers the people in your life (birthdays, what they're going through, what you promised) and helps you be the friend you want to be | H | L | dream |
+| **Connects people:** group plans settled between otters: dinner for six, a trip for four, without the thread. Goes past otties that talk to each other | M | L | dream |
+| **Connects people:** live translation across language, culture and ability, so anyone can take part | H | L | dream |
+| **It's mine:** runs on your hardware with your data, in open formats you can take anywhere, so it can't be changed, sold or switched off by anyone else, and outlives any company | H | L | dream; the most distinctive, closest to today's principles |
+| **It's mine:** the same companion for decades, growing up alongside you | H | L | dream, beyond a character that grows |
+| **It's mine:** a legacy: with your consent, what it knows can pass to the people you choose | L | L | dream |
 
 ## Trust: the ceiling
 

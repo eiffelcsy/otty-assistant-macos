@@ -2445,3 +2445,42 @@ html[data-view='pickup'] #root {
   max-height: 180px;
   overflow-y: auto;
 }
+
+/* ---------- Health: something the user will try won't work yet ---------- */
+.health {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 12px 0;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--straw-soft);
+  border: 1px solid var(--hairline);
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.health > .icon {
+  flex: none;
+  color: var(--straw-ink);
+}
+.health__text {
+  flex: 1;
+  min-width: 0;
+}
+.health__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+.health__close {
+  border: none;
+  background: none;
+  padding: 2px;
+  border-radius: var(--r-xs);
+  color: var(--muted);
+}
+.health__close:hover {
+  background: var(--fill-strong);
+}

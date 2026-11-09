@@ -254,6 +254,7 @@ const api: OttyApi = {
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
+  relaunch: noop,
   sendMessage: async (text, captures, opts) => fakeAnswer(text, captures, opts?.language, opts?.files),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),

@@ -301,6 +301,10 @@ function registerIpc(): void {
   ipcMain.handle('settings:save', (_e, u: SettingsUpdate) => applySettings(u))
   ipcMain.handle('settings:test', () => testConnection())
   ipcMain.handle('permissions:get', () => getPermissions())
+  ipcMain.handle('app:relaunch', () => {
+    app.relaunch()
+    app.quit()
+  })
   ipcMain.handle('permissions:open', (_e, kind: PermissionKind) => openPermissionSettings(kind))
 
   ipcMain.handle(

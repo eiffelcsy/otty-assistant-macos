@@ -13,6 +13,7 @@ const api: OttyApi = {
   testConnection: () => ipcRenderer.invoke('settings:test'),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   openPermissionSettings: (kind) => ipcRenderer.invoke('permissions:open', kind),
+  relaunch: () => ipcRenderer.invoke('app:relaunch'),
 
   sendMessage: (text, captures, opts) => ipcRenderer.invoke('chat:send', text, captures, opts),
   stop: () => ipcRenderer.invoke('chat:stop'),

@@ -356,6 +356,8 @@ export interface OttyApi {
   testConnection(): Promise<{ ok: boolean; message: string }>
   getPermissions(): Promise<Permissions>
   openPermissionSettings(kind: PermissionKind): Promise<void>
+  /** Quits and reopens Otty, which macOS needs before a new Screen Recording permission takes effect. */
+  relaunch(): Promise<void>
 
   sendMessage(text: string, captures: Capture[], opts?: SendOptions): Promise<void>
   stop(): Promise<void>

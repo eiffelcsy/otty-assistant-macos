@@ -1,3 +1,4 @@
+import { HealthBanner } from './HealthBanner'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ActivityItem, AnswerLanguage, AppInfo, Capture, PanelOpenPayload, PublicSettings } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
@@ -305,6 +306,7 @@ export function Panel() {
               {finding !== null && (
                 <FindBar chat={scrollRef} messages={messages} focus={finding} onClose={() => setFinding(null)} />
               )}
+              <HealthBanner settings={settings} onOpenSettings={() => setView('settings')} />
               <div className="chat" ref={scrollRef}>
                 {messages.length === 0 && <EmptyState settings={settings} onSnip={snip} />}
                 {messages.map((m) =>
