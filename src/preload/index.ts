@@ -13,6 +13,8 @@ const api: OttyApi = {
   testConnection: () => ipcRenderer.invoke('settings:test'),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   openPermissionSettings: (kind) => ipcRenderer.invoke('permissions:open', kind),
+  relaunch: () => ipcRenderer.invoke('app:relaunch'),
+  getUsage: () => ipcRenderer.invoke('usage:get'),
 
   sendMessage: (text, captures, opts) => ipcRenderer.invoke('chat:send', text, captures, opts),
   stop: () => ipcRenderer.invoke('chat:stop'),
@@ -73,7 +75,7 @@ const api: OttyApi = {
   onPanelOpen: (cb) => listen('panel:open', cb),
   onQuickOpen: (cb) => listen('quick:open', cb),
   onBubbleState: (cb) => listen('bubble:state', cb),
-  onBubbleWorking: (cb) => listen('bubble:working', cb),
+  onBubbleMood: (cb) => listen('bubble:mood', cb),
   onBubbleBadge: (cb) => listen('bubble:badge', cb),
   onWindowVisible: (cb) => listen('window:visible', cb)
 }

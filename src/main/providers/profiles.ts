@@ -20,6 +20,8 @@ export interface Profile {
   tokenLimit: 'max_tokens' | 'max_completion_tokens'
   /** Where search and page reading go. `off` means nothing leaves the Mac. */
   web: 'deepseek' | 'claude' | 'lookup' | 'off'
+  /** The service accepts `stream_options.include_usage`, so a streamed reply says how many tokens it used. */
+  streamUsage?: boolean
 }
 
 const DEEPSEEK: Profile = {
@@ -32,7 +34,8 @@ const DEEPSEEK: Profile = {
   contextTokens: 128_000,
   reasoning: 'thinking-field',
   tokenLimit: 'max_tokens',
-  web: 'deepseek'
+  web: 'deepseek',
+  streamUsage: true
 }
 
 /** Claude's window is far bigger, but a bigger file budget would cost more on every question. */
@@ -59,7 +62,8 @@ const OPENAI: Profile = {
   contextTokens: 128_000,
   reasoning: 'none',
   tokenLimit: 'max_completion_tokens',
-  web: 'lookup'
+  web: 'lookup',
+  streamUsage: true
 }
 
 /** Ollama and LM Studio. Their windows are small by default, so stay well inside them. */

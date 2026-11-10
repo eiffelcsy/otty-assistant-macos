@@ -35,6 +35,13 @@ export interface ChatRequest {
   reasoning?: 'least' | 'normal' | 'deep'
 }
 
+/** Tokens a request used, as the service reported them. `cached` is the part of `input` served from its cache. */
+export interface Usage {
+  input: number
+  output: number
+  cached?: number
+}
+
 /** `paused` means a long server-side turn stopped part way, and sending the same chat again resumes it. */
 export type StopReason = 'end' | 'tools' | 'length' | 'refusal' | 'paused'
 
@@ -45,12 +52,13 @@ export type ProviderEvent =
   | { type: 'tool'; call: ToolCall }
   /** The service is searching the web itself. */
   | { type: 'search'; status: 'running' | 'done' }
-  | { type: 'done'; stop: StopReason; replay?: ProviderReplay }
+  | { type: 'done'; stop: StopReason; replay?: ProviderReplay; usage?: Usage }
 
 export interface Completion {
   text: string
   /** The model that answered, when the service says. */
   model?: string
+  usage?: Usage
 }
 
 export interface Provider {

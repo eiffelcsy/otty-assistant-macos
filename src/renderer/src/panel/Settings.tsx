@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { KeepChats, PublicSettings } from '../../../shared/types'
+import { useEffect, useState } from 'react'
+import type { KeepChats, PublicSettings, UsageReport } from '../../../shared/types'
 import { serviceAt, serviceById } from '../../../shared/services'
 import { connectionReady, ConnectionFields } from '../components/ConnectionFields'
 import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
@@ -15,6 +15,48 @@ const KEEP: { value: KeepChats; label: string }[] = [
 function TakenHotkey({ settings, hotkey }: { settings: PublicSettings; hotkey: string }) {
   if (!settings.takenHotkeys.includes(hotkey)) return null
   return <p className="hint hint--warn">Another app is using this shortcut. Pick a different one.</p>
+}
+
+/** "About 1.8 million", "about 42,000": tokens mean nothing to most people, so it stays a rough size. */
+function roughly(n: number): string {
+  if (n >= 950_000) return `about ${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')} million`
+  if (n >= 1_000) return `about ${Math.round(n / 1_000).toLocaleString()},000`
+  return String(n)
+}
+
+const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`
+
+/** What Otty has asked of the user's AI service lately. Counts from this Mac; the service's own page has the bill. */
+function UsageSection() {
+  const [usage, setUsage] = useState<UsageReport | null>(null)
+  useEffect(() => void window.otty.getUsage().then(setUsage), [])
+  if (!usage) return null
+  return (
+    <section>
+      <h3>
+        <Icon name="stats" /> What Otty has used
+      </h3>
+      {usage.questions || usage.jobs ? (
+        <p className="usage">
+          In the last {usage.days} days: <b>{plural(usage.questions, 'question')}</b>
+          {usage.jobs ? <>, <b>{plural(usage.jobs, 'look-up')}</b> in the background</> : null}
+          {usage.searches || usage.pages ? (
+            <>
+              , {plural(usage.searches, 'search', 'searches')} and {plural(usage.pages, 'page')} read
+            </>
+          ) : null}
+          . That came to {roughly(usage.tokens)} tokens, the pieces of text {usage.service} charges for.
+        </p>
+      ) : (
+        <p className="hint">Nothing yet. Otty counts what it asks of {usage.service} here, on this Mac.</p>
+      )}
+      {usage.usageUrl && (
+        <button type="button" className="link-btn" onClick={() => window.otty.openExternal(usage.usageUrl!)}>
+          See what it cost on {usage.service} <Icon name="arrow-up-right-from-square" />
+        </button>
+      )}
+    </section>
+  )
 }
 
 export function Settings({
@@ -39,7 +81,7 @@ export function Settings({
 
   const save = async () => {
     setSaving(true)
-    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, readsPages: _r, takenHotkeys: _t, ...rest } = form
+    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, readsPages: _r, takenHotkeys: _t, canOpenAtLogin: _c, ...rest } = form
     const s = await window.otty.saveSettings({ ...rest, ...(key.trim() ? { apiKey: key.trim() } : {}) })
     setKey('')
     onSaved(s)
@@ -71,6 +113,19 @@ export function Settings({
           <input type="checkbox" checked={form.showBubble} onChange={(e) => set('showBubble', e.target.checked)} />
           <span>Show the floating otter button</span>
         </label>
+        <label className="toggle">
+          <input type="checkbox" checked={form.notifyDone} onChange={(e) => set('notifyDone', e.target.checked)} />
+          <span>
+            <b>Tell me when something is ready</b> — a Mac notification when something Otty looked into for you is done, or needs your OK
+          </span>
+        </label>
+        <label className={`toggle${form.canOpenAtLogin ? '' : ' toggle--off'}`}>
+          <input type="checkbox" disabled={!form.canOpenAtLogin} checked={form.openAtLogin} onChange={(e) => set('openAtLogin', e.target.checked)} />
+          <span>
+            <b>Open Otty when I log in</b> — so things you ask Otty to check later still happen after a restart
+            {!form.canOpenAtLogin && ' (only in the installed app)'}
+          </span>
+        </label>
         <label className="label">
           Shortcut: ask about highlighted text
           <input className="field" value={form.askHotkey} onChange={(e) => set('askHotkey', e.target.value)} />
@@ -97,6 +152,8 @@ export function Settings({
         <p className="hint">For when a word or a step is easier in your own language. The app itself stays in English.</p>
         <HomeLanguagePicker value={form.homeLanguage} onChange={(v) => set('homeLanguage', v)} />
       </section>
+
+      <UsageSection />
 
       <MemorySection learn={form.learn} onLearn={(on) => set('learn', on)} focus={memoryFocus} onOpenChat={onOpenChat} />
 

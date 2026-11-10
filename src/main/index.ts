@@ -1,7 +1,8 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, powerMonitor, screen, shell, Tray } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, Notification, powerMonitor, screen, shell, Tray } from 'electron'
 import type {
   ActivityItem,
   AnswerLanguage,
+  BubbleMood,
   BubbleState,
   ChatEvent,
   PanelOpenPayload,
@@ -9,12 +10,13 @@ import type {
   PermissionKind,
   QuickState,
   SendOptions,
-  SettingsUpdate
+  SettingsUpdate,
+  UsageReport
 } from '../shared/types'
 import { randomUUID } from 'crypto'
 import * as settings from './settings'
 import { captureScreenshot, captureSelection, captureWholeScreen, frontmostApp, withWindowsHidden } from './capture'
-import { chatStore, closeStore, pruneOldChats } from './store'
+import { chatStore, closeStore, database, pruneOldChats } from './store'
 import { discardFile, pickFiles, readFile, registerFiles } from './files'
 import { getPermissions, openPermissionSettings } from './permissions'
 import { ChatSession, explainTerm, testConnection } from './llm'
@@ -22,7 +24,9 @@ import { copyText } from './tools'
 import { loadMath } from './math'
 import { memoryStore } from './memory'
 import { isSecret } from './memory/guard'
-import { createRunner } from './jobs'
+import { createRunner, jobCost } from './jobs'
+import { setUsageSink, UsageMeter } from './usage'
+import { serviceAt, serviceById } from '../shared/services'
 import { retentionCutoff } from './store/retention'
 import { startMetrics } from './metrics'
 import { trayIcon } from './trayIcon'
@@ -92,16 +96,47 @@ async function activity(): Promise<ActivityItem[]> {
   return [...answers, ...(await jobs.list())]
 }
 
+/** Opened at launch, once the database is. Null until then, so nothing waits on it. */
+let meter: UsageMeter | null = null
+
+/** What each job was last time, so a notification fires once, on the change. Null until the first look. */
+let lastStates: Map<string, ActivityItem['state']> | null = null
+
+/** A finished, failed or waiting job the user asked for, told through macOS when they've opted in. */
+function notifyChanges(items: ActivityItem[]): void {
+  const before = lastStates
+  lastStates = new Map(items.filter((i) => i.kind === 'job').map((i) => [i.id, i.state]))
+  if (!before || !settings.getStored().notifyDone || getPanel()?.isVisible() || !Notification.isSupported()) return
+  for (const item of items) {
+    if (item.kind !== 'job' || before.get(item.id) === item.state) continue
+    const body =
+      item.state === 'done' ? `Ready: ${item.title}` : item.state === 'waiting' ? `${item.title} needs your OK to read a page.` : item.state === 'failed' ? `${item.title} couldn’t finish.` : null
+    if (!body) continue
+    const note = new Notification({ title: 'Otty', body, silent: false })
+    note.on('click', () => openPanel({ context: null, notice: 'open-activity' }, 'bubble'))
+    note.show()
+  }
+}
+
+/** The otter's mood about its own work: paused by the user first, then waiting for an OK, then busy. */
+function bubbleMood(items: ActivityItem[]): BubbleMood {
+  if (settings.getStored().workPaused) return 'paused'
+  if (items.some((i) => i.state === 'waiting')) return 'waiting'
+  return items.some((i) => i.state === 'working') ? 'working' : null
+}
+
 async function activityChanged(news: boolean): Promise<void> {
   const items = await activity()
   getPanel()?.webContents.send('activity:changed', items)
-  getBubble()?.webContents.send('bubble:working', items.some((i) => i.state === 'working'))
+  getBubble()?.webContents.send('bubble:mood', bubbleMood(items))
+  notifyChanges(items)
   if (news && !getPanel()?.isVisible()) setBadge(true)
 }
 
 const chat = new ChatSession(forward, {
   onTurn: (unseen) => void activityChanged(unseen),
-  startJob: (job) => jobs.start(job)
+  startJob: (job) => (job.dueAt ? jobs.schedule({ ...job, dueAt: job.dueAt }) : jobs.start(job)),
+  jobCost: () => jobCost(jobs, () => meter?.summary() ?? null)
 })
 const jobs = createRunner((news) => void activityChanged(news))
 
@@ -249,6 +284,8 @@ function menuTemplate(): Electron.MenuItemConstructorOptions[] {
     { label: 'Capture the whole screen', accelerator: s.screenHotkey, click: () => void snapWholeScreen() },
     { label: 'Open chat', click: () => openPanel({ context: null }, 'bubble') },
     { type: 'separator' },
+    // The one stop control: whatever Otty is doing on its own stops, and nothing new starts, until this is undone.
+    { label: s.workPaused ? 'Let Otty carry on' : 'Pause everything Otty is doing', click: () => applySettings({ workPaused: !s.workPaused }) },
     {
       label: s.showBubble ? 'Hide floating Otty' : 'Show floating Otty',
       click: () => applySettings({ showBubble: !s.showBubble })
@@ -279,6 +316,12 @@ function applySettings(u: SettingsUpdate) {
   settings.update(u)
   if (u.rememberChats === false) void forgetAllChats()
   if (u.keepChats !== undefined) void tidyOldChats()
+  if (u.workPaused !== undefined) {
+    if (u.workPaused) chat.stopAll()
+    void (u.workPaused ? jobs.hold() : jobs.release()).catch((err) => console.error('Could not change what Otty does on its own', err))
+    tray?.setToolTip(u.workPaused ? 'Otty (paused)' : 'Otty')
+    void activityChanged(false)
+  }
   if (u.askHotkey !== undefined || u.snapHotkey !== undefined || u.screenHotkey !== undefined) registerHotkeys()
   if (u.showBubble !== undefined) {
     const b = getBubble()
@@ -294,6 +337,17 @@ function registerIpc(): void {
   ipcMain.handle('settings:save', (_e, u: SettingsUpdate) => applySettings(u))
   ipcMain.handle('settings:test', () => testConnection())
   ipcMain.handle('permissions:get', () => getPermissions())
+  ipcMain.handle('usage:get', (): UsageReport => {
+    const s = settings.getStored()
+    const service = serviceById(serviceAt(s.baseUrl))
+    const empty = { days: 30, questions: 0, tokens: 0, searches: 0, pages: 0, jobs: 0 }
+    const { requests: _r, ...summary } = meter?.summary() ?? { ...empty, requests: 0 }
+    return { ...summary, service: service.label, ...(service.usageUrl ? { usageUrl: service.usageUrl } : {}) }
+  })
+  ipcMain.handle('app:relaunch', () => {
+    app.relaunch()
+    app.quit()
+  })
   ipcMain.handle('permissions:open', (_e, kind: PermissionKind) => openPermissionSettings(kind))
 
   ipcMain.handle(
@@ -423,6 +477,12 @@ if (!app.requestSingleInstanceLock()) {
     // Open the database (and import any chats.json) now, off the first click's path, then tidy old chats.
     setImmediate(() => {
       chatStore()
+      try {
+        meter = new UsageMeter(database())
+        setUsageSink(meter)
+      } catch (err) {
+        console.error('Could not open the usage meter', err)
+      }
       memoryStore().pruneExpired()
       void loadMath()
       void tidyOldChats().catch((err) => console.error('Could not tidy old jobs', err))
@@ -432,7 +492,7 @@ if (!app.requestSingleInstanceLock()) {
     powerMonitor.on('resume', () => setTimeout(() => void jobs.wake(), WAKE_DELAY))
 
     tray = new Tray(trayIcon())
-    tray.setToolTip('Otty')
+    tray.setToolTip(settings.getStored().workPaused ? 'Otty (paused)' : 'Otty')
     refreshTray()
 
     if (!settings.getStored().onboarded) {

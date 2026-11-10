@@ -64,7 +64,11 @@ const settings: PublicSettings = {
   rememberChats: true,
   keepChats: '1y',
   homeLanguage: q.get('home') === 'none' ? null : 'zh-HK',
-  learn: true
+  learn: true,
+  workPaused: false,
+  notifyDone: false,
+  openAtLogin: false,
+  canOpenAtLogin: true
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -118,6 +122,7 @@ const memorySample: ChatMessage[] = [
     role: 'assistant',
     tools: [],
     text: 'It’s **gracias**. For “thank you very much”, say **muchas gracias**.',
+    used: [{ memoryId: 3, text: 'Is learning Spanish' }],
     memories: [
       { memoryId: 1, text: 'Is learning Spanish', action: 'added' },
       { memoryId: 2, text: 'Mostly works in Excel and Safari', action: 'updated', before: 'Mostly works in Excel' }
@@ -153,6 +158,8 @@ const activitySample: ActivityItem[] = [
   { id: 'j3', kind: 'job', title: 'Best rail passes', state: 'paused', pages: 7, note: 'This has been sitting a while. Keep going?', unseen: false },
   { id: 'j4', kind: 'job', title: 'Visa rules for Japan', state: 'working', pages: 3, unseen: false },
   { id: 'j5', kind: 'job', title: 'Hotels near Ueno', state: 'queued', pages: 0, unseen: false },
+  { id: 'j6', kind: 'job', title: 'Tokyo rail pass price', state: 'scheduled', pages: 0, dueAt: Date.now() + 14 * 3.6e6, unseen: false },
+  { id: 'j7', kind: 'job', title: 'Flight prices to Osaka', state: 'done', pages: 6, chatId: '1', note: 'Looked a little late: it was due today at 9:00 AM, but Otty wasn’t running then.', unseen: false },
   { id: 'a1', kind: 'answer', title: 'Explain this simply “Requests beyond…”', state: 'working', pages: 0, chatId: '1', unseen: false }
 ]
 
@@ -246,10 +253,12 @@ const noop = async () => {}
 const trayed = { panel: false, quick: false }
 const api: OttyApi = {
   getSettings: async () => settings,
-  saveSettings: async (u) => Object.assign(settings, u),
+  saveSettings: async (u) => ({ ...Object.assign(settings, u) }),
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
+  relaunch: noop,
+  getUsage: async () => ({ days: 30, questions: 142, tokens: 1_840_000, searches: 37, pages: 21, jobs: 4, service: 'DeepSeek', usageUrl: 'https://platform.deepseek.com/usage' }),
   sendMessage: async (text, captures, opts) => fakeAnswer(text, captures, opts?.language, opts?.files),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
@@ -367,7 +376,7 @@ const api: OttyApi = {
     return () => {}
   },
   onBubbleState: () => () => {},
-  onBubbleWorking: () => () => {},
+  onBubbleMood: () => () => {},
   onBubbleBadge: () => () => {},
   onWindowVisible: () => () => {}
 }

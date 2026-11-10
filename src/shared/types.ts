@@ -153,9 +153,30 @@ export interface PublicSettings {
   homeLanguage: HomeLanguage | null
   /** "Let Otty learn about me". Off, nothing is learned or sent, and the list is kept. */
   learn: boolean
+  /** The user paused everything Otty does in the background. Stays on across restarts. */
+  workPaused: boolean
+  /** A macOS notification when something Otty did on its own is ready or needs an OK. Off until chosen. */
+  notifyDone: boolean
+  /** Otty opens when the user logs in. macOS keeps this, not Otty's settings file. */
+  openAtLogin: boolean
+  /** Only the installed app can be a login item; a development build can't. */
+  canOpenAtLogin: boolean
 }
 
-export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys'>> {
+/** The usage meter, for Settings. Counts only, from this Mac. */
+export interface UsageReport {
+  days: number
+  questions: number
+  tokens: number
+  searches: number
+  pages: number
+  jobs: number
+  /** The service's name, and where it shows what this cost. */
+  service: string
+  usageUrl?: string
+}
+
+export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'canOpenAtLogin'>> {
   /** Plaintext key from the settings form; main encrypts it. Empty string clears it. */
   apiKey?: string
 }
@@ -169,6 +190,9 @@ export interface Permissions {
 export type PermissionKind = 'accessibility' | 'screen'
 
 export type BubbleState = 'idle' | 'thinking' | 'happy'
+
+/** What the otter shows about work it's doing on its own: busy, waiting for an OK, or paused by the user. */
+export type BubbleMood = 'working' | 'waiting' | 'paused' | null
 
 export interface ToolChipInfo {
   callId: string
@@ -205,6 +229,8 @@ export type ChatMessage =
       /** When the answer started (ms since epoch). Absent in chats saved before 0.4. */
       at?: number
       memories?: MemoryNote[]
+      /** Memories that matched the question or the app, so the answer may lean on them (D-24). At most two. */
+      used?: UsedMemory[]
       /** An instant answer: worked out on the Mac, with no model call. */
       calc?: { expression: string; result: string }
       steps?: StepCard
@@ -230,6 +256,12 @@ export interface Memory {
   expiresAt?: number
 }
 
+/** A memory shown under an answer as "Used". The words are kept with the answer, so the line stays true if the memory changes later. */
+export interface UsedMemory {
+  memoryId: number
+  text: string
+}
+
 /** The "Noted" line under an answer. It stays in the saved chat, so where a memory came from is never a mystery. */
 export interface MemoryNote {
   memoryId: number
@@ -246,7 +278,11 @@ export interface ActivityItem {
   id: string
   kind: 'job' | 'answer'
   title: string
-  state: 'queued' | 'working' | 'waiting' | 'done' | 'paused' | 'failed'
+  state: 'scheduled' | 'queued' | 'working' | 'waiting' | 'done' | 'paused' | 'failed'
+  /** When a scheduled job is due (ms since epoch). */
+  dueAt?: number
+  /** Paused because the user paused everything, not by itself. Keep going is for them to press in the menu. */
+  held?: boolean
   /** Pages read and searches made. */
   pages: number
   /** The address it wants to read, when waiting. */
@@ -296,6 +332,8 @@ export type ChatEvent =
   | { type: 'error'; id: string; message: string }
   /** Otty saved, changed or forgot a memory, or Undo was pressed on one (`note.undone`). */
   | { type: 'memory'; id: string; note: MemoryNote }
+  /** Which memories matched this question. Sent once, as the answer starts. */
+  | { type: 'memory-used'; id: string; used: UsedMemory[] }
   /** A step card appeared or changed. */
   | { type: 'steps'; id: string; card: StepCard }
   /** "Don't learn from this chat" changed. */
@@ -340,6 +378,9 @@ export interface OttyApi {
   testConnection(): Promise<{ ok: boolean; message: string }>
   getPermissions(): Promise<Permissions>
   openPermissionSettings(kind: PermissionKind): Promise<void>
+  /** Quits and reopens Otty, which macOS needs before a new Screen Recording permission takes effect. */
+  relaunch(): Promise<void>
+  getUsage(): Promise<UsageReport>
 
   sendMessage(text: string, captures: Capture[], opts?: SendOptions): Promise<void>
   stop(): Promise<void>
@@ -422,7 +463,7 @@ export interface OttyApi {
   onQuickOpen(cb: (p: PanelOpenPayload) => void): () => void
   onBubbleState(cb: (s: BubbleState) => void): () => void
   /** True while Otty is working on something in the background. */
-  onBubbleWorking(cb: (on: boolean) => void): () => void
+  onBubbleMood(cb: (mood: BubbleMood) => void): () => void
   /** True while an answer is waiting that the user hasn't seen. */
   onBubbleBadge(cb: (on: boolean) => void): () => void
   /** Whether this window is on screen. */

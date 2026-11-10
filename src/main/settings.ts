@@ -12,7 +12,7 @@ interface SavedKey {
   plain?: boolean
 }
 
-interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys'> {
+interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'openAtLogin' | 'canOpenAtLogin'> {
   /** One per service, so a key only ever goes to the service it belongs to. */
   apiKeys?: Partial<Record<ServiceId, SavedKey>>
   /** The single key from before 0.5, moved into `apiKeys` on load. */
@@ -34,7 +34,9 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   shareAppContext: true,
   rememberChats: true,
   keepChats: '1y',
-  learn: true
+  learn: true,
+  workPaused: false,
+  notifyDone: false
 }
 
 let cache: StoredSettings | null = null
@@ -93,6 +95,7 @@ export function getPublic(): PublicSettings {
     needsKey: profileFor(rest.baseUrl, rest.apiFormat).needsKey,
     readsPages: profileFor(rest.baseUrl, rest.apiFormat).web !== 'off',
     takenHotkeys,
+    ...loginItem(),
     savedKeys: Object.keys(apiKeys ?? {}) as ServiceId[]
   }
 }
@@ -110,9 +113,16 @@ export function getApiKey(): string | null {
   }
 }
 
+/** Whether Otty opens at login. macOS is the source of truth, so it's read each time rather than saved. */
+function loginItem(): { openAtLogin: boolean; canOpenAtLogin: boolean } {
+  const can = process.platform === 'darwin' && app.isPackaged
+  return { canOpenAtLogin: can, openAtLogin: can && app.getLoginItemSettings().openAtLogin }
+}
+
 export function update(u: SettingsUpdate): PublicSettings {
   const s = load()
-  const { apiKey, ...rest } = u
+  const { apiKey, openAtLogin, ...rest } = u
+  if (openAtLogin !== undefined && loginItem().canOpenAtLogin) app.setLoginItemSettings({ openAtLogin })
   Object.assign(s, rest)
   if (apiKey !== undefined) {
     const key = apiKey.trim()

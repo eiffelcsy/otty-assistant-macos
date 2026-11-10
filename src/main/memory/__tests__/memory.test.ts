@@ -122,7 +122,7 @@ describe('remember and forget', () => {
 
 describe('the note sent with a question', () => {
   it('is empty with nothing to say', () => {
-    expect(store.forPrompt('hello', null, NOW)).toEqual({ note: '', ids: [] })
+    expect(store.forPrompt('hello', null, NOW)).toEqual({ note: '', ids: [], matched: [] })
   })
 
   it('puts told things first, then what matches, and skips paused ones', () => {

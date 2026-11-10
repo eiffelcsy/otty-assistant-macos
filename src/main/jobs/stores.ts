@@ -22,6 +22,9 @@ interface Row {
   wait_url: string | null
   error: string | null
   partial: number
+  due_at: number | null
+  ran_late: number
+  tokens: number
   created_at: number
   updated_at: number
   seen_at: number | null
@@ -40,9 +43,12 @@ const toJob = (r: Row): Job => ({
   rounds: r.rounds,
   lookups: r.lookups,
   workedMs: r.worked_ms,
+  ...(r.tokens ? { tokens: r.tokens } : {}),
   ...(r.wait_url ? { waitUrl: r.wait_url } : {}),
   ...(r.error ? { error: r.error } : {}),
   partial: Boolean(r.partial),
+  ...(r.due_at ? { dueAt: r.due_at } : {}),
+  ...(r.ran_late ? { ranLate: true } : {}),
   createdAt: r.created_at,
   updatedAt: r.updated_at,
   ...(r.seen_at ? { seenAt: r.seen_at } : {})
@@ -59,7 +65,9 @@ const COLUMNS: Record<string, string> = {
   waitUrl: 'wait_url',
   error: 'error',
   updatedAt: 'updated_at',
-  seenAt: 'seen_at'
+  seenAt: 'seen_at',
+  dueAt: 'due_at',
+  tokens: 'tokens'
 }
 
 export class SqliteJobStore implements JobStore {
@@ -77,10 +85,10 @@ export class SqliteJobStore implements JobStore {
   async add(j: Job): Promise<void> {
     this.db
       .prepare(
-        `insert into jobs(id, title, brief, status, seed_urls, denied_urls, source_thread, language, created_at, updated_at)
-         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `insert into jobs(id, title, brief, status, seed_urls, denied_urls, source_thread, language, due_at, created_at, updated_at)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(j.id, j.title, j.brief, j.status, JSON.stringify(j.seedUrls), JSON.stringify(j.denied), j.sourceThread ?? null, j.language, j.createdAt, j.updatedAt)
+      .run(j.id, j.title, j.brief, j.status, JSON.stringify(j.seedUrls), JSON.stringify(j.denied), j.sourceThread ?? null, j.language, j.dueAt ?? null, j.createdAt, j.updatedAt)
   }
 
   async update(id: string, change: JobChange): Promise<void> {
@@ -91,8 +99,8 @@ export class SqliteJobStore implements JobStore {
       if (key === 'seedUrls' || key === 'denied') {
         sets.push(key === 'seedUrls' ? 'seed_urls = ?' : 'denied_urls = ?')
         args.push(JSON.stringify(value))
-      } else if (key === 'partial') {
-        sets.push('partial = ?')
+      } else if (key === 'partial' || key === 'ranLate') {
+        sets.push(key === 'partial' ? 'partial = ?' : 'ran_late = ?')
         args.push(value ? 1 : 0)
       } else if (COLUMNS[key]) {
         sets.push(`${COLUMNS[key]} = ?`)
