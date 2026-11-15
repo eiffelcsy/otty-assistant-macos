@@ -35,8 +35,10 @@ export interface Expect {
 export interface Case {
   id: string
   set: EvalSet
-  /** What the user types. */
+  /** What goes in the user's message: their words, plus any file blocks. */
   prompt: string
+  /** What the user typed, when `prompt` holds more (file blocks): what the app's per-turn hints read. */
+  typed?: string
   /** The app note, as Otty puts at the start of a message. */
   app?: string
   /** The "what you know about the user" note, as Otty puts at the end. */

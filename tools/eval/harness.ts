@@ -1,4 +1,5 @@
 import { runLoop } from '../../src/main/loop'
+import { turnHints } from '../../src/main/hints'
 import { systemPrompt } from '../../src/main/prompts'
 import { toolDefs } from '../../src/main/tools'
 import type { ToolOutcome } from '../../src/main/tools'
@@ -12,8 +13,12 @@ const ok: ToolOutcome = { result: 'Done.', status: 'done' }
 /** What Otty puts around a question, as `userContent` and `turnNote` do. */
 export function userText(c: Case, now = new Date('2026-11-09T10:00:00')): string {
   const app = c.app ? `[I'm using ${c.app}.]\n\n` : ''
-  const known = c.known ? `\n\n[What you know about the user: ${c.known}]` : ''
-  return `${app}${c.prompt}${known}\n\n[Current local time: ${now.toString().slice(0, 21)}]`
+  const known = c.known ? `\n[What you know about the user: ${c.known}]` : ''
+  // The same per-turn hints the app adds (llm.ts), from the user's own words and the app's name.
+  const hints = turnHints({ typed: c.typed ?? c.prompt, app: c.app?.split(',')[0] ?? null, learn: true })
+    .map((h) => `\n${h}`)
+    .join('')
+  return `${app}${c.prompt}\n\n[Current local time: ${now.toString().slice(0, 21)}]${known}${hints}`
 }
 
 /** Runs one case through the real loop and system prompt, with the model service given. */

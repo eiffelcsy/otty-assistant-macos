@@ -3,6 +3,7 @@ import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, MemoryNote, QuickAction, UsedMemory, SendOptions, StepApp, StepCard } from '../shared/types'
 import { capturedText } from '../shared/captures'
 import { mathTier } from '../shared/math'
+import { turnHints } from './hints'
 import { describeWhen, parseDue } from '../shared/when'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
 import { fileBudget, fitFiles, sampleText, type FileOutput } from './files/budget'
@@ -435,7 +436,8 @@ export class ChatSession {
     const { note: known, used } = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
     const stepNotes = this.stepNotes.get(thread.id) ?? []
     this.stepNotes.delete(thread.id)
-    const note = [turnNote(language, home), known, ...stepNotes].filter(Boolean).join('\n')
+    const hints = turn.action ? [] : turnHints({ typed: turn.typed, picture: captures.some((c) => c.context.kind === 'image'), app: where, learn: this.learns(thread) })
+    const note = [turnNote(language, home), known, ...hints, ...stepNotes].filter(Boolean).join('\n')
     history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), note) })
     const system = systemPrompt(home, activeProfile().web !== 'off', Boolean(getStored().learn))
     this.tell(thread, { type: 'start', id, language })
