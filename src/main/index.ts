@@ -168,7 +168,9 @@ const chat = new ChatSession(forward, {
   onTurn: (unseen) => void activityChanged(unseen),
   startJob: (job) => (job.dueAt ? jobs.schedule({ ...job, dueAt: job.dueAt }) : jobs.start(job)),
   jobCost: () => jobCost(jobs, () => meter?.summary() ?? null),
-  overCap: () => overCap() !== null
+  overCap: () => overCap() !== null,
+  jobLive: (id) => jobs.isLive(id),
+  withdrawJob: (id) => jobs.withdraw(id)
 })
 const jobs = createRunner((news) => void activityChanged(news), overCap)
 
@@ -432,6 +434,10 @@ function registerIpc(): void {
   ipcMain.handle('activity:resume', (_e, id: string) => jobs.resume(String(id)))
   ipcMain.handle('activity:seen', () => jobs.markSeen())
   ipcMain.handle('sent:list', () => sentLog().list())
+  ipcMain.handle('chat:rewind-plan', (_e, id: unknown) => chat.rewindPlan(String(id)))
+  ipcMain.handle('chat:rewind', (_e, id: unknown, undo: unknown, mode: unknown) =>
+    chat.rewind(String(id), Array.isArray(undo) ? undo.map(String) : [], mode === 'edit' ? 'edit' : 'retry')
+  )
   ipcMain.handle('activity:open', async (_e, item: ActivityItem) => {
     if (!item.chatId) return
     const report = jobs.report(item.chatId)

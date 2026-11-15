@@ -43,6 +43,8 @@ export interface RunnerDeps {
 }
 
 export interface NewJob {
+  /** Chosen by the chat that asked, so the answer can point at it (Try again offers to stop it, D-36). */
+  id?: string
   title: string
   brief: string
   sourceThread?: string
@@ -114,7 +116,7 @@ export class JobRunner {
     if (waiting >= this.limits.queue) return 'Otty already has plenty waiting. Ask the user to try again once some of it is done.'
     const at = this.now()
     await this.store.add({
-      id: randomUUID(),
+      id: req.id ?? randomUUID(),
       title: req.title,
       brief: req.brief,
       status: 'queued',
@@ -145,7 +147,7 @@ export class JobRunner {
     if (req.repeat && jobs.filter((j) => j.repeat).length >= this.limits.series) return 'Otty already checks several things regularly. Ask the user to cancel one in Activity first.'
     const at = this.now()
     await this.store.add({
-      id: randomUUID(),
+      id: req.id ?? randomUUID(),
       title: req.title,
       brief: req.brief,
       status: 'scheduled',
@@ -497,6 +499,28 @@ export class JobRunner {
       return
     }
     if (job && job.status !== 'done' && job.status !== 'failed') await this.fail(job, new FriendlyError('You stopped this.'))
+  }
+
+  /**
+   * Try again or Edit took back the answer that asked for this (D-36). One that never started goes as if it was
+   * never asked, a series included; one under way stops like Stop, keeping what it found.
+   */
+  async withdraw(id: string): Promise<void> {
+    const job = await this.store.get(id)
+    if (!job) return
+    if (this.current?.id !== id && (job.status === 'scheduled' || (job.status === 'queued' && job.rounds === 0))) {
+      await this.drop(job)
+      this.deps.onChange(false)
+      await this.arm()
+      return
+    }
+    await this.stop(id)
+  }
+
+  /** Still to do or under way, so taking back its answer can stop it. */
+  async isLive(id: string): Promise<boolean> {
+    const job = await this.store.get(id)
+    return Boolean(job && job.status !== 'done' && job.status !== 'failed')
   }
 
   /** Allow or Don't Allow. Saved, so it works whenever it's answered, even after a restart. */

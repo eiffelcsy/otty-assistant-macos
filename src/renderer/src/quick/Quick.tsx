@@ -254,7 +254,13 @@ export function Quick() {
                         <HiddenLine hidden={m.hidden} />
                       </div>
                     ) : (
-                      <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} source={sourceFor(messages, m.id)} />
+                      <AssistantMessage
+                        key={m.id}
+                        m={m}
+                        again={again?.id === m.id ? again.offer : undefined}
+                        source={sourceFor(messages, m.id)}
+                        latest={m.id === messages.at(-1)?.id}
+                      />
                     )
                   )}
                   {waitingFirstToken && (

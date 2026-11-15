@@ -1,7 +1,7 @@
 import { suggestionsFor } from '../../../shared/suggestions'
 import { HealthBanner } from './HealthBanner'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ActivityItem, AnswerLanguage, AppInfo, Capture, PanelOpenPayload, PublicSettings } from '../../../shared/types'
+import type { ActivityItem, AnswerLanguage, AppInfo, Capture, EditDraft, PanelOpenPayload, PublicSettings } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
 import { Icon } from '../components/Icon'
@@ -32,6 +32,7 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
     kind: 'screen'
   },
   'snip-mac-only': { title: 'Snipping works on macOS', body: 'Screen snips use the Mac’s built-in snipping tool.' },
+  reattach: { title: 'Attach your files again', body: 'Files aren’t kept with a question, so add them again with the paperclip if this one needs them.' },
   'tray-full': {
     title: `Otty can look at ${MAX_CAPTURES} things at once`,
     body: 'Remove one with its ✕ to add another, or ask about these first.'
@@ -66,6 +67,15 @@ export function Panel() {
   /** The pill's choice for the next message only. */
   const [pick, setPick] = useState<AnswerLanguage | undefined>()
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const lastAnswerId = [...messages].reverse().find((m) => m.role === 'assistant')?.id
+
+  /** Edit question (D-36): the question and its captures back in the box, ready to change and send. */
+  const editQuestion = (draft: EditDraft) => {
+    setInput(draft.text)
+    setCaptures(draft.captures)
+    setNotice(draft.files.length ? 'reattach' : null)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }
   const scrollRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef(settings)
   settingsRef.current = settings
@@ -343,6 +353,8 @@ export function Panel() {
                       again={again?.id === m.id ? again.offer : undefined}
                       found={m.id === focusId}
                       source={sourceFor(messages, m.id)}
+                      latest={m.id === lastAnswerId}
+                      onEdit={editQuestion}
                     />
                   )
                 )}

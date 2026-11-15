@@ -301,7 +301,25 @@ export type ChatMessage =
       steps?: StepCard
       /** Charts drawn from the user's own data, with every number worked out by Otty (D-35). */
       charts?: ChartCard[]
+      /** Looks this answer started or scheduled, so Try again can offer to stop them (D-36). */
+      jobs?: { id: string; title: string }[]
+      /** What it did that can't be taken back, in words: a reminder added, a link opened (D-36). */
+      lasting?: string[]
     }
+
+/** What Try again or Edit would take back, shown before the answer goes (D-36). Each undo is ticked by default. */
+export interface RewindPlan {
+  undo: { id: string; label: string }[]
+  /** Things already done for good, said plainly. */
+  lasting: string[]
+}
+
+/** Edit: the question back in the box. Files can't come back, so their names are listed to attach again. */
+export interface EditDraft {
+  text: string
+  captures: Capture[]
+  files: string[]
+}
 
 /** A chart under an answer. `code` is Mermaid that Otty wrote from the numbers, never the model. */
 export interface ChartCard {
@@ -493,6 +511,10 @@ export interface OttyApi {
   seenActivity(): Promise<void>
   /** What left the Mac, newest first. */
   listSent(): Promise<SentItem[]>
+  /** What Try again or Edit on the latest turn would undo (D-36). Null when it isn't the latest turn. */
+  rewindPlan(messageId: string): Promise<RewindPlan | null>
+  /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */
+  rewind(messageId: string, undo: string[], mode: 'retry' | 'edit'): Promise<EditDraft | null>
   onActivity(cb: (items: ActivityItem[]) => void): () => void
   /** "Don't learn from this chat", for the open chat. */
   setChatLearn(on: boolean): Promise<void>

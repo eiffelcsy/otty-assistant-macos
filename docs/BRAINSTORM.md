@@ -235,7 +235,9 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Syntax colours in answers' code blocks, with a small lazily loaded highlighter and token colours from `styles.css` | L | S | idea, after D-29 |
-| Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | → D-36 |
+| Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | shipped (D-36) |
+| Try again with a twist: **Shorter**, **Simpler** or **In more detail** beside Try again, as the same rewind plus one line in the turn's note | M | S | idea, from D-36 |
+| Branch from an older question: edit any earlier turn as a new chat that copies the history up to there, so nothing later is lost | M | M | idea, from D-36 |
 | Rewind a chat to any earlier message: the chat-sized version of Rewind. Lists what the removed turns did, undo ticked by default and untickable, because a rewind is often just a typo fix and shouldn't silently forget what was said later | H | M | idea, after the action ledger |
 | Copy on your own messages, beside the Copy that answers already have | M | S | idea |
 | Keep each version after a retry, an edit or a rewind, with ‹ 1/2 › to switch between them, as other chat apps do. Needs branching history in `otty.db` | M | M | idea, after retry and edit |

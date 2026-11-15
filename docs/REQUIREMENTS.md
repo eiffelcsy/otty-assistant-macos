@@ -128,6 +128,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-10.5 **Search** at the top of Recent chats (⇧⌘F in the panel, or ⌘F with no chat open) finds chats by their title, messages and text captures, in English or Chinese. Every word must appear; quotes keep a phrase. Results show a highlighted snippet, and clicking one reopens the chat at the matching message.
 - FR-10.6 **Find in this chat** (⌘F, or the search button in the header) highlights every match in the open conversation with the same matching rules, shows "2 of 5", and steps with ↵ / ⇧↵. Esc closes the bar before it closes the panel.
 - FR-10.7 **Keep chats for** 30 days / 1 year / forever (Settings → Privacy, default 1 year), counted from a chat's last message. Older chats are forgotten at launch, after each answer and when the setting changes. Forgotten chats are overwritten on disk, not just unlinked.
+- FR-10.9 The latest answer has **Try again** and **Edit question**. Before it goes, Otty lists what that answer did that it can undo (memories noted, looks started), ticked by default, and what can't be undone. Earlier turns stay exactly as they were sent.
 - FR-10.8 After the first answer, a model-written title of a few words replaces the instant one, in the chat's language.
 
 ### FR-12 File attachments (P1)

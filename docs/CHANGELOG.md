@@ -4,6 +4,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Try again and Edit question (D-36, 2026-11-15)
+
+- **Under the latest answer: Try again and Edit question.** Try again asks the same question again for a new answer. Edit question puts the question and its highlights back in the box to change and resend; files have to be attached again, and Otty says so. It works on an answer that failed too. The quick view has Try again.
+- **Before an answer goes, Otty lists what it did:** memories it noted, and looks it started or scheduled, each ticked to undo and each can be unticked. What can't be taken back is said plainly: a reminder added, a link opened, text copied, steps run from a card. When there's nothing to list, it just goes.
+- **The cache still holds:** the history is cut back to a prefix of what was sent, and Try again resends the question exactly as it went the first time. A test checks the new request matches the old one byte for byte.
+- **Looks are linked to their answer:** the chat picks the job's id, so Try again can stop it. One that never started goes as if it was never asked, a series included; one under way stops like Stop, keeping what it found.
+- Only the latest turn can be taken back, and not while it's still answering.
+
 ### What left your Mac (D-31, 2026-11-15)
 
 - **Activity has a second tab, What left your Mac:** every request to the AI service, every web search and every page read, newest first, in plain words. For example: "Asked DeepSeek: Budget.csv · 1 key hidden", "Searched DeepSeek for “rail pass prices”", "Read jrailpass.com/prices". Each row says when it was sent, where to, and opens its chat. One answer's rounds fold into one row, and so do one job's requests. A model on this Mac says "nothing left your Mac".

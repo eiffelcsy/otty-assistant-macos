@@ -1,5 +1,5 @@
-import { useContext, useState } from 'react'
-import type { AppInfo, Capture, MemoryNote, ScreenContext, ToolChipInfo, UsedMemory } from '../../../shared/types'
+import { useContext, useEffect, useRef, useState } from 'react'
+import type { AppInfo, Capture, EditDraft, MemoryNote, RewindPlan, ScreenContext, ToolChipInfo, UsedMemory } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { StepCard } from '../components/StepCard'
 import { DrawingCard } from '../draw/DrawingCard'
@@ -113,7 +113,13 @@ export interface AgainOffer {
 
 /** The text the user highlighted for this answer, so a proofread card can show what changed. */
 export function sourceFor(messages: UiMessage[], id: string): string {
-  const asked = messages.slice(0, messages.findIndex((m) => m.id === id)).reverse().find((m) => m.role === 'user')
+  const asked = messages
+    .slice(
+      0,
+      messages.findIndex((m) => m.id === id)
+    )
+    .reverse()
+    .find((m) => m.role === 'user')
   return asked?.role === 'user' ? capturedText(asked.captures) : ''
 }
 
@@ -203,9 +209,97 @@ function CalcCard({ calc }: { calc: NonNullable<Assistant['calc']> }) {
   )
 }
 
-export function AssistantMessage({ m, again, found, source = '' }: { m: Assistant; again?: AgainOffer; found?: boolean; source?: string }) {
+type RewindMode = 'retry' | 'edit'
+
+/**
+ * Before Try again or Edit replaces an answer (D-36): what it did that Otty can take back, ticked by default, and
+ * what it can't. Only shown when there's something to say.
+ */
+function RewindCard({ mode, plan, onGo, onCancel }: { mode: RewindMode; plan: RewindPlan; onGo: (undo: string[]) => void; onCancel: () => void }) {
+  const [ticked, setTicked] = useState(() => new Set(plan.undo.map((u) => u.id)))
+  const card = useRef<HTMLDivElement>(null)
+  // It opens under the last answer, which may be scrolled off the bottom. Only the chat scrolls, never the window.
+  useEffect(() => {
+    const el = card.current
+    const chat = el?.closest<HTMLElement>('.chat, .quick__answer')
+    if (el && chat) chat.scrollTo({ top: chat.scrollTop + el.getBoundingClientRect().bottom - chat.getBoundingClientRect().bottom + 12, behavior: 'smooth' })
+  }, [])
+  const flip = (id: string) =>
+    setTicked((t) => {
+      const next = new Set(t)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  return (
+    <div className="confirm-card rewind-card" ref={card}>
+      <div className="confirm-card__title">{mode === 'retry' ? 'Try this again?' : 'Edit your question?'}</div>
+      <div className="confirm-card__detail">This answer goes{mode === 'edit' ? ', and your question comes back to the box' : ''}.</div>
+      {plan.undo.length > 0 && (
+        <>
+          <div className="rewind-card__label">Otty will also undo:</div>
+          {plan.undo.map((u) => (
+            <label key={u.id} className="toggle rewind-card__item">
+              <input type="checkbox" checked={ticked.has(u.id)} onChange={() => flip(u.id)} />
+              <span>{u.label}</span>
+            </label>
+          ))}
+        </>
+      )}
+      {plan.lasting.length > 0 && (
+        <>
+          <div className="rewind-card__label">Can’t be undone:</div>
+          <ul className="rewind-card__lasting">
+            {plan.lasting.map((l, i) => (
+              <li key={i}>{l}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <div className="confirm-card__row">
+        <button className="btn btn--primary" onClick={() => onGo([...ticked])}>
+          {mode === 'retry' ? 'Try again' : 'Edit'}
+        </button>
+        <button className="btn btn--soft" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export function AssistantMessage({
+  m,
+  again,
+  found,
+  source = '',
+  latest = false,
+  onEdit
+}: {
+  m: Assistant
+  again?: AgainOffer
+  found?: boolean
+  source?: string
+  /** The chat's last answer: it can be tried again or have its question edited (D-36). */
+  latest?: boolean
+  /** Puts an edited question back in the box. Left out, there's no Edit (the quick view). */
+  onEdit?: (draft: EditDraft) => void
+}) {
   const [copied, setCopied] = useState(false)
+  const [rewinding, setRewinding] = useState<{ mode: RewindMode; plan: RewindPlan } | null>(null)
   const ask = useContext(AskContext)
+  const go = async (mode: RewindMode, undo: string[]) => {
+    setRewinding(null)
+    const draft = await window.otty.rewind(m.id, undo, mode)
+    if (mode === 'edit' && draft) onEdit?.(draft)
+  }
+  const rewind = async (mode: RewindMode) => {
+    const plan = await window.otty.rewindPlan(m.id)
+    if (!plan) return
+    if (plan.undo.length || plan.lasting.length) setRewinding({ mode, plan })
+    else await go(mode, [])
+  }
+  const canRewind = latest && !m.streaming && !m.calc
   return (
     <div className={`msg msg--otty${found ? ' msg--found' : ''}`} data-msg-id={m.id}>
       {m.tools.length > 0 && (
@@ -247,19 +341,33 @@ export function AssistantMessage({ m, again, found, source = '' }: { m: Assistan
           <span>{m.error}</span>
         </div>
       )}
-      {!m.streaming && m.text && (
+      {!m.streaming && (m.text || canRewind) && (
         <div className="msg__actions">
-          <button
-            className="copy-btn"
-            onClick={() => {
-              window.otty.copyText(m.calc?.result ?? withoutFixedFence(m.text).replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
-              setCopied(true)
-              setTimeout(() => setCopied(false), 1500)
-            }}
-          >
-            <Icon name={copied ? 'check' : 'copy-alt'} />
-            {copied ? 'Copied' : 'Copy'}
-          </button>
+          {m.text && (
+            <button
+              className="copy-btn"
+              onClick={() => {
+                window.otty.copyText(m.calc?.result ?? withoutFixedFence(m.text).replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
+                setCopied(true)
+                setTimeout(() => setCopied(false), 1500)
+              }}
+            >
+              <Icon name={copied ? 'check' : 'copy-alt'} />
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          )}
+          {canRewind && (
+            <button className="copy-btn" onClick={() => void rewind('retry')} title="Ask the same question again for a new answer">
+              <Icon name="refresh" />
+              Try again
+            </button>
+          )}
+          {canRewind && onEdit && (
+            <button className="copy-btn" onClick={() => void rewind('edit')} title="Change your question and ask it again">
+              <Icon name="edit" />
+              Edit question
+            </button>
+          )}
           {m.calc && (
             <button className="copy-btn" onClick={() => ask('Explain the working', 'working')}>
               <Icon name="list" />
@@ -274,8 +382,13 @@ export function AssistantMessage({ m, again, found, source = '' }: { m: Assistan
           )}
         </div>
       )}
+      {rewinding && (
+        <RewindCard mode={rewinding.mode} plan={rewinding.plan} onGo={(undo) => void go(rewinding.mode, undo)} onCancel={() => setRewinding(null)} />
+      )}
       {m.used?.length ? <UsedLine used={m.used} /> : null}
-      {m.memories?.map((n) => <MemoryLine key={n.memoryId} answerId={m.id} note={n} />)}
+      {m.memories?.map((n) => (
+        <MemoryLine key={n.memoryId} answerId={m.id} note={n} />
+      ))}
     </div>
   )
 }

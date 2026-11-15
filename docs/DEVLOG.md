@@ -70,8 +70,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-36 | Retry and edit your latest question, with what it did listed before it's replaced | ⏳ next | — | S–M (1–2 days) |
-| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ | — | S–M (1 day) |
+| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ next | — | S–M (1 day) |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ | — | S–M (1–2 days) |
 | D-39 | Pause until: "for an hour" or "until tomorrow" on Pause everything | ⏳ | — | S (½ day) |
 | D-40 | Show what was hidden: tap "1 key hidden" to see which lines, on the Mac only | ⏳ | D-32 | S (½ day) |
@@ -79,7 +78,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S (1 day) |
 
-**Where things stand (2026-11-15, later).** D-31 to D-35 are built on `feat/next-five`, stacked on `feat/drawings` (PR 52, D-30 and the eval fixes), which is stacked on `feat/code-files` (PR 51, D-29). All pass unit tests, the typecheck, the build and the UI preview. **None has run in the real app yet**: the smoke steps below (107–124) are the check. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
+**Where things stand (2026-11-15, later).** D-31 to D-36 are built on `feat/next-five`, stacked on `feat/drawings` (PR 52, D-30 and the eval fixes), which is stacked on `feat/code-files` (PR 51, D-29). All pass unit tests, the typecheck, the build and the UI preview. **None has run in the real app yet**: the smoke steps below (107–127) are the check. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
 **Eval.** The committed baseline is still **104 / 106 on deepseek-flash** (`tools/eval/baselines/`). The jobs and draw sets, with the five new cases, scored 40 / 44 over two runs after the fixes below. Both repeat cases and the no-data chart case passed every time. The misses:
 - One deck closed its own fence with a ` ``` ` inside, and one answer refused to draw a hostile page at all. Both are model flakes that passed in the baseline.
@@ -89,15 +88,14 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 
 **Known misses in the baseline** (two runs per case): `math-mean` makes two `calculate` calls where one would do (right answer, a little slower); `memory-inferred` remembers "I've been learning Spanish" one time in two, even with the hint. Both are judgement calls, and code (the guard, the calculator) stays in charge either way. Retest on every model change.
 
-**Build order** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five score 2 (H with S–M, or M with S), so the order is by how many people meet it:
-1. **D-36 Retry and edit.** Every chat app has it, and people reach for it within a day. It keeps the cache (the history is cut to a prefix) and is the first place Otty shows its own undo list.
-2. **D-37 Feed Otty.** The otter is the front door. Dropping something on it to ask about it is the most "Otty" way in, and it reuses the file and capture paths.
-3. **D-38 Otter moods.** The relationship pillar. Sleepy, waking, cheering and puzzled faces have to fit the idle budget, so they're stepped frames, not endless animation.
-4. **D-39 Pause until.** A small trust control that pairs with repeating looks and the monthly limit: "pause for an hour" shouldn't need a remembered undo.
-5. **D-40 Show what was hidden.** It finishes D-32: the user can check a hidden key was a key, on the Mac only.
-6. Then **Look after me** (AUTONOMY.md, BRAINSTORM), **D-1** (starting with its step 0) and **D-14** when picked back up. **D-25** is parked until much later, by choice.
+**Build order** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five scored 2 (H with S–M, or M with S), so the order is by how many people meet it. D-36, Retry and edit, shipped with this batch:
+1. **D-37 Feed Otty.** The otter is the front door. Dropping something on it to ask about it is the most "Otty" way in, and it reuses the file and capture paths.
+2. **D-38 Otter moods.** The relationship pillar. Sleepy, waking, cheering and puzzled faces have to fit the idle budget, so they're stepped frames, not endless animation.
+3. **D-39 Pause until.** A small trust control that pairs with repeating looks and the monthly limit: "pause for an hour" shouldn't need a remembered undo.
+4. **D-40 Show what was hidden.** It finishes D-32: the user can check a hidden key was a key, on the Mac only.
+5. Then **Look after me** (AUTONOMY.md, BRAINSTORM), **D-1** (starting with its step 0) and **D-14** when picked back up. **D-25** is parked until much later, by choice.
 
-**Checks waiting** (not features): smoke-test steps 107–124 on a Mac, launch at login on an installed build, and signing and notarization before builds go to other people.
+**Checks waiting** (not features): smoke-test steps 107–127 on a Mac, launch at login on an installed build, and signing and notarization before builds go to other people.
 
 **Design now for later:** new panel views should work at any width, because a full app view is planned (BRAINSTORM, "Three sizes of Otty").
 
@@ -175,15 +173,7 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 
 ---
 
-## D-36 · Retry and edit your latest question ⏳ next
-
-**Goal.** Like other chat apps: **Try again** under the latest answer, and **Edit** on the latest question to change it and resend. Before an answer is replaced, Otty lists what it did that would otherwise stay: memories it noted, a look it started or scheduled. Each is ticked to undo by default, and the user can untick it. Step-card actions say "can't be undone".
-
-**Design.** `ChatSession.rewind(thread)` cuts `thread.history` back to the start of the last turn, which keeps it a prefix of what was sent, so DeepSeek's cache still hits. The undo list comes from the turn's own records: `answer.memories` (Undo already exists), jobs whose `sourceThread` is this chat and were made in this turn (cancel if not started), and charts and steps (just dropped). The store rewrites only that turn's rows (`write(thread, from)`). Edit opens the composer with the question's words and captures. A turn that is still running is stopped first. A new `retry` event tells both windows to drop the old answer.
-
-**Done when.** Try again on a turn that called `remember` asks whether to keep the memory, the new request is the old one minus the last turn byte for byte (`llm.test.ts`), and Edit keeps the captures.
-
-## D-37 · Feed Otty ⏳
+## D-37 · Feed Otty ⏳ next
 
 **Goal.** Drop a file, a picture or dragged text on the otter to ask about it. The otter opens its mouth while something is over it and munches once, then the quick view opens with the file or text in the tray, ready for a question or a tile.
 
@@ -441,3 +431,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 122. Attach a CSV of sales with dates → "chart sales by month" → a bar chart card, with a tick-chip "Worked out the chart". **See the numbers** shows the table. Check one month against Numbers or Excel. The answer's figures match the table.
 123. Highlight a table in Numbers (or a web page) → "make a pie chart of this by region" → a pie chart. Ask for a chart of "the planets by number of moons" with no file → an ordinary diagram, not a chart of your data.
 124. Quit and relaunch, reopen the chart chat → the chart still shows. Ask for another chart → Otty asks for the file again.
+125. Ask "copy hello and look into laptops" → say yes to the card → under the answer, **Try again** and **Edit question**. Press **Try again** → a card lists "Stop looking into “…”" ticked, and "Copied." under Can't be undone. Untick it → **Try again** → a new answer, and the look carries on in Activity. Do it again with it ticked → the look goes from Activity.
+126. **Edit question** on a question with a highlight → the question and the highlight are back in the box, and the old turn is gone. Send it → a normal answer. With a file attached → a note says to attach it again. After a remembered fact ("I'm learning Spanish") → the card offers to forget it.
+127. Reopen the chat from Recent chats → only the latest answer has the buttons, and nothing older changed. In the quick view → **Try again** only.

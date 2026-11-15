@@ -432,6 +432,14 @@ const api: OttyApi = {
   openActivity: noop,
   seenActivity: noop,
   listSent: async () => (q.get('sent') === 'none' ? [] : sentSample),
+  rewindPlan: async () => ({
+    undo: [
+      { id: 'memory:a1:1', label: 'Forget “Is learning Spanish”' },
+      { id: 'job:j1', label: 'Stop looking into “Cheapest way from Hong Kong to Tokyo”' }
+    ],
+    lasting: ['Reminder added: Call mum — 5:00 PM']
+  }),
+  rewind: async (_id, _undo, mode) => (mode === 'edit' ? { text: 'Explain this simply', captures: [{ id: 'c1', context: highlighted, app }], files: [] } : null),
   onActivity: () => () => {},
   setChatLearn: async (on) => emit({ type: 'learn', on }),
   listMemories: async () => memories,
