@@ -14,6 +14,10 @@ const HOW_TO = /^\s*(?:how\s+(?:do|can|should|would)\s+i\b|how\s+to\b|where\s+(?
  */
 const ABOUT_ME = /\bI(?:'|’)ve been \w+ing\b|\bI(?:'|’)m (?:learning|studying|training for|moving to|allergic to)\b|\bI (?:work (?:as|at|in|for)|live in|study|teach)\b|\bmy (?:job|son|daughter|wife|husband|partner|kids?|children|boss|school|university)\b|我(?:學緊|学紧|在學|在学|住喺|住在|做緊)|我嘅(?:仔|女|老公|老婆|工作)/i
 
+/** An explicit request for a picture: "draw…", "make a pie chart", "turn this into slides". */
+const DRAW =
+  /^\s*(?:please\s+)?(?:draw|sketch|diagram|chart|visuali[sz]e|map out)\b|\b(?:draw|sketch|make|create|give me|turn\b.{0,40}\binto|show\b.{0,20}\bas)\b.{0,60}\b(?:diagram|flow ?chart|pie chart|bar chart|chart|graph|slides?|deck|presentation|mind ?map|timeline|picture|drawing|illustration)\b|畫|画|圖表|图表|簡報|简报/i
+
 export interface HintInput {
   typed: string
   /** A snip or picture came with the question. */
@@ -29,6 +33,7 @@ export function turnHints({ typed, picture = false, app, learn = false }: HintIn
   const tier = mathTier(typed, picture)
   if (tier === 'calculation' || tier === 'problem') hints.push('[This needs numbers worked out: use calculate for them, even easy ones.]')
   if (HOW_TO.test(typed)) hints.push(`[If the answer is steps I'll do ${app ? `in ${app}` : 'on my Mac'}, use show_steps, not a numbered list.]`)
+  if (DRAW.test(typed)) hints.push('[I asked for a picture: answer with a ```mermaid, ```svg or ```slides block, after one sentence on what it shows.]')
   if (learn && ABOUT_ME.test(typed)) hints.push('[I said something about myself: if it will still matter in a month, remember it.]')
   return hints
 }

@@ -32,6 +32,13 @@ describe('turnHints', () => {
     expect(turnHints({ typed: 'I’m a bit confused by this error', learn: true })).toEqual([])
   })
 
+  it('asks for a drawing block when I ask for a picture', () => {
+    const hint = '[I asked for a picture: answer with a ```mermaid, ```svg or ```slides block, after one sentence on what it shows.]'
+    for (const typed of ['Make a pie chart of my spending', 'Draw how a bill becomes a law', 'Turn this PDF into 6 slides', 'Can you create a mind map of these ideas?', '幫我畫一個流程圖'])
+      expect(turnHints({ typed }), typed).toContain(hint)
+    for (const typed of ['What does this chart show?', 'How do I draw a straight line in Pages?', 'What is a pie chart?']) expect(turnHints({ typed }), typed).not.toContain(hint)
+  })
+
   it('says nothing otherwise', () => {
     expect(turnHints({ typed: 'What is the capital of Australia?', app: 'Safari' })).toEqual([])
     expect(turnHints({ typed: 'How many moons does Mars have?' })).toEqual([])

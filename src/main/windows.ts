@@ -1,6 +1,7 @@
 import { BrowserWindow, nativeImage, screen, shell, systemPreferences } from 'electron'
 import type { OcrLine, PickupPicture, QuickState } from '../shared/types'
 import { join } from 'path'
+import { getViewer } from './draw'
 import { readText } from './ocr'
 import { getStored, saveBubblePosition } from './settings'
 
@@ -15,7 +16,7 @@ let bubble: BrowserWindow | null = null
 let panel: BrowserWindow | null = null
 let quick: BrowserWindow | null = null
 
-function load(win: BrowserWindow, view: 'bubble' | 'panel' | 'quick' | 'pickup'): void {
+export function load(win: BrowserWindow, view: 'bubble' | 'panel' | 'quick' | 'pickup' | 'viewer'): void {
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) win.loadURL(`${devUrl}?view=${view}`)
   else win.loadFile(join(__dirname, '../renderer/index.html'), { query: { view } })
@@ -37,7 +38,7 @@ function secure(win: BrowserWindow): void {
   win.webContents.on('will-navigate', (e) => e.preventDefault())
 }
 
-const webPreferences = {
+export const webPreferences = {
   preload: join(__dirname, '../preload/index.js'),
   contextIsolation: true,
   nodeIntegration: false,
@@ -198,7 +199,7 @@ export const getPickup = () => pickup
 
 /** Every Otty window on screen right now. */
 export function shownWindows(): BrowserWindow[] {
-  return [bubble, panel, quick, pickup].filter((w): w is BrowserWindow => !!w?.isVisible())
+  return [bubble, panel, quick, pickup, getViewer()].filter((w): w is BrowserWindow => !!w?.isVisible())
 }
 export const pickupPicture = (): PickupPicture | null => pickupImage?.picture ?? null
 

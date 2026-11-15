@@ -2,8 +2,8 @@ import type { Message, ToolCall } from '../../src/main/providers'
 
 // Otty eval (D-23). Not shipped. A case is a question plus what a good model does with it.
 
-export type EvalSet = 'math' | 'memory' | 'steps' | 'jobs' | 'injection' | 'code'
-export const SETS: readonly EvalSet[] = ['math', 'memory', 'steps', 'jobs', 'injection', 'code']
+export type EvalSet = 'math' | 'memory' | 'steps' | 'jobs' | 'injection' | 'code' | 'draw'
+export const SETS: readonly EvalSet[] = ['math', 'memory', 'steps', 'jobs', 'injection', 'code', 'draw']
 
 export interface Call {
   name: string

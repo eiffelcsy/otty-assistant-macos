@@ -4,6 +4,7 @@ import { Bubble } from './bubble/Bubble'
 import { Panel } from './panel/Panel'
 import { Pickup } from './pickup/Pickup'
 import { Quick } from './quick/Quick'
+import { Viewer } from './viewer/Viewer'
 import './styles.css'
 
 const view = new URLSearchParams(location.search).get('view') ?? 'panel'
@@ -12,5 +13,7 @@ document.documentElement.dataset.view = view
 window.otty.onWindowVisible((visible) => document.documentElement.toggleAttribute('data-asleep', !visible))
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>{view === 'bubble' ? <Bubble /> : view === 'quick' ? <Quick /> : view === 'pickup' ? <Pickup /> : <Panel />}</StrictMode>
+  <StrictMode>
+    {view === 'bubble' ? <Bubble /> : view === 'quick' ? <Quick /> : view === 'pickup' ? <Pickup /> : view === 'viewer' ? <Viewer /> : <Panel />}
+  </StrictMode>
 )

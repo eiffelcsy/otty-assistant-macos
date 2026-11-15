@@ -12,9 +12,11 @@ import type {
   PublicSettings
 } from '../../src/shared/types'
 import { searchThreads } from '../../src/main/store/search'
+import { draw } from '../../src/renderer/src/draw/render'
+import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|steps|activity|history|find (pickup: reading|nowords|failed)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|steps|activity|history|find (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -91,6 +93,50 @@ const proofreadSample: ChatMessage[] = [
     tools: [],
     text: '```fixed\nI have two cats and they are very friendly. Yesterday we went to the park.\n```\n\n- **has → have:** “I” takes “have”.\n- **cat → cats:** two of them, so it’s plural.\n- **is → are:** “they” takes “are”.\n- **goes → went:** “yesterday” needs the past tense.'
   }
+]
+
+const FLOW = `flowchart LR
+  A["Idea"] --> B["Bill drafted"]
+  B --> C{"Vote passes?"}
+  C -- "Yes" --> D["Signed into law"]
+  C -- "No" --> E["Back to the drawing board"]`
+const DECK = `# How otters stay together
+A five-minute talk
+
+---
+
+# Why they hold hands
+- So they don't drift apart while they sleep
+- **Kelp** works as an anchor too
+Note: Ask the class if they've seen this.
+
+---
+
+# 90%
+of a sea otter's day is eating, grooming or resting
+
+---
+
+# The raft
+~~~mermaid
+flowchart LR
+  M["Mothers"] --- P["Pups"]
+  P --- R["Raft"]
+~~~`
+const drawingSample: ChatMessage[] = [
+  { id: 'u1', role: 'user', text: 'Draw how a bill becomes a law', captures: [], app: null },
+  { id: 'a1', role: 'assistant', tools: [], text: 'Here’s the path, from an idea to a law:\n\n```mermaid\n' + FLOW + '\n```' },
+  { id: 'u2', role: 'user', text: 'Make 4 slides about otters for my class', captures: [], app: null },
+  { id: 'a2', role: 'assistant', tools: [], text: 'Four slides, one idea each:\n\n```slides\n' + DECK + '\n```' },
+  { id: 'u3', role: 'user', text: 'Draw a house with the sun', captures: [], app: null },
+  {
+    id: 'a3',
+    role: 'assistant',
+    tools: [],
+    text: 'A little house under the sun:\n\n```svg\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140"><circle cx="160" cy="30" r="16" fill="#c7b58b"/><rect x="50" y="70" width="80" height="60" fill="#8c9b6a"/><path d="M40 72 L90 30 L140 72 Z" fill="#637c42"/><rect x="82" y="100" width="16" height="30" fill="#3a3132"/><script>alert(1)</script><image href="https://evil.example/t.png"/></svg>\n```'
+  },
+  { id: 'u4', role: 'user', text: 'And a timeline?', captures: [], app: null },
+  { id: 'a4', role: 'assistant', tools: [], text: 'Here it is:\n\n```mermaid\nflowchart LR\n  A --> \n```' }
 ]
 
 const codeSample: ChatMessage[] = [
@@ -377,6 +423,17 @@ const api: OttyApi = {
   pickupPicture: async () => pickupSample.picture,
   pickupRead: async () => (scene === 'reading' ? new Promise(() => {}) : scene === 'nowords' ? [] : scene === 'failed' ? null : pickupSample.lines),
   closePickup: noop,
+  exportDrawing: async (_d, how) => (how === 'copy' ? 'copied' : 'saved'),
+  showDrawing: async (v) => {
+    ;(window as any).__shown = v
+  },
+  viewerContent: async (): Promise<DrawingView | null> => {
+    const d = await draw(scene === 'picture' ? 'mermaid' : 'slides', scene === 'picture' ? FLOW : DECK)
+    if (d.kind === 'picture') return { kind: 'picture', dataUrl: d.dataUrl, width: d.width, height: d.height }
+    if (d.kind === 'slides') return { kind: 'slides', pages: d.pages, notes: d.deck.slides.map((s) => s.notes) }
+    return null
+  },
+  closeViewer: noop,
   closeQuick: noop,
   expandQuick: noop,
   quickResize: () => {},
@@ -389,6 +446,7 @@ const api: OttyApi = {
     if (scene === 'steps') setTimeout(() => cb({ type: 'load', messages: stepsSample }), 50)
     if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
     if (scene === 'code') setTimeout(() => cb({ type: 'load', messages: codeSample }), 50)
+    if (scene === 'drawing') setTimeout(() => cb({ type: 'load', messages: drawingSample }), 50)
     if (scene === 'memory') setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}

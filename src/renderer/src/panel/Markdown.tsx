@@ -6,6 +6,8 @@ import remarkMath from 'remark-math'
 import 'katex/dist/katex.min.css'
 import type { AnswerLanguage, HomeLanguage, QuickAction } from '../../../shared/types'
 import { stripLineNumbers } from '../../../shared/code'
+import { drawingKind, type DrawingKind } from '../../../shared/drawing'
+import { DrawingCard } from '../draw/DrawingCard'
 import { wordDiff } from '../../../shared/diff'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { Icon } from '../components/Icon'
@@ -211,7 +213,7 @@ function NoRemoteImage({ alt }: { alt?: string }) {
   return <>{alt}</>
 }
 
-/** What the proofread card compares against: the text the user highlighted, and whether the answer has finished. */
+/** What the proofread card compares against: the text the user highlighted, and whether the answer has finished (drawings wait for that too). */
 export const ProofreadContext = createContext<{ source: string; done: boolean }>({ source: '', done: true })
 
 /** The corrected text from a proofread answer, marked up here so the marks are always true to what changed. */
@@ -273,9 +275,18 @@ function CopyableCode({ label, children }: { label: string | null; children?: Re
   )
 }
 
+/** A ```mermaid, ```svg or ```slides block becomes a drawing once the answer has finished. */
+function Drawing({ kind, code }: { kind: DrawingKind; code: string }) {
+  const { done } = useContext(ProofreadContext)
+  const ask = useContext(AskContext)
+  return <DrawingCard kind={kind} code={code} host={{ done, ask: (text) => ask(text) }} />
+}
+
 function CodeBlock({ children }: { children?: ReactNode }) {
   const code = children as { props?: { className?: string } } | undefined
   if (code?.props?.className === 'language-fixed') return <FixedCard text={textOf(children).replace(/\n$/, '')} />
+  const drawing = drawingKind(codeLabel(code?.props?.className))
+  if (drawing) return <Drawing kind={drawing} code={textOf(children).replace(/\n$/, '')} />
   return <CopyableCode label={codeLabel(code?.props?.className)}>{children}</CopyableCode>
 }
 

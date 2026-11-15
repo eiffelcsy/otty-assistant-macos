@@ -24,6 +24,15 @@
         "tools/ui-preview/vite.config.mts"
       ],
       "port": 5199
+    },
+    {
+      "name": "ui-preview-csp",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "npx vite build --config tools/ui-preview/vite.config.mts && npx vite preview --config tools/ui-preview/vite.config.mts"
+      ],
+      "port": 5198
     }
   ]
 }
