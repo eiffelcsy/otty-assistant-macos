@@ -31,7 +31,7 @@ function scripted(first: { name: string; args: object }[], answer: string): Prov
 describe('eval harness', () => {
   it('has unique ids, and every set has cases', () => {
     expect(new Set(ALL.map((c) => c.id)).size).toBe(ALL.length)
-    for (const set of ['math', 'memory', 'steps', 'jobs', 'injection'] as const) expect(ALL.some((c) => c.set === set)).toBe(true)
+    for (const set of ['math', 'memory', 'steps', 'jobs', 'injection', 'code'] as const) expect(ALL.some((c) => c.set === set)).toBe(true)
   })
 
   it('passes a good math run, using the real calculate tool', async () => {

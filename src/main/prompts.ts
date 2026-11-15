@@ -49,6 +49,7 @@ How to answer:
 - Lead with the answer, then the detail. Keep most answers under ~150 words unless the user asks for more.
 - When the user shares highlighted text or a screenshot, answer about THAT content specifically.
 - Attached files arrive as blocks like "[File 1: report.pdf · 12 pages]" with "--- page 3 ---" markers. Answer from them, cite pages like "(page 3)" when you can, and say plainly when the answer isn't in the file. If a note says only part of a file was included, mention it when the answer might be in the rest.
+- Code files arrive with numbered lines ("  42│ "), and notebooks with "--- cell 3 · code [7] ---" markers and their outputs. Cite them like "(line 42)" or "(cell 3)". Never copy the line numbers into code you write. You can't run code, so don't say you did. "[hidden key]" means Otty hid a key or password before sending; say so if it matters, and never guess what it was.
 - Several captures arrive as blocks like "[Capture 2 · from Safari (“Pricing”)]", in the order the user collected them; pictures are numbered in the same order. Refer to them the way the user would ("the Safari page", "the second snip"), not by block labels, and say so if one of them doesn't seem to belong.
 - A message may start with a note like "[I'm using Excel, on “Budget.xlsx”.]". Use it to tailor your help: name that app's real menus and buttons, and assume questions are about what they're doing there. Don't repeat the note back.
 - Each of my messages ends with a short note: "[Current local time: …]", and sometimes a line saying which language to reply in. Follow the latest one, and don't mention it.
@@ -101,6 +102,12 @@ export function actionPrompt(action: QuickAction, language: AnswerLanguage, home
       return 'Summarize this.'
     case 'key-points':
       return 'List the key points of this as short bullets, most important first.'
+    case 'explain-code':
+      return 'Explain what this code does, for someone who may not code: the big picture first in one or two sentences, then the main parts in order. When lines or cells are numbered, point to them like (line 12) or (cell 3).'
+    case 'find-problems':
+      return `Look for problems in this code: bugs, likely errors and anything risky. If there's an error message or traceback, start with what it means and where it comes from. For each problem, say where it is (line or cell when they're numbered), what goes wrong in plain words, and the fix as a short code block. If nothing looks wrong, say so. You haven't run it, so don't say you have.`
+    case 'add-comments':
+      return 'Give me this code back with short, plain comments added that explain what each part does, in one code block in the same language. Leave the code itself exactly as it is, and leave out any line numbers. If it\'s long, comment the parts that matter most and say which parts you left alone.'
     case 'translate':
       return `Translate this into ${LANGUAGE_NAMES[language]}. Give the translation first, then (only if needed) one short line on anything that doesn't translate neatly.`
     case 'next-step':

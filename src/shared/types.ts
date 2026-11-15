@@ -14,7 +14,8 @@ export interface Capture {
   app: AppInfo | null
 }
 
-export type FileKind = 'pdf' | 'docx' | 'image' | 'text'
+/** `doc` is `.doc`, `.rtf` and `.odt` (read by macOS `textutil`); `code` has a language and line numbers. */
+export type FileKind = 'pdf' | 'docx' | 'doc' | 'image' | 'text' | 'code' | 'notebook'
 
 /** A file the user added, before main has read it. Paths stay in main; the renderer gets an id. */
 export interface PendingFile {
@@ -29,6 +30,14 @@ export interface FileAttachment {
   kind: FileKind
   /** PDFs only. */
   pages?: number
+  /** Code and notebooks: "Python". */
+  lang?: string
+  /** Code only. */
+  lines?: number
+  /** Notebooks only. */
+  cells?: number
+  /** How many things that looked like keys or passwords were hidden before sending. */
+  hidden?: number
   /** Set once sent, when only part of it fitted: "Otty read the first 40 of 120 pages." */
   note?: string
   /** A small preview for pictures. Never saved. */
@@ -100,6 +109,10 @@ export type QuickAction =
   | 'define'
   /** For attached documents. */
   | 'key-points'
+  /** For code and notebooks, attached or highlighted. */
+  | 'explain-code'
+  | 'find-problems'
+  | 'add-comments'
   /** "Answer again in the other language": pair it with `language`. */
   | 'again'
   /** For several captures (or captures plus files). */

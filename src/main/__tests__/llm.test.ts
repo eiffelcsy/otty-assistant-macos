@@ -27,7 +27,7 @@ vi.mock('../store', () => ({
   pruneOldChats: async () => {}
 }))
 vi.mock('../files', () => ({ takeFiles: () => [] }))
-vi.mock('../files/budget', () => ({ fileBudget: () => 0, fitFiles: () => [] }))
+vi.mock('../files/budget', () => ({ fileBudget: () => 0, fitFiles: () => [], sampleText: () => '' }))
 vi.mock('../tools', () => ({
   toolDefs: () => [{ type: 'function', function: { name: 'search_web' } }],
   toolLabel: () => ({ label: 'Looking up', icon: 'search' }),

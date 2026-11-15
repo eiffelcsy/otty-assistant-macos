@@ -14,7 +14,7 @@ import type {
 import { searchThreads } from '../../src/main/store/search'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|steps|activity|history|find (pickup: reading|nowords|failed)  ?home=none
+// ?view=panel|quick|pickup  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|steps|activity|history|find (pickup: reading|nowords|failed)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -90,6 +90,41 @@ const proofreadSample: ChatMessage[] = [
     language: 'en',
     tools: [],
     text: '```fixed\nI have two cats and they are very friendly. Yesterday we went to the park.\n```\n\n- **has → have:** “I” takes “have”.\n- **cat → cats:** two of them, so it’s plural.\n- **is → are:** “they” takes “are”.\n- **goes → went:** “yesterday” needs the past tense.'
+  }
+]
+
+const codeSample: ChatMessage[] = [
+  {
+    id: 'u1',
+    role: 'user',
+    text: 'Find problems',
+    captures: [],
+    app: null,
+    files: [
+      { id: 'c1', name: 'average.py', kind: 'code', lang: 'Python', lines: 13 },
+      { id: 'c2', name: 'rivers.ipynb', kind: 'notebook', lang: 'Python', cells: 18, hidden: 1 }
+    ]
+  },
+  {
+    id: 'a1',
+    role: 'assistant',
+    tools: [],
+    text: `One real problem, on **line 10**: \`row["count"]\` is text when it comes from a CSV file, so adding it to a number fails with a [TypeError](#explain).
+
+Turn it into a number first:
+
+\`\`\`python
+for row in rows:
+    total += int(row["count"])
+\`\`\`
+
+In the notebook, **cell 4** fails because \`'cuont'\` is misspelt. It should be \`'count'\`:
+
+\`\`\`
+df['count'].mean()
+\`\`\`
+
+> 💡 **Good to know:** Otty hid one thing in the notebook that looked like a key, so it never left your Mac.`
   }
 ]
 
@@ -226,9 +261,11 @@ const thumb =
 const mockFiles: Record<string, AttachResult> = {
   f1: { ok: true, file: { id: 'f1', name: 'Tenancy agreement 2026.pdf', kind: 'pdf', pages: 12 } },
   f2: { ok: true, file: { id: 'f2', name: 'IMG_0042.HEIC', kind: 'image', thumb } },
-  f3: { ok: false, message: 'Otty can’t read this kind of file yet. Try a PDF, a Word document, a picture or a text file.' }
+  f3: { ok: false, message: 'Otty can’t read this kind of file yet. Try a PDF, a Word document, a picture, a text file or code.' },
+  f4: { ok: true, file: { id: 'f4', name: 'average.py', kind: 'code', lang: 'Python', lines: 13 } },
+  f5: { ok: true, file: { id: 'f5', name: '.env', kind: 'code', lang: 'Settings', lines: 4, hidden: 2 } }
 }
-const names: Record<string, string> = { f1: 'Tenancy agreement 2026.pdf', f2: 'IMG_0042.HEIC', f3: 'Budget.numbers' }
+const names: Record<string, string> = { f1: 'Tenancy agreement 2026.pdf', f2: 'IMG_0042.HEIC', f3: 'Budget.numbers', f4: 'average.py', f5: '.env' }
 
 function fakeAnswer(text: string, captures: Capture[], language: AnswerLanguage = 'en', fileIds: string[] = []) {
   const id = String(Math.random())
@@ -351,6 +388,7 @@ const api: OttyApi = {
     if (scene === 'proofread') setTimeout(() => cb({ type: 'load', messages: proofreadSample }), 50)
     if (scene === 'steps') setTimeout(() => cb({ type: 'load', messages: stepsSample }), 50)
     if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
+    if (scene === 'code') setTimeout(() => cb({ type: 'load', messages: codeSample }), 50)
     if (scene === 'memory') setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}
