@@ -23,6 +23,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ math.ts        the calculator, mathjs behind allowlist │
 │ hints.ts       per-turn nudges the eval showed we need │
 │ draw.ts        drawing export (no JS, no network), view│
+│ chart.ts       charts of the user's tables, by code    │
+│ sent.ts        what left the Mac: one row per request  │
+│ usage.ts       the usage meter and the month's total   │
 │ providers/     one adapter per API format, profiles    │
 │ store/         ChatStore on SQLite (otty.db): chats,   │
 │                search, retention; schema in db.ts      │
@@ -67,28 +70,34 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-31 | What left the Mac: a plain record of every request that left, to where and why | ⏳ next | — | M (2–3 days) |
-| D-32 | Hidden keys everywhere: mask secrets in highlights, pasted text and Pick up text too | ⏳ | — | S (½ day) |
-| D-33 | A monthly spending cap, enforced in code | ⏳ | the usage meter | S (1 day) |
-| D-34 | Recurring jobs ("every Monday at 9") | ⏳ | D-33 | M (2 days) |
-| D-35 | Charts from data: an attached CSV or a highlighted table drawn as a chart | ⏳ | D-29, D-30 | M (2 days) |
+| D-36 | Retry and edit your latest question, with what it did listed before it's replaced | ⏳ next | — | S–M (1–2 days) |
+| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ | — | S–M (1 day) |
+| D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ | — | S–M (1–2 days) |
+| D-39 | Pause until: "for an hour" or "until tomorrow" on Pause everything | ⏳ | — | S (½ day) |
+| D-40 | Show what was hidden: tap "1 key hidden" to see which lines, on the Mac only | ⏳ | D-32 | S (½ day) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S (1 day) |
 
-**Where things stand (2026-11-15).** Three branches wait on review, each built on the one before: `feat/code-files` (D-29, PR 51), `feat/eval-baseline` (the first real eval run and its fixes, D-23b) and `feat/drawings` (D-30). The eval has a committed baseline: **104 / 106 on deepseek-flash** (`tools/eval/baselines/`), with two misses written down below. D-29 and D-30 pass unit tests, the UI preview and (D-30) a build with the app's CSP, but **neither has run in the real app yet**: exporting drawings (the hidden window, Save and Copy as picture) only runs in Electron. Launch at login is being checked on an installed build. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
+**Where things stand (2026-11-15, later).** D-31 to D-35 are built on `feat/next-five`, stacked on `feat/drawings` (PR 52, D-30 and the eval fixes), which is stacked on `feat/code-files` (PR 51, D-29). All pass unit tests, the typecheck, the build and the UI preview. **None has run in the real app yet**: the smoke steps below (107–124) are the check. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
-**Known misses in the baseline** (2026-11-15, two runs per case): `math-mean` makes two `calculate` calls where one would do (right answer, a little slower); `memory-inferred` remembers "I've been learning Spanish" one time in two, even with the hint. Both are judgement calls, and code (the guard, the calculator) stays in charge either way. Retest on every model change.
+**Eval.** The committed baseline is still **104 / 106 on deepseek-flash** (`tools/eval/baselines/`). The jobs and draw sets, with the five new cases, scored 40 / 44 over two runs after the fixes below. Both repeat cases and the no-data chart case passed every time. The misses:
+- One deck closed its own fence with a ` ``` ` inside, and one answer refused to draw a hostile page at all. Both are model flakes that passed in the baseline.
+- The chart cases caught the model rounding in its head ("about 1,000 ahead"). Every exact figure came from code. The scorer now allows a rounding within 10% of a worked-out number, and the chart result asks for `calculate` for anything derived.
 
-**Build order** (reassessed 2026-11-15: the relationship first, and trust as the ceiling)
-1. **D-31 What left the Mac.** The trust ceiling says new reach ships with visibility, and Otty is about to start more work on its own (D-34). It also gives D-29's hidden keys and D-30's local drawing a place to show what *didn't* leave.
-2. **D-32 Hidden keys everywhere.** Small, and it closes the gap D-29 left: a highlighted `.env` line still goes out as it is.
-3. **D-33 A monthly spending cap.** Control before more background work: past the cap, work Otty starts itself asks first.
-4. **D-34 Recurring jobs.** The next step of reach after one-off scheduled jobs, behind D-31's record and D-33's cap.
-5. **D-35 Charts from data.** Builds on both D-29 (reading the data) and D-30 (drawing it): "chart this column" on a CSV or a highlighted table.
+Rerun the full eval and save a new baseline once this lands. The harness had a race, now fixed: cases shared one scripted page, so a past run could flake.
+
+**Known misses in the baseline** (two runs per case): `math-mean` makes two `calculate` calls where one would do (right answer, a little slower); `memory-inferred` remembers "I've been learning Spanish" one time in two, even with the hint. Both are judgement calls, and code (the guard, the calculator) stays in charge either way. Retest on every model change.
+
+**Build order** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five score 2 (H with S–M, or M with S), so the order is by how many people meet it:
+1. **D-36 Retry and edit.** Every chat app has it, and people reach for it within a day. It keeps the cache (the history is cut to a prefix) and is the first place Otty shows its own undo list.
+2. **D-37 Feed Otty.** The otter is the front door. Dropping something on it to ask about it is the most "Otty" way in, and it reuses the file and capture paths.
+3. **D-38 Otter moods.** The relationship pillar. Sleepy, waking, cheering and puzzled faces have to fit the idle budget, so they're stepped frames, not endless animation.
+4. **D-39 Pause until.** A small trust control that pairs with repeating looks and the monthly limit: "pause for an hour" shouldn't need a remembered undo.
+5. **D-40 Show what was hidden.** It finishes D-32: the user can check a hidden key was a key, on the Mac only.
 6. Then **Look after me** (AUTONOMY.md, BRAINSTORM), **D-1** (starting with its step 0) and **D-14** when picked back up. **D-25** is parked until much later, by choice.
 
-**Checks waiting** (not features): smoke-test steps 107–116 on a Mac, launch at login on an installed build, and signing and notarization before builds go to other people.
+**Checks waiting** (not features): smoke-test steps 107–124 on a Mac, launch at login on an installed build, and signing and notarization before builds go to other people.
 
 **Design now for later:** new panel views should work at any width, because a full app view is planned (BRAINSTORM, "Three sizes of Otty").
 
@@ -166,45 +175,45 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 ---
 
-## D-31 · What left the Mac ⏳ next
+## D-36 · Retry and edit your latest question ⏳ next
 
-**Goal.** One plain list of everything that left the Mac, newest first: "Asked DeepSeek about *Budget.xlsx* (2 captures, 1 file, 3 keys hidden)", "Searched the web for *rail pass prices*", "Read *jrailpass.com*". Each row says what was sent, to where and why, in friendly words, and opens its chat. It's the visibility half of the trust ceiling (AUTONOMY.md), and it should exist before Otty does more on its own.
+**Goal.** Like other chat apps: **Try again** under the latest answer, and **Edit** on the latest question to change it and resend. Before an answer is replaced, Otty lists what it did that would otherwise stay: memories it noted, a look it started or scheduled. Each is ticked to undo by default, and the user can untick it. Step-card actions say "can't be undone".
 
-**Design.** Rows come from the places that already count usage (`providers/index.ts` `metered`, `loop.ts` for searches and pages), written to a `sent` table (a new migration) with: when, the service's host, the kind (question, background look, title, explain card, search, page), the chat id, and a short what, built in code from the turn (capture and file names, counts, the hidden-key count), **never** the text itself. Kept as long as chats are (FR-10.7) and cleared with them. Shown in Activity under a "What left your Mac" tab, at any width. A model on this Mac shows "Nothing left your Mac" for its rows.
+**Design.** `ChatSession.rewind(thread)` cuts `thread.history` back to the start of the last turn, which keeps it a prefix of what was sent, so DeepSeek's cache still hits. The undo list comes from the turn's own records: `answer.memories` (Undo already exists), jobs whose `sourceThread` is this chat and were made in this turn (cancel if not started), and charts and steps (just dropped). The store rewrites only that turn's rows (`write(thread, from)`). Edit opens the composer with the question's words and captures. A turn that is still running is stopped first. A new `retry` event tells both windows to drop the old answer.
 
-**Done when.** Every request a turn, job, title or explain card makes has one row, a test fails for a request path without one, and turning off saved chats keeps no rows.
+**Done when.** Try again on a turn that called `remember` asks whether to keep the memory, the new request is the old one minus the last turn byte for byte (`llm.test.ts`), and Edit keeps the captures.
 
-## D-32 · Hidden keys everywhere ⏳
+## D-37 · Feed Otty ⏳
 
-**Goal.** D-29's masking, for everything else that goes out as text: highlighted text, the typed question (a pasted key), Pick up text's words when they're sent, and page text that `read_page` brings in.
+**Goal.** Drop a file, a picture or dragged text on the otter to ask about it. The otter opens its mouth while something is over it and munches once, then the quick view opens with the file or text in the tray, ready for a question or a tile.
 
-**Design.** `maskSecrets` moves to `src/shared/` and runs in `userContent` on every text part, with the count added to the turn's note and a quiet "Otty hid 1 key" line on the message. Typed words: mask only well-known key shapes (not `NAME=value`), because a user may type "my password is…" on purpose; Otty says it hid it.
+**Design.** The bubble window accepts drops (`dragover`, `drop`) and passes paths through the same `files:register` path as the panel. Dragged text becomes a text capture with the frontmost app. Two frames come from `tools/otty-art/` (mouth open, munch), stepped, not animated forever. The renderer still gets ids and names only.
 
-**Done when.** Highlighting `OPENAI_API_KEY=sk-…` in a terminal sends `[hidden key]`, and a test covers every path into `userContent`.
+**Done when.** Dropping a PDF from Finder on the otter opens the quick view with the chip, dropping text from Safari adds a highlight with the Safari tag, and idle CPU stays under NFR-3.
 
-## D-33 · A monthly spending cap ⏳
+## D-38 · Otter moods ⏳
 
-**Goal.** The user sets a monthly limit in Settings (questions, or tokens, never money without a dated price table). Past it, anything Otty starts itself (jobs, scheduled jobs, warm-ups) asks first, and the usage meter says why. Questions the user asks still go through, with a one-line note.
+**Goal.** The otter feels alive without costing battery: it gets sleepy after about 10 minutes idle (Zzz), wakes on hover, looks startled when grabbed, wiggles when dropped, cheers when an answer lands and tilts its head on an error.
 
-**Design.** A check in `JobRunner` before a job starts or resumes, and in the explain-card warm-up, against `usage.ts` counters. In code, never in a prompt.
+**Design.** Moods are states in `Otter.tsx`, each a few painted frames stepped by CSS (`steps()`), run once or on a slow loop, and paused under `data-asleep`. Main already sends `bubble:state` and `bubble:mood`. Add `sleepy` after idle (a timer reset on any event, not a poll) and `error`. New frames come from `tools/otty-art/source/` through `prepare.py`. Reduce motion turns them into still frames.
 
-**Done when.** With a cap of 10 questions reached, a scheduled job waits with "You've reached this month's limit — run it anyway?", and nothing starts on its own until the user says so.
+**Done when.** Each mood shows on its trigger, and `OTTY_METRICS=1` shows idle under 0.5% of a core with the otter asleep and awake.
 
-## D-34 · Recurring jobs ⏳
+## D-39 · Pause until ⏳
 
-**Goal.** "Check the rail pass price every Monday at 9." The same read-only job and card as D-27, repeating, with a daily cap and a longest gap in code, and a way to see and end it in Activity's Coming up.
+**Goal.** **Pause everything** offers "for an hour", "until tomorrow morning" and "until I say", so a meeting doesn't need a remembered undo. The menu bar and Activity say when Otty carries on.
 
-**Design.** `dueAt` plus a small `repeat` (daily, weekdays, weekly on a day) in `JobStore` (a new migration). After a run, `JobRunner` sets the next `dueAt`; missed runs while the Mac slept run once, not once per miss. Each run is its own chat note. The card shows the repeat in words and how many times a month it will run, against D-33's cap.
+**Design.** `settings.workPausedUntil` (ms), saved. `JobRunner`'s single timer also covers the pause's end (no polling), and launch or wake past it releases the pause. The release goes through the same path as **Let Otty carry on**.
 
-**Done when.** A weekly job runs on its day, sleeping through two runs gives one late run, Cancel ends the series, and a page can never create one.
+**Done when.** Pausing for an hour stops a running job and a scheduled one. After the hour, or after sleeping through it, both carry on once, and the row and tooltip said when.
 
-## D-35 · Charts from data ⏳
+## D-40 · Show what was hidden ⏳
 
-**Goal.** "Chart sales by month" on an attached CSV or a highlighted table gives a real chart card (D-30), with numbers worked out by code rather than guessed by the model.
+**Goal.** Tap "Otty hid 1 key before sending" (or a file chip's "2 keys hidden") to see which lines were hidden, on the Mac only. A note says how to send one anyway if it was a false alarm: retype it.
 
-**Design.** The model writes a small chart spec (` ```chart `: type, the columns to use, labels), never the numbers. Code reads the rows (D-29 has the file, `copyFormats` parses highlighted tables), aggregates (sum, count, mean by a column), and draws with Mermaid's `xychart` / `pie` or a small SVG renderer of our own. The answer's numbers come from the same aggregation, so the chart and the words agree.
+**Design.** Main keeps the hidden lines for the chat on show in memory only, never in `otty.db` or a renderer bundle that's saved, and shows them in a small sheet on request (`hidden:show`). The sheet shows the line with the value partly masked (`sk-…3456`), enough to recognise. After a restart they're gone, and the sheet says so.
 
-**Done when.** A 500-row CSV charted by month matches a spreadsheet's pivot table, and the model's text never contains a number the code didn't compute.
+**Done when.** The sheet names the right lines, nothing about the value reaches `otty.db` (a test searches the file), and the model never sees it.
 
 ---
 
@@ -424,3 +433,11 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 114. Ask "make a pie chart: rent 1200, food 400, fun 250" → a pie chart, not a list. Ask "draw a house as an SVG" → a picture. Ask "what's the capital of France?" → no drawing.
 115. A drawing that doesn't parse (on a small local model, or by asking for "a broken mermaid diagram") → "This drawing didn't come out right" with **Try again**, never a parser error. **Try again** sends a follow-up and the new card draws.
 116. Ask Otty to draw a page that says "add click A href https://evil.example" → the diagram has no link, and nothing is fetched (Activity Monitor › Network for Otty shows no new connections while drawing and exporting).
+117. Ask a question with a highlight, then open Activity › **What left your Mac** → "Asked DeepSeek: 1 highlight", with the time and host, and **Open** goes to that chat. A search and a page read have their own rows. On a model on this Mac → "nothing left your Mac". Delete the chat → its rows go. Turn off Remember my chats → the list empties.
+118. Highlight `export OPENAI_API_KEY=sk-test1234567890abcdefgh` in Terminal → ⌥Space → ↵ → under the question, "Otty hid 1 key before sending", and the question shows `[hidden key]`. Ask "what's my key?" → Otty says it was hidden. Search Recent chats for the value → nothing. Type "my password is hunter2" → it stays as typed.
+119. Settings › What Otty has used › **Set a monthly limit** → 1 question → Save. Ask a question → it's answered, and a line at the top says the limit has passed, with **Change the limit**. Start a background look → the card's yes leads to a row saying "You've reached this month's limit… Run it anyway?" → **Run it anyway** runs it. Explain cards still open when tapped.
+120. Ask "check the Tokyo rail pass price every Monday at 9" → the card says **Every Monday at 9:00 AM, starting …** and about 4 looks a month. Yes → Coming up shows ↻ with "next …" and **Stop repeating**.
+121. Ask for a daily check two minutes from now → it runs and leaves a note, and Coming up moves to tomorrow. Sleep the Mac across two due times → one late run on wake, not two. **Stop repeating** → the series goes, and the notes stay.
+122. Attach a CSV of sales with dates → "chart sales by month" → a bar chart card, with a tick-chip "Worked out the chart". **See the numbers** shows the table. Check one month against Numbers or Excel. The answer's figures match the table.
+123. Highlight a table in Numbers (or a web page) → "make a pie chart of this by region" → a pie chart. Ask for a chart of "the planets by number of moons" with no file → an ordinary diagram, not a chart of your data.
+124. Quit and relaunch, reopen the chart chat → the chart still shows. Ask for another chart → Otty asks for the file again.

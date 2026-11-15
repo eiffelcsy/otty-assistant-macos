@@ -291,8 +291,8 @@ Each action climbs separately, and only as its record earns it. **Prepare is the
 
 **2. Visibility.** The user should never have to wonder:
 - **"Why did you do that?"** on anything, following the links from action to job, trigger and the moment they agreed.
-- **What left the Mac:** a plain record of what was sent, to where, and why.
-- **What it knows and what it cost,** in everyday words, with honest uncertainty.
+- **What left the Mac:** a plain record of what was sent, to where, and why. *Shipped as D-31: Activity's second tab, built from names and counts, and a request path without a reason won't compile.*
+- **What it knows and what it cost,** in everyday words, with honest uncertainty. *The usage meter and D-33's monthly limit are the first half: past the limit, nothing Otty starts by itself runs without a yes.*
 - It has to stay readable for someone non-technical. A log nobody can read isn't visibility.
 
 **3. Defending against attacks.** Once Otty reads the world and acts on it, people will try to steer it:

@@ -34,9 +34,9 @@ The long-run direction, from something you ask to something that looks after thi
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | S | considering, part of Otty's den |
-| Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | considering |
+| Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | → D-38 |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering, Look after me needs it to speak |
-| Feed Otty: drop a file or dragged text on the otter to ask about it, with a munching animation | H | S–M | considering |
+| Feed Otty: drop a file or dragged text on the otter to ask about it, with a munching animation | H | S–M | → D-37 |
 | More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
 | A simplified small-size head for the 34px header and quick view, where painted fur gets soft | M | S | idea |
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
@@ -57,8 +57,8 @@ The long-run direction, from something you ask to something that looks after thi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Hidden keys in highlighted text and snips too: run `maskSecrets` on a highlight before sending, and OCR'd snips once D-1 reads them | H | S | → D-32 |
-| Show what was hidden: tap "2 keys hidden" to see which lines (on the Mac only), and "send this one" for a false alarm | M | S | idea, from D-29 |
+| Hidden keys in highlighted text and snips too: run `maskSecrets` on a highlight before sending, and OCR'd snips once D-1 reads them | H | S | shipped (D-32): highlights, typed words and pages; snips once D-1 reads them |
+| Show what was hidden: tap "2 keys hidden" to see which lines (on the Mac only), and "send this one" for a false alarm | M | S | → D-40 |
 | Code from a GitHub or Gist page in the app note: offer **Explain this code** on the page, read through `read_page`'s raw view | M | S | idea, from D-29 |
 | Highlighted code gets code tiles: text captured from VS Code, Xcode, Terminal or a code-looking selection offers **Explain this code** / **Find problems** first | M | S | shipped (D-29) |
 | Attach a folder or a small repo: a file list plus the files the question needs, picked by the model from names, inside the file budget | M | M | idea, after D-29 |
@@ -72,7 +72,7 @@ The long-run direction, from something you ask to something that looks after thi
 | Pick up text: a snip in a floating window with its words selectable, for ⌘C with no model | H | M | shipped |
 | Frontmost app, window title and page URL as context | H | S | shipped |
 | Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | H | L | → D-1 |
-| A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | idea, after D-9 |
+| A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | shipped: **Summarize this page** |
 | Captures in the tray: drag to reorder, or a "replace" mode on ⌥Space for people who want one capture at a time | L | S | idea, after D-8 |
 | Copy a pictured table with no model, using Apple's document reader (macOS 26) and `copyFormats` | M | S–M | idea |
 | Pick up text opens exactly over the original spot, so the text on screen seems to wake up (D-14's snip knows the rectangle) | M | S | idea, after D-14 |
@@ -118,7 +118,10 @@ The long-run direction, from something you ask to something that looks after thi
 | A drawing in the quick view opens the panel at that card, rather than the panel's bottom | L | S | idea, from D-30 |
 | Drawings as a job's output: a background look that ends in a deck or diagram, not just a report | M | S | idea, after D-30 |
 | Editable `.pptx` export of a slides card (pptxgenjs), so Keynote and PowerPoint can change it | M | S–M | idea, after D-30 |
-| Charts from an attached CSV or a highlighted table: Vega-Lite with its loader off, or numbers worked out by the code runner | H | M | → D-35 |
+| Charts from an attached CSV or a highlighted table: Vega-Lite with its loader off, or numbers worked out by the code runner | H | M | shipped (D-35): Mermaid charts, numbers by code |
+| Keep a chat's tables across restarts (masked, in `otty.db` with the chat) so "now by region" works tomorrow | M | S | idea, from D-35 |
+| Charts with two series (sales by month, a line per region) and by week, still worked out by code | M | M | idea, from D-35 |
+| A **Chart this** tile when a highlight or attachment is a table, so charts are found without knowing to ask | M | S | idea, from D-35 |
 | Free-form HTML pages from the model (posters, one-page explainers) in a script-less sandboxed frame; scales best with better models, biggest attack surface | M | M | considering, after D-30's attack tests |
 | Slides with the user's own pictures and snips, once there's a picture store that saved chats can use | M | M | idea, after D-30 |
 | Drawings: Mermaid diagrams, SVG pictures and a typed slides format, drawn on the Mac, with Copy as picture, Save as PNG / PDF and a present view | H | L | shipped (D-30) |
@@ -214,8 +217,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Launch at login | H | S | shipped (D-28); check it on an unsigned installed build |
-| "What Otty sent" transparency view per message (context, app note) | M | S | idea |
-| Say where web lookups really go: with another provider, or when DeepSeek's search fails, queries go to Wikipedia and DuckDuckGo, but Settings → Privacy only mentions DeepSeek | M | S | idea |
+| "What Otty sent" transparency view per message (context, app note) | M | S | shipped with D-31, per turn in Activity |
+| Say where web lookups really go: with another provider, or when DeepSeek's search fails, queries go to Wikipedia and DuckDuckGo, but Settings → Privacy only mentions DeepSeek | M | S | partly shipped: D-31 names Wikipedia and DuckDuckGo; Settings › Privacy still only mentions DeepSeek |
 | Sign and notarize (Developer ID) so permissions survive updates | H | M | considering, needed before sharing builds |
 | Auto-update (electron-updater) | M | M | idea |
 | Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | shipped (counts and tokens; money needs a price table, see below) |
@@ -232,7 +235,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Syntax colours in answers' code blocks, with a small lazily loaded highlighter and token colours from `styles.css` | L | S | idea, after D-29 |
-| Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | idea |
+| Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | → D-36 |
 | Rewind a chat to any earlier message: the chat-sized version of Rewind. Lists what the removed turns did, undo ticked by default and untickable, because a rewind is often just a typo fix and shouldn't silently forget what was said later | H | M | idea, after the action ledger |
 | Copy on your own messages, beside the Copy that answers already have | M | S | idea |
 | Keep each version after a retry, an edit or a rewind, with ‹ 1/2 › to switch between them, as other chat apps do. Needs branching history in `otty.db` | M | M | idea, after retry and edit |
@@ -323,7 +326,7 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Attention budget: everything unprompted shares one small daily allowance, a dismissal shrinks it, and quiet mode always wins | H | S | idea, ships with the first unprompted feature (see AUTONOMY.md) |
 | A one-tap way to start a job: a **Look into this** tile, and "keep going" on a report that hit its limit | M | S | idea, after D-22 |
 | Pick up where you left off: reopen the last chat's context with a light "Still on the budget?" | M | S | idea, after D-10 |
-| The otter shows what's happening: moods mirror jobs (working, waiting for you, something ready), so nobody needs a dashboard. Must stay inside the idle budget | H | S–M | idea, after the first background job |
+| The otter shows what's happening: moods mirror jobs (working, waiting for you, something ready), so nobody needs a dashboard. Must stay inside the idle budget | H | S–M | shipped: the otter's work mood |
 | Surface budgets: a job returns a headline and a body, and each surface uses what fits (bubble a few words, inbox a few lines, panel the lot) | M | S | idea, with the inbox |
 | Ask me later: "check this tomorrow at 9", run read-only, with the result waiting in a small inbox | H | M | shipped (D-27) |
 | Watch for me: check a page on a schedule and tell the user when it changes (price, delivery, results) | H | M | idea, after Ask me later; web reads are billed per call, so show the cost |
@@ -447,21 +450,25 @@ How much Otty can do is limited by how much can be undone, explained and defende
 | --- | --- | --- | --- |
 | One stop control: pause everything Otty is doing, from the otter or the menu bar, in reach of anyone | H | S | shipped (D-27) |
 | Red-team sets: attacks in the eval that grow with every feature and every real attack, run before each release. Extends D-23's injection set | H | S–M | considering |
-| What left the Mac: a plain record of what was sent, to where and why | H | M | → D-31 |
+| What left the Mac: a plain record of what was sent, to where and why | H | M | shipped (D-31) |
+| What left your Mac: filter by chat or service, and a weekly one-line summary ("42 requests, all to DeepSeek") | M | S | idea, from D-31 |
 | Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | considering, the base for "do, with undo" |
 | Why did you do that? on everything: one plain trail from action to job, trigger and the moment you agreed. Extends "Why did this happen?" | H | M | considering |
 | Taint tracking: code knows which runs touched outside text, and what they may do narrows to match | H | M | considering, builds on D-26's labels |
 | Grow the eval sets from the seed sizes (8 / 8 / 5 / 7 / 7) to the planned 40 / 30 / 20 / 15 / 20, adding a case for every real failure and every real attack | H | M | idea, from D-23 |
 | Run the eval's injection and safety sets in CI on a schedule, with a small key budget, so a prompt change that weakens a rule is caught before release | H | S | idea, from D-23 |
 | Cache hits in the eval's table: needs `Provider` to report usage, which no caller reads yet | L | S | idea, from D-23 |
-| Recurring jobs ("every Monday at 9"): the same card, with a daily cap and a longest gap in code, and a way to see and end it | H | M | → D-34 |
+| Recurring jobs ("every Monday at 9"): the same card, with a daily cap and a longest gap in code, and a way to see and end it | H | M | shipped (D-34) |
+| A repeating look says only what changed since the last note ("the price dropped 8%"), from the previous report | H | M | idea, from D-34 |
+| A series pauses itself when its last three notes went unopened, and asks if it's still wanted | M | S | idea, from D-34; pairs with the attention budget |
 | Say "Used" in the quick view as well as the panel, and for a job's report: which memories (none, today) a scheduled look relied on | L | S | idea, from D-24 |
 | Money, not tokens: a maintained price table per service and model, so the meter and job cards can say "about $0.40 this month". Prices change, so it needs a date and a way to stay current | M | S | idea, from the usage meter |
-| A monthly spending cap the user sets, enforced in code: past it, background work asks first and the meter says why | H | S | → D-33 |
+| A monthly spending cap the user sets, enforced in code: past it, background work asks first and the meter says why | H | S | shipped (D-33) |
+| A gentle heads-up at 80% of the monthly limit, once, before anything has to wait | M | S | idea, from D-33 |
 | The health line in the quick view too, and after a hotkey that did nothing, instead of only on the next panel open | M | S | idea, from the health banner |
 | Try-asking chips that learn: drop ones the user has already used, and add ones for features they haven't found yet (pairs with the feature-teaching collection) | M | S | idea, from try-asking |
 | Group notifications: several finished looks in one, and none during Focus or screen sharing | M | S | idea, from notifications |
-| Pause until: the stop control offers "for an hour" or "until tomorrow", so a meeting doesn't need a remembered undo | M | S | idea, from D-27 |
+| Pause until: the stop control offers "for an hour" or "until tomorrow", so a meeting doesn't need a remembered undo | M | S | → D-39 |
 | Shorten the time Otty is paused in the menu bar icon itself (a small dot), so a paused Otty is visible without opening the menu | M | S | idea, from D-27 |
 | Earned limits: a record per action of how often Otty was right and how often it was undone, widening and narrowing what it may do | H | M | idea, extends the trust ladder |
 | Memory forensics: find where a memory came from, and remove it and everything it shaped, as the recovery for memory poisoning | M | M | idea, from D-10 |

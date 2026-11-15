@@ -4,6 +4,42 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### What left your Mac (D-31, 2026-11-15)
+
+- **Activity has a second tab, What left your Mac:** every request to the AI service, every web search and every page read, newest first, in plain words. For example: "Asked DeepSeek: Budget.csv · 1 key hidden", "Searched DeepSeek for “rail pass prices”", "Read jrailpass.com/prices". Each row says when it was sent, where to, and opens its chat. One answer's rounds fold into one row, and so do one job's requests. A model on this Mac says "nothing left your Mac".
+- **Built from names and counts, never the words sent** (`main/sent.ts`): file names, highlights, pictures and hidden keys, a search's words or a page's address.
+- **No request can skip it:** `activeProvider(sent)` won't build without saying why, so the compiler catches a new request path. Searches and pages are noted where they go out (`tools.ts`), including Wikipedia and DuckDuckGo when DeepSeek's search isn't used, and Claude's own searches.
+- **Kept like chats** (schema v6, the `sent` table): pruned by Keep chats, forgotten with a chat or with all of them, and only in memory while Remember my chats is off.
+
+### Hidden keys everywhere (D-32, 2026-11-15)
+
+- **Highlighted text gets the same check as files:** highlighting `OPENAI_API_KEY=sk-…` in a terminal sends `[hidden key]`. Typed words only lose well-known key shapes (a pasted `sk-…` or `ghp_…`), so "my password is…" stays as typed.
+- **It happens as the question is taken,** so the key never reaches the model, the chat on screen or `otty.db`. A quiet line under the question says "Otty hid 1 key before sending", and the turn's note tells the model, only on turns that hid something, so the cache holds.
+- **Pages read are masked too,** so a leaked config on a paste site isn't passed on. `maskSecrets` moved to `shared/secrets.ts`.
+- Pick up text never sends its words, so there's nothing to mask there. A pasted key is caught in the typed words.
+
+### A monthly limit (D-33, 2026-11-15)
+
+- **Settings → What Otty has used → Set a monthly limit:** a number of questions or tokens, never money. It shows how much of this calendar month is used.
+- **Past it, Otty asks before starting anything by itself:** a job or a scheduled look waits in Activity with "You’ve reached this month’s limit of 300 questions. Run it anyway?" and a **Run it anyway** button, and explanations aren't fetched ahead. Your own questions still go through, with one line at the top of the chat saying so, and **Change the limit**.
+- **In code, not a prompt:** `JobRunner` checks before a job's first step. A job already under way may finish. "Run it anyway" holds for that job until Otty quits.
+
+### Repeating looks (D-34, 2026-11-15)
+
+- **"Check the rail pass price every Monday at 9"**: the same read-only look and card as a scheduled one, repeating **daily**, **on weekdays** or **weekly**. The card says it in words, with how many looks a month that is. Each look leaves its own note.
+- **Code keeps it in bounds:** at most once a day and at least once a week, at most three series at once, and never two runs of one series at a time. Runs missed while the Mac slept become one late run, not a pile. More than a day late, it asks first. A weekday series asked for on a Saturday starts on Monday, and 9am stays 9am when the clocks change.
+- **Activity's Coming up** shows a series with ↻, "Every Monday at 9:00 AM · next …", and **Stop repeating**, which ends the series and keeps every note.
+- Schema v7 adds `repeat` and `series_id` to jobs. A damaged repeat reads as none, so it can only stop a series, never widen one. Only a chat turn can ask for one, always behind a card, and jobs still can't schedule anything.
+
+### Charts from your data (D-35, 2026-11-15)
+
+- **"Chart sales by month"** on an attached CSV or TSV, or a table highlighted in a spreadsheet or a page, gives a real chart card (bar, line or pie), with Show big, Copy as picture, Save PNG and PDF, and **See the numbers**.
+- **Code does the sums:** the model only names the columns and how to add them up (`make_chart`); `main/chart.ts` reads the rows (`shared/table.ts`: quoted CSV, tabs, Markdown tables, `$1,234.50`, `(12)`, `45%`, dates in the usual forms), groups by value, day, month or year, and adds, counts, averages, or takes the min or max. A 500-row CSV by month matches a pivot table to the cent. The model is handed the same numbers and the total, and told to use `calculate` for anything worked out from them.
+- **Nothing in the data becomes code:** Otty writes the Mermaid itself, with every label quoted and cleaned.
+- Tables are kept in memory for the chat they came with, like files. After a restart, Otty asks for the file again.
+- **Eval:** two chart cases where every exact number in the answer has to come from code, and one where made-up data is drawn rather than charted. Also a weekly-repeat case, and a check that a one-off isn't repeated.
+- **Eval harness fix:** cases ran four at a time over one shared page and search, so a case could read another's page. Each case now has its own (`AsyncLocalStorage`). Tool results are kept in the trace, so a scorer can check numbers against them.
+
 ### Drawings: diagrams, pictures and slides (D-30, 2026-11-15)
 
 - **Answers can draw.** When a picture explains better, or you ask for one, the answer carries a ` ```mermaid ` diagram (flowcharts, sequences, mind maps, timelines, pie and bar charts), a ` ```svg ` picture, or a ` ```slides ` deck, drawn on the Mac in Otty's own colours. "Otty is drawing…" shows until the answer ends.
