@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto'
-import type { ActivityItem, AnswerLanguage, HomeLanguage } from '../../shared/types'
+import type { ActivityItem, AnswerLanguage, HomeLanguage, MonthlyCap } from '../../shared/types'
+import { capReached, isCapNote } from '../../shared/cap'
+import { firstRun, nextRun, repeatWords, type Repeat } from '../../shared/repeat'
 import { describeWhen } from '../../shared/when'
 import { isKnownUrl } from '../knownUrls'
 import { turnNote, withNote } from '../language'
@@ -8,7 +10,7 @@ import { ToolPause } from '../pause'
 import { count } from '../usage'
 import { JOB_TOOLS, ruleOfTwo } from '../toolSafety'
 import { jobPrompt } from '../prompts'
-import { ConnectionError, FriendlyError, type Message, type Provider } from '../providers'
+import { ConnectionError, FriendlyError, type Message, type Provider, type SentTag } from '../providers'
 import type { Thread } from '../store'
 import { LIMITS, Supervisor, type Limits } from './limits'
 import type { Job, JobChange, JobStore } from './types'
@@ -21,7 +23,8 @@ const WRAP_UP = 'That’s all the looking up there’s room for. Write your repo
 
 export interface RunnerDeps {
   store(): JobStore
-  provider(): Provider
+  /** The model service. `sent` says the request is for this job, for "What left your Mac". */
+  provider(sent: SentTag): Provider
   tools(allowed: ReadonlySet<string>): readonly object[]
   /** True when nothing may leave the Mac. */
   webOff(): boolean
@@ -32,12 +35,16 @@ export interface RunnerDeps {
   onChange(news: boolean): void
   /** True while the user has paused everything. Saved, so a restart doesn't quietly undo it. */
   held?(): boolean
+  /** The month's limit, when it has been reached (D-33). Work Otty starts by itself then waits for a yes. */
+  overCap?(): MonthlyCap | null
   now?(): number
   wait?(ms: number, signal: AbortSignal): Promise<void>
   limits?: Limits
 }
 
 export interface NewJob {
+  /** Chosen by the chat that asked, so the answer can point at it (Try again offers to stop it, D-36). */
+  id?: string
   title: string
   brief: string
   sourceThread?: string
@@ -78,6 +85,8 @@ export class JobRunner {
   private asleep = false
   /** Reports that aren't saved as chats, with "Remember my chats" off. */
   private reports = new Map<string, Thread>()
+  /** Jobs the user said to run anyway, past the month's limit. Not saved: after a restart, it asks again. */
+  private pastCap = new Set<string>()
   private now: () => number
   private limits: Limits
 
@@ -107,7 +116,7 @@ export class JobRunner {
     if (waiting >= this.limits.queue) return 'Otty already has plenty waiting. Ask the user to try again once some of it is done.'
     const at = this.now()
     await this.store.add({
-      id: randomUUID(),
+      id: req.id ?? randomUUID(),
       title: req.title,
       brief: req.brief,
       status: 'queued',
@@ -131,16 +140,19 @@ export class JobRunner {
    * A job for later. The user has agreed on a card; it reads the public web and changes nothing, like any job.
    * Words for the model if it can't be scheduled, or null once it is.
    */
-  async schedule(req: NewJob & { dueAt: number }): Promise<string | null> {
-    const waiting = (await this.store.list()).filter((j) => j.status === 'scheduled' || j.status === 'queued').length
+  async schedule(req: NewJob & { dueAt: number; repeat?: Repeat }): Promise<string | null> {
+    const jobs = await this.store.list()
+    const waiting = jobs.filter((j) => j.status === 'scheduled' || j.status === 'queued').length
     if (waiting >= this.limits.queue) return 'Otty already has plenty waiting. Ask the user to try again once some of it is done.'
+    if (req.repeat && jobs.filter((j) => j.repeat).length >= this.limits.series) return 'Otty already checks several things regularly. Ask the user to cancel one in Activity first.'
     const at = this.now()
     await this.store.add({
-      id: randomUUID(),
+      id: req.id ?? randomUUID(),
       title: req.title,
       brief: req.brief,
       status: 'scheduled',
-      dueAt: req.dueAt,
+      dueAt: req.repeat ? firstRun(req.repeat, req.dueAt) : req.dueAt,
+      ...(req.repeat ? { repeat: req.repeat } : {}),
       seedUrls: req.seedUrls.map(normalized),
       denied: [],
       ...(req.sourceThread ? { sourceThread: req.sourceThread } : {}),
@@ -164,8 +176,13 @@ export class JobRunner {
   private async promoteDue(): Promise<void> {
     if (this.held) return
     const now = this.now()
-    for (const job of await this.store.list()) {
+    const jobs = await this.store.list()
+    for (const job of jobs) {
       if (job.status !== 'scheduled' || !job.dueAt || job.dueAt > now) continue
+      if (job.repeat) {
+        await this.runSeries(job, job.repeat, jobs, now)
+        continue
+      }
       if (now - job.dueAt > this.limits.staleMs) {
         await this.change(job, { status: 'paused', error: `This was due ${describeWhen(job.dueAt, now)}, while Otty wasn’t running. Look into it now?` })
         this.deps.onChange(true)
@@ -174,6 +191,40 @@ export class JobRunner {
         this.deps.onChange(false)
       }
     }
+  }
+
+  /**
+   * A series came due: its run becomes a job of its own, and the series moves on to its next time after now, so
+   * runs missed while the Mac slept become one run, not a pile. A run still going from last time means this one is
+   * skipped, so there is never more than one at a time.
+   */
+  private async runSeries(series: Job, repeat: Repeat, jobs: Job[], now: number): Promise<void> {
+    const due = series.dueAt!
+    const going = jobs.some((j) => j.seriesId === series.id && j.status !== 'done' && j.status !== 'failed')
+    await this.change(series, { dueAt: nextRun(repeat, due, now) })
+    if (going) return
+    const late = now - due
+    await this.store.add({
+      id: randomUUID(),
+      title: series.title,
+      brief: series.brief,
+      status: late > this.limits.staleMs ? 'paused' : 'queued',
+      seedUrls: series.seedUrls,
+      denied: series.denied,
+      ...(series.sourceThread ? { sourceThread: series.sourceThread } : {}),
+      language: series.language,
+      rounds: 0,
+      lookups: 0,
+      workedMs: 0,
+      partial: false,
+      dueAt: due,
+      ranLate: late > LATE_AFTER,
+      seriesId: series.id,
+      ...(late > this.limits.staleMs ? { error: `This was due ${describeWhen(due, now)}, while Otty wasn’t running. Look into it now?` } : {}),
+      createdAt: now,
+      updatedAt: now
+    })
+    this.deps.onChange(late > this.limits.staleMs)
   }
 
   /** Sets the one timer for the soonest scheduled job, or none. Called whenever the list changes. */
@@ -265,6 +316,9 @@ export class JobRunner {
 
   private async run(job: Job, abort: AbortController): Promise<void> {
     if (this.deps.webOff()) return this.change(job, { status: 'paused', error: 'This needs the web, which is off with this model.' }).then(() => this.deps.onChange(true))
+    // Checked in code before a job's first step, never left to a prompt. One already under way may finish.
+    const cap = job.rounds === 0 && !this.pastCap.has(job.id) ? this.deps.overCap?.() : null
+    if (cap) return this.change(job, { status: 'paused', error: capReached(cap) }).then(() => this.deps.onChange(true))
     await this.change(job, { status: 'working' })
     this.deps.onChange(false)
     for (let tries = 0; ; tries++) {
@@ -329,12 +383,13 @@ export class JobRunner {
 
     try {
       await runLoop({
-        provider: this.deps.provider,
+        provider: () => this.deps.provider({ kind: 'job', group: job.id, what: job.title, ...(job.sourceThread ? { chatId: job.sourceThread } : {}) }),
         system: jobPrompt(this.deps.home()),
         history,
         tools: () => this.deps.tools(JOB_TOOLS),
         context: {
           allowed: JOB_TOOLS,
+          sent: { group: job.id, ...(job.sourceThread ? { chatId: job.sourceThread } : {}) },
           knownUrl: known,
           // Nobody is there to answer, so the question is saved and the job stops here until someone does.
           confirm: async (_title, url) => {
@@ -446,6 +501,28 @@ export class JobRunner {
     if (job && job.status !== 'done' && job.status !== 'failed') await this.fail(job, new FriendlyError('You stopped this.'))
   }
 
+  /**
+   * Try again or Edit took back the answer that asked for this (D-36). One that never started goes as if it was
+   * never asked, a series included; one under way stops like Stop, keeping what it found.
+   */
+  async withdraw(id: string): Promise<void> {
+    const job = await this.store.get(id)
+    if (!job) return
+    if (this.current?.id !== id && (job.status === 'scheduled' || (job.status === 'queued' && job.rounds === 0))) {
+      await this.drop(job)
+      this.deps.onChange(false)
+      await this.arm()
+      return
+    }
+    await this.stop(id)
+  }
+
+  /** Still to do or under way, so taking back its answer can stop it. */
+  async isLive(id: string): Promise<boolean> {
+    const job = await this.store.get(id)
+    return Boolean(job && job.status !== 'done' && job.status !== 'failed')
+  }
+
   /** Allow or Don't Allow. Saved, so it works whenever it's answered, even after a restart. */
   async answer(id: string, allow: boolean): Promise<void> {
     const job = await this.store.get(id)
@@ -460,19 +537,21 @@ export class JobRunner {
     void this.next()
   }
 
-  /** Keep going. */
+  /** Keep going, or Run it anyway past the month's limit. */
   async resume(id: string): Promise<void> {
     const job = await this.store.get(id)
     if (job?.status !== 'paused') return
+    if (this.deps.overCap?.()) this.pastCap.add(id)
     await this.change(job, { status: 'queued', error: null })
     this.deps.onChange(false)
     void this.next()
   }
 
-  /** Try again, from the last saved step. */
+  /** Try again, from the last saved step. The user pressed it, so it counts as their yes past the limit too. */
   async retry(id: string): Promise<void> {
     const job = await this.store.get(id)
     if (job?.status !== 'failed') return
+    if (this.deps.overCap?.()) this.pastCap.add(id)
     await this.change(job, { status: 'queued', error: null, seenAt: null })
     this.deps.onChange(false)
     void this.next()
@@ -535,7 +614,9 @@ export class JobRunner {
       state: this.held && (j.status === 'working' || j.status === 'queued') ? 'paused' : j.status,
       pages: j.lookups,
       ...(j.status === 'scheduled' && j.dueAt ? { dueAt: j.dueAt } : {}),
+      ...(j.repeat && j.dueAt ? { repeat: repeatWords(j.repeat, j.dueAt) } : {}),
       ...(this.held && (j.status === 'working' || j.status === 'queued') ? { held: true } : {}),
+      ...(j.status === 'paused' && isCapNote(j.error) ? { overCap: true } : {}),
       ...(j.waitUrl ? { waitUrl: j.waitUrl } : {}),
       ...(this.held && (j.status === 'working' || j.status === 'queued' || j.status === 'scheduled')
         ? { note: 'Paused until you let Otty carry on.' }

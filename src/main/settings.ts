@@ -5,6 +5,7 @@ import type { PublicSettings, SettingsUpdate } from '../shared/types'
 import { defaultHomeLanguage } from './language'
 import { profileFor } from './providers/profiles'
 import { serviceAt, type ServiceId } from '../shared/services'
+import { cleanCap } from '../shared/cap'
 
 interface SavedKey {
   /** Base64 of the safeStorage-encrypted key, or of the key itself if encryption wasn't available. */
@@ -36,7 +37,8 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   keepChats: '1y',
   learn: true,
   workPaused: false,
-  notifyDone: false
+  notifyDone: false,
+  monthlyCap: null
 }
 
 let cache: StoredSettings | null = null
@@ -121,7 +123,9 @@ function loginItem(): { openAtLogin: boolean; canOpenAtLogin: boolean } {
 
 export function update(u: SettingsUpdate): PublicSettings {
   const s = load()
-  const { apiKey, openAtLogin, ...rest } = u
+  const { apiKey, openAtLogin, monthlyCap, ...rest } = u
+  // From the renderer, so it's checked: a cap that isn't one is no cap.
+  if (monthlyCap !== undefined) s.monthlyCap = cleanCap(monthlyCap)
   if (openAtLogin !== undefined && loginItem().canOpenAtLogin) app.setLoginItemSettings({ openAtLogin })
   Object.assign(s, rest)
   if (apiKey !== undefined) {

@@ -9,7 +9,7 @@ import { prettyKey } from '../lib/keys'
 import { againOffer } from '../lib/again'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from '../panel/Markdown'
-import { AppTag, AssistantMessage, CaptureList, sourceFor } from '../panel/Messages'
+import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor } from '../panel/Messages'
 
 /** Leaves room under a short answer for an explain-term card to open into. */
 const POPOVER_ROOM = 320
@@ -251,9 +251,16 @@ export function Quick() {
                     m.role === 'user' ? (
                       <div key={m.id} className="quick__asked">
                         {m.text}
+                        <HiddenLine hidden={m.hidden} />
                       </div>
                     ) : (
-                      <AssistantMessage key={m.id} m={m} again={again?.id === m.id ? again.offer : undefined} source={sourceFor(messages, m.id)} />
+                      <AssistantMessage
+                        key={m.id}
+                        m={m}
+                        again={again?.id === m.id ? again.offer : undefined}
+                        source={sourceFor(messages, m.id)}
+                        latest={m.id === messages.at(-1)?.id}
+                      />
                     )
                   )}
                   {waitingFirstToken && (

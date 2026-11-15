@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
-import type { Permissions, PublicSettings } from '../../../shared/types'
+import type { CapStatus, Permissions, PublicSettings } from '../../../shared/types'
 import { healthProblem } from '../../../shared/health'
+import { capPassed } from '../../../shared/cap'
 import { Icon } from '../components/Icon'
 import { prettyKey } from '../lib/keys'
 
 /** Looks again whenever the panel comes back into view, so allowing something in System Settings clears it. No polling. */
-function usePermissions(): Permissions | null {
+function useHealth(): { perms: Permissions | null; cap: CapStatus | null } {
   const [perms, setPerms] = useState<Permissions | null>(null)
+  const [cap, setCap] = useState<CapStatus | null>(null)
   useEffect(() => {
-    const check = () => void window.otty.getPermissions().then(setPerms)
+    const check = () => {
+      void window.otty.getPermissions().then(setPerms)
+      void window.otty.getUsage().then((u) => setCap(u.cap ?? null))
+    }
     check()
     const onVisible = () => document.visibilityState === 'visible' && check()
     window.addEventListener('focus', check)
@@ -18,14 +23,14 @@ function usePermissions(): Permissions | null {
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [])
-  return perms
+  return { perms, cap }
 }
 
 /** One quiet line at the top of the chat when something the user will try won't work yet, with the fix one tap away. */
 export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSettings; onOpenSettings: () => void }) {
-  const perms = usePermissions()
+  const { perms, cap } = useHealth()
   const [dismissed, setDismissed] = useState<string | null>(null)
-  const problem = healthProblem(perms, settings)
+  const problem = healthProblem(perms, settings, cap)
   if (!problem) return null
   const id = problem.kind === 'hotkey' ? `hotkey:${problem.hotkey}` : problem.kind
   if (dismissed === id) return null
@@ -35,16 +40,18 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
       ? `${prettyKey(settings.askHotkey)} can’t read highlighted text until Otty is allowed under Accessibility.`
       : problem.kind === 'screen'
         ? 'Snips can only see your wallpaper. Allow Screen Recording, then reopen Otty.'
-        : `Another app uses ${prettyKey(problem.hotkey)}, so it won’t work for ${problem.what}.`
+        : problem.kind === 'cap'
+          ? capPassed(problem.cap)
+          : `Another app uses ${prettyKey(problem.hotkey)}, so it won’t work for ${problem.what}.`
 
   return (
     <div className="health" role="status">
       <Icon name="triangle-warning" />
       <span className="health__text">{text}</span>
       <span className="health__actions">
-        {problem.kind === 'hotkey' ? (
+        {problem.kind === 'hotkey' || problem.kind === 'cap' ? (
           <button className="btn btn--primary btn--small" onClick={onOpenSettings}>
-            Change it
+            {problem.kind === 'cap' ? 'Change the limit' : 'Change it'}
           </button>
         ) : (
           <button className="btn btn--primary btn--small" onClick={() => void window.otty.openPermissionSettings(problem.kind as 'accessibility' | 'screen')}>

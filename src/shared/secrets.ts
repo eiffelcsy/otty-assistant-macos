@@ -1,5 +1,5 @@
-// Hides things that look like keys, tokens and passwords in an attached text or code file before it's sent,
-// so attaching a `.env` or a config file never hands its secrets to the model. Pure, and run in the file reader.
+// Hides things that look like keys, tokens and passwords before they're sent: in attached files (in the file reader,
+// D-29), and in highlighted text, typed words and pages read (D-32). Pure, so main, the worker and tests share it.
 // It's a safety net, not a promise: friendly copy says "things that looked like keys", never "all your keys".
 
 export const HIDDEN = '[hidden key]'
@@ -57,7 +57,11 @@ export interface Masked {
   hidden: number
 }
 
-export function maskSecrets(text: string): Masked {
+/**
+ * `shapesOnly` is for the user's own typed words: a key pasted by mistake has a shape, but "my password is…" may be
+ * meant, so `NAME=value` is left as they wrote it.
+ */
+export function maskSecrets(text: string, opts: { shapesOnly?: boolean } = {}): Masked {
   let hidden = 0
   let out = text
   for (const re of SHAPES) {
@@ -66,6 +70,7 @@ export function maskSecrets(text: string): Masked {
       return HIDDEN
     })
   }
+  if (opts.shapesOnly) return { text: out, hidden }
   out = out.replace(ASSIGNED, (all, lead: string, key: string, dq?: string, sq?: string, bare?: string) => {
     const value = dq ?? sq ?? bare ?? ''
     if (value.includes(HIDDEN)) return all

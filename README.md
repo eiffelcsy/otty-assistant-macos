@@ -8,21 +8,23 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 - **⌥ ⇧ Space** to snap part of your screen and ask about it
 - **⌘ ⌥ ⇧ Space** to capture the whole screen in one press
 - Collect several highlights and snips from different apps into one question ("compare these")
-- Attach PDFs, Word documents, pictures, text files, code and Jupyter notebooks (keys and passwords in them are hidden before sending)
+- Attach PDFs, Word documents, pictures, text files, code and Jupyter notebooks. Keys and passwords in files, highlights and pages are hidden before sending
 - Ask for a diagram, a picture or slides: drawn on your Mac, ready to copy, save as PNG or PDF, or present
+- **Charts from your data:** "chart sales by month" on a CSV or a highlighted table, with every number worked out by Otty, not guessed
 - **Pick up text:** select and copy the words in a snip, on your Mac with no AI involved
 - **Summarize this page** in one tap, and **Check my writing** with each fix marked and explained
 - **Gets to know you,** in the open: it shows what it notes, with Undo, and Settings lists all of it
 - **Math that's right:** a typed sum is answered instantly on your Mac, and equations render properly
 - **Do it with me:** steps become a checklist whose buttons paste, click menus and press shortcuts, only when you press them
-- **Keeps going:** answers carry on while you do something else, and big questions run in the background with a report waiting for you
+- **Keeps going:** answers carry on while you do something else, and big questions run in the background with a report waiting for you, now or later, once or every Monday
+- **Nothing hidden:** Activity lists everything that left your Mac, and where to, and a monthly limit makes Otty ask before starting anything by itself
 - Copied tables paste as real tables in Word, Pages and spreadsheets
 - Saved chats with search (⇧⌘F) and find in a chat (⌘F)
 - Help in English, or in 繁體中文（香港） when you want it
 - Works with DeepSeek, Claude, OpenAI or any OpenAI-style or Anthropic-style server. Models on your Mac are experimental
 - Tools: search the web, read a web page, open links, copy text, add Apple Reminders (side effects always ask first)
 
-Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Dev log](docs/DEVLOG.md) · [Changelog](docs/CHANGELOG.md) · [Brainstorm](docs/BRAINSTORM.md) · [Autonomy direction](docs/AUTONOMY.md)
+Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Dev log](docs/DEVLOG.md) · [Changelog](docs/CHANGELOG.md) · [Brainstorm](docs/BRAINSTORM.md) · [Autonomy direction](docs/AUTONOMY.md) · [Launch readiness](docs/LAUNCH_READINESS.md)
 
 ## Run it (on a Mac)
 

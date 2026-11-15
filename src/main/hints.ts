@@ -26,14 +26,21 @@ export interface HintInput {
   app?: string | null
   /** "Let Otty learn about me" is on. */
   learn?: boolean
+  /** This chat has a table of the user's own (D-35), so a chart should come from make_chart, not a guess. */
+  table?: boolean
 }
 
-export function turnHints({ typed, picture = false, app, learn = false }: HintInput): string[] {
+/** "Plot", "graph", "chart" or "how many … by month": asking to see the data, not a diagram of an idea. */
+const CHART_DATA = /\b(?:chart|graph|plot|visuali[sz]e|bar|pie|trend|by (?:month|year|day|week))\b|圖表|图表/i
+
+export function turnHints({ typed, picture = false, app, learn = false, table = false }: HintInput): string[] {
   const hints: string[] = []
   const tier = mathTier(typed, picture)
   if (tier === 'calculation' || tier === 'problem') hints.push('[This needs numbers worked out: use calculate for them, even easy ones.]')
   if (HOW_TO.test(typed)) hints.push(`[If the answer is steps I'll do ${app ? `in ${app}` : 'on my Mac'}, use show_steps, not a numbered list.]`)
-  if (DRAW.test(typed)) hints.push('[I asked for a picture: answer with a ```mermaid, ```svg or ```slides block, after one sentence on what it shows.]')
+  // A chart of the user's data comes from their rows. A model asked to draw it writes numbers from its head.
+  if (table && CHART_DATA.test(typed)) hints.push('[Chart my data with make_chart, which adds up the rows itself. Use only the numbers it returns.]')
+  else if (DRAW.test(typed)) hints.push('[I asked for a picture: answer with a ```mermaid, ```svg or ```slides block, after one sentence on what it shows.]')
   if (learn && ABOUT_ME.test(typed)) hints.push('[I said something about myself: if it will still matter in a month, remember it.]')
   return hints
 }

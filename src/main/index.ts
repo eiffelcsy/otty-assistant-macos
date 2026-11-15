@@ -26,6 +26,8 @@ import { memoryStore } from './memory'
 import { isSecret } from './memory/guard'
 import { createRunner, jobCost } from './jobs'
 import { setUsageSink, UsageMeter } from './usage'
+import { MemorySentLog, setSentLog, SqliteSentLog } from './sent'
+import { capStatus } from '../shared/cap'
 import { serviceAt, serviceById } from '../shared/services'
 import { retentionCutoff } from './store/retention'
 import { startMetrics } from './metrics'
@@ -102,6 +104,32 @@ async function activity(): Promise<ActivityItem[]> {
 /** Opened at launch, once the database is. Null until then, so nothing waits on it. */
 let meter: UsageMeter | null = null
 
+/** This month against the limit, or null with no limit (or no meter yet). */
+function cap() {
+  const month = meter?.month()
+  return month ? capStatus(settings.getStored().monthlyCap, month) : null
+}
+
+/** The limit, when this month has reached it: then Otty asks before starting anything by itself (D-33). */
+function overCap() {
+  const c = cap()
+  return c?.over ? { unit: c.unit, limit: c.limit } : null
+}
+
+/** What left the Mac (D-31). With "Remember my chats" off, kept only while Otty runs, like the chats themselves. */
+let savedSent: SqliteSentLog | null = null
+const unsavedSent = new MemorySentLog()
+function sentLog() {
+  if (!settings.getStored().rememberChats) return unsavedSent
+  try {
+    return (savedSent ??= new SqliteSentLog(database()))
+  } catch (err) {
+    console.error('Could not open what left the Mac', err)
+    return unsavedSent
+  }
+}
+setSentLog(sentLog)
+
 /** What each job was last time, so a notification fires once, on the change. Null until the first look. */
 let lastStates: Map<string, ActivityItem['state']> | null = null
 
@@ -139,9 +167,12 @@ async function activityChanged(news: boolean): Promise<void> {
 const chat = new ChatSession(forward, {
   onTurn: (unseen) => void activityChanged(unseen),
   startJob: (job) => (job.dueAt ? jobs.schedule({ ...job, dueAt: job.dueAt }) : jobs.start(job)),
-  jobCost: () => jobCost(jobs, () => meter?.summary() ?? null)
+  jobCost: () => jobCost(jobs, () => meter?.summary() ?? null),
+  overCap: () => overCap() !== null,
+  jobLive: (id) => jobs.isLive(id),
+  withdrawJob: (id) => jobs.withdraw(id)
 })
-const jobs = createRunner((news) => void activityChanged(news))
+const jobs = createRunner((news) => void activityChanged(news), overCap)
 
 function resetChat(): void {
   chat.reset()
@@ -155,6 +186,8 @@ async function forgetAllChats(): Promise<void> {
   forward({ type: 'reset' })
   await jobs.forgetAll()
   await chatStore().clear()
+  sentLog().clear()
+  unsavedSent.clear()
 }
 
 /** The otter's snip of what's on screen, for "I'm stuck". Without Screen Recording, the words go alone. */
@@ -312,7 +345,10 @@ function refreshTray(): void {
 async function tidyOldChats(): Promise<void> {
   await pruneOldChats()
   const cutoff = retentionCutoff(settings.getStored().keepChats)
-  if (cutoff !== null) await jobs.prune(cutoff)
+  if (cutoff !== null) {
+    await jobs.prune(cutoff)
+    sentLog().prune(cutoff)
+  }
 }
 
 function applySettings(u: SettingsUpdate) {
@@ -345,7 +381,15 @@ function registerIpc(): void {
     const service = serviceById(serviceAt(s.baseUrl))
     const empty = { days: 30, questions: 0, tokens: 0, searches: 0, pages: 0, jobs: 0 }
     const { requests: _r, ...summary } = meter?.summary() ?? { ...empty, requests: 0 }
-    return { ...summary, service: service.label, ...(service.usageUrl ? { usageUrl: service.usageUrl } : {}) }
+    const month = meter?.month()
+    const status = cap()
+    return {
+      ...summary,
+      month: { questions: month?.questions ?? 0, tokens: month?.tokens ?? 0 },
+      service: service.label,
+      ...(service.usageUrl ? { usageUrl: service.usageUrl } : {}),
+      ...(status ? { cap: status } : {})
+    }
   })
   ipcMain.handle('app:relaunch', () => {
     app.relaunch()
@@ -370,6 +414,7 @@ function registerIpc(): void {
     chat.forget(id)
     await jobs.forgetChat(id)
     await chatStore().delete(id)
+    sentLog().forgetChat(id)
     if (open) forward({ type: 'reset' })
   })
   ipcMain.handle('chats:clear', () => forgetAllChats())
@@ -388,6 +433,11 @@ function registerIpc(): void {
   ipcMain.handle('activity:retry', (_e, id: string) => jobs.retry(String(id)))
   ipcMain.handle('activity:resume', (_e, id: string) => jobs.resume(String(id)))
   ipcMain.handle('activity:seen', () => jobs.markSeen())
+  ipcMain.handle('sent:list', () => sentLog().list())
+  ipcMain.handle('chat:rewind-plan', (_e, id: unknown) => chat.rewindPlan(String(id)))
+  ipcMain.handle('chat:rewind', (_e, id: unknown, undo: unknown, mode: unknown) =>
+    chat.rewind(String(id), Array.isArray(undo) ? undo.map(String) : [], mode === 'edit' ? 'edit' : 'retry')
+  )
   ipcMain.handle('activity:open', async (_e, item: ActivityItem) => {
     if (!item.chatId) return
     const report = jobs.report(item.chatId)

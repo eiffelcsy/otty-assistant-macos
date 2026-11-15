@@ -14,6 +14,8 @@ export interface Limits {
   staleMs: number
   /** Jobs waiting their turn. */
   queue: number
+  /** Repeating looks at once (D-34). Each comes round at most once a day. */
+  series: number
 }
 
 export const LIMITS: Limits = {
@@ -24,7 +26,8 @@ export const LIMITS: Limits = {
   idleMs: 90_000,
   retryMs: [5_000, 20_000, 60_000],
   staleMs: 24 * 3_600_000,
-  queue: 5
+  queue: 5,
+  series: 3
 }
 
 export type LimitReached = 'rounds' | 'lookups' | 'time' | 'repeat'

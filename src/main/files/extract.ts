@@ -6,7 +6,7 @@ import type { FileKind } from '../../shared/types'
 import { FileError } from './errors'
 import { codeLanguage } from './languages'
 import { readNotebook, type NotebookCell } from './notebook'
-import { maskSecrets } from './secrets'
+import { maskSecrets } from '../../shared/secrets'
 import { unzippedSize } from './zip'
 
 export { FileError }

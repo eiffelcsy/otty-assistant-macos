@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type { ActivityItem } from '../../../shared/types'
 import { describeWhen } from '../../../shared/when'
 import { Icon } from '../components/Icon'
+import { SentList } from './SentList'
 
 const STATES: Record<ActivityItem['state'], string> = {
   scheduled: 'Scheduled',
@@ -13,9 +14,11 @@ const STATES: Record<ActivityItem['state'], string> = {
   failed: 'Couldn’t finish'
 }
 
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
 function detail(item: ActivityItem): string {
   if (item.kind === 'answer') return 'Still answering'
-  if (item.state === 'scheduled' && item.dueAt) return `Will look ${describeWhen(item.dueAt)}`
+  if (item.state === 'scheduled' && item.dueAt) return item.repeat ? `${capital(item.repeat)} · next ${describeWhen(item.dueAt)}` : `Will look ${describeWhen(item.dueAt)}`
   const pages = item.pages ? ` · ${item.pages} ${item.pages === 1 ? 'page' : 'pages'} read` : ''
   const part = item.state === 'done' && item.partial ? ' · only part of the answer' : ''
   return `${STATES[item.state]}${pages}${part}`
@@ -30,7 +33,9 @@ function Row({ item, onOpen }: { item: ActivityItem; onOpen: () => void }) {
   return (
     <li className="activity-row">
       <div className="activity-row__body">
-        <div className="activity-row__title">{item.title}</div>
+        <div className="activity-row__title">
+          {item.repeat && <Icon name="arrows-repeat" />} {item.title}
+        </div>
         <div className="activity-row__state">{detail(item)}</div>
         {item.note && <div className="activity-row__note">{item.note}</div>}
         {item.state === 'waiting' && item.waitUrl && (
@@ -58,7 +63,7 @@ function Row({ item, onOpen }: { item: ActivityItem; onOpen: () => void }) {
         )}
         {item.state === 'paused' && !item.held && (
           <button className="btn btn--primary btn--small" onClick={() => void window.otty.resumeActivity(item.id)}>
-            Keep going
+            {item.overCap ? 'Run it anyway' : 'Keep going'}
           </button>
         )}
         {item.state === 'failed' && item.retry && (
@@ -73,7 +78,7 @@ function Row({ item, onOpen }: { item: ActivityItem; onOpen: () => void }) {
         )}
         {live && (
           <button className="btn btn--soft btn--small" onClick={() => void window.otty.stopActivity(item)}>
-            {item.state === 'scheduled' ? 'Cancel' : 'Stop'}
+            {item.repeat ? 'Stop repeating' : item.state === 'scheduled' ? 'Cancel' : 'Stop'}
           </button>
         )}
       </div>
@@ -103,8 +108,42 @@ function PauseBar({ paused, onPause }: { paused: boolean; onPause: (on: boolean)
   )
 }
 
-/** What Otty is doing while the user looks away: what's coming up first, soonest at the top, then the rest, newest first. */
-export function Activity({ items, onOpen, paused, onPause }: { items: ActivityItem[]; onOpen: () => void; paused: boolean; onPause: (on: boolean) => void }) {
+type Tab = 'work' | 'sent'
+
+/**
+ * What Otty is doing while the user looks away: what's coming up first, soonest at the top, then the rest, newest
+ * first. The second tab is what left the Mac (D-31), so "what did it send?" has an answer next to "what did it do?".
+ */
+export function Activity({
+  items,
+  onOpen,
+  onOpenChat,
+  paused,
+  onPause
+}: {
+  items: ActivityItem[]
+  onOpen: () => void
+  onOpenChat: (chatId: string) => void
+  paused: boolean
+  onPause: (on: boolean) => void
+}) {
+  const [tab, setTab] = useState<Tab>('work')
+  return (
+    <div className="activity">
+      <div className="activity__tabs" role="tablist">
+        <button role="tab" aria-selected={tab === 'work'} className="activity__tab" onClick={() => setTab('work')}>
+          What Otty is doing
+        </button>
+        <button role="tab" aria-selected={tab === 'sent'} className="activity__tab" onClick={() => setTab('sent')}>
+          What left your Mac
+        </button>
+      </div>
+      {tab === 'work' ? <Work items={items} onOpen={onOpen} paused={paused} onPause={onPause} /> : <SentList onOpenChat={onOpenChat} />}
+    </div>
+  )
+}
+
+function Work({ items, onOpen, paused, onPause }: { items: ActivityItem[]; onOpen: () => void; paused: boolean; onPause: (on: boolean) => void }) {
   const unseen = items.some((i) => i.unseen)
   useEffect(() => {
     if (unseen) void window.otty.seenActivity()
@@ -114,7 +153,7 @@ export function Activity({ items, onOpen, paused, onPause }: { items: ActivityIt
   const rest = items.filter((i) => i.state !== 'scheduled').reverse()
 
   return (
-    <div className="activity">
+    <>
       {(items.length > 0 || paused) && <PauseBar paused={paused} onPause={onPause} />}
       {!items.length && (
         <div className="activity__empty">
@@ -145,6 +184,6 @@ export function Activity({ items, onOpen, paused, onPause }: { items: ActivityIt
           </ul>
         </>
       )}
-    </div>
+    </>
   )
 }

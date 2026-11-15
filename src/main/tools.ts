@@ -8,6 +8,8 @@ import { readPageFromMac } from './pageReader'
 import { profileFor, searchesOnServer } from './providers/profiles'
 import { getApiKey, getStored } from './settings'
 import { deepseekFetch, deepseekSearch, WebError, type WebConfig } from './web'
+import { record } from './sent'
+import { maskSecrets } from '../shared/secrets'
 
 const run = promisify(execFile)
 
@@ -28,10 +30,21 @@ export interface ToolContext {
   }
   /** Shows a step card under the answer. Only a chat turn can. */
   showSteps?(args: Record<string, unknown>): ToolOutcome
+  /** Charts a table the user attached or highlighted in this chat. Only a chat turn has one. */
+  makeChart?(args: Record<string, unknown>): ToolOutcome
   /** Asks to start a background job. Only a chat turn can, so a job can never start another. */
   startJob?(args: Record<string, unknown>): Promise<ToolOutcome>
   /** Asks to run a read-only job later. Only a chat turn can, and always with a card. */
   scheduleJob?(args: Record<string, unknown>): Promise<ToolOutcome>
+  /** Whose searches and pages these are, for "What left your Mac". */
+  sent?: { chatId?: string; group?: string }
+}
+
+/** Where a lookup went. Called just before it goes, so a failed one is still listed: it left either way. */
+type Noter = (service: string, host: string) => void
+
+function noter(ctx: ToolContext, kind: 'search' | 'page', what: string): Noter {
+  return (service, host) => record({ kind, service, host, local: false, what, ...ctx.sent })
 }
 
 export interface ToolOutcome {
@@ -109,7 +122,7 @@ export function toolDefs(allowed?: ReadonlySet<string>) {
 }
 
 function serviceDefs() {
-  const local = getStored().learn ? [...otherDefs, ...learnDefs] : otherDefs
+  const local = getStored().learn ? [...otherDefs, makeChartDef, ...learnDefs] : [...otherDefs, makeChartDef]
   if (webOff()) return local
   const { baseUrl, apiFormat, model } = getStored()
   if (webConfig()) return [searchWebDef, readPageDef, ...local, startJobDef, scheduleJobDef]
@@ -213,6 +226,29 @@ const otherDefs = [
   }
 ] as const
 
+const makeChartDef = {
+  type: 'function',
+  function: {
+    name: 'make_chart',
+    description:
+      'Chart the user’s own data: a CSV or TSV they attached, or a table they highlighted. Otty adds up the rows itself and shows the chart; you only say what to chart. It returns the numbers it worked out: use only those in your answer, never your own. Not for made-up or general data (draw that with a mermaid block).',
+    parameters: {
+      type: 'object',
+      properties: {
+        source: { type: 'string', description: 'Which table, by file name, when there is more than one' },
+        chart: { type: 'string', enum: ['bar', 'line', 'pie'] },
+        x: { type: 'string', description: 'The column the bars, points or slices are, exactly as named in the header' },
+        y: { type: 'string', description: 'The column of numbers to add up. Leave it out to count rows.' },
+        measure: { type: 'string', enum: ['sum', 'count', 'mean', 'min', 'max'], description: 'How to combine y within each group. Default sum.' },
+        by: { type: 'string', enum: ['value', 'day', 'month', 'year'], description: 'When x holds dates, group them by day, month or year. Default value.' },
+        title: { type: 'string' },
+        top: { type: 'number', description: 'Most bars or slices to show' }
+      },
+      required: ['chart', 'x']
+    }
+  }
+} as const
+
 const startJobDef = {
   type: 'function',
   function: {
@@ -235,13 +271,14 @@ const scheduleJobDef = {
   function: {
     name: 'schedule_job',
     description:
-      'Look something up later, when the user asks for it at a time ("check this tomorrow at 9"). The user is shown the time and the brief and decides. The job only reads public web pages and leaves a note in Activity. It cannot send or change anything. Like start_job, it only sees the brief.',
+      'Look something up later, when the user asks for it at a time ("check this tomorrow at 9", "every Monday at 9"). The user is shown the time and the brief and decides. The job only reads public web pages and leaves a note in Activity. It cannot send or change anything. Like start_job, it only sees the brief.',
     parameters: {
       type: 'object',
       properties: {
         title: { type: 'string', description: 'A few words naming what’s being checked' },
         brief: { type: 'string', description: 'What to find out, in full, standing on its own, with nothing private' },
-        at: { type: 'string', description: 'When to look, in ISO 8601 local time, e.g. 2026-11-10T09:00:00. Work it out from the current local time in the user’s message.' }
+        at: { type: 'string', description: 'When to look, in ISO 8601 local time, e.g. 2026-11-10T09:00:00. Work it out from the current local time in the user’s message. For a repeat, the first time.' },
+        repeat: { type: 'string', enum: ['once', 'daily', 'weekdays', 'weekly'], description: 'Only when the user asks for it again and again ("every Monday"). Weekly repeats on the day of `at`.' }
       },
       required: ['title', 'brief', 'at']
     }
@@ -309,6 +346,8 @@ export function toolLabel(name: string, args: Args): { label: string; icon: stri
       return { icon: 'bookmark', label: 'Noted', show: 'never' }
     case 'show_steps':
       return { icon: 'list-check', label: 'Steps', show: 'never' }
+    case 'make_chart':
+      return { icon: 'chart-histogram', label: 'Worked out the chart', show: 'after' }
     case 'start_job':
       return { icon: 'binoculars', label: `Looking into “${String(args.title ?? 'this')}”` }
     case 'schedule_job':
@@ -333,7 +372,8 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
       case 'search_web':
         // A model can call this even when it isn't offered, so "nothing leaves the Mac" is enforced here too.
         if (webOff()) return { result: 'Web lookups are off with this model.', status: 'error' }
-        return { result: await searchWeb(String(args.query ?? '')), status: 'done' }
+        const query = String(args.query ?? '')
+        return { result: await searchWeb(query, noter(ctx, 'search', query)), status: 'done' }
 
       case 'read_page': {
         if (webOff()) return { result: 'Web lookups are off with this model.', status: 'error' }
@@ -342,8 +382,10 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
         if (/^https?:\/\//i.test(url) && !ctx.knownUrl(url) && !(await ctx.confirm('Read this page?', url))) {
           return { result: 'The user declined.', status: 'denied' }
         }
+        noter(ctx, 'page', url)(web ? 'DeepSeek' : hostOf(url), web ? hostOf(web.baseUrl) : hostOf(url))
         try {
-          return { result: await (web ? deepseekFetch(web, url) : readPageFromMac(url)), status: 'done' }
+          // Someone else's page can hold a key too (a leaked config, a paste site), and it shouldn't be passed on.
+          return { result: maskSecrets(await (web ? deepseekFetch(web, url) : readPageFromMac(url))).text, status: 'done' }
         } catch (err) {
           if (err instanceof WebError) return { result: err.message, status: 'error' }
           throw err
@@ -387,6 +429,9 @@ export async function runTool(name: string, args: Args, ctx: ToolContext): Promi
       case 'show_steps':
         return ctx.showSteps ? ctx.showSteps(args) : { result: 'Steps can’t be shown here.', status: 'error' }
 
+      case 'make_chart':
+        return ctx.makeChart ? ctx.makeChart(args) : { result: 'There’s no data to chart here.', status: 'error' }
+
       case 'start_job':
         if (webOff()) return { result: 'Background work needs the web, which is off with this model.', status: 'error' }
         return ctx.startJob ? await ctx.startJob(args) : { result: 'That isn’t available here.', status: 'error' }
@@ -414,20 +459,22 @@ async function getJson(url: string): Promise<any> {
 }
 
 /** DeepSeek's real search when available; Wikipedia and DuckDuckGo otherwise, or when it fails. */
-async function searchWeb(query: string): Promise<string> {
+async function searchWeb(query: string, note: Noter): Promise<string> {
   const web = webConfig()
-  if (!web) return lookup(query)
+  if (!web) return lookup(query, note)
+  note('DeepSeek', hostOf(web.baseUrl))
   try {
     return await deepseekSearch(web, query)
   } catch (err) {
     if (!(err instanceof WebError)) throw err
     if (!err.fallback) return err.message
     console.warn('DeepSeek search failed, falling back:', err.message)
-    return `${err.message} Here is a simpler lookup instead:\n\n${await lookup(query)}`
+    return `${err.message} Here is a simpler lookup instead:\n\n${await lookup(query, note)}`
   }
 }
 
-async function lookup(query: string): Promise<string> {
+async function lookup(query: string, note: Noter): Promise<string> {
+  note('Wikipedia and DuckDuckGo', 'wikipedia.org')
   const q = encodeURIComponent(query)
   const parts: string[] = []
 

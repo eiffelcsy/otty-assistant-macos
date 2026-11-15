@@ -1,6 +1,7 @@
 import { ConnectionError, FriendlyError, type ChatRequest, type Message, type Provider, type ProviderReplay, type ToolCall, type Usage } from './providers'
 import { runTool, toolLabel, type ToolContext, type ToolOutcome } from './tools'
 import { count } from './usage'
+import { record } from './sent'
 
 // The tool loop: ask the model, run what it calls, and ask again until it answers. It knows nothing about chats, so
 // a chat turn and a background job (D-22) can share it. Whoever calls it owns the history and what happens on failure.
@@ -129,7 +130,11 @@ export async function runLoop(o: LoopOptions): Promise<void> {
         if (event.usage) o.onEvent({ type: 'usage', usage: event.usage })
       }
       if (event.type === 'search') {
-        if (event.status === 'done') count('searches')
+        if (event.status === 'done') {
+          count('searches')
+          // Claude searched by itself, so the words it searched for never pass through Otty.
+          record({ kind: 'search', service: 'Claude', host: 'api.anthropic.com', local: false, what: '', ...o.context.sent })
+        }
         o.onEvent({ type: 'search', status: event.status, round })
       }
       if (event.type === 'text') {

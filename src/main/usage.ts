@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
+import { monthStart } from '../shared/cap'
 
 // The usage meter (D-30): how much Otty has asked of the user's AI service, so spending is never a surprise. Only
 // counts, kept on the Mac, per local day. Callers count through `count`, which does nothing until main plugs in a
@@ -53,13 +54,22 @@ export class UsageMeter implements UsageSink {
   summary(days = 30, now = new Date()): UsageSummary {
     const since = new Date(now)
     since.setDate(since.getDate() - days + 1)
+    return { ...this.since(since), days }
+  }
+
+  /** This calendar month so far, which is what the monthly limit is measured against (D-33). */
+  month(now = new Date()): UsageSummary {
+    return { ...this.since(monthStart(now)), days: now.getDate() }
+  }
+
+  private since(since: Date): UsageSummary {
     const rows = this.db.prepare("select key, sum(count) as n from counters where kind = 'usage' and day >= ? group by key").all(dayNumber(since)) as unknown as {
       key: UsageKey
       n: number
     }[]
     const get = (k: UsageKey) => Number(rows.find((r) => r.key === k)?.n ?? 0)
     return {
-      days,
+      days: 0,
       questions: get('questions'),
       requests: get('requests'),
       tokens: get('input') + get('output'),

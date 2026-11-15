@@ -36,6 +36,8 @@ The thing the user talks to must never be busy. Work happens elsewhere, in isola
 
 **For Otty:** this fits better than it does for coding. The otter *is* the Router: one character, one relationship, however many jobs run behind it. But the front doesn't need to be a model. A dispatcher in plain code is enough for now, and an extra model call in front of every question would break NFR-2. A question still goes straight to a chat turn. The structural rule: **chat turns only get quick tools, and anything long has to be a job.**
 
+**Workers can be many, but code runs them.** Big work, like a goal or a question with several parts, splits into sub-runs: a model proposes a plan as typed subtasks, and code checks it, starts each one as its own run, several at once, and passes typed results back up. A sub-run never gets more than its parent: fewer tools, a share of its budget, the same or fewer grants. This also helps with the Rule of Two. One run reads private data and has no way out, another searches the web and never sees that data, and only typed results cross between them. Workers never talk to the user. They report to the otter, which stays the only voice. This needs one kind of run and one policy decision first ([BRAINSTORM, Runtime](BRAINSTORM.md#runtime-the-systems-underneath)).
+
 ### 2. Make the important property impossible to break, not merely encouraged
 
 *Paper: a delegation-first prompt fixed the median (13.8 min) but not the slow tail (29.0 min). Only the architecture fixed the tail (15.7 min).*
@@ -291,8 +293,8 @@ Each action climbs separately, and only as its record earns it. **Prepare is the
 
 **2. Visibility.** The user should never have to wonder:
 - **"Why did you do that?"** on anything, following the links from action to job, trigger and the moment they agreed.
-- **What left the Mac:** a plain record of what was sent, to where, and why.
-- **What it knows and what it cost,** in everyday words, with honest uncertainty.
+- **What left the Mac:** a plain record of what was sent, to where, and why. *Shipped as D-31: Activity's second tab, built from names and counts, and a request path without a reason won't compile.*
+- **What it knows and what it cost,** in everyday words, with honest uncertainty. *The usage meter and D-33's monthly limit are the first half: past the limit, nothing Otty starts by itself runs without a yes.*
 - It has to stay readable for someone non-technical. A log nobody can read isn't visibility.
 
 **3. Defending against attacks.** Once Otty reads the world and acts on it, people will try to steer it:
@@ -313,7 +315,8 @@ Each action climbs separately, and only as its record earns it. **Prepare is the
 - **A model in front of every message.** That adds latency and cost, and Otty's inputs are mostly unambiguous.
 - **Monitoring other people's conversations.** Fine for a team's agent, wrong for "without ever making you feel watched".
 - **A supervisor that can widen its own limits.** See idea 10. Improving how work gets done is fine.
-- **Agent teams and many-to-many subscriptions.** Nothing Otty does needs them yet.
+- **Orchestration run by models.** Several runs working together is coming (see idea 1): goals, parallel research, and keeping private data and the web in separate runs all need it. What we're not taking is models running it: agents talking to each other in free text, agents starting agents or granting each other tools, agents checking agents as the only safety net, or workers speaking to the user. A model plans, and code checks the plan, starts each run, limits it and passes back typed results. See [BRAINSTORM](BRAINSTORM.md#parked--rejected-with-reasons).
+- **Many-to-many subscriptions.** Nothing Otty does needs them. A topic's follow-ups go to its owner (idea 5).
 - **Sessionless agents and multiple Routers.** Open research problems that don't apply to one person on one Mac.
 
 ## Checklist for every feature

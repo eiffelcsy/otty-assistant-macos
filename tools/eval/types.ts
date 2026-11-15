@@ -8,6 +8,8 @@ export const SETS: readonly EvalSet[] = ['math', 'memory', 'steps', 'jobs', 'inj
 export interface Call {
   name: string
   args: Record<string, unknown>
+  /** What the tool said back, so a scorer can tell numbers code worked out from ones the model made up. */
+  result?: string
 }
 
 /** What happened in one run of one case. */
@@ -47,6 +49,8 @@ export interface Case {
   search?: string
   /** What reading a page returns. */
   page?: string
+  /** A CSV the user attached, for make_chart (D-35). Charted by the real code, as in the app. */
+  table?: string
   expect: Expect
 }
 

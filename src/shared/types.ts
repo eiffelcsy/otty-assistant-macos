@@ -184,8 +184,22 @@ export interface PublicSettings {
   notifyDone: boolean
   /** Otty opens when the user logs in. macOS keeps this, not Otty's settings file. */
   openAtLogin: boolean
+  /** A limit for the month (D-33). Past it, anything Otty would start by itself asks first. Null = no limit. */
+  monthlyCap: MonthlyCap | null
   /** Only the installed app can be a login item; a development build can't. */
   canOpenAtLogin: boolean
+}
+
+/** Questions or tokens, never money: a price needs a dated table to be true. */
+export interface MonthlyCap {
+  unit: 'questions' | 'tokens'
+  limit: number
+}
+
+/** Where this calendar month stands against the cap. */
+export interface CapStatus extends MonthlyCap {
+  used: number
+  over: boolean
 }
 
 /** The usage meter, for Settings. Counts only, from this Mac. */
@@ -199,6 +213,30 @@ export interface UsageReport {
   /** The service's name, and where it shows what this cost. */
   service: string
   usageUrl?: string
+  /** This calendar month so far, which the monthly limit is measured against. */
+  month: { questions: number; tokens: number }
+  /** This calendar month against the cap, when there is one. */
+  cap?: CapStatus
+}
+
+/** Why something left the Mac (D-31). */
+export type SentKind = 'question' | 'job' | 'title' | 'explain' | 'check' | 'search' | 'page'
+
+/** One row of "What left your Mac". Built in code from what was sent, never the text itself. */
+export interface SentItem {
+  id: number
+  at: number
+  kind: SentKind
+  /** The service's name, such as DeepSeek, or Wikipedia for a lookup. */
+  service: string
+  host: string
+  /** A model on this Mac: nothing left. */
+  local: boolean
+  chatId?: string
+  /** What went, in a few words: file names, counts, a search, an address. */
+  what: string
+  /** Requests folded into this row: one question's rounds, or a job's. */
+  count: number
 }
 
 export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'canOpenAtLogin'>> {
@@ -243,6 +281,8 @@ export type ChatMessage =
       files?: FileAttachment[]
       /** When it was sent (ms since epoch). Absent in chats saved before 0.4. */
       at?: number
+      /** Keys or passwords in the typed words or highlighted text, hidden before anything was sent or saved (D-32). */
+      hidden?: number
     }
   | {
       id: string
@@ -259,7 +299,35 @@ export type ChatMessage =
       /** An instant answer: worked out on the Mac, with no model call. */
       calc?: { expression: string; result: string }
       steps?: StepCard
+      /** Charts drawn from the user's own data, with every number worked out by Otty (D-35). */
+      charts?: ChartCard[]
+      /** Looks this answer started or scheduled, so Try again can offer to stop them (D-36). */
+      jobs?: { id: string; title: string }[]
+      /** What it did that can't be taken back, in words: a reminder added, a link opened (D-36). */
+      lasting?: string[]
     }
+
+/** What Try again or Edit would take back, shown before the answer goes (D-36). Each undo is ticked by default. */
+export interface RewindPlan {
+  undo: { id: string; label: string }[]
+  /** Things already done for good, said plainly. */
+  lasting: string[]
+}
+
+/** Edit: the question back in the box. Files can't come back, so their names are listed to attach again. */
+export interface EditDraft {
+  text: string
+  captures: Capture[]
+  files: string[]
+}
+
+/** A chart under an answer. `code` is Mermaid that Otty wrote from the numbers, never the model. */
+export interface ChartCard {
+  title: string
+  code: string
+  /** The numbers, as a Markdown table, for See the text and copying. */
+  table: string
+}
 
 export type MemoryKind = 'about' | 'preference' | 'habit' | 'person' | 'goal'
 
@@ -306,8 +374,12 @@ export interface ActivityItem {
   state: 'scheduled' | 'queued' | 'working' | 'waiting' | 'done' | 'paused' | 'failed'
   /** When a scheduled job is due (ms since epoch). */
   dueAt?: number
+  /** A repeating look, in words: "every Monday at 9:00 AM" (D-34). Cancel ends the series. */
+  repeat?: string
   /** Paused because the user paused everything, not by itself. Keep going is for them to press in the menu. */
   held?: boolean
+  /** Waiting because this month's limit was reached (D-33): its button says Run it anyway. */
+  overCap?: boolean
   /** Pages read and searches made. */
   pages: number
   /** The address it wants to read, when waiting. */
@@ -361,6 +433,8 @@ export type ChatEvent =
   | { type: 'memory-used'; id: string; used: UsedMemory[] }
   /** A step card appeared or changed. */
   | { type: 'steps'; id: string; card: StepCard }
+  /** A chart of the user's data, worked out by Otty (D-35). */
+  | { type: 'chart'; id: string; chart: ChartCard }
   /** "Don't learn from this chat" changed. */
   | { type: 'learn'; on: boolean }
 
@@ -435,6 +509,12 @@ export interface OttyApi {
   openActivity(item: ActivityItem): Promise<void>
   /** Activity is on show, so finished work has been seen. */
   seenActivity(): Promise<void>
+  /** What left the Mac, newest first. */
+  listSent(): Promise<SentItem[]>
+  /** What Try again or Edit on the latest turn would undo (D-36). Null when it isn't the latest turn. */
+  rewindPlan(messageId: string): Promise<RewindPlan | null>
+  /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */
+  rewind(messageId: string, undo: string[], mode: 'retry' | 'edit'): Promise<EditDraft | null>
   onActivity(cb: (items: ActivityItem[]) => void): () => void
   /** "Don't learn from this chat", for the open chat. */
   setChatLearn(on: boolean): Promise<void>

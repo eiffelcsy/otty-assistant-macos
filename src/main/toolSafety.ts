@@ -28,6 +28,9 @@ export const SAFETY = {
   forget: row('none', false, false, 'undoable'),
   // A card. What its buttons do is checked when they are pressed (`act/`).
   show_steps: row('none', false, false, 'nothing'),
+  // Adds up a table the user put in this chat, on the Mac, and shows a card. It brings in nothing the turn doesn't
+  // already hold, so it reads no more than the chat itself, and nothing goes anywhere.
+  make_chart: row('none', false, false, 'nothing'),
   // The brief goes out with the job, and the user can cancel it.
   start_job: row('none', false, true, 'undoable'),
   // The same, later: the brief goes out when it runs, and Cancel in Activity takes it back until then.

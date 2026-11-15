@@ -100,7 +100,8 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 | `remember`, `forget` | Saves or removes a memory (FR-16) | No: shown with an Undo |
 | `show_steps` | Shows a step card (FR-18) | Each step's action is the user's click |
 | `start_job` | Asks to look into something in the background (FR-19) | **Yes**, every time, showing the whole brief |
-| `schedule_job` | The same, at a later time (FR-19.6) | **Yes**, every time, showing the time and the whole brief |
+| `schedule_job` | The same, at a later time (FR-19.6), once or repeating (FR-19.14) | **Yes**, every time, showing the time, how often and the whole brief |
+| `make_chart` | Charts a table the user attached or highlighted; code adds up the rows (FR-21.7) | No: it reads only this chat's table and changes nothing |
 
 - FR-7.1 At most 6 tool round-trips per question, to prevent loops.
 - FR-7.2 Tool failures go back to the model as text, so it can apologise and carry on.
@@ -127,6 +128,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-10.5 **Search** at the top of Recent chats (⇧⌘F in the panel, or ⌘F with no chat open) finds chats by their title, messages and text captures, in English or Chinese. Every word must appear; quotes keep a phrase. Results show a highlighted snippet, and clicking one reopens the chat at the matching message.
 - FR-10.6 **Find in this chat** (⌘F, or the search button in the header) highlights every match in the open conversation with the same matching rules, shows "2 of 5", and steps with ↵ / ⇧↵. Esc closes the bar before it closes the panel.
 - FR-10.7 **Keep chats for** 30 days / 1 year / forever (Settings → Privacy, default 1 year), counted from a chat's last message. Older chats are forgotten at launch, after each answer and when the setting changes. Forgotten chats are overwritten on disk, not just unlinked.
+- FR-10.9 The latest answer has **Try again** and **Edit question**. Before it goes, Otty lists what that answer did that it can undo (memories noted, looks started), ticked by default, and what can't be undone. Earlier turns stay exactly as they were sent.
 - FR-10.8 After the first answer, a model-written title of a few words replaces the instant one, in the chat's language.
 
 ### FR-12 File attachments (P1)
@@ -137,7 +139,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-12.5 The original file is never copied. Saved chats keep the file's name, type and extracted text (so follow-ups work after reopening), never pictures. File names are searchable.
 - FR-12.6 Code files show their language and line count (**Python · 240 lines**), are sent with line numbers so answers cite lines, and offer **Explain this code**, **Find problems** and **Add comments**. Files with no extension (`Dockerfile`, `Makefile`) are recognised.
 - FR-12.7 Jupyter notebooks (`.ipynb`) are read cell by cell with their text outputs and errors; pictures and widgets are left out. Answers cite cells.
-- FR-12.8 Before any text or code file is sent, things that look like keys, tokens or passwords are replaced by `[hidden key]`, and the chip says how many. Saved chats only keep the masked text.
+- FR-12.8 Before any text or code file is sent, things that look like keys, tokens or passwords are replaced by `[hidden key]`, and the chip says how many. Saved chats only keep the masked text. The same goes for highlighted text and pages read; typed words lose only well-known key shapes, and a quiet line under the question says how many were hidden.
 - FR-12.9 Every code block in an answer has a **Copy** button.
 
 ### FR-13 Capture tray (P1)
@@ -189,6 +191,9 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-19.9 *Tell me when something is ready* (off by default): a macOS notification when a job finishes, fails or waits for an OK, only while the panel is closed. The otter shows the same at a glance: busy, waiting for you, or paused.
 - FR-19.10 *What Otty has used:* Settings shows the last 30 days' questions, background look-ups, searches, pages and a rough token count, counted on the Mac, with a link to the service's usage page. A job's card says where it stops and, once known, how it compares with a question.
 - FR-19.11 The panel says plainly when a shortcut can't work (a missing permission, or a shortcut another app owns) and offers the fix. An empty chat suggests things to ask, for the app the user came from and for abilities found only by asking.
+- FR-19.12 *What left your Mac* (Activity's second tab): every request to the AI service, search and page read, newest first, saying where it went and why in plain words, built from names and counts and never the text sent. Each opens its chat. It's kept and forgotten with chats, and a model on this Mac says nothing left.
+- FR-19.13 *A monthly limit* (Settings, off by default), in questions or tokens, never money. Past it, nothing Otty would start by itself runs without a **Run it anyway**, and explanations aren't fetched ahead. The user's own questions still go through, with one line saying so. Enforced in code.
+- FR-19.14 *Repeating looks:* "every Monday at 9" shows the repeat in words and how many looks a month on the card. Daily, weekdays or weekly only; at most three series; never two runs of one at once; missed runs become one late run. **Stop repeating** in Coming up ends it and keeps every note.
 - FR-19.5 A report is a normal chat. **Activity** shows every job and running answer, with Stop, Allow, Keep going and Open.
 - FR-19.6 With **Remember my chats** off, nothing about a job is written to disk. Forgetting a chat removes its jobs.
 
@@ -198,6 +203,7 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-21.3 A follow-up ("left to right", "add a slide on costs") makes a new card; earlier ones stay as they were.
 - FR-21.4 A drawing that doesn't come out never shows an error message from the drawing library; it offers **Try again**, which asks the model to fix it.
 - FR-21.5 Drawings never run scripts, follow links or load anything from the internet, whatever the model or a page writes. They survive saved chats, because they're kept as text.
+- FR-21.7 "Chart this" on an attached CSV or TSV, or a highlighted table, gives a bar, line or pie chart card with **See the numbers**. Code reads the rows and works out every number (sum, count, mean, min or max, by value, day, month or year), and the answer uses those numbers. Nothing in the data can become part of the chart's code.
 - FR-21.6 Slides are written as Markdown with `---` (or `# ` headings) between slides, and Otty draws them with its own theme, in light and dark. Present shows them full screen with ← →, speaker notes and Esc.
 
 ### FR-20 Look after me (P2, *Planned*)

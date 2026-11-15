@@ -177,6 +177,32 @@ const MIGRATIONS: string[] = [
   // v5. D-30: tokens a job used, so the next job's card can say what one usually costs.
   `
   alter table jobs add column tokens integer not null default 0;
+  `,
+  // v6. D-31: what left the Mac. Where each request went and why, in words built from names and counts, never the
+  // text that was sent. No foreign key: a row is written before its chat is, and is cleared with it by hand.
+  `
+  create table sent(
+    id integer primary key,
+    at integer not null,
+    -- 'question' | 'job' | 'title' | 'explain' | 'check' | 'search' | 'page'
+    kind text not null,
+    service text not null,
+    host text not null,
+    -- 1 = a model on this Mac, so nothing left.
+    local integer not null default 0,
+    chat_id text,
+    -- Rows that show as one: an answer's rounds, a job's requests.
+    grp text,
+    what text not null default ''
+  );
+  create index sent_at on sent(at);
+  create index sent_chat on sent(chat_id) where chat_id is not null;
+  `,
+  // v7. D-34: repeating jobs. A series is a scheduled row with a \`repeat\` (JSON); each run is a job of its own,
+  // linked back by \`series_id\`, so every report is kept and Cancel ends only what's to come.
+  `
+  alter table jobs add column repeat text;
+  alter table jobs add column series_id text;
   `
 ]
 
