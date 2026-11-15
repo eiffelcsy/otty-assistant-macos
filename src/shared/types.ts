@@ -17,6 +17,18 @@ export interface Capture {
 /** `doc` is `.doc`, `.rtf` and `.odt` (read by macOS `textutil`); `code` has a language and line numbers. */
 export type FileKind = 'pdf' | 'docx' | 'doc' | 'image' | 'text' | 'code' | 'notebook'
 
+/** A drawing on its way out of the chat (D-30): an SVG picture, or a deck's whole HTML. */
+export type DrawingExport =
+  | { kind: 'picture'; svg: string; width: number; height: number; background: string; name: string }
+  | { kind: 'slides'; html: string; name: string }
+
+export type DrawingResult = 'copied' | 'saved' | 'cancelled' | 'failed'
+
+/** What the bigger view shows: a picture, or one HTML page per slide with its speaker notes. */
+export type DrawingView =
+  | { kind: 'picture'; dataUrl: string; width: number; height: number }
+  | { kind: 'slides'; pages: string[]; notes: string[][]; present?: boolean }
+
 /** A file the user added, before main has read it. Paths stay in main; the renderer gets an id. */
 export interface PendingFile {
   id: string
@@ -459,6 +471,14 @@ export interface OttyApi {
   /** The words in the picture. Null if reading it failed. */
   pickupRead(): Promise<OcrLine[] | null>
   closePickup(): Promise<void>
+
+  /** Copy a drawing as a picture, or save it as PNG or PDF (through the Mac's save dialog). */
+  exportDrawing(d: DrawingExport, how: 'copy' | 'png' | 'pdf'): Promise<DrawingResult>
+  /** Opens the bigger view: a picture, or slides (full screen when `present`). */
+  showDrawing(v: DrawingView): Promise<void>
+  /** What the bigger view shows. */
+  viewerContent(): Promise<DrawingView | null>
+  closeViewer(): Promise<void>
 
   closeQuick(): Promise<void>
   /** Hide the quick view and continue the same conversation in the full panel. */

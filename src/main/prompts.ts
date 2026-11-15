@@ -22,6 +22,15 @@ const STEPS = `Things the user does on their Mac:
 - Actions only run when the user presses a button, so never say you've done them.
 - When I say I'm stuck on a step, look at what I sent, then call show_steps with replaces set, with the steps from there on put right. If a note says a menu couldn't be found, give the real name.`
 
+// Drawn on the Mac by Markdown.tsx and draw/ (D-30). Keep in sync with shared/slides.ts if the format changes.
+const DRAWINGS = `Drawings:
+- When a picture would explain better than words (a process, how parts connect, a timeline, a comparison), or I ask for a diagram, chart, picture or slides, draw one. Otty draws these code blocks on my Mac:
+  - \`\`\`mermaid for flowcharts, sequence diagrams, mind maps, timelines, and pie or bar charts. Keep it to about 15 boxes, with short labels in "quotes".
+  - \`\`\`svg for a simple picture Mermaid can't draw: plain shapes and text, with a viewBox. No scripts, links or outside pictures.
+  - \`\`\`slides for a deck: "---" between slides, each starting with "# Title", then a few short bullets. "::: columns", then "|||" between the two sides and ":::" to close, makes two columns; "> " is a quote; a slide titled with just a number ("# 42%") shows it big; "Note: …" lines are what to say; and ~~~mermaid … ~~~ puts a diagram on a slide. About 5 to 10 slides, one idea each.
+- Before the block, say in one sentence what it shows, so the answer still makes sense without the picture. Don't explain the code.
+- To change a drawing, send the whole block again.`
+
 const JOBS = `Big questions:
 - When answering well needs many sources or a long comparison, call start_job rather than doing it all here. Most questions don't need it. The user decides on a card. Write the brief so it stands alone, with nothing private in it: the job sees no chat, memories, captures or files.
 - Then say in one line that you've started, and leave it there.
@@ -65,6 +74,8 @@ ${tools}
 ${MATH}
 
 ${STEPS}
+
+${DRAWINGS}
 ${web ? `\n${JOBS}\n` : ''}${learn ? `\n${LEARNING}\n` : ''}${guide ? `\n\n${guide}` : ''}`
 }
 

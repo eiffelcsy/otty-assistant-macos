@@ -77,7 +77,7 @@ const SOLVE = /\b(solve|prove|simplify|factori[sz]e|find x|find the value)\b|證
 const UNKNOWN = /\d\s*[a-z]\b[^=]*=|\b[a-z]\s*[+\-*/^][^=]*=[^=]/i
 const STORY = /\b(leaves? at|how (long|far|fast) (will|does|did|would|until)|at what (time|speed)|how old (is|was|will))\b/i
 const PICTURE_WORK = /\b(solve|homework|work out|show (the|your) working)\b|這題|这题|呢題|解答|計算|计算/i
-const CALCULATION = /[+*/^%]|\b(plus|minus|times|divided by|percent|split|share|tax|tip|discount|total|sum|average|mean of|how much|how many|per)\b|計|计|算|幾多|几多|百分之|打.{0,2}折/i
+const CALCULATION = /[+*/^%]|\b(plus|minus|times|divided by|percent|split|share|tax|tip|discount|total|sum|average|mean of|how much|how many|per|convert|in (?:fahrenheit|celsius|kelvin|miles|km|kilomet(?:re|er)s|met(?:re|er)s|feet|foot|inches|cm|mm|kg|kilos?|pounds|lbs?|ounces|oz|grams|litres|liters|gallons|cups|mph|km\/h))\b|計|计|算|幾多|几多|百分之|打.{0,2}折/i
 
 /** `picture` means a snip came with the question. */
 export function mathTier(text: string, picture = false): MathTier {

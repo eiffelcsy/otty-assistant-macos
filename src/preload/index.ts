@@ -62,6 +62,10 @@ const api: OttyApi = {
   pickupPicture: () => ipcRenderer.invoke('pickup:picture'),
   pickupRead: () => ipcRenderer.invoke('pickup:read'),
   closePickup: () => ipcRenderer.invoke('pickup:close'),
+  exportDrawing: (d, how) => ipcRenderer.invoke('drawing:export', d, how),
+  showDrawing: (v) => ipcRenderer.invoke('drawing:show', v),
+  viewerContent: () => ipcRenderer.invoke('viewer:content'),
+  closeViewer: () => ipcRenderer.invoke('viewer:close'),
 
   closeQuick: () => ipcRenderer.invoke('quick:close'),
   expandQuick: () => ipcRenderer.invoke('quick:expand'),

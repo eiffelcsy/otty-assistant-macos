@@ -40,6 +40,7 @@ import {
   getPanel,
   getPickup,
   getQuick,
+  load,
   pickupPicture,
   prepareQuickAtCursor,
   quickIsCollecting,
@@ -50,8 +51,10 @@ import {
   shownWindows,
   showPanelByBubble,
   showPickup,
-  startBubbleDrag
+  startBubbleDrag,
+  webPreferences
 } from './windows'
+import { closeViewer, exportDrawing, showDrawing, viewerContent } from './draw'
 
 /** Recent chats shows this many; search reaches the rest. */
 const RECENT_CHATS = 500
@@ -452,6 +455,12 @@ function registerIpc(): void {
   ipcMain.handle('pickup:picture', () => pickupPicture())
   ipcMain.handle('pickup:read', () => readPickup())
   ipcMain.handle('pickup:close', () => getPickup()?.close())
+  ipcMain.handle('drawing:export', (e, d: unknown, how: unknown) =>
+    how === 'copy' || how === 'png' || how === 'pdf' ? exportDrawing(d, how, BrowserWindow.fromWebContents(e.sender)) : 'failed'
+  )
+  ipcMain.handle('drawing:show', (_e, v: unknown) => showDrawing(v, (win) => load(win, 'viewer'), webPreferences))
+  ipcMain.handle('viewer:content', () => viewerContent())
+  ipcMain.handle('viewer:close', () => closeViewer())
 
   ipcMain.on('bubble:drag', (_e, phase: 'start' | 'end') => {
     if (phase === 'start') return startBubbleDrag()

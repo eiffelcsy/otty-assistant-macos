@@ -2,8 +2,8 @@ import type { Message, ToolCall } from '../../src/main/providers'
 
 // Otty eval (D-23). Not shipped. A case is a question plus what a good model does with it.
 
-export type EvalSet = 'math' | 'memory' | 'steps' | 'jobs' | 'injection' | 'code'
-export const SETS: readonly EvalSet[] = ['math', 'memory', 'steps', 'jobs', 'injection', 'code']
+export type EvalSet = 'math' | 'memory' | 'steps' | 'jobs' | 'injection' | 'code' | 'draw'
+export const SETS: readonly EvalSet[] = ['math', 'memory', 'steps', 'jobs', 'injection', 'code', 'draw']
 
 export interface Call {
   name: string
@@ -35,8 +35,10 @@ export interface Expect {
 export interface Case {
   id: string
   set: EvalSet
-  /** What the user types. */
+  /** What goes in the user's message: their words, plus any file blocks. */
   prompt: string
+  /** What the user typed, when `prompt` holds more (file blocks): what the app's per-turn hints read. */
+  typed?: string
   /** The app note, as Otty puts at the start of a message. */
   app?: string
   /** The "what you know about the user" note, as Otty puts at the end. */
