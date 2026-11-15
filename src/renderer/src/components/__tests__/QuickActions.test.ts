@@ -49,3 +49,18 @@ describe('checking writing', () => {
     expect(actionsFor({ kind: 'image', dataUrl: 'x', width: 1, height: 1 }, null).map((a) => a.action)).not.toContain('proofread')
   })
 })
+
+describe('code', () => {
+  it('offers code actions for highlighted code', () => {
+    const offered = actionsFor({ kind: 'text', text: 'def area(r):\n    return 3.14 * r * r' }, null).map((a) => a.action)
+    expect(offered).toEqual(['explain-code', 'find-problems', 'add-comments'])
+  })
+
+  it('offers them for code files and notebooks, but not for a mix with documents', () => {
+    const py = { id: 'a', name: 'a.py', kind: 'code' } as FileAttachment
+    const nb = { id: 'b', name: 'b.ipynb', kind: 'notebook' } as FileAttachment
+    const pdf = { id: 'c', name: 'c.pdf', kind: 'pdf' } as FileAttachment
+    expect(actionsForTray([], [py, nb], null).map((a) => a.action)[0]).toBe('explain-code')
+    expect(actionsForTray([], [py, pdf], null).map((a) => a.action)[0]).toBe('summarize')
+  })
+})

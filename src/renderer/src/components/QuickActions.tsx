@@ -1,5 +1,6 @@
 import type { AppInfo, Capture, FileAttachment, HomeLanguage, QuickAction, ScreenContext } from '../../../shared/types'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
+import { looksLikeCode } from '../../../shared/code'
 import { isMostlyHan, isShortPhrase } from '../../../shared/script'
 import { Icon } from './Icon'
 
@@ -10,8 +11,18 @@ export interface ActionItem {
   icon: string
 }
 
+/** For code, highlighted or attached: Explain this code is the ↵ default. */
+function codeActions(home: HomeLanguage | null): ActionItem[] {
+  return [
+    { action: 'explain-code', label: 'Explain this code', icon: 'code-simple' },
+    { action: 'find-problems', label: 'Find problems', icon: 'bug' },
+    { action: 'add-comments', label: 'Add comments', icon: 'comment-pen' },
+    ...(home ? [{ action: 'explain-home' as const, label: `Explain in ${LANGUAGE_SHORT[home]}`, icon: 'comment-alt' }] : [])
+  ]
+}
+
 /** The actions offered for this capture. The first one is what ↵ with an empty box does. */
-export function actionsFor(ctx: ScreenContext, home: HomeLanguage | null): ActionItem[] {
+export function actionsFor(ctx: ScreenContext, home: HomeLanguage | null, app?: AppInfo | null): ActionItem[] {
   if (ctx.kind === 'image') {
     return [
       { action: 'what-is', label: 'What is this?', icon: 'eye' },
@@ -20,6 +31,7 @@ export function actionsFor(ctx: ScreenContext, home: HomeLanguage | null): Actio
       { action: 'next-step', label: 'What should I do?', icon: 'interrogation' }
     ]
   }
+  if (looksLikeCode(ctx.text, app?.name)) return codeActions(home)
   const short = isShortPhrase(ctx.text)
   const translateTo = home && !isMostlyHan(ctx.text) ? LANGUAGE_SHORT[home] : 'English'
   return [
@@ -34,7 +46,8 @@ export function actionsFor(ctx: ScreenContext, home: HomeLanguage | null): Actio
 }
 
 /** The actions offered for attached files, when there's no capture. */
-export function actionsForFiles(files: FileAttachment[]): ActionItem[] {
+export function actionsForFiles(files: FileAttachment[], home: HomeLanguage | null = null): ActionItem[] {
+  if (files.every((f) => f.kind === 'code' || f.kind === 'notebook')) return codeActions(home)
   if (files.every((f) => f.kind === 'image')) {
     return [
       { action: 'what-is', label: 'What is this?', icon: 'eye' },
@@ -64,8 +77,8 @@ export function actionsForTray(captures: Capture[], files: FileAttachment[], hom
       { action: 'explain-each', label: 'Explain each', icon: 'sparkles' }
     ]
   }
-  if (captures.length === 1) return actionsFor(captures[0].context, home)
-  if (files.length) return actionsForFiles(files)
+  if (captures.length === 1) return actionsFor(captures[0].context, home, captures[0].app)
+  if (files.length) return actionsForFiles(files, home)
   return page?.readsPages && page.app?.url && !page.app.trimmed ? [{ action: 'read-page', label: 'Summarize this page', icon: 'book-open-reader' }] : []
 }
 

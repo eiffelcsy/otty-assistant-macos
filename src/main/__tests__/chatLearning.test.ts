@@ -21,7 +21,7 @@ vi.mock('../settings', () => ({
 }))
 vi.mock('../store', () => ({ chatStore: () => ({ write: async () => {} }), pruneOldChats: async () => {}, database: () => db }))
 vi.mock('../files', () => ({ takeFiles: () => [] }))
-vi.mock('../files/budget', () => ({ fileBudget: () => 0, fitFiles: () => [] }))
+vi.mock('../files/budget', () => ({ fileBudget: () => 0, fitFiles: () => [], sampleText: () => '' }))
 vi.mock('../memory', async (original) => ({ ...(await original<typeof import('../memory')>()), memoryStore: () => store }))
 
 const { ChatSession } = await import('../llm')

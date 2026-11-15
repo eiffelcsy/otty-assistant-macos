@@ -2,12 +2,46 @@ import type { FileAttachment, FileKind } from '../../../shared/types'
 import type { Chip } from '../lib/useAttachments'
 import { Icon } from './Icon'
 
-const ICON: Record<FileKind, string> = { pdf: 'file-pdf', docx: 'file-word', image: 'picture', text: 'document' }
-const KIND: Record<FileKind, string> = { pdf: 'PDF', docx: 'Word document', image: 'Picture', text: 'Text' }
+const ICON: Record<FileKind, string> = {
+  pdf: 'file-pdf',
+  docx: 'file-word',
+  doc: 'document',
+  image: 'picture',
+  text: 'document',
+  code: 'file-code',
+  notebook: 'notebook'
+}
+const KIND: Record<FileKind, string> = {
+  pdf: 'PDF',
+  docx: 'Word document',
+  doc: 'Document',
+  image: 'Picture',
+  text: 'Text',
+  code: 'Code',
+  notebook: 'Notebook'
+}
 
-function detail(f: FileAttachment): string {
-  if (f.pages) return `${f.pages} page${f.pages === 1 ? '' : 's'}`
-  return KIND[f.kind]
+const count = (n: number, word: string) => `${n.toLocaleString('en')} ${word}${n === 1 ? '' : 's'}`
+
+/** "12 pages", "Python · 240 lines", "Notebook · 18 cells", with "· 2 keys hidden" when Otty hid any. */
+export function detail(f: FileAttachment): string {
+  const what =
+    f.pages ? count(f.pages, 'page')
+    : f.kind === 'code' && f.lines ? `${f.lang ?? 'Code'} · ${count(f.lines, 'line')}`
+    : f.kind === 'notebook' && f.cells ? `Notebook · ${count(f.cells, 'cell')}`
+    : KIND[f.kind]
+  return f.hidden ? `${what} · ${f.hidden === 1 ? '1 key' : `${f.hidden} keys`} hidden` : what
+}
+
+/** Shown under the chip when something was hidden before sending. */
+export function hiddenNote(f: FileAttachment): string | null {
+  if (!f.hidden) return null
+  return `Otty hid ${f.hidden === 1 ? '1 thing' : `${f.hidden} things`} that looked like keys or passwords`
+}
+
+function titleOf(name: string, f?: FileAttachment): string {
+  const note = f && hiddenNote(f)
+  return note ? `${name}\n${note} before sending.` : name
 }
 
 function Thumb({ file }: { file?: FileAttachment }) {
@@ -24,7 +58,7 @@ export function FileTray({ chips, onRemove }: { chips: Chip[]; onRemove: (id: st
   return (
     <div className="file-tray">
       {chips.map((c) => (
-        <div key={c.id} className={`file-chip file-chip--${c.state}`} title={c.message ?? c.name}>
+        <div key={c.id} className={`file-chip file-chip--${c.state}`} title={c.message ?? titleOf(c.name, c.file)}>
           {c.state === 'error' ? (
             <span className="file-chip__icon">
               <Icon name="triangle-warning" />
@@ -52,7 +86,7 @@ export function FileList({ files }: { files: FileAttachment[] }) {
   return (
     <div className="file-tray file-tray--sent">
       {files.map((f) => (
-        <div key={f.id} className="file-chip" title={f.name}>
+        <div key={f.id} className="file-chip" title={titleOf(f.name, f)}>
           <Thumb file={f} />
           <span className="file-chip__text">
             <span className="file-chip__name">{f.name}</span>

@@ -57,6 +57,13 @@ The long-run direction, from something you ask to something that looks after thi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Hidden keys in highlighted text and snips too: run `maskSecrets` on a highlight before sending, and OCR'd snips once D-1 reads them | H | S | idea, from D-29 |
+| Show what was hidden: tap "2 keys hidden" to see which lines (on the Mac only), and "send this one" for a false alarm | M | S | idea, from D-29 |
+| Code from a GitHub or Gist page in the app note: offer **Explain this code** on the page, read through `read_page`'s raw view | M | S | idea, from D-29 |
+| Highlighted code gets code tiles: text captured from VS Code, Xcode, Terminal or a code-looking selection offers **Explain this code** / **Find problems** first | M | S | shipped (D-29) |
+| Attach a folder or a small repo: a file list plus the files the question needs, picked by the model from names, inside the file budget | M | M | idea, after D-29 |
+| Notebook chart outputs for vision models: send a notebook's plots as pictures when the model can see | M | S | idea, after D-29 |
+| Code files and notebooks: a `code` kind with line numbers, `.ipynb` read by cell with outputs, secrets masked before sending | H | S–M | shipped (D-29) |
 | Pick up text reads two-column pages properly: spot the columns from the line boxes, so a drag stays in one column | M | M | idea |
 | Pick up text on the screen itself: a hotkey that freezes the whole screen with its words selectable, with no snip first | H | M | idea, after D-14 |
 | More one-tap page actions next to Summarize: key points, and "what should I do here?" | M | S | idea |
@@ -76,14 +83,14 @@ The long-run direction, from something you ask to something that looks after thi
 | Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
 | Attach the file selected in Finder with ⌥Space | M | S | idea (left out of D-6 v1) |
 | Attach files in the quick view: it hides on blur, so a drag from Finder closes it. Needs "don't hide while dragging" or a paperclip there | M | S | idea |
-| File quick actions answer in the document's language (a Chinese PDF → a Chinese summary when 繁體中文 is the other language); today actions default to English | M | S | idea |
+| File quick actions answer in the document's language (a Chinese PDF → a Chinese summary when 繁體中文 is the other language); today actions default to English | M | S | shipped (with D-29) |
 | History budget for long chats (D-13, proposed): compact old pictures, page reads and documents in rare single steps; recover from a context-length error, which today shows "Something went wrong (error 400)" | M | S | considering, after D-12 step 0 |
 | OCR for scanned PDFs with the `otty-ocr` helper | M | S | idea, after D-1 |
 | Captures in the tray: drag to reorder, or a "replace" mode on ⌥Space for people who want one capture at a time | L | S | idea |
 | Learn from intent corrections on-device (retrain the head from `intent_feedback`, which keeps embeddings, not text) | M | M | idea |
 | Scanned PDFs on vision models: render pages to images (needs a canvas in the utility process) | M | M | idea, D-6 v1 says "can't read scans yet" |
 | A token-budget setting for attachments, or derive it from the model (v1: fixed ~48K tokens per message) | L | S | idea |
-| `.doc`, `.rtf`, `.odt` via macOS `textutil` | L | S | idea |
+| `.doc`, `.rtf`, `.odt` via macOS `textutil` | L | S | shipped (with D-29) |
 | Local retrieval for big documents: chunk, embed with the D-1 encoder, send only the relevant parts | M | M | idea (there's no D-6 v2 entry yet) |
 | Excel / PowerPoint / Pages attachments | M | M | idea |
 | Proactive (opt-in) paw-raise when an error dialog appears: "Want me to explain this?" (AX notifications) | H | L | idea, careful about feeling watched |
@@ -104,6 +111,12 @@ The long-run direction, from something you ask to something that looks after thi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Drawings as a job's output: a background look that ends in a deck or diagram, not just a report | M | S | idea, after D-30 |
+| Editable `.pptx` export of a slides card (pptxgenjs), so Keynote and PowerPoint can change it | M | S–M | idea, after D-30 |
+| Charts from an attached CSV or a highlighted table: Vega-Lite with its loader off, or numbers worked out by the code runner | H | M | idea, after D-30 |
+| Free-form HTML pages from the model (posters, one-page explainers) in a script-less sandboxed frame; scales best with better models, biggest attack surface | M | M | considering, after D-30's attack tests |
+| Slides with the user's own pictures and snips, once there's a picture store that saved chats can use | M | M | idea, after D-30 |
+| Drawings: Mermaid diagrams, SVG pictures and a typed slides format, drawn on the Mac, with Copy as picture, Save as PNG / PDF and a present view | H | L | → D-30 |
 | Show what Claude's web searches cost in the usage meter, since each one is billed | M | S | idea |
 | Copy a proofread reason as a note, or send a whole fix to the phrasebook | L | S | idea |
 | Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | shipped |
@@ -213,12 +226,13 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Syntax colours in answers' code blocks, with a small lazily loaded highlighter and token colours from `styles.css` | L | S | idea, after D-29 |
 | Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | idea |
 | Rewind a chat to any earlier message: the chat-sized version of Rewind. Lists what the removed turns did, undo ticked by default and untickable, because a rewind is often just a typo fix and shouldn't silently forget what was said later | H | M | idea, after the action ledger |
 | Copy on your own messages, beside the Copy that answers already have | M | S | idea |
 | Keep each version after a retry, an edit or a rewind, with ‹ 1/2 › to switch between them, as other chat apps do. Needs branching history in `otty.db` | M | M | idea, after retry and edit |
 | Customisable hotkeys with a key recorder (not a text field) | M | S | idea |
-| File picker's filter leaves out TIFF, BMP and code files that Otty can read (they only show under All files) | L | S | idea |
+| File picker's filter leaves out TIFF, BMP and code files that Otty can read (they only show under All files) | L | S | shipped (D-29) |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
 | Memory suggestions inbox: suggestions the user didn't answer wait in Settings instead of being lost (`memories.status = 'pending'`) | L | S | idea, after D-10 |
@@ -274,13 +288,13 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Remember the model chosen for each service, so switching back doesn't reset it | L | S | idea |
 | Close the DNS gap in reading pages from the Mac: pin the checked address for the connection, so a name can't change between the check and the fetch | M | S | idea |
 | Otty says plainly when a model can't use tools, instead of quietly going without them | M | S | idea |
-| Two model slots, Fast and Best: features ask for a role, not a model name, so background work and hard tasks upgrade separately | H | S | → D-25 |
+| Two model slots, Fast and Best: features ask for a role, not a model name, so background work and hard tasks upgrade separately | H | S | → D-25, parked until much later by choice (2026-11-15) |
 | Scaffold ledger: note which model weakness each prompt rule or routing step works around, and retest on every upgrade | M | S | idea, needs the Otty eval |
 | Otty eval: 50–100 real-style tasks, scored for quality, speed and cost, so any new model is judged in an hour. Grows out of `tools/math-eval/` | H | M | seed sets shipped (D-23); baseline needs a key |
 | Tools before pipelines: let the model pull context when it needs it (read the window, find a file, check the calendar) rather than deciding in code what it sees | H | M | idea |
 | Trust ladder: give every tool a risk level and undo, so autonomy widens per action as evals prove reliability (show, then suggest, then do with a confirm) | H | M | idea, the path back to parked computer use |
 | Re-read history: after a model upgrade, offer to refresh memories, titles and summaries from saved chats, so old data improves too | M | S–M | idea, after D-10; opt-in, shows the cost first |
-| Model-built cards: answers can use a small typed set of tables, checklists and choices, so better models compose better UI with no new code | M | M | idea, D-11 step cards are the first card |
+| Model-built cards: answers can use a small typed set of tables, checklists and choices, so better models compose better UI with no new code | M | M | idea, D-11 step cards are the first card and D-30's slides the second |
 | Goal mode, "Get this done": plan, act, check and report for a stated goal, built on D-11 step cards | H | L | idea, after D-11 |
 | Proactive help, gated by measured precision: stays off until evals show it's rarely wrong, and always opt-in | H | L | idea, extends the paw-raise idea |
 | Re-test D-1 before building it: compare a plain model call with the local classifier on the same captures, for accuracy, speed and privacy | H | S | → D-1 step 0 |

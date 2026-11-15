@@ -14,7 +14,7 @@ describe('kindOf', () => {
     expect(kindOf('lease.docx')).toBe('docx')
     expect(kindOf('IMG_0042.HEIC')).toBe('image')
     expect(kindOf('budget.csv')).toBe('text')
-    expect(kindOf('old.doc')).toBeNull()
+    expect(kindOf('old.doc')).toBe('doc')
     expect(kindOf('Otty.app')).toBeNull()
     expect(kindOf('README')).toBeNull()
   })

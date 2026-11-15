@@ -1,3 +1,4 @@
+import type { FileKind } from '../../shared/types'
 import { extract, FileError } from './extract'
 
 // The file-reader utility process: reads one document per request and posts back its text.
@@ -6,7 +7,9 @@ import { extract, FileError } from './extract'
 export interface ReadRequest {
   reqId: number
   path: string
-  kind: 'pdf' | 'docx' | 'text'
+  /** The file's own name, for its code language. */
+  name: string
+  kind: Exclude<FileKind, 'image'>
 }
 
 export type ReadReply =
@@ -16,7 +19,7 @@ export type ReadReply =
 process.parentPort.on('message', async ({ data }: { data: ReadRequest }) => {
   let reply: ReadReply
   try {
-    reply = { reqId: data.reqId, ok: true, result: await extract(data.path, data.kind) }
+    reply = { reqId: data.reqId, ok: true, result: await extract(data.path, data.kind, data.name) }
   } catch (err) {
     if (!(err instanceof FileError)) console.error('File reader failed', err)
     reply = { reqId: data.reqId, ok: false, message: err instanceof FileError ? err.message : undefined }

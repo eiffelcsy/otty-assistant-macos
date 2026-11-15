@@ -5,7 +5,7 @@ import { capturedText } from '../shared/captures'
 import { mathTier } from '../shared/math'
 import { describeWhen, parseDue } from '../shared/when'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
-import { fileBudget, fitFiles, type FileOutput } from './files/budget'
+import { fileBudget, fitFiles, sampleText, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
 import { getStored } from './settings'
 import { resolveLanguage, turnNote, withNote } from './language'
@@ -315,15 +315,16 @@ export class ChatSession {
     this.stopChat(thread.id)
     this.makeRoom(thread.id)
     const home = getStored().homeLanguage
+    const prepared = takeFiles(opts.files)
     const language = resolveLanguage({
       typed: opts.action ? '' : text,
       picked: opts.language,
       action: opts.action,
       selection: capturedText(captures) || undefined,
+      fileText: captures.length ? undefined : sampleText(prepared.map((p) => p.doc)),
       home
     })
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
-    const prepared = takeFiles(opts.files)
     const budget = fileBudget(activeProfile().contextTokens)
     const fitted = fitFiles(prepared.map((p) => ({ name: p.meta.name, doc: p.doc, image: p.image?.dataUrl })), budget)
     const files = prepared.map((p, i) => ({ ...p.meta, note: fitted[i].note }))

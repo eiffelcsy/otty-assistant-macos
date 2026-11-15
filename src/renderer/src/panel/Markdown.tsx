@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import 'katex/dist/katex.min.css'
 import type { AnswerLanguage, HomeLanguage, QuickAction } from '../../../shared/types'
+import { stripLineNumbers } from '../../../shared/code'
 import { wordDiff } from '../../../shared/diff'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { Icon } from '../components/Icon'
@@ -242,10 +243,40 @@ function FixedCard({ text }: { text: string }) {
   )
 }
 
+/** `language-python` → "python", for the label over a code block. */
+export function codeLabel(className?: string): string | null {
+  const m = className?.match(/(?:^|\s)language-([\w+#.-]+)/)
+  return m ? m[1] : null
+}
+
+/** A code block in an answer, with its language and a Copy button: copying code by hand is easy to get wrong. */
+function CopyableCode({ label, children }: { label: string | null; children?: ReactNode }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <div className="code-block">
+      <div className="code-block__bar">
+        <span className="code-block__lang">{label ?? 'Code'}</span>
+        <button
+          className="copy-btn"
+          onClick={() => {
+            void window.otty.copyText(stripLineNumbers(textOf(children).replace(/\n$/, '')))
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1500)
+          }}
+        >
+          <Icon name={copied ? 'check' : 'copy-alt'} />
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <pre>{children}</pre>
+    </div>
+  )
+}
+
 function CodeBlock({ children }: { children?: ReactNode }) {
   const code = children as { props?: { className?: string } } | undefined
   if (code?.props?.className === 'language-fixed') return <FixedCard text={textOf(children).replace(/\n$/, '')} />
-  return <pre>{children}</pre>
+  return <CopyableCode label={codeLabel(code?.props?.className)}>{children}</CopyableCode>
 }
 
 // Module-level, so a re-render doesn't hand react-markdown new component types and remount

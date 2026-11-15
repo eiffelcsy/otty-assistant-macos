@@ -60,6 +60,11 @@ describe('resolveLanguage', () => {
     expect(resolveLanguage({ typed: '', action: 'translate', selection: 'Save as PDF', home })).toBe('zh-HK')
     expect(resolveLanguage({ typed: '', action: 'translate', selection: '另存為 PDF', home })).toBe('en')
     expect(resolveLanguage({ typed: '', action: 'summarize', home })).toBe('en')
+    // A file action answers in the document's language, but a capture still decides on its own.
+    expect(resolveLanguage({ typed: '', action: 'summarize', fileText: '租客須提前一個月通知。', home })).toBe('zh-HK')
+    expect(resolveLanguage({ typed: '', action: 'summarize', fileText: 'The tenant must give notice.', home })).toBe('en')
+    expect(resolveLanguage({ typed: '', action: 'summarize', fileText: '租客須提前一個月通知。', home: null })).toBe('en')
+    expect(resolveLanguage({ typed: '', action: 'explain', selection: 'Save as PDF', fileText: '租客須提前一個月通知。', home })).toBe('en')
   })
 
   it('replies in kind to what was typed, otherwise English', () => {

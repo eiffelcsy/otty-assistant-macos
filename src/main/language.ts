@@ -30,16 +30,18 @@ interface Turn {
   action?: QuickAction
   /** The highlighted text, for Translate's direction. */
   selection?: string
+  /** The start of the attached documents' text, when there's no capture: a Chinese PDF gets a Chinese summary. */
+  fileText?: string
   home: HomeLanguage | null
 }
 
 /** First rule that applies wins: an explicit pick, a language the action implies, what the user typed in, then English. */
-export function resolveLanguage({ typed, picked, action, selection, home }: Turn): AnswerLanguage {
+export function resolveLanguage({ typed, picked, action, selection, fileText, home }: Turn): AnswerLanguage {
   if (picked) return picked
   if (!home) return 'en'
   if (action === 'explain-home') return home
   if (action === 'translate' && selection) return translateTarget(selection, home)
-  if (action) return 'en'
+  if (action) return !selection && fileText && isMostlyHan(fileText) ? home : 'en'
   return isMostlyHan(typed) ? home : 'en'
 }
 

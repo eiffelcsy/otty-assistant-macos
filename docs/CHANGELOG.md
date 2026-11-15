@@ -4,6 +4,17 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Code files and notebooks (D-29, 2026-11-15)
+
+- **Code files are their own kind:** a `.py`, `.ts`, `Dockerfile` or `Makefile` shows as **Python · 240 lines** and so on, about 80 languages and well-known file names (`files/languages.ts`). They're sent with line numbers (`  42│ `) and cut at a whole line when they don't fit ("Otty read lines 1–800 of 2,300"), so answers can point to real lines. The file picker's first filter now shows code, notebooks, TIFF and BMP.
+- **Jupyter notebooks** (`.ipynb`) are read cell by cell, with their text outputs and errors (ANSI colours stripped, each output cut at 2,000 characters). Charts, HTML and widgets become one placeholder line, so a notebook full of plots costs no more than its code. Answers cite cells.
+- **Keys and passwords stay on the Mac:** before any text, code or notebook file is sent, things that look like keys, tokens or passwords become `[hidden key]` (`files/secrets.ts`), the chip says "2 keys hidden", and the model is told. Saved chats only ever hold the masked text. A `.env` used to be sent as it was.
+- **Buttons for code:** attached code or notebooks, and highlighted text that looks like code or comes from a code editor or terminal (`shared/code.ts`), offer **Explain this code**, **Find problems** and **Add comments**.
+- **Copy on every code block** in an answer, with the language above it. Copy drops Otty's own line numbers if a model copied them in.
+- **`.doc`, `.rtf` and `.odt`** are read with macOS `textutil`. RTF used to be sent as raw markup.
+- **File actions answer in the document's language:** with 繁體中文 as the other language, **Summarize** on a Chinese PDF answers in Chinese.
+- **Eval:** a `code` set of 8 cases (line citations, a notebook's failing cell, a `.env` key that must stay hidden, and an injection in a notebook's notes).
+
 ### Easier to trust and to find (2026-11-09, after a UX review)
 
 - **Is it working?** A quiet line at the top of the chat says when a shortcut can't work yet (Accessibility off, Screen Recording off, or a shortcut another app owns), with **Allow**, **Change it** or **Reopen Otty**. It checks again when the panel comes back into view, with no polling.

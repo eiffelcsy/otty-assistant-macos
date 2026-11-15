@@ -7,7 +7,8 @@ import { basename, isAbsolute, join } from 'path'
 import { promisify } from 'util'
 import type { AttachResult, FileAttachment, PendingFile } from '../../shared/types'
 import { encodeImage } from '../capture'
-import { kindOf, type Extracted } from './extract'
+import { kindOf, PICKER_EXTENSIONS, type Extracted } from './extract'
+import { CODE_EXTENSIONS } from './languages'
 import type { ReadReply, ReadRequest } from './worker'
 
 // Files the user attached: picked, dropped or pasted. Main keeps the path and what's inside;
@@ -57,8 +58,8 @@ export async function pickFiles(win: BrowserWindow | null): Promise<PendingFile[
     properties: ['openFile', 'multiSelections'],
     filters: [
       {
-        name: 'Documents, pictures and text',
-        extensions: ['pdf', 'docx', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'txt', 'md', 'csv', 'json']
+        name: 'Documents, pictures, text and code',
+        extensions: [...PICKER_EXTENSIONS, ...CODE_EXTENSIONS]
       },
       { name: 'All files', extensions: ['*'] }
     ]
@@ -92,7 +93,7 @@ export async function readFile(id: string): Promise<AttachResult> {
   if (e.meta) return { ok: true, file: e.meta }
 
   const kind = kindOf(e.name)
-  if (!kind) return fail('Otty can’t read this kind of file yet. Try a PDF, a Word document, a picture or a text file.')
+  if (!kind) return fail('Otty can’t read this kind of file yet. Try a PDF, a Word document, a picture, a text file or code.')
   let size: number
   try {
     const s = await stat(e.path)
@@ -113,11 +114,11 @@ export async function readFile(id: string): Promise<AttachResult> {
     return { ok: true, file: e.meta }
   }
 
-  const reply = await readInWorker(e.path, kind)
+  const reply = await readInWorker(e.path, e.name, kind)
   if (!reply.ok) return fail(reply.message ?? 'Otty couldn’t read this file. It may be damaged.')
   if (!entries.has(id)) return fail('Removed.') // ✕ was pressed while it was being read
   e.doc = reply.result
-  e.meta = { id, name: e.name, kind, pages: reply.result.kind === 'pdf' ? reply.result.pages.length : undefined }
+  e.meta = { id, name: e.name, kind, ...describe(reply.result) }
   return { ok: true, file: e.meta }
 }
 
@@ -159,7 +160,23 @@ function reader(): UtilityProcess {
   return (worker = w)
 }
 
-function readInWorker(path: string, kind: ReadRequest['kind']): Promise<ReadReply> {
+/** What the chip says about a document: its pages, its language and lines, or its cells. */
+export function describe(doc: Extracted): Pick<FileAttachment, 'pages' | 'lang' | 'lines' | 'cells' | 'hidden'> {
+  switch (doc.kind) {
+    case 'pdf':
+      return { pages: doc.pages.length }
+    case 'code':
+      return { lang: doc.lang, lines: doc.text.split('\n').length, ...(doc.hidden ? { hidden: doc.hidden } : {}) }
+    case 'notebook':
+      return { lang: doc.lang, cells: doc.cells.length, ...(doc.hidden ? { hidden: doc.hidden } : {}) }
+    case 'text':
+      return doc.hidden ? { hidden: doc.hidden } : {}
+    default:
+      return {}
+  }
+}
+
+function readInWorker(path: string, name: string, kind: ReadRequest['kind']): Promise<ReadReply> {
   return new Promise((resolve) => {
     const reqId = nextReq++
     const timer = setTimeout(() => {
@@ -171,6 +188,6 @@ function readInWorker(path: string, kind: ReadRequest['kind']): Promise<ReadRepl
       clearTimeout(timer)
       resolve(r)
     })
-    reader().postMessage({ reqId, path, kind } satisfies ReadRequest)
+    reader().postMessage({ reqId, path, name, kind } satisfies ReadRequest)
   })
 }

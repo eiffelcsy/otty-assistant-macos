@@ -1,23 +1,32 @@
+import { execFile } from 'child_process'
 import { readFile } from 'fs/promises'
 import { extname } from 'path'
+import { promisify } from 'util'
 import type { FileKind } from '../../shared/types'
+import { FileError } from './errors'
+import { codeLanguage } from './languages'
+import { readNotebook, type NotebookCell } from './notebook'
+import { maskSecrets } from './secrets'
 import { unzippedSize } from './zip'
+
+export { FileError }
 
 // Turns a document into plain text. Runs inside the file-reader utility process (see worker.ts),
 // so a big PDF never freezes the app. Pictures are read in main instead (image.ts), because
 // nativeImage isn't available here. No Electron imports: this runs in tests too.
 
-/** A problem worth telling the user about, already in friendly words. */
-export class FileError extends Error {}
+/** `hidden` counts what `maskSecrets` replaced, for the chip ("Otty hid 2 things…"). */
+export type Extracted =
+  | { kind: 'pdf'; pages: string[] }
+  | { kind: 'docx' | 'doc'; text: string }
+  | { kind: 'text'; text: string; hidden?: number }
+  | { kind: 'code'; lang: string; text: string; hidden?: number }
+  | { kind: 'notebook'; lang: string; cells: NotebookCell[]; hidden?: number }
 
-export type Extracted = { kind: 'pdf'; pages: string[] } | { kind: 'docx' | 'text'; text: string }
-
-const TEXT_EXT = new Set(
-  (
-    'txt text md markdown csv tsv json log xml yaml yml html htm css js mjs ts tsx jsx py rb go rs java kt c h cpp hpp cs ' +
-    'swift sh zsh sql ini toml cfg conf env rtf srt vtt tex'
-  ).split(' ')
-)
+/** Plain text: no line numbers. Code is matched by `codeLanguage` first. */
+const TEXT_EXT = new Set('txt text md markdown csv tsv log srt vtt'.split(' '))
+/** Read by macOS `textutil`, which turns them into plain text. */
+const DOC_EXT = new Set(['doc', 'rtf', 'odt', 'wordml'])
 const IMAGE_EXT = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'tif', 'tiff', 'bmp'])
 
 /** What kind of file this is, from its name, or null when Otty can't read it. */
@@ -25,21 +34,57 @@ export function kindOf(name: string): FileKind | null {
   const ext = extname(name).slice(1).toLowerCase()
   if (ext === 'pdf') return 'pdf'
   if (ext === 'docx') return 'docx'
+  if (ext === 'ipynb') return 'notebook'
+  if (DOC_EXT.has(ext)) return 'doc'
   if (IMAGE_EXT.has(ext)) return 'image'
   if (TEXT_EXT.has(ext)) return 'text'
+  if (codeLanguage(name)) return 'code'
   return null
 }
+
+/** The extensions the file picker's first filter shows. */
+export const PICKER_EXTENSIONS = ['pdf', 'docx', 'ipynb', ...DOC_EXT, ...IMAGE_EXT, ...TEXT_EXT]
 
 /** A .docx is a zip; refuse one that would unpack to something enormous. */
 const MAX_UNZIPPED = 200 * 1024 * 1024
 /** Below this many characters per page on average, a PDF is treated as a scan. */
 const SCAN_CHARS_PER_PAGE = 20
 
-export async function extract(path: string, kind: Exclude<FileKind, 'image'>): Promise<Extracted> {
+export async function extract(path: string, kind: Exclude<FileKind, 'image'>, name = path): Promise<Extracted> {
+  if (kind === 'doc') return { kind, text: await textutil(path) }
   const buf = await readFile(path)
   if (kind === 'pdf') return { kind, pages: await pdfPages(buf) }
   if (kind === 'docx') return { kind, text: await docxText(buf) }
-  return { kind, text: decodeText(buf) }
+  if (kind === 'notebook') {
+    const nb = readNotebook(decodeText(buf))
+    let hidden = 0
+    const cells = nb.cells.map((c) => {
+      const m = maskSecrets(c.text)
+      hidden += m.hidden
+      return { ...c, text: m.text }
+    })
+    return { kind, lang: nb.lang, cells, ...(hidden ? { hidden } : {}) }
+  }
+  const { text, hidden } = maskSecrets(decodeText(buf))
+  const extra = hidden ? { hidden } : {}
+  if (kind === 'code') return { kind, lang: codeLanguage(name) ?? 'Code', text, ...extra }
+  return { kind: 'text', text, ...extra }
+}
+
+const run = promisify(execFile)
+
+/** `.doc`, `.rtf` and `.odt` through macOS's own converter, which never touches the network. */
+async function textutil(path: string): Promise<string> {
+  if (process.platform !== 'darwin') throw new FileError('Otty can only read this kind of document on a Mac.')
+  let out: string
+  try {
+    ;({ stdout: out } = await run('/usr/bin/textutil', ['-convert', 'txt', '-stdout', '-encoding', 'UTF-8', path], { maxBuffer: 64 * 1024 * 1024 }))
+  } catch {
+    throw new FileError('Otty couldn’t open this document. It may be damaged.')
+  }
+  const text = out.replace(/\n{3,}/g, '\n\n').trim()
+  if (!text) throw new FileError('This document looks empty.')
+  return text
 }
 
 async function pdfPages(buf: Buffer): Promise<string[]> {
