@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, MemoryNote, StepCard, ToolChipInfo } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, MemoryNote, StepCard, ToolChipInfo, UsedMemory } from '../../../shared/types'
 
 export type ToolChip = ToolChipInfo
 
@@ -23,6 +23,7 @@ export type UiMessage =
       streaming: boolean
       language?: AnswerLanguage
       memories?: MemoryNote[]
+      used?: UsedMemory[]
       calc?: { expression: string; result: string }
       steps?: StepCard
     }
@@ -90,6 +91,9 @@ export function useChat(onReset?: () => void) {
             break
           case 'steps':
             patch((m) => ({ ...m, steps: e.card }))
+            break
+          case 'memory-used':
+            patch((m) => ({ ...m, used: e.used }))
             break
           case 'memory':
             patch((m) => {

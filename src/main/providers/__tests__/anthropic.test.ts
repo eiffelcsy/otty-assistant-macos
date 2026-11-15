@@ -213,7 +213,7 @@ describe('complete', () => {
       sent.push({ url, headers: new Headers(init.headers), body: JSON.parse(String(init.body)) })
       return Response.json({ id: 'm', type: 'message', role: 'assistant', model: 'claude-sonnet-5-5', content: [thinkingBlock, { type: 'text', text: ' Hi ' }], stop_reason: 'end_turn', usage })
     })
-    expect(await provider.complete({ messages: [{ role: 'user', content: 'Hi' }], maxTokens: 20 })).toEqual({ text: 'Hi', model: 'claude-sonnet-5-5' })
+    expect(await provider.complete({ messages: [{ role: 'user', content: 'Hi' }], maxTokens: 20 })).toEqual({ text: 'Hi', model: 'claude-sonnet-5-5', usage: { input: 1, output: 1 } })
     expect(sent[0].body.max_tokens).toBe(2_000)
   })
 })

@@ -12,6 +12,8 @@ export interface Service {
   /** False when there's no key to ask for, or it's up to the server. */
   needsKey: boolean
   keyUrl?: string
+  /** Where the service shows what Otty's requests cost. */
+  usageUrl?: string
   keyHint: string
   /** Where a question goes. */
   privacy: string
@@ -31,6 +33,7 @@ export const SERVICES: Service[] = [
     model: 'deepseek-flash',
     needsKey: true,
     keyUrl: 'https://platform.deepseek.com/api_keys',
+    usageUrl: 'https://platform.deepseek.com/usage',
     keyHint: 'sk-…',
     privacy: 'Your questions go to DeepSeek.',
     webPrivacy: 'When Otty searches the web or reads a page for you, the search words or the page address go to DeepSeek, which fetches the page itself. It can’t see pages you’re signed in to.'
@@ -43,6 +46,7 @@ export const SERVICES: Service[] = [
     model: 'claude-sonnet-5-5',
     needsKey: true,
     keyUrl: 'https://platform.claude.com/settings/keys',
+    usageUrl: 'https://platform.claude.com/usage',
     keyHint: 'sk-ant-…',
     privacy: 'Your questions go to Anthropic.',
     webPrivacy: `When Otty searches the web, the search words go to Anthropic, and each search is billed to your Claude account. ${PAGES}`
@@ -55,6 +59,7 @@ export const SERVICES: Service[] = [
     model: '',
     needsKey: true,
     keyUrl: 'https://platform.openai.com/api-keys',
+    usageUrl: 'https://platform.openai.com/usage',
     keyHint: 'sk-…',
     privacy: 'Your questions go to OpenAI.',
     webPrivacy: LOOKUPS

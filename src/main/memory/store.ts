@@ -105,7 +105,7 @@ export class MemoryStore {
       optOut: p('insert or ignore into memory_optouts(key, created_at) values (?, ?)'),
       optedOut: p('select 1 from memory_optouts where key = ?'),
       count: p('insert into counters(kind, key, day, count) values (?, ?, ?, 1) on conflict do update set count = count + 1'),
-      counts: p('select kind, key, day, count from counters where day >= ?')
+      counts: p("select kind, key, day, count from counters where day >= ? and kind <> 'usage'")
     }
   }
 
@@ -160,9 +160,9 @@ export class MemoryStore {
     compact(this.db)
   }
 
-  /** "Forget everything Otty knows": memories, the counts behind habits, and which habits were turned down. */
+  /** "Forget everything Otty knows": memories, the counts behind habits, and which habits were turned down. The usage meter stays. */
   clear(): void {
-    transaction(this.db, () => this.db.exec('delete from memories; delete from counters; delete from memory_optouts;'))
+    transaction(this.db, () => this.db.exec("delete from memories; delete from counters where kind <> 'usage'; delete from memory_optouts;"))
     compact(this.db)
   }
 
@@ -186,7 +186,7 @@ export class MemoryStore {
    * The note sent with a question. Told and typed memories go first, then what matches the question or app, then the
    * most used. It goes at the end of that turn's message, because it changes per question and the system prompt can't.
    */
-  forPrompt(question: string, app: string | null, now = Date.now()): { note: string; ids: number[] } {
+  forPrompt(question: string, app: string | null, now = Date.now()): { note: string; ids: number[]; matched: { id: number; text: string }[] } {
     const wanted = new Set([...terms(question), ...terms(app ?? '')])
     const matches = (r: Row) => terms(r.text).some((t) => wanted.has(t))
     const rank = (r: Row) => (r.origin === 'told' || r.origin === 'settings' ? 0 : matches(r) ? 1 : 2)
@@ -196,6 +196,8 @@ export class MemoryStore {
 
     const lines: string[] = []
     const ids: number[] = []
+    // Only a memory that matched the question or the app counts as having shaped the answer (D-24). Being sent proves nothing.
+    const matched: { id: number; text: string }[] = []
     let used = 0
     for (const r of picked) {
       const line = `- #${r.id} ${r.text}`
@@ -203,8 +205,9 @@ export class MemoryStore {
       used += line.length
       lines.push(line)
       ids.push(r.id)
+      if (matches(r)) matched.push({ id: r.id, text: r.text })
     }
-    return { note: lines.length ? `${MEMORY_NOTE}:\n${lines.join('\n')}]` : '', ids }
+    return { note: lines.length ? `${MEMORY_NOTE}:\n${lines.join('\n')}]` : '', ids, matched }
   }
 
   /** Marks memories as sent, so the most useful ones win when there are too many. */

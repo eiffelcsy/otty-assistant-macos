@@ -1,8 +1,9 @@
 import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, MemoryNote, QuickAction, SendOptions, StepApp, StepCard } from '../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, MemoryNote, QuickAction, UsedMemory, SendOptions, StepApp, StepCard } from '../shared/types'
 import { capturedText } from '../shared/captures'
 import { mathTier } from '../shared/math'
+import { describeWhen, parseDue } from '../shared/when'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
 import { fileBudget, fitFiles, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
@@ -11,7 +12,9 @@ import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
 import { createExplainCache, termsToWarm } from './explainCache'
 import { toolDefs, type ToolOutcome } from './tools'
+import { OUTSIDE_TOOLS } from './toolSafety'
 import { runLoop } from './loop'
+import { count } from './usage'
 import { instantAnswer } from './math'
 import { act, isRisky } from './act'
 import { stepCard } from './act/card'
@@ -23,9 +26,6 @@ import { activeProfile, activeProvider, FriendlyError, NoVisionError, type Conte
 // The conversation: what's sent, what comes back and what's saved. Talking to the model service is `providers/`.
 
 const MAX_TOOL_ROUNDS = 6
-
-/** Tools whose results are someone else's words. */
-const OUTSIDE_TOOLS = new Set(['search_web', 'read_page'])
 
 /** Answers running at once. A fourth stops the oldest that isn't on show. */
 const MAX_TURNS = 3
@@ -50,6 +50,8 @@ export interface JobRequest {
   /** Addresses in the brief that the chat already knew. The brief itself is the model's words, so it proves nothing. */
   seedUrls: string[]
   language: AnswerLanguage
+  /** Run it then, not now (ms since epoch). */
+  dueAt?: number
 }
 
 export interface SessionHooks {
@@ -57,6 +59,8 @@ export interface SessionHooks {
   onTurn?(unseen: boolean): void
   /** Starts a job. The user has already agreed. Resolves to words for the model, if it couldn't start. */
   startJob?(job: JobRequest): Promise<string | null>
+  /** One line for the job card about what a look like this costs and where it stops. */
+  jobCost?(): Promise<string>
 }
 
 /** Memory is a nice extra: it must never be the reason an answer fails. */
@@ -70,12 +74,14 @@ function safely<T>(fallback: T, fn: () => T): T {
 }
 
 /** What's sent with this question. An earlier note stays in the history, so if nothing's left to say, that has to be said. */
-function memoryNote(question: string, app: string | null, history: Thread['history']): string {
-  const { note, ids } = getStored().learn ? safely({ note: '', ids: [] as number[] }, () => memoryStore().forPrompt(question, app)) : { note: '', ids: [] }
+function memoryNote(question: string, app: string | null, history: Thread['history']): { note: string; used: UsedMemory[] } {
+  const none = { note: '', ids: [] as number[], matched: [] as { id: number; text: string }[] }
+  const { note, ids, matched } = getStored().learn ? safely(none, () => memoryStore().forPrompt(question, app)) : none
   safely(undefined, () => ids.length && memoryStore().markUsed(ids))
-  if (note) return note
+  const used = matched.slice(0, 2).map((m) => ({ memoryId: m.id, text: m.text }))
+  if (note) return { note, used }
   const told = history.some((m) => m.role === 'user' && JSON.stringify(m.content).includes(MEMORY_NOTE))
-  return told ? `${MEMORY_NOTE}: nothing at the moment.]` : ''
+  return { note: told ? `${MEMORY_NOTE}: nothing at the moment.]` : '', used }
 }
 
 interface Turn {
@@ -90,6 +96,8 @@ interface Turn {
   language: AnswerLanguage
   home: HomeLanguage | null
 }
+
+const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 function appLine(app: AppInfo | null): string {
   if (!app) return ''
@@ -280,6 +288,11 @@ export class ChatSession {
     turn.asking = undefined
   }
 
+  /** Stops every answer in progress, for the one stop control. */
+  stopAll(): void {
+    for (const id of [...this.live.keys()]) this.stopChat(id)
+  }
+
   respondConfirm(id: string, allow: boolean): void {
     for (const turn of this.live.values()) {
       const resolve = turn.confirms.get(id)
@@ -395,6 +408,7 @@ export class ChatSession {
 
   private async run(thread: Thread, turn: Turn, reasoning?: 'normal'): Promise<void> {
     const { prompt: text, captures, app, files, language, home } = turn
+    count('questions')
     const id = randomUUID()
     const abort = new AbortController()
     const history = thread.history
@@ -417,13 +431,17 @@ export class ChatSession {
     const turnStart = history.length
     // Saved as sent: nothing already sent may change, or DeepSeek's cache misses from that point on.
     const where = (captures[0]?.app ?? app)?.name ?? null
-    const known = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
+    const { note: known, used } = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
     const stepNotes = this.stepNotes.get(thread.id) ?? []
     this.stepNotes.delete(thread.id)
     const note = [turnNote(language, home), known, ...stepNotes].filter(Boolean).join('\n')
     history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), note) })
     const system = systemPrompt(home, activeProfile().web !== 'off', Boolean(getStored().learn))
     this.tell(thread, { type: 'start', id, language })
+    if (used.length) {
+      answer.used = used
+      this.tell(thread, { type: 'memory-used', id, used })
+    }
     this.noticeHabits(thread, turn, answer)
 
     // What came in from outside this turn, so that nothing in it can become a memory.
@@ -451,6 +469,7 @@ export class ChatSession {
           knownUrl: (url) => isKnownUrl(url, history),
           showSteps: (args) => this.showSteps(thread, answer, args, captures[0]?.app ?? app),
           startJob: (args) => this.offerJob(live, args, language),
+          scheduleJob: (args) => this.offerJob(live, args, language, true),
           learn: {
             remember: (args) => learning(() => remember(memoryStore(), args, heard, place)),
             forget: (args) => learning(() => forgetMemory(memoryStore(), args, heard))
@@ -538,16 +557,23 @@ export class ChatSession {
   }
 
   /** The model only asks. The card is what starts a job, so a hostile page can't. */
-  private async offerJob(turn: LiveTurn, args: Record<string, unknown>, language: AnswerLanguage): Promise<ToolOutcome> {
+  private async offerJob(turn: LiveTurn, args: Record<string, unknown>, language: AnswerLanguage, later = false): Promise<ToolOutcome> {
     const title = String(args.title ?? '').trim().slice(0, 80)
     const brief = String(args.brief ?? '').trim().slice(0, 2_000)
     if (!title || !brief || !this.hooks.startJob) return { result: 'That needs a title and a brief.', status: 'error' }
-    const detail = `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.`
-    if (!(await this.askConfirm(turn, 'Look into this in the background?', detail))) return { result: 'The user declined.', status: 'denied' }
+    const dueAt = later ? parseDue(args.at) : null
+    if (later && !dueAt) return { result: 'That time isn’t usable: it has passed, is under a minute away, is more than a month off, or isn’t a time. Ask the user when they mean.', status: 'error' }
+    const cost = (await this.hooks.jobCost?.().catch(() => '')) ?? ''
+    const costLine = cost ? `\n\n${cost}` : ''
+    const detail = dueAt
+      ? `${capitalised(describeWhen(dueAt))}, Otty will look this up on public web pages, using your AI key, and leave a note in Activity. It won’t send or change anything. Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.${costLine}`
+      : `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.${costLine}`
+    if (!(await this.askConfirm(turn, dueAt ? 'Look into this later?' : 'Look into this in the background?', detail))) return { result: 'The user declined.', status: 'denied' }
     const thread = turn.thread
     const seedUrls = urlsIn(brief).filter((url) => isKnownUrl(url, thread.history))
-    const problem = await this.hooks.startJob({ title, brief, sourceThread: thread.id, seedUrls, language })
-    return problem ? { result: problem, status: 'error' } : { result: 'Started. The user will find the report in Activity.', status: 'done' }
+    const problem = await this.hooks.startJob({ title, brief, sourceThread: thread.id, seedUrls, language, ...(dueAt ? { dueAt } : {}) })
+    if (problem) return { result: problem, status: 'error' }
+    return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in Activity.` : 'Started. The user will find the report in Activity.', status: 'done' }
   }
 
   /** The card under an answer. `replaces` puts right the chat's last one, after the user got stuck. */

@@ -179,8 +179,9 @@ describe('talking to the model', () => {
     await new ChatSession(() => {}).send('Hello', [], null)
     expect(url).toBe('https://api.deepseek.com/chat/completions')
     expect(headers).toEqual({ 'Content-Type': 'application/json', Authorization: 'Bearer key' })
-    expect(Object.keys(body)).toEqual(['model', 'thinking', 'messages', 'stream', 'tools'])
-    expect(body).toMatchObject({ model: 'm', thinking: { type: 'enabled' }, stream: true })
+    // stream_options asks for the token count at the end, for the usage meter. It isn't part of the prompt, so the cache is unaffected.
+    expect(Object.keys(body)).toEqual(['model', 'thinking', 'messages', 'stream', 'stream_options', 'tools'])
+    expect(body).toMatchObject({ model: 'm', thinking: { type: 'enabled' }, stream: true, stream_options: { include_usage: true } })
   })
 
   it('streams text, and puts tool calls back together from their pieces', async () => {

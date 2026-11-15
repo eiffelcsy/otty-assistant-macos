@@ -20,8 +20,8 @@ Stage 1 is built ([D-22](DEVLOG.md)), so most of the runtime gap has closed: tur
 
 | Today | Why it matters |
 | --- | --- |
-| Which tools are safe where is kept in hand-written lists | Stage 2 needs one source of truth ([D-26](DEVLOG.md)) |
-| No timer or launch at login | Nothing happens unless a person starts it ([D-27](DEVLOG.md)) |
+| ~~Which tools are safe where is kept in hand-written lists~~ | Done: `toolSafety.ts` is the one table, and the Rule of Two is checked in code (D-26) |
+| ~~No timer or launch at login~~ | A timer, a stop control (D-27) and launch at login (D-28) exist. An unsigned build may not be allowed to register at login |
 | The only input is a person (hotkey, bubble, typing) | Otty can't react to anything else |
 
 ## The ideas, in general form
@@ -334,7 +334,7 @@ Not every feature needs all of this now, but none should make the direction hard
 
 ## Open decisions
 
-- **NFR-5 needs rewording before Stage 2.** It says nothing is sent until the user asks a question, and a standing recipe sends later. Something like "until the user asks, or has agreed to something that says so" would keep its spirit, and it also covers Look after me. It's the one place this direction changes a promise made to users.
+- **NFR-5 is reworded (D-27).** It said nothing is sent until the user asks a question, and a standing recipe sends later. Something like "until the user asks, or has agreed to something that says so" would keep its spirit, and it also covers Look after me. It's the one place this direction changes a promise made to users.
 - **What exactly does Look after me send, and how often?** Decided: one permission, asked for at onboarding, for suggestions only. Still open: the wording of that screen, whether it starts on or off, and how existing users get asked.
 - **Does a phone app need the cloud?** Something has to run and sync while the Mac sleeps. That reopens "Cloud compute" below, and it has to work without weakening privacy or bring-your-own-key. Long-term.
 - **How small should the attention budget start?** It should probably begin at one unprompted thing a day, and grow only if people engage.

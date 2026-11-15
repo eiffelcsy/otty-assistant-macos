@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { FriendlyError, friendlyConnection, friendlyStatus, NoToolsError } from './errors'
 import type { Profile } from './profiles'
-import type { ChatRequest, Provider, ProviderEvent, StopReason, ToolCall } from './types'
+import type { ChatRequest, Provider, ProviderEvent, StopReason, ToolCall, Usage } from './types'
 
 // Any service with an OpenAI-style /chat/completions, including DeepSeek.
 
@@ -82,6 +82,12 @@ async function* sse(res: Response): AsyncGenerator<any> {
 const STOPS: Record<string, StopReason> = { stop: 'end', tool_calls: 'tools', length: 'length', content_filter: 'refusal' }
 
 /** Dev builds only: shows whether DeepSeek's cache is working. Counts only, never content. */
+/** OpenAI's names, and DeepSeek's for what its cache served. */
+function usageOf(u: { prompt_tokens?: number; completion_tokens?: number; prompt_cache_hit_tokens?: number; prompt_tokens_details?: { cached_tokens?: number } }): Usage {
+  const cached = u.prompt_cache_hit_tokens ?? u.prompt_tokens_details?.cached_tokens
+  return { input: u.prompt_tokens ?? 0, output: u.completion_tokens ?? 0, ...(cached ? { cached } : {}) }
+}
+
 function logCache(usage: { prompt_cache_hit_tokens?: number; prompt_cache_miss_tokens?: number }, firstTokenMs: number): void {
   console.log(`[cache] hit ${usage.prompt_cache_hit_tokens ?? '?'} · miss ${usage.prompt_cache_miss_tokens ?? '?'} · first token ${firstTokenMs} ms`)
 }
@@ -99,7 +105,7 @@ export function openAiProvider(config: () => OpenAiConfig): Provider {
           {
             ...requestBody(c, req),
             stream: true,
-            ...(measure ? { stream_options: { include_usage: true } } : {}),
+            ...(measure || c.profile.streamUsage ? { stream_options: { include_usage: true } } : {}),
             ...(tools?.length ? { tools } : {})
           },
           signal
@@ -111,10 +117,14 @@ export function openAiProvider(config: () => OpenAiConfig): Provider {
 
       let firstToken = 0
       let stop: StopReason = 'end'
+      let usage: Usage | undefined
       const calls: ToolCall[] = []
 
       for await (const chunk of sse(res)) {
-        if (chunk.usage && measure) logCache(chunk.usage, firstToken - sentAt)
+        if (chunk.usage) {
+          usage = usageOf(chunk.usage)
+          if (measure) logCache(chunk.usage, firstToken - sentAt)
+        }
         const choice = chunk.choices?.[0]
         if (choice?.finish_reason) stop = STOPS[choice.finish_reason] ?? 'end'
         const delta = choice?.delta
@@ -131,7 +141,7 @@ export function openAiProvider(config: () => OpenAiConfig): Provider {
       }
 
       for (const call of calls.filter(Boolean)) yield { type: 'tool', call }
-      yield { type: 'done', stop }
+      yield { type: 'done', stop, ...(usage ? { usage } : {}) }
     },
 
     async complete(req) {
@@ -139,7 +149,7 @@ export function openAiProvider(config: () => OpenAiConfig): Provider {
       const limit = req.maxTokens ? { [c.profile.tokenLimit]: req.maxTokens } : {}
       const res = await post(c, { ...requestBody(c, req), stream: false, ...limit })
       const json: any = await res.json()
-      return { text: json.choices?.[0]?.message?.content?.trim() ?? '', model: json.model }
+      return { text: json.choices?.[0]?.message?.content?.trim() ?? '', model: json.model, ...(json.usage ? { usage: usageOf(json.usage) } : {}) }
     }
   }
 }

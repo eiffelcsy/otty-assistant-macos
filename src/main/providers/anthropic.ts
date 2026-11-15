@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { friendlyConnection, friendlyStatus } from './errors'
 import { searchesOnServer, type Profile } from './profiles'
-import type { ChatRequest, ContentPart, Message, Provider, ProviderEvent, StopReason, ToolCall } from './types'
+import type { ChatRequest, ContentPart, Message, Provider, ProviderEvent, StopReason, ToolCall, Usage } from './types'
 
 type Params = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming
 type AnthropicMessage = Anthropic.Beta.Messages.BetaMessageParam
@@ -153,6 +153,12 @@ function client(c: AnthropicConfig): Anthropic {
   return new Anthropic({ apiKey: c.key, baseURL: c.baseUrl.replace(/\/(v1\/?)?$/, ''), defaultHeaders: headers })
 }
 
+/** Anthropic counts cached input apart from the rest, so `input` adds them back together. */
+function usageOf(u: { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null }): Usage {
+  const cached = u.cache_read_input_tokens ?? 0
+  return { input: u.input_tokens + cached + (u.cache_creation_input_tokens ?? 0), output: u.output_tokens, ...(cached ? { cached } : {}) }
+}
+
 export function anthropicProvider(config: () => AnthropicConfig): Provider {
   return {
     async *stream(req, signal): AsyncGenerator<ProviderEvent> {
@@ -175,7 +181,8 @@ export function anthropicProvider(config: () => AnthropicConfig): Provider {
         yield {
           type: 'done',
           stop: STOPS[message.stop_reason ?? ''] ?? 'end',
-          replay: { id: serverOf(c), model: message.model, blocks: message.content }
+          replay: { id: serverOf(c), model: message.model, blocks: message.content },
+          usage: usageOf(message.usage)
         }
       } catch (err) {
         throw friendly(err, c.profile)
@@ -187,7 +194,7 @@ export function anthropicProvider(config: () => AnthropicConfig): Provider {
       try {
         const message = await client(c).beta.messages.create(params(c, req, Math.max(req.maxTokens ?? 0, MIN_COMPLETE_TOKENS)))
         const text = message.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('')
-        return { text: text.trim(), model: message.model }
+        return { text: text.trim(), model: message.model, usage: usageOf(message.usage) }
       } catch (err) {
         throw friendly(err, c.profile)
       }

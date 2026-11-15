@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react'
-import type { AppInfo, Capture, MemoryNote, ScreenContext, ToolChipInfo } from '../../../shared/types'
+import type { AppInfo, Capture, MemoryNote, ScreenContext, ToolChipInfo, UsedMemory } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { StepCard } from '../components/StepCard'
 import { capturedText } from '../../../shared/captures'
@@ -171,6 +171,16 @@ function MemoryLine({ answerId, note }: { answerId: string; note: MemoryNote }) 
   )
 }
 
+/** Which memories matched the question, shown when they're read as well as when they're written. Tapping opens the list. */
+function UsedLine({ used }: { used: UsedMemory[] }) {
+  return (
+    <button className="used-line" title="See what Otty knows about you" onClick={() => void window.otty.openMemories()}>
+      <Icon name="bookmark" />
+      <span>Used: {used.map((u) => u.text).join(' · ')}</span>
+    </button>
+  )
+}
+
 /** A sum Otty worked out by itself, with no model call. */
 function CalcCard({ calc }: { calc: NonNullable<Assistant['calc']> }) {
   return (
@@ -249,6 +259,7 @@ export function AssistantMessage({ m, again, found, source = '' }: { m: Assistan
           )}
         </div>
       )}
+      {m.used?.length ? <UsedLine used={m.used} /> : null}
       {m.memories?.map((n) => <MemoryLine key={n.memoryId} answerId={m.id} note={n} />)}
     </div>
   )
