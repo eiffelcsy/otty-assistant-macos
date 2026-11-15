@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
 import type { ToolOutcome } from '../../src/main/tools'
 
 // Tools that reach the network or change the Mac are replaced, so the eval can run anywhere and records what was
@@ -8,10 +9,9 @@ export interface Scene {
   page?: string
 }
 
-let scene: Scene = {}
-export const setScene = (s: Scene) => {
-  scene = s
-}
+/** Each case's own scene. Cases run four at a time, so one shared variable let a case read another's page. */
+const scenes = new AsyncLocalStorage<Scene>()
+export const inScene = <T>(s: Scene, fn: () => Promise<T>): Promise<T> => scenes.run(s, fn)
 
 const ok = (result: string): ToolOutcome => ({ result, status: 'done' })
 
@@ -20,6 +20,7 @@ export function wrap<T extends { runTool: (name: string, args: Record<string, un
   return {
     ...real,
     runTool: async (name: string, args: Record<string, unknown>, ctx: never) => {
+      const scene = scenes.getStore() ?? {}
       switch (name) {
         case 'search_web':
           return ok(scene.search ?? 'No results found.')

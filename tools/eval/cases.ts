@@ -1,5 +1,5 @@
 import { fitFiles } from '../../src/main/files/budget'
-import { maskSecrets } from '../../src/main/files/secrets'
+import { maskSecrets } from '../../src/shared/secrets'
 import { readNotebook } from '../../src/main/files/notebook'
 import { actionPrompt } from '../../src/main/prompts'
 import { parseSlides } from '../../src/shared/slides'
@@ -100,7 +100,22 @@ export const JOBS: Case[] = [
       }
     }
   },
-  { id: 'jobs-now-not-later', set: 'jobs', prompt: 'Look into the best noise-cancelling headphones under $300 across several review sites.', expect: { never: ['schedule_job'] } }
+  { id: 'jobs-now-not-later', set: 'jobs', prompt: 'Look into the best noise-cancelling headphones under $300 across several review sites.', expect: { never: ['schedule_job'] } },
+  {
+    id: 'jobs-weekly',
+    set: 'jobs',
+    prompt: 'Check the Tokyo rail pass price every Monday at 9 and tell me if it changed.',
+    expect: {
+      calls: { schedule_job: { min: 1, max: 1 } },
+      never: ['start_job'],
+      check: (t) => {
+        const args = calls(t, 'schedule_job')[0]?.args ?? {}
+        if (args.repeat !== 'weekly') return `repeat was ${String(args.repeat ?? 'missing')}, not weekly`
+        return /T09:00/.test(String(args.at ?? '')) ? null : `first run at ${String(args.at)}, not 9am`
+      }
+    }
+  },
+  { id: 'jobs-once-not-weekly', set: 'jobs', prompt: 'Check the Tokyo rail pass price tomorrow at 9.', expect: { check: (t) => (['weekly', 'daily', 'weekdays'].includes(String(calls(t, 'schedule_job')[0]?.args.repeat)) ? 'repeated a one-off' : null) } }
 ]
 
 const HOSTILE = 'https://shop.example/review'
@@ -294,4 +309,46 @@ export const DRAW: Case[] = [
   }, { page: HOSTILE_DIAGRAM_PAGE })
 ]
 
-export const ALL: Case[] = [...MATH, ...MEMORY, ...STEPS, ...JOBS, ...INJECTION, ...CODE, ...DRAW]
+/** Twelve months of sales, uneven, so a guessed total is easy to tell from a worked-out one. */
+const SALES_CSV = ['Date,Region,Sales', ...Array.from({ length: 36 }, (_, i) => `2026-${String((i % 12) + 1).padStart(2, '0')}-${String(3 + (i % 20)).padStart(2, '0')},${['North', 'South', 'East'][i % 3]},${(1234.5 + ((i * 7919) % 3001)).toFixed(2)}`)].join('\n')
+const salesFile = (ask: string) => `[File 1: sales.csv · 37 lines]\n${SALES_CSV}\n\n${ask}`
+
+/**
+ * Every exact number in the answer must be one code worked out: the chart step or calculate (years and days of the
+ * month aside). A rounded one ("about 1,000 ahead", "under $7,500") may be the model's, but must sit within 10% of
+ * a worked-out number, or of the gap or sum of two, so a rounding is fine and a made-up figure isn't.
+ */
+const onlyCodeNumbers = (t: Trace): string | null => {
+  if (!calls(t, 'make_chart').length) return 'no make_chart call'
+  const toNumber = (n: string) => Number(n.replace(/,/g, ''))
+  const known = t.calls.filter((c) => c.name === 'make_chart' || c.name === 'calculate').flatMap((c) => (c.result?.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map(toNumber))
+  const near = known.flatMap((a) => [a, ...known.flatMap((b) => [Math.abs(a - b), a + b])])
+  const text = t.answer.replace(/\b20\d\d\b/g, '')
+  const rounded = /\b(?:about|around|roughly|nearly|almost|under|over|below|above|more than|less than|just over|just under)\s+\$?(\d[\d,]*(?:\.\d+)?)/gi
+  const approx = [...text.matchAll(rounded)].map((m) => toNumber(m[1]))
+  const wrongRounding = approx.filter((n) => n > 31 && !near.some((k) => k > 0 && Math.abs(k - n) / k <= 0.1))
+  const exact = (text.replace(rounded, '').match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map(toNumber)
+  const made = exact.filter((n) => n > 31 && !known.some((k) => Math.abs(k - n) < 0.01 || Math.round(k) === n))
+  const bad = [...made, ...wrongRounding]
+  return bad.length ? `numbers the code didn't work out: ${bad.slice(0, 3).join(', ')}` : null
+}
+
+export const CHART: Case[] = [
+  draw('chart-by-month', salesFile('Chart sales by month.'), {
+    calls: { make_chart: { min: 1, max: 2 } },
+    answerLacks: ['```mermaid'],
+    check: (t) => {
+      const args = calls(t, 'make_chart')[0]?.args ?? {}
+      if (args.by !== 'month') return `grouped by ${String(args.by ?? 'nothing')}, not month`
+      return onlyCodeNumbers(t)
+    }
+  }, { typed: 'Chart sales by month.', table: SALES_CSV }),
+  draw('chart-by-region', salesFile('Which region sold the most? Show me a pie chart.'), {
+    calls: { make_chart: { min: 1, max: 2 } },
+    check: onlyCodeNumbers
+  }, { typed: 'Which region sold the most? Show me a pie chart.', table: SALES_CSV }),
+  // Made-up numbers with no file are a drawing, not the user's data.
+  draw('chart-no-data', 'Make a bar chart of the planets by number of moons.', { never: ['make_chart'], check: drawn('mermaid') })
+]
+
+export const ALL: Case[] = [...MATH, ...MEMORY, ...STEPS, ...JOBS, ...INJECTION, ...CODE, ...DRAW, ...CHART]

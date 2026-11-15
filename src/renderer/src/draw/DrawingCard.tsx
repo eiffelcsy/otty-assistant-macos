@@ -23,8 +23,15 @@ const SAID: Record<DrawingResult, string | null> = {
   failed: 'Otty couldn’t do that'
 }
 
+/** A chart of the user's data (D-35): Otty wrote the Mermaid from its own numbers, so See the text shows those. */
+export interface ChartInfo {
+  table: string
+}
+
+const CHART_RETRY = 'The chart didn’t draw. Call make_chart again, maybe with fewer bars.'
+
 /** A diagram, picture or deck drawn on the Mac from the model's text, with ways to take it elsewhere. */
-export function DrawingCard({ kind, code, host }: { kind: DrawingKind; code: string; host: DrawingHost }) {
+export function DrawingCard({ kind, code, host, chart }: { kind: DrawingKind; code: string; host: DrawingHost; chart?: ChartInfo }) {
   const [drawn, setDrawn] = useState<Drawn | null>(null)
   const [showText, setShowText] = useState(false)
   const [said, setSaid] = useState<string | null>(null)
@@ -53,7 +60,7 @@ export function DrawingCard({ kind, code, host }: { kind: DrawingKind; code: str
     try {
       const d =
         drawn.kind === 'picture'
-          ? { kind: 'picture' as const, svg: drawn.dataUrl, width: drawn.width, height: drawn.height, background: (await renderer()).theme().bg, name: NAMES[kind] }
+          ? { kind: 'picture' as const, svg: drawn.dataUrl, width: drawn.width, height: drawn.height, background: (await renderer()).theme().bg, name: chart ? 'Otty chart' : NAMES[kind] }
           : { kind: 'slides' as const, html: drawn.html, name: NAMES[kind] }
       flash(SAID[await window.otty.exportDrawing(d, how)])
     } finally {
@@ -70,7 +77,7 @@ export function DrawingCard({ kind, code, host }: { kind: DrawingKind; code: str
     )
   }
 
-  const label = kind === 'slides' ? 'slides' : 'drawing'
+  const label = kind === 'slides' ? 'slides' : chart ? 'chart' : 'drawing'
   return (
     <div className={`drawing-card drawing-card--${kind}`}>
       <div className="drawing-card__stage">
@@ -82,7 +89,7 @@ export function DrawingCard({ kind, code, host }: { kind: DrawingKind; code: str
         ) : drawn.kind === 'error' ? (
           <div className="drawing-card__error">
             <span>This {label} didn’t come out right.</span>
-            <button className="copy-btn drawing-card__retry" onClick={() => host.ask(retryPrompt(kind, drawn.error))}>
+            <button className="copy-btn drawing-card__retry" onClick={() => host.ask(chart ? CHART_RETRY : retryPrompt(kind, drawn.error))}>
               <Icon name="refresh" />
               Try again
             </button>
@@ -129,14 +136,14 @@ export function DrawingCard({ kind, code, host }: { kind: DrawingKind; code: str
           </button>
           <button className="copy-btn drawing-card__text-btn" aria-pressed={showText} onClick={() => setShowText((v) => !v)}>
             <Icon name="code-simple" />
-            {showText ? 'Hide the text' : 'See the text'}
+            {showText ? (chart ? 'Hide the numbers' : 'Hide the text') : chart ? 'See the numbers' : 'See the text'}
           </button>
           {said && <span className="drawing-card__said">{said}</span>}
         </div>
       )}
       {showText && (
         <pre className="drawing-card__code">
-          <code>{code}</code>
+          <code>{chart?.table ?? code}</code>
         </pre>
       )}
     </div>

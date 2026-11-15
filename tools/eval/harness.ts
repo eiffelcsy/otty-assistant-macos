@@ -4,8 +4,10 @@ import { systemPrompt } from '../../src/main/prompts'
 import { toolDefs } from '../../src/main/tools'
 import type { ToolOutcome } from '../../src/main/tools'
 import type { Provider, Message } from '../../src/main/providers'
+import { buildChart } from '../../src/main/chart'
+import { parseTable } from '../../src/shared/table'
 import { score } from './score'
-import { setScene } from './stubTools'
+import { inScene } from './stubTools'
 import type { Call, Case, CaseResult, Trace } from './types'
 
 const ok: ToolOutcome = { result: 'Done.', status: 'done' }
@@ -15,7 +17,7 @@ export function userText(c: Case, now = new Date('2026-11-09T10:00:00')): string
   const app = c.app ? `[I'm using ${c.app}.]\n\n` : ''
   const known = c.known ? `\n[What you know about the user: ${c.known}]` : ''
   // The same per-turn hints the app adds (llm.ts), from the user's own words and the app's name.
-  const hints = turnHints({ typed: c.typed ?? c.prompt, app: c.app?.split(',')[0] ?? null, learn: true })
+  const hints = turnHints({ typed: c.typed ?? c.prompt, app: c.app?.split(',')[0] ?? null, learn: true, table: Boolean(c.table) })
     .map((h) => `\n${h}`)
     .join('')
   return `${app}${c.prompt}\n\n[Current local time: ${now.toString().slice(0, 21)}]${known}${hints}`
@@ -23,7 +25,6 @@ export function userText(c: Case, now = new Date('2026-11-09T10:00:00')): string
 
 /** Runs one case through the real loop and system prompt, with the model service given. */
 export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: number } = {}): Promise<CaseResult> {
-  setScene({ search: c.search, page: c.page })
   const history: Message[] = [{ role: 'user', content: userText(c) }]
   const started = performance.now()
   let firstTokenMs: number | null = null
@@ -31,7 +32,7 @@ export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: n
   let rounds = 0
   let error: string | undefined
   try {
-    await runLoop({
+    await inScene({ search: c.search, page: c.page }, () => runLoop({
       provider: () => provider,
       system: systemPrompt(null, true, true),
       history,
@@ -42,7 +43,9 @@ export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: n
         knownUrl: () => true,
         learn: { remember: () => ok, forget: () => ok },
         showSteps: () => ok,
-        startJob: async () => ok
+        startJob: async () => ok,
+        scheduleJob: async () => ok,
+        makeChart: (args) => chartFor(c, args)
       },
       maxRounds: 6,
       signal: AbortSignal.timeout(opts.timeoutMs ?? 120_000),
@@ -58,7 +61,7 @@ export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: n
           answer = typeof m.content === 'string' ? m.content : ''
         }
       }
-    })
+    }))
   } catch (err) {
     error = (err as Error).message
   }
@@ -66,8 +69,17 @@ export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: n
   return { id: c.id, set: c.set, trace, ...score(c.expect, trace) }
 }
 
+/** The app's own chart step, on the case's table: what the model gets back is exactly what it would in Otty. */
+export function chartFor(c: Case, args: Record<string, unknown>): ToolOutcome {
+  const table = c.table ? parseTable(c.table, 'sales.csv') : null
+  if (!table) return { result: 'There’s no table in this chat that Otty can read.', status: 'error' }
+  const built = buildChart(table, args)
+  return typeof built === 'string' ? { result: built, status: 'error' } : { result: built.result, status: 'done' }
+}
+
 /** Every tool call the model made, with its arguments, in order. */
 export function callsIn(history: Message[]): Call[] {
+  const results = new Map(history.flatMap((m) => (m.role === 'tool' ? [[m.tool_call_id, m.content] as const] : [])))
   return history.flatMap((m) =>
     m.role === 'assistant'
       ? (m.tool_calls ?? []).map((tc) => {
@@ -77,7 +89,8 @@ export function callsIn(history: Message[]): Call[] {
           } catch {
             /* bad JSON counts as empty, as the loop treats it */
           }
-          return { name: tc.function.name, args }
+          const result = results.get(tc.id)
+          return { name: tc.function.name, args, ...(result !== undefined ? { result } : {}) }
         })
       : []
   )

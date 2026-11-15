@@ -2,6 +2,7 @@ import { useContext, useState } from 'react'
 import type { AppInfo, Capture, MemoryNote, ScreenContext, ToolChipInfo, UsedMemory } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { StepCard } from '../components/StepCard'
+import { DrawingCard } from '../draw/DrawingCard'
 import { capturedText } from '../../../shared/captures'
 import { withoutFixedFence } from '../../../shared/diff'
 import type { Assistant, UiMessage } from '../lib/useChat'
@@ -181,6 +182,17 @@ function UsedLine({ used }: { used: UsedMemory[] }) {
   )
 }
 
+/** Under a question: keys Otty took out of what was typed or highlighted before sending it (D-32). */
+export function HiddenLine({ hidden }: { hidden?: number }) {
+  if (!hidden) return null
+  return (
+    <div className="hidden-line" title="Things that looked like keys or passwords became [hidden key], here and in what was sent">
+      <Icon name="shield-check" />
+      <span>{hidden === 1 ? 'Otty hid 1 key before sending' : `Otty hid ${hidden} keys before sending`}</span>
+    </div>
+  )
+}
+
 /** A sum Otty worked out by itself, with no model call. */
 function CalcCard({ calc }: { calc: NonNullable<Assistant['calc']> }) {
   return (
@@ -211,6 +223,9 @@ export function AssistantMessage({ m, again, found, source = '' }: { m: Assistan
           </ProofreadContext.Provider>
         </div>
       )}
+      {m.charts?.map((c, i) => (
+        <DrawingCard key={i} kind="mermaid" code={c.code} chart={{ table: c.table }} host={{ done: !m.streaming, ask: (text) => ask(text) }} />
+      ))}
       {m.steps && <StepCard answerId={m.id} card={m.steps} stuck={!m.streaming} />}
       {m.confirm && (
         <div className="confirm-card">

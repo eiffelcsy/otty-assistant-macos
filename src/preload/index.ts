@@ -36,6 +36,7 @@ const api: OttyApi = {
   resumeActivity: (id) => ipcRenderer.invoke('activity:resume', id),
   openActivity: (item) => ipcRenderer.invoke('activity:open', item),
   seenActivity: () => ipcRenderer.invoke('activity:seen'),
+  listSent: () => ipcRenderer.invoke('sent:list'),
   onActivity: (cb) => listen('activity:changed', cb),
   setChatLearn: (on) => ipcRenderer.invoke('chat:learn', on),
   listMemories: () => ipcRenderer.invoke('memory:list'),

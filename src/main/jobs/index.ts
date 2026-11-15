@@ -7,6 +7,7 @@ import { LIMITS } from './limits'
 import { compareWithQuestions, type UsageSummary } from '../usage'
 import { MemoryJobStore, SqliteJobStore } from './stores'
 import type { JobStore } from './types'
+import type { MonthlyCap } from '../../shared/types'
 
 export { JobRunner } from './runner'
 
@@ -18,7 +19,7 @@ function store(): JobStore {
   return getStored().rememberChats ? (saved ??= new SqliteJobStore(database())) : inMemory
 }
 
-export function createRunner(onChange: (news: boolean) => void): JobRunner {
+export function createRunner(onChange: (news: boolean) => void, overCap: () => MonthlyCap | null): JobRunner {
   return new JobRunner({
     store,
     provider: activeProvider,
@@ -26,6 +27,7 @@ export function createRunner(onChange: (news: boolean) => void): JobRunner {
     webOff: () => activeProfile().web === 'off',
     home: () => getStored().homeLanguage,
     held: () => getStored().workPaused,
+    overCap,
     saveThread: async (thread) => {
       if (getStored().rememberChats) await chatStore().write(thread)
     },

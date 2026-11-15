@@ -3,6 +3,7 @@ import type { Message } from '../providers'
 import { compact } from '../store/db'
 import { stripHistory } from '../store/images'
 import type { Job, JobChange, JobStatus, JobStore } from './types'
+import { readRepeat } from '../../shared/repeat'
 
 const FINISHED: JobStatus[] = ['done', 'failed']
 
@@ -25,34 +26,41 @@ interface Row {
   due_at: number | null
   ran_late: number
   tokens: number
+  repeat: string | null
+  series_id: string | null
   created_at: number
   updated_at: number
   seen_at: number | null
 }
 
-const toJob = (r: Row): Job => ({
-  id: r.id,
-  title: r.title,
-  brief: r.brief,
-  status: r.status,
-  seedUrls: JSON.parse(r.seed_urls),
-  denied: JSON.parse(r.denied_urls),
-  ...(r.source_thread ? { sourceThread: r.source_thread } : {}),
-  ...(r.result_thread ? { resultThread: r.result_thread } : {}),
-  language: r.language,
-  rounds: r.rounds,
-  lookups: r.lookups,
-  workedMs: r.worked_ms,
-  ...(r.tokens ? { tokens: r.tokens } : {}),
-  ...(r.wait_url ? { waitUrl: r.wait_url } : {}),
-  ...(r.error ? { error: r.error } : {}),
-  partial: Boolean(r.partial),
-  ...(r.due_at ? { dueAt: r.due_at } : {}),
-  ...(r.ran_late ? { ranLate: true } : {}),
-  createdAt: r.created_at,
-  updatedAt: r.updated_at,
-  ...(r.seen_at ? { seenAt: r.seen_at } : {})
-})
+const toJob = (r: Row): Job => {
+  const repeat = readRepeat(r.repeat)
+  return {
+    id: r.id,
+    title: r.title,
+    brief: r.brief,
+    status: r.status,
+    seedUrls: JSON.parse(r.seed_urls),
+    denied: JSON.parse(r.denied_urls),
+    ...(r.source_thread ? { sourceThread: r.source_thread } : {}),
+    ...(r.result_thread ? { resultThread: r.result_thread } : {}),
+    language: r.language,
+    rounds: r.rounds,
+    lookups: r.lookups,
+    workedMs: r.worked_ms,
+    ...(r.tokens ? { tokens: r.tokens } : {}),
+    ...(r.wait_url ? { waitUrl: r.wait_url } : {}),
+    ...(r.error ? { error: r.error } : {}),
+    partial: Boolean(r.partial),
+    ...(r.due_at ? { dueAt: r.due_at } : {}),
+    ...(r.ran_late ? { ranLate: true } : {}),
+    ...(repeat ? { repeat } : {}),
+    ...(r.series_id ? { seriesId: r.series_id } : {}),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    ...(r.seen_at ? { seenAt: r.seen_at } : {})
+  }
+}
 
 const COLUMNS: Record<string, string> = {
   title: 'title',
@@ -85,10 +93,26 @@ export class SqliteJobStore implements JobStore {
   async add(j: Job): Promise<void> {
     this.db
       .prepare(
-        `insert into jobs(id, title, brief, status, seed_urls, denied_urls, source_thread, language, due_at, created_at, updated_at)
-         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `insert into jobs(id, title, brief, status, seed_urls, denied_urls, source_thread, language, due_at, ran_late, repeat, series_id, error, created_at, updated_at)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(j.id, j.title, j.brief, j.status, JSON.stringify(j.seedUrls), JSON.stringify(j.denied), j.sourceThread ?? null, j.language, j.dueAt ?? null, j.createdAt, j.updatedAt)
+      .run(
+        j.id,
+        j.title,
+        j.brief,
+        j.status,
+        JSON.stringify(j.seedUrls),
+        JSON.stringify(j.denied),
+        j.sourceThread ?? null,
+        j.language,
+        j.dueAt ?? null,
+        j.ranLate ? 1 : 0,
+        j.repeat ? JSON.stringify(j.repeat) : null,
+        j.seriesId ?? null,
+        j.error ?? null,
+        j.createdAt,
+        j.updatedAt
+      )
   }
 
   async update(id: string, change: JobChange): Promise<void> {

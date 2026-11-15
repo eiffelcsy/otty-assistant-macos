@@ -9,14 +9,15 @@ import type {
   Memory,
   OttyApi,
   PanelOpenPayload,
-  PublicSettings
+  PublicSettings,
+  SentItem
 } from '../../src/shared/types'
 import { searchThreads } from '../../src/main/store/search'
 import { draw } from '../../src/renderer/src/draw/render'
 import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|steps|activity|history|find (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -70,7 +71,8 @@ const settings: PublicSettings = {
   workPaused: false,
   notifyDone: false,
   openAtLogin: false,
-  canOpenAtLogin: true
+  canOpenAtLogin: true,
+  monthlyCap: scene === 'settings' || scene === 'cap' ? { unit: 'questions', limit: 300 } : null
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -123,6 +125,36 @@ flowchart LR
   M["Mothers"] --- P["Pups"]
   P --- R["Raft"]
 ~~~`
+const CHART = `xychart-beta
+  title "Total Sales by Month"
+  x-axis ["Jan 2026", "Feb 2026", "Mar 2026", "Apr 2026", "May 2026", "Jun 2026"]
+  y-axis "Sales" 0 --> 17600
+  bar [12400, 9800, 14100, 16000, 11250, 13900]`
+const chartSample: ChatMessage[] = [
+  {
+    id: 'u1',
+    role: 'user',
+    text: 'Chart sales by month',
+    captures: [],
+    app: null,
+    files: [{ id: 'f1', name: 'Budget.csv', kind: 'text' }],
+    hidden: 1
+  },
+  {
+    id: 'a1',
+    role: 'assistant',
+    tools: [{ callId: 't1', label: 'Worked out the chart', icon: 'chart-histogram', status: 'done' }],
+    text: 'April was the best month at **16,000**, and February the quietest at **9,800**. Over the six months, sales came to **77,450**.',
+    charts: [
+      {
+        title: 'Total Sales by Month',
+        code: CHART,
+        table: '| Month | Sales |\n| --- | ---: |\n| Jan 2026 | 12,400 |\n| Feb 2026 | 9,800 |\n| Mar 2026 | 14,100 |\n| Apr 2026 | 16,000 |\n| May 2026 | 11,250 |\n| Jun 2026 | 13,900 |'
+      }
+    ]
+  }
+]
+
 const drawingSample: ChatMessage[] = [
   { id: 'u1', role: 'user', text: 'Draw how a bill becomes a law', captures: [], app: null },
   { id: 'a1', role: 'assistant', tools: [], text: 'Here’s the path, from an idea to a law:\n\n```mermaid\n' + FLOW + '\n```' },
@@ -240,8 +272,23 @@ const activitySample: ActivityItem[] = [
   { id: 'j4', kind: 'job', title: 'Visa rules for Japan', state: 'working', pages: 3, unseen: false },
   { id: 'j5', kind: 'job', title: 'Hotels near Ueno', state: 'queued', pages: 0, unseen: false },
   { id: 'j6', kind: 'job', title: 'Tokyo rail pass price', state: 'scheduled', pages: 0, dueAt: Date.now() + 14 * 3.6e6, unseen: false },
+  { id: 'j8', kind: 'job', title: 'Rail pass price', state: 'scheduled', pages: 0, dueAt: Date.now() + 3 * 864e5, repeat: 'every Monday at 9:00 AM', unseen: false },
+  { id: 'j9', kind: 'job', title: 'Ferry times to Lantau', state: 'paused', pages: 0, note: 'You’ve reached this month’s limit of 300 questions. Run it anyway?', overCap: true, unseen: false },
   { id: 'j7', kind: 'job', title: 'Flight prices to Osaka', state: 'done', pages: 6, chatId: '1', note: 'Looked a little late: it was due today at 9:00 AM, but Otty wasn’t running then.', unseen: false },
   { id: 'a1', kind: 'answer', title: 'Explain this simply “Requests beyond…”', state: 'working', pages: 0, chatId: '1', unseen: false }
+]
+
+const ago = (m: number) => Date.now() - m * 60_000
+const sentSample: SentItem[] = [
+  { id: 9, at: ago(2), kind: 'question', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '1', what: 'Budget.csv · 1 key hidden', count: 2 },
+  { id: 8, at: ago(2), kind: 'search', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '1', what: 'rail pass prices 2026', count: 1 },
+  { id: 7, at: ago(3), kind: 'page', service: 'jrailpass.com', host: 'jrailpass.com', local: false, chatId: '1', what: 'https://jrailpass.com/prices', count: 1 },
+  { id: 6, at: ago(4), kind: 'title', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '1', what: '', count: 1 },
+  { id: 5, at: ago(30), kind: 'explain', service: 'DeepSeek', host: 'api.deepseek.com', local: false, what: 'rate limiting', count: 1 },
+  { id: 4, at: ago(90), kind: 'job', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '2', what: 'Cheapest way from Hong Kong to Tokyo', count: 9 },
+  { id: 3, at: ago(200), kind: 'search', service: 'Wikipedia and DuckDuckGo', host: 'wikipedia.org', local: false, chatId: '2', what: 'sea otter', count: 1 },
+  { id: 2, at: ago(1500), kind: 'question', service: 'the model on this Mac', host: 'localhost:11434', local: true, chatId: '3', what: '1 highlight', count: 1 },
+  { id: 1, at: ago(3000), kind: 'check', service: 'DeepSeek', host: 'api.deepseek.com', local: false, what: 'a test message', count: 1 }
 ]
 
 let memories: Memory[] = [
@@ -341,7 +388,18 @@ const api: OttyApi = {
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
   relaunch: noop,
-  getUsage: async () => ({ days: 30, questions: 142, tokens: 1_840_000, searches: 37, pages: 21, jobs: 4, service: 'DeepSeek', usageUrl: 'https://platform.deepseek.com/usage' }),
+  getUsage: async () => ({
+    days: 30,
+    questions: 142,
+    tokens: 1_840_000,
+    searches: 37,
+    pages: 21,
+    jobs: 4,
+    month: { questions: scene === 'cap' ? 312 : 96, tokens: 1_200_000 },
+    service: 'DeepSeek',
+    usageUrl: 'https://platform.deepseek.com/usage',
+    ...(settings.monthlyCap ? { cap: { ...settings.monthlyCap, used: scene === 'cap' ? 312 : 96, over: scene === 'cap' } } : {})
+  }),
   sendMessage: async (text, captures, opts) => fakeAnswer(text, captures, opts?.language, opts?.files),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
@@ -373,6 +431,7 @@ const api: OttyApi = {
   retryActivity: noop,
   openActivity: noop,
   seenActivity: noop,
+  listSent: async () => (q.get('sent') === 'none' ? [] : sentSample),
   onActivity: () => () => {},
   setChatLearn: async (on) => emit({ type: 'learn', on }),
   listMemories: async () => memories,
@@ -447,6 +506,7 @@ const api: OttyApi = {
     if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
     if (scene === 'code') setTimeout(() => cb({ type: 'load', messages: codeSample }), 50)
     if (scene === 'drawing') setTimeout(() => cb({ type: 'load', messages: drawingSample }), 50)
+    if (scene === 'chart' || scene === 'cap') setTimeout(() => cb({ type: 'load', messages: chartSample }), 50)
     if (scene === 'memory') setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}
@@ -460,6 +520,7 @@ const api: OttyApi = {
     trayed.panel = true
     if (scene === 'settings' || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
     if (scene === 'memories') setTimeout(() => cb({ context: null, notice: 'open-memory' }), 80)
+    if (scene === 'activity') setTimeout(() => cb({ context: null, notice: 'open-activity' }), 80)
     if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)
     if (scene === 'history') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 120)
     return () => {}

@@ -41,7 +41,7 @@ describe.skipIf(!key)('Otty eval', () => {
       Array.from({ length: 4 }, async () => {
         while (next < cases.length) {
           const c = cases[next++]
-          const r = await runCase(c, activeProvider())
+          const r = await runCase(c, activeProvider({ kind: 'check', what: 'an eval case' }))
           results.push(r)
           console.log(`${r.pass ? 'pass' : 'FAIL'}  ${r.id}${r.pass ? '' : `  — ${r.reasons.join('; ')}`}`)
         }

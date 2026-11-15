@@ -35,6 +35,7 @@ vi.mock('../tools', () => ({
 }))
 const { ChatSession, cleanTitle, explainTerm, testConnection } = await import('../llm')
 const { isKnownUrl } = await import('../knownUrls')
+const { MemorySentLog, setSentLog } = await import('../sent')
 
 interface Sent {
   role: string
@@ -670,5 +671,68 @@ describe('a chat on Claude', () => {
     await session.send('Sure?', [], null)
     expect(bodies[0].messages.map((m) => m.role)).toEqual(['user', 'assistant', 'user', 'assistant', 'user'])
     expect(bodies[0].messages[1].content).toEqual([{ type: 'tool_use', id: 'call-1', name: 'search_web', input: { query: 'otters' } }])
+  })
+})
+
+describe('what left the Mac (D-31) and hidden keys (D-32)', () => {
+  const highlight = (text: string): Capture => ({ id: 'c2', context: { kind: 'text', text }, app: { name: 'Terminal' } })
+
+  it('notes every request of a turn under one row, with what went but never the words', async () => {
+    const log = new MemorySentLog()
+    setSentLog(() => log)
+    const session = new ChatSession(() => {})
+    replies = [toolCall(), answer('Done.')]
+    await session.send('Why is my budget so high?', [highlight('Rent\t1200\nFood\t400\nFun\t300')], null)
+    const rows = log.list()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ kind: 'question', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: session.threadId, what: '1 highlight', count: 2 })
+    expect(JSON.stringify(rows)).not.toMatch(/budget|Rent/)
+    setSentLog(() => null)
+  })
+
+  it('notes explanations and connection checks too, so no request goes unlisted', async () => {
+    const log = new MemorySentLog()
+    setSentLog(() => log)
+    await explainTerm('idempotent', 'It is idempotent.')
+    await testConnection()
+    const kinds = log.list().map((r) => r.kind)
+    expect(kinds[0]).toBe('check')
+    expect(kinds.at(-1)).toBe('explain')
+    setSentLog(() => null)
+  })
+
+  it('says nothing left for a model on this Mac', async () => {
+    const log = new MemorySentLog()
+    setSentLog(() => log)
+    baseUrl = 'http://localhost:11434/v1'
+    await new ChatSession(() => {}).send('Hello', [], null)
+    expect(log.list()[0]).toMatchObject({ local: true, service: 'the model on this Mac' })
+    setSentLog(() => null)
+  })
+
+  it('hides a key in highlighted text before it is sent or shown, and tells the model', async () => {
+    const events: ChatEvent[] = []
+    const key = 'sk-proj-abcdefghijklmnopqrstuvwxyz123456'
+    await new ChatSession((e) => events.push(e)).send('What does this do?', [highlight(`export OPENAI_API_KEY=${key}\nnpm run dev`)], null)
+    const sent = JSON.stringify(requests[0])
+    expect(sent).not.toContain(key)
+    expect(sent).toContain('[hidden key]')
+    expect(sent).toMatch(/Otty hid something that looked like a key or password before sending/)
+    const user = events.find((e) => e.type === 'user') as Extract<ChatEvent, { type: 'user' }>
+    expect(user.hidden).toBe(1)
+    expect(JSON.stringify(user)).not.toContain(key)
+  })
+
+  it('hides a pasted key in typed words, but leaves NAME=value as typed', async () => {
+    const key = 'ghp_abcdefghijklmnopqrstuvwxyz0123456789'
+    await new ChatSession(() => {}).send(`is ${key} still valid? also DB_PASSWORD=hunter22`, [], null)
+    const sent = JSON.stringify(requests[0])
+    expect(sent).not.toContain(key)
+    expect(sent).toContain('DB_PASSWORD=hunter22')
+  })
+
+  it('adds no note when nothing was hidden, so the cache is unchanged', async () => {
+    await new ChatSession(() => {}).send('Hello', [], null)
+    expect(JSON.stringify(requests[0].messages.at(-1))).not.toMatch(/Otty hid/)
   })
 })

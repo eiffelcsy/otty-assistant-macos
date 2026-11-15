@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, MemoryNote, StepCard, ToolChipInfo, UsedMemory } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, MemoryNote, StepCard, ToolChipInfo, UsedMemory, ChartCard } from '../../../shared/types'
 
 export type ToolChip = ToolChipInfo
 
@@ -12,6 +12,7 @@ export type UiMessage =
       app: AppInfo | null
       language?: AnswerLanguage
       files?: FileAttachment[]
+      hidden?: number
     }
   | {
       id: string
@@ -26,6 +27,7 @@ export type UiMessage =
       used?: UsedMemory[]
       calc?: { expression: string; result: string }
       steps?: StepCard
+      charts?: ChartCard[]
     }
 
 export type Assistant = Extract<UiMessage, { role: 'assistant' }>
@@ -91,6 +93,9 @@ export function useChat(onReset?: () => void) {
             break
           case 'steps':
             patch((m) => ({ ...m, steps: e.card }))
+            break
+          case 'chart':
+            patch((m) => ({ ...m, charts: [...(m.charts ?? []), e.chart] }))
             break
           case 'memory-used':
             patch((m) => ({ ...m, used: e.used }))

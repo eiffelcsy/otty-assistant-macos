@@ -4,7 +4,7 @@ import { fitDocument, fitFiles, numberLines, sampleText } from '../budget'
 import { extract, FileError, kindOf } from '../extract'
 import { codeLanguage } from '../languages'
 import { OUTPUT_CHARS, readNotebook } from '../notebook'
-import { HIDDEN, maskSecrets } from '../secrets'
+import { HIDDEN, maskSecrets } from '../../../shared/secrets'
 
 const fixture = (name: string) => join(__dirname, 'fixtures', name)
 

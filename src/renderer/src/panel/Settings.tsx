@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { KeepChats, PublicSettings, UsageReport } from '../../../shared/types'
+import type { KeepChats, MonthlyCap, PublicSettings, UsageReport } from '../../../shared/types'
 import { serviceAt, serviceById } from '../../../shared/services'
 import { connectionReady, ConnectionFields } from '../components/ConnectionFields'
 import { HomeLanguagePicker } from '../components/HomeLanguagePicker'
@@ -26,8 +26,46 @@ function roughly(n: number): string {
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString()} ${n === 1 ? one : many}`
 
+const DEFAULT_CAP: MonthlyCap = { unit: 'questions', limit: 300 }
+
+/**
+ * A limit for the month (D-33). Past it, anything Otty would start by itself asks first; the user's own questions
+ * still go through. Questions or tokens, never money, because a price needs a dated table to be true.
+ */
+function CapField({ cap, month, onChange }: { cap: MonthlyCap | null; month: UsageReport['month']; onChange: (c: MonthlyCap | null) => void }) {
+  const used = cap ? month[cap.unit] : 0
+  return (
+    <div className="cap">
+      <label className="toggle">
+        <input type="checkbox" checked={Boolean(cap)} onChange={(e) => onChange(e.target.checked ? DEFAULT_CAP : null)} />
+        <span>Set a monthly limit</span>
+      </label>
+      {cap && (
+        <div className="cap__row">
+          <input
+            type="number"
+            min={1}
+            className="field cap__amount"
+            aria-label="Limit"
+            value={cap.limit}
+            onChange={(e) => onChange({ ...cap, limit: Math.max(1, Math.floor(Number(e.target.value) || 1)) })}
+          />
+          <select className="field cap__unit" aria-label="Counted in" value={cap.unit} onChange={(e) => onChange({ ...cap, unit: e.target.value as MonthlyCap['unit'] })}>
+            <option value="questions">questions</option>
+            <option value="tokens">tokens</option>
+          </select>
+          <span className="hint">
+            a month · {used.toLocaleString()} so far{used >= cap.limit ? ', so Otty asks before starting anything by itself' : ''}
+          </span>
+        </div>
+      )}
+      <span className="hint">Past it, Otty asks before it looks something up on its own, and doesn’t fetch explanations ahead. Your own questions still go through.</span>
+    </div>
+  )
+}
+
 /** What Otty has asked of the user's AI service lately. Counts from this Mac; the service's own page has the bill. */
-function UsageSection() {
+function UsageSection({ cap, onCap }: { cap: MonthlyCap | null; onCap: (c: MonthlyCap | null) => void }) {
   const [usage, setUsage] = useState<UsageReport | null>(null)
   useEffect(() => void window.otty.getUsage().then(setUsage), [])
   if (!usage) return null
@@ -55,6 +93,7 @@ function UsageSection() {
           See what it cost on {usage.service} <Icon name="arrow-up-right-from-square" />
         </button>
       )}
+      <CapField cap={cap} month={usage.month} onChange={onCap} />
     </section>
   )
 }
@@ -153,7 +192,7 @@ export function Settings({
         <HomeLanguagePicker value={form.homeLanguage} onChange={(v) => set('homeLanguage', v)} />
       </section>
 
-      <UsageSection />
+      <UsageSection cap={form.monthlyCap} onCap={(c) => set('monthlyCap', c)} />
 
       <MemorySection learn={form.learn} onLearn={(on) => set('learn', on)} focus={memoryFocus} onOpenChat={onOpenChat} />
 

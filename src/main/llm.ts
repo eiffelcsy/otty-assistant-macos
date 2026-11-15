@@ -2,9 +2,14 @@ import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
 import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ChatMessage, HomeLanguage, MemoryNote, QuickAction, UsedMemory, SendOptions, StepApp, StepCard } from '../shared/types'
 import { capturedText } from '../shared/captures'
+import { HIDDEN, maskSecrets } from '../shared/secrets'
+import { questionWhat } from './sent'
+import { tablesIn, type Table } from '../shared/table'
+import { buildChart } from './chart'
 import { mathTier } from '../shared/math'
 import { turnHints } from './hints'
 import { describeWhen, parseDue } from '../shared/when'
+import { firstRun, parseRepeat, repeatWords, runsPerMonth, type Repeat } from '../shared/repeat'
 import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
 import { fileBudget, fitFiles, sampleText, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
@@ -53,6 +58,8 @@ export interface JobRequest {
   language: AnswerLanguage
   /** Run it then, not now (ms since epoch). */
   dueAt?: number
+  /** And again after that (D-34). Only ever from a card the user agreed to. */
+  repeat?: Repeat
 }
 
 export interface SessionHooks {
@@ -62,6 +69,8 @@ export interface SessionHooks {
   startJob?(job: JobRequest): Promise<string | null>
   /** One line for the job card about what a look like this costs and where it stops. */
   jobCost?(): Promise<string>
+  /** True once this month's limit is reached (D-33): then nothing is fetched ahead in the background. */
+  overCap?(): boolean
 }
 
 /** Memory is a nice extra: it must never be the reason an answer fails. */
@@ -96,9 +105,33 @@ interface Turn {
   files: FileOutput[]
   language: AnswerLanguage
   home: HomeLanguage | null
+  /** Keys hidden in the typed words and highlighted text. Files carry their own count. */
+  hidden: number
+  /** What went with it, for "What left your Mac". */
+  sent: string
 }
 
 const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+/**
+ * Hides keys in what the user typed and highlighted before anything is sent or saved (D-32). Highlighted text gets
+ * the full check; typed words only lose well-known key shapes, because "my password is…" may be meant.
+ */
+export function hideKeys(typed: string, captures: Capture[]): { typed: string; captures: Capture[]; hidden: number } {
+  const own = maskSecrets(typed, { shapesOnly: true })
+  let hidden = own.hidden
+  const masked = captures.map((c): Capture => {
+    if (c.context.kind !== 'text') return c
+    const m = maskSecrets(c.context.text)
+    hidden += m.hidden
+    return m.hidden ? { ...c, context: { ...c.context, text: m.text } } : c
+  })
+  return { typed: own.text, captures: masked, hidden }
+}
+
+/** Told to the model, so it doesn't ask what the gap is or guess at it. */
+const hiddenNote = (n: number): string =>
+  n ? `[Otty hid ${n === 1 ? 'something that looked like a key or password' : `${n} things that looked like keys or passwords`} before sending: they show as ${HIDDEN}. Don’t guess what they were.]` : ''
 
 function appLine(app: AppInfo | null): string {
   if (!app) return ''
@@ -173,6 +206,11 @@ export class ChatSession {
   private forgotten = new Set<string>()
   /** What went wrong with a step, for the model to hear with the next question. */
   private stepNotes = new Map<string, string[]>()
+  /**
+   * Tables attached or highlighted in each chat, newest first, for make_chart (D-35). Kept in memory only, like the
+   * files themselves: after a restart, Otty asks for the file again rather than charting from a summary.
+   */
+  private tables = new Map<string, Table[]>()
 
   constructor(
     private emit: (e: ChatEvent) => void,
@@ -263,6 +301,7 @@ export class ChatSession {
   /** The user deleted this chat (or all of them): stop and never save it again. */
   forget(id: string): void {
     this.forgotten.add(id)
+    this.tables.delete(id)
     this.stopChat(id)
     if (this.thread.id === id) this.reset()
   }
@@ -306,11 +345,12 @@ export class ChatSession {
 
   /** `text` is what the user sees; a quick action swaps in its own prompt for the model. */
   send(
-    text: string,
-    captures: Capture[],
+    rawText: string,
+    rawCaptures: Capture[],
     app: AppInfo | null,
     opts: Pick<SendOptions, 'language' | 'action' | 'files'> = {}
   ): Promise<void> {
+    const { typed: text, captures, hidden } = hideKeys(rawText, rawCaptures)
     const thread = this.thread
     // A new question in the same chat replaces its answer: one history can't take two turns at once.
     this.stopChat(thread.id)
@@ -337,7 +377,8 @@ export class ChatSession {
       app: captures.length ? null : app,
       language,
       at: Date.now(),
-      ...(files.length ? { files } : {})
+      ...(files.length ? { files } : {}),
+      ...(hidden ? { hidden } : {})
     }
     if (!thread.messages.length) {
       thread.title = titleFor(text, captures, files[0]?.name)
@@ -349,7 +390,18 @@ export class ChatSession {
     this.tell(thread, { type: 'user', ...userMsg })
 
     // Let a stopped turn finish cleaning up its own history before this one adds to it.
-    const turn: Turn = { typed: text, prompt, action: opts.action, captures, app, files: fitted, language, home }
+    const found = tablesIn([
+      ...prepared.flatMap((p) => (p.doc?.kind === 'text' ? [{ text: p.doc.text, source: p.meta.name }] : [])),
+      ...captures.flatMap((c) => (c.context.kind === 'text' ? [{ text: c.context.text, source: 'the highlighted table' }] : []))
+    ])
+    if (found.length) this.tables.set(thread.id, [...found, ...(this.tables.get(thread.id) ?? [])].slice(0, 5))
+    const sent = questionWhat({
+      files: files.map((f) => f.name),
+      highlights: captures.filter((c) => c.context.kind === 'text').length,
+      pictures: captures.filter((c) => c.context.kind === 'image').length,
+      hidden: hidden + files.reduce((n, f) => n + (f.hidden ?? 0), 0)
+    })
+    const turn: Turn = { typed: text, prompt, action: opts.action, captures, app, files: fitted, language, home, hidden, sent }
     const running = (this.queues.get(thread.id) ?? Promise.resolve()).then(() => this.answer(thread, turn))
     this.queues.set(thread.id, running)
     // Save the question now, so a crash mid-answer keeps it. setImmediate runs after the request has been sent,
@@ -436,8 +488,8 @@ export class ChatSession {
     const { note: known, used } = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
     const stepNotes = this.stepNotes.get(thread.id) ?? []
     this.stepNotes.delete(thread.id)
-    const hints = turn.action ? [] : turnHints({ typed: turn.typed, picture: captures.some((c) => c.context.kind === 'image'), app: where, learn: this.learns(thread) })
-    const note = [turnNote(language, home), known, ...hints, ...stepNotes].filter(Boolean).join('\n')
+    const hints = turn.action ? [] : turnHints({ typed: turn.typed, picture: captures.some((c) => c.context.kind === 'image'), app: where, learn: this.learns(thread), table: this.tables.has(thread.id) })
+    const note = [turnNote(language, home), known, hiddenNote(turn.hidden), ...hints, ...stepNotes].filter(Boolean).join('\n')
     history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), note) })
     const system = systemPrompt(home, activeProfile().web !== 'off', Boolean(getStored().learn))
     this.tell(thread, { type: 'start', id, language })
@@ -462,15 +514,18 @@ export class ChatSession {
     }
 
     try {
+      const sent = { kind: 'question' as const, chatId: thread.id, group: id, what: turn.sent }
       await runLoop({
-        provider: activeProvider,
+        provider: () => activeProvider(sent),
         system,
         history,
         tools: toolDefs,
         context: {
+          sent: { chatId: thread.id, group: id },
           confirm: (title, detail) => this.askConfirm(live, title, detail),
           knownUrl: (url) => isKnownUrl(url, history),
           showSteps: (args) => this.showSteps(thread, answer, args, captures[0]?.app ?? app),
+          makeChart: (args) => this.makeChart(thread, answer, args),
           startJob: (args) => this.offerJob(live, args, language),
           scheduleJob: (args) => this.offerJob(live, args, language, true),
           learn: {
@@ -529,7 +584,8 @@ export class ChatSession {
 
   /** Background work once an answer is complete. None of it touches the chat's history. */
   private afterAnswer(thread: Thread, answer: Answer, first: boolean): void {
-    for (const term of termsToWarm(answer.text)) void explainTerm(term, answer.text, answer.language ?? 'en')
+    // Past the month's limit, explanations are fetched when tapped, not ahead of time.
+    if (!this.hooks.overCap?.()) for (const term of termsToWarm(answer.text)) void explainTerm(term, answer.text, answer.language ?? 'en')
     if (first) void this.writeTitle(thread, answer.text)
   }
 
@@ -540,7 +596,7 @@ export class ChatSession {
     if (asked?.role !== 'user') return
     try {
       const question = [asked.text, capturedText(asked.captures)].filter(Boolean).join('\n')
-      const { text } = await activeProvider().complete({ messages: [{ role: 'user', content: titlePrompt(question, answer) }], maxTokens: 24, reasoning: 'least' })
+      const { text } = await activeProvider({ kind: 'title', chatId: thread.id }).complete({ messages: [{ role: 'user', content: titlePrompt(question, answer) }], maxTokens: 24, reasoning: 'least' })
       const title = cleanTitle(text)
       if (!title) return
       thread.title = title
@@ -564,19 +620,38 @@ export class ChatSession {
     const title = String(args.title ?? '').trim().slice(0, 80)
     const brief = String(args.brief ?? '').trim().slice(0, 2_000)
     if (!title || !brief || !this.hooks.startJob) return { result: 'That needs a title and a brief.', status: 'error' }
-    const dueAt = later ? parseDue(args.at) : null
-    if (later && !dueAt) return { result: 'That time isn’t usable: it has passed, is under a minute away, is more than a month off, or isn’t a time. Ask the user when they mean.', status: 'error' }
+    const asked = later ? parseDue(args.at) : null
+    if (later && !asked) return { result: 'That time isn’t usable: it has passed, is under a minute away, is more than a month off, or isn’t a time. Ask the user when they mean.', status: 'error' }
+    const repeat = asked && args.repeat !== undefined && args.repeat !== 'once' ? parseRepeat(args.repeat, asked) : null
+    if (asked && args.repeat !== undefined && args.repeat !== 'once' && !repeat) return { result: 'Repeats can be daily, weekdays or weekly. Ask the user which they mean.', status: 'error' }
+    const dueAt = asked && repeat ? firstRun(repeat, asked) : asked
     const cost = (await this.hooks.jobCost?.().catch(() => '')) ?? ''
     const costLine = cost ? `\n\n${cost}` : ''
+    const when = repeat && dueAt ? `${capitalised(repeatWords(repeat, dueAt))}, starting ${describeWhen(dueAt)}` : dueAt ? capitalised(describeWhen(dueAt)) : ''
+    const often = repeat ? ` That’s about ${runsPerMonth(repeat)} looks a month, each with its own note, until you cancel it in Activity.` : ''
     const detail = dueAt
-      ? `${capitalised(describeWhen(dueAt))}, Otty will look this up on public web pages, using your AI key, and leave a note in Activity. It won’t send or change anything. Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.${costLine}`
+      ? `${when}, Otty will look this up on public web pages, using your AI key, and leave a note in Activity. It won’t send or change anything.${often} Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.${costLine}`
       : `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.${costLine}`
-    if (!(await this.askConfirm(turn, dueAt ? 'Look into this later?' : 'Look into this in the background?', detail))) return { result: 'The user declined.', status: 'denied' }
+    const heading = repeat ? 'Check this regularly?' : dueAt ? 'Look into this later?' : 'Look into this in the background?'
+    if (!(await this.askConfirm(turn, heading, detail))) return { result: 'The user declined.', status: 'denied' }
     const thread = turn.thread
     const seedUrls = urlsIn(brief).filter((url) => isKnownUrl(url, thread.history))
-    const problem = await this.hooks.startJob({ title, brief, sourceThread: thread.id, seedUrls, language, ...(dueAt ? { dueAt } : {}) })
+    const problem = await this.hooks.startJob({ title, brief, sourceThread: thread.id, seedUrls, language, ...(dueAt ? { dueAt } : {}), ...(repeat ? { repeat } : {}) })
     if (problem) return { result: problem, status: 'error' }
+    if (repeat && dueAt) return { result: `Scheduled ${repeatWords(repeat, dueAt)}, starting ${describeWhen(dueAt)}. Each look leaves its own note in Activity.`, status: 'done' }
     return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in Activity.` : 'Started. The user will find the report in Activity.', status: 'done' }
+  }
+
+  /** A chart of the user's own table. Code adds it up; the model only said what to chart (D-35). */
+  private makeChart(thread: Thread, answer: Answer, args: Record<string, unknown>): ToolOutcome {
+    const tables = this.tables.get(thread.id) ?? []
+    if (!tables.length) return { result: 'There’s no table in this chat that Otty can read. Ask the user to attach the CSV or highlight the table again.', status: 'error' }
+    const named = typeof args.source === 'string' ? tables.find((t) => t.source.toLowerCase() === String(args.source).trim().toLowerCase()) : undefined
+    const built = buildChart(named ?? tables[0], args)
+    if (typeof built === 'string') return { result: built, status: 'error' }
+    answer.charts = [...(answer.charts ?? []), built.card].slice(-3)
+    this.tell(thread, { type: 'chart', id: answer.id, chart: built.card })
+    return { result: built.result, status: 'done' }
   }
 
   /** The card under an answer. `replaces` puts right the chat's last one, after the user got stuck. */
@@ -648,7 +723,7 @@ export class ChatSession {
 
 /** An explanation, or a failure with friendly words. Only real explanations are kept. */
 async function fetchExplanation(term: string, around: string, language: AnswerLanguage): Promise<string> {
-  const { text } = await activeProvider().complete({
+  const { text } = await activeProvider({ kind: 'explain', what: term }).complete({
     messages: [{ role: 'user', content: explainPrompt(term, around, language, getStored().homeLanguage) }],
     maxTokens: 300,
     reasoning: 'least'
@@ -678,7 +753,7 @@ export function cleanTitle(raw: string): string {
 async function canSeeImages(): Promise<boolean | null> {
   const png = nativeImage.createFromBitmap(Buffer.alloc(32 * 32 * 4, 200), { width: 32, height: 32 }).toPNG()
   try {
-    await activeProvider().complete({
+    await activeProvider({ kind: 'check', what: 'a small grey square, to see if the model can see pictures' }).complete({
       messages: [
         {
           role: 'user',
@@ -698,7 +773,7 @@ async function canSeeImages(): Promise<boolean | null> {
 
 export async function testConnection(): Promise<{ ok: boolean; message: string }> {
   try {
-    const reply = await activeProvider().complete({ messages: [{ role: 'user', content: 'Say hi in 3 words.' }], maxTokens: 20 })
+    const reply = await activeProvider({ kind: 'check', what: 'a test message' }).complete({ messages: [{ role: 'user', content: 'Say hi in 3 words.' }], maxTokens: 20 })
     const model = String(reply.model || getStored().model)
     const vision = await canSeeImages()
     const message =

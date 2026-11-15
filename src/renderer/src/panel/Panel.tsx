@@ -15,7 +15,7 @@ import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
 import { Activity } from './Activity'
 import { History } from './History'
-import { AppTag, AssistantMessage, CaptureList, sourceFor } from './Messages'
+import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor } from './Messages'
 import { FindBar } from './FindBar'
 import { Onboarding } from './Onboarding'
 import { Settings } from './Settings'
@@ -303,6 +303,7 @@ export function Panel() {
             <Activity
               items={activity}
               onOpen={() => setView('chat')}
+              onOpenChat={(id) => void window.otty.openChat(id).then(() => setView('chat'))}
               paused={settings.workPaused}
               onPause={(on) => void window.otty.saveSettings({ workPaused: on }).then(setSettings)}
             />
@@ -333,6 +334,7 @@ export function Panel() {
                       {m.captures.length > 0 && <CaptureList captures={m.captures} />}
                       {m.files && <FileList files={m.files} />}
                       <div className="msg__bubble">{m.text}</div>
+                      <HiddenLine hidden={m.hidden} />
                     </div>
                   ) : (
                     <AssistantMessage

@@ -73,7 +73,7 @@ describe('counting what the loop does', () => {
     })
     const usage: number[] = []
     await runLoop({
-      provider: activeProvider,
+      provider: () => activeProvider({ kind: "check" }),
       system: 's',
       history: [{ role: 'user', content: 'one plus one' }],
       tools: () => [],

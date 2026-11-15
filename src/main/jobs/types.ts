@@ -1,5 +1,6 @@
 import type { AnswerLanguage } from '../../shared/types'
 import type { Message } from '../providers'
+import type { Repeat } from '../../shared/repeat'
 
 // Background work (D-22). The truth about a job lives here, not in a process or a promise, so any of it can die and
 // the work carries on. Only the runner changes `status`.
@@ -35,12 +36,16 @@ export interface Job {
   dueAt?: number
   /** It started well after `dueAt`, because Otty wasn't running or the Mac was asleep. */
   ranLate?: boolean
+  /** A series (D-34): this row stays `scheduled`, `dueAt` is its next run, and each run is a job of its own. */
+  repeat?: Repeat
+  /** The series a run belongs to. */
+  seriesId?: string
   createdAt: number
   updatedAt: number
   seenAt?: number
 }
 
-export type JobChange = Partial<Omit<Job, 'id' | 'createdAt' | 'waitUrl' | 'error' | 'resultThread' | 'seenAt' | 'dueAt'>> & {
+export type JobChange = Partial<Omit<Job, 'id' | 'createdAt' | 'waitUrl' | 'error' | 'resultThread' | 'seenAt' | 'dueAt' | 'repeat' | 'seriesId'>> & {
   seenAt?: number | null
   dueAt?: number | null
   waitUrl?: string | null
