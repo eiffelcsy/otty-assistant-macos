@@ -460,9 +460,9 @@ How much Otty can do is limited by how much can be undone, explained and defende
 | Red-team sets: attacks in the eval that grow with every feature and every real attack, run before each release. Extends D-23's injection set | H | S–M | considering |
 | What left the Mac: a plain record of what was sent, to where and why | H | M | shipped (D-31) |
 | What left your Mac: filter by chat or service, and a weekly one-line summary ("42 requests, all to DeepSeek") | M | S | idea, from D-31 |
-| Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | considering, the base for "do, with undo" |
+| Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | → D-46 (v1: memories, jobs, lasting tools and step cards; rewind of a job or a day comes later) |
 | Why did you do that? on everything: one plain trail from action to job, trigger and the moment you agreed. Extends "Why did this happen?" | H | M | considering |
-| Taint tracking: code knows which runs touched outside text, and what they may do narrows to match | H | M | considering, builds on D-26's labels |
+| Taint tracking: code knows which runs touched outside text, and what they may do narrows to match | H | M | → D-41 for a chat turn (the search leak); per-connection taint comes with connections |
 | Grow the eval sets from the seed sizes (8 / 8 / 5 / 7 / 7) to the planned 40 / 30 / 20 / 15 / 20, adding a case for every real failure and every real attack | H | M | idea, from D-23 |
 | Run the eval's injection and safety sets in CI on a schedule, with a small key budget, so a prompt change that weakens a rule is caught before release | H | S | idea, from D-23 |
 | Cache hits in the eval's table: needs `Provider` to report usage, which no caller reads yet | L | S | idea, from D-23 |
@@ -485,6 +485,22 @@ How much Otty can do is limited by how much can be undone, explained and defende
 | Rewind: undo everything from one job, one chat from a given message, or one day, including what Otty learned from it | H | L | idea, needs the ledger |
 | Sandbox for anything generated: automations Otty writes run with the least they need | H | L | idea, before tools it builds |
 | Protect `otty.db`: encrypt it at rest, with the key in the Keychain, because a memory of someone's life is worth stealing | M | M | idea |
+
+## Runtime: the systems underneath
+
+The plumbing that AUTONOMY.md's "shape to build towards" needs. The pillar for each is trust or able. None of these is visible to users by itself, so each waits until a feature needs it, but the order matters: these compound on whatever is under them. Near-term fixes from the 2026-11-16 architecture review are D-41 to D-46.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| An append-only prompt builder: one place builds the system prompt and the turn's note, and its type can only add to the end, so the cache rule is built into the code instead of remembered by each caller (chats, jobs, `recall`, Look after me) | M | S | idea |
+| One timer for everything due: the job timer becomes a small scheduler for scheduled looks, the end of Pause until (D-39), series and Look after me's next look. Still one timer, no polling | M | S | idea, grows out of D-39 |
+| Event log and dispatcher (AUTONOMY idea 3): one typed record per thing that happened (question, timer, wake, job finished, app switch, later connections) in `otty.db`, a consent check per source, and a plain-code dispatcher. The first users are sleep and wake and the job timer, which already exist, so the shape is tested before Stage 3 | H | M | considering, before Stage 3 |
+| Job kinds: a `kind` column, so research, a series run, a goal and Look after me are separate executors behind D-43's state table, not more branches in one runner | H | M | idea, after D-43 |
+| Provenance ids on everything: each action, sent row, memory and job carries a `cause` id, so "Why did you do that?" is a walk up the chain rather than a search. D-46 starts it for actions | H | M | idea, after D-46 |
+| SQLite off the main thread for long searches: a worker with its own connection (WAL), and a latency budget for `chat_search` before `recall` and long-run memory search years of chats | M | M | idea, before `recall` |
+| Memory matching at scale: `forPrompt` scans every memory in JS (on purpose, for Chinese and short names). Time it at 5,000 memories, and add a prefilter if it passes a few milliseconds | L | S | idea |
+| Typed IPC from one table: channel names, input guards and `window.otty`'s types come from a single schema, so `index.ts`, the preload and `api.d.ts` can't drift | M | M | idea, after D-44 |
+| Jobs in a utility process, like `fileWorker.js`, for isolation and so a stuck job can't slow the UI. Measure first, as AUTONOMY.md asks | M | M | idea, needs D-45's electron-free loop |
 
 ## Parked / rejected (with reasons)
 
