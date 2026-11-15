@@ -55,7 +55,7 @@ Everything here is built, unless it says *Planned*. Priority: **P0** = core to O
 ### FR-3 Ask about highlighted text (P0)
 - FR-3.1 Selected text is captured without permanently changing the user's clipboard (text, HTML, RTF and images are restored).
 - FR-3.2 The captured text shows as a removable "context chip" above the input box.
-- FR-3.3 In the panel, quick-action tiles appear with the chip: **Explain simply**, **Summarize**, **Translate**, **What should I do?** A short phrase gets **What does it mean?**, **Explain simply** and **Translate** instead. A snip gets **What is this?**, **Explain simply**, **Read the text** and **What should I do?** With a home language there's also **Explain in 中文** for text (FR-14). The first tile is the ↵ default.
+- FR-3.3 In the panel, quick-action tiles appear with the chip: **Explain simply**, **Summarize**, **Translate**, **What should I do?** A short phrase gets **What does it mean?**, **Explain simply** and **Translate** instead. A snip gets **What is this?**, **Explain simply**, **Read the text** and **What should I do?** With a home language there's also **Explain in 中文** for text (FR-14). Text that looks like code, or comes from a code editor or terminal, gets **Explain this code**, **Find problems** and **Add comments** instead. The first tile is the ↵ default.
 - FR-3.4 If nothing is highlighted, the panel opens empty with friendly guidance and no error.
 - FR-3.5 If Accessibility permission is missing, Otty explains why it needs it in plain words, with a one-click "Open Settings" button.
 
@@ -131,10 +131,14 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 
 ### FR-12 File attachments (P1)
 - FR-12.1 The panel's paperclip button, dragging files onto the panel, or pasting a file copied in Finder attaches up to 5 files (25 MB each) to the next message. Each shows as a chip with its type, name and page count, "Reading…" while it's read, and a friendly reason when it can't be.
-- FR-12.2 Supported: PDF (text by page), Word `.docx`, pictures (PNG, JPEG, GIF, WebP, HEIC, TIFF, BMP) and text files (`.txt`, `.md`, `.csv`, `.json`, code). Scanned PDFs, other types, oversized or zip-bomb `.docx` files get a friendly message.
+- FR-12.2 Supported: PDF (text by page), Word `.docx`, `.doc`, `.rtf` and `.odt` (through macOS `textutil`), pictures (PNG, JPEG, GIF, WebP, HEIC, TIFF, BMP), text files (`.txt`, `.md`, `.csv`, …), code and Jupyter notebooks. Scanned PDFs, other types, oversized or zip-bomb `.docx` files get a friendly message.
 - FR-12.3 Documents are read in a separate utility process, so the app never freezes. Their text goes into the question as `[File n: name · pages]` blocks with page markers, and answers cite pages. A message's documents share a budget of about 48K tokens; when a file doesn't fit, only the first part is sent and both the user ("Otty read the first 40 of 120 pages") and the model are told.
-- FR-12.4 With files and an empty box, ↵ runs the first file action (**Summarize**, **Key points**, **Explain simply**; for pictures **What is this?**).
+- FR-12.4 With files and an empty box, ↵ runs the first file action (**Summarize**, **Key points**, **Explain simply**; for pictures **What is this?**; for code and notebooks **Explain this code**). With a home language, a file action on a document mostly in Chinese answers in Chinese.
 - FR-12.5 The original file is never copied. Saved chats keep the file's name, type and extracted text (so follow-ups work after reopening), never pictures. File names are searchable.
+- FR-12.6 Code files show their language and line count (**Python · 240 lines**), are sent with line numbers so answers cite lines, and offer **Explain this code**, **Find problems** and **Add comments**. Files with no extension (`Dockerfile`, `Makefile`) are recognised.
+- FR-12.7 Jupyter notebooks (`.ipynb`) are read cell by cell with their text outputs and errors; pictures and widgets are left out. Answers cite cells.
+- FR-12.8 Before any text or code file is sent, things that look like keys, tokens or passwords are replaced by `[hidden key]`, and the chip says how many. Saved chats only keep the masked text.
+- FR-12.9 Every code block in an answer has a **Copy** button.
 
 ### FR-13 Capture tray (P1)
 - FR-13.1 One question can carry up to 4 captures (highlights and snips), each with its own app tag, in the order collected. The same text twice is ignored; a fifth gets a friendly note.
@@ -187,6 +191,13 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-19.11 The panel says plainly when a shortcut can't work (a missing permission, or a shortcut another app owns) and offers the fix. An empty chat suggests things to ask, for the app the user came from and for abilities found only by asking.
 - FR-19.5 A report is a normal chat. **Activity** shows every job and running answer, with Stop, Allow, Keep going and Open.
 - FR-19.6 With **Remember my chats** off, nothing about a job is written to disk. Forgetting a chat removes its jobs.
+
+### FR-21 Drawings: diagrams and slides (P2, *Planned*, D-30)
+- FR-21.1 When a picture explains better, or the user asks for one, answers can include a diagram (flowchart, sequence, mind map, timeline, simple chart), a simple SVG picture, or a slide deck, drawn on the Mac with nothing fetched.
+- FR-21.2 Each drawing is a card with a one-sentence summary, **Show big**, **Copy as picture**, **Save as PNG / PDF** and **See the text**. Slides also have a present view (← →, Esc).
+- FR-21.3 A follow-up ("left to right", "add a slide on costs") makes a new card; earlier ones stay as they were.
+- FR-21.4 A drawing that doesn't come out never shows an error message from the drawing library; it offers **Try again**, which asks the model to fix it.
+- FR-21.5 Drawings never run scripts, follow links or load anything from the internet, whatever the model or a page writes. They survive saved chats, because they're kept as text.
 
 ### FR-20 Look after me (P2, *Planned*)
 - FR-20.1 One permission, asked for at onboarding and changeable in Settings, lets Otty offer wellbeing and productivity suggestions unprompted, including a greeting with a priority list for the next few hours. It says plainly what's sent and how often.

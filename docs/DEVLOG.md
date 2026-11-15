@@ -65,24 +65,27 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-23b | Otty eval: run it on DeepSeek, save the baseline, fix what it finds, and grow the sets | ⏳ | a key | S–M (1–2 days) |
-| D-25 | Fast and Best: two model slots | ⏳ | — | S (1 day) |
+| D-30 | Drawings: Mermaid diagrams, SVG and a typed slides format, drawn locally, with copy, save and present | ⏳ later (medium term) | its step 0 | L (6–8 days, in slices) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
+| D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S (1 day) |
 
-**Where things stand (2026-11-09).** Also built on a branch after a UX review: the health banner, the usage meter and job cost line, finished-work notifications, the otter's work mood, launch at login (D-28, as a setting that only the installed app can turn on) and try-asking chips with a visible Pause. D-23 (the harness and seed sets), D-26, D-24 and D-27 are built on branches and pass unit tests; **none has run against a real model or in the real app**. 0.5.0 was re-tagged on 2026-11-09 with the smoke-test fixes and rebuilt as a draft, waiting to be published. Earlier, as of 2026-11-08: 0.5.0 is tagged, and its release is a draft waiting to be published. Smoke-test steps 55–58 passed on DeepSeek. Steps 59–61 need other services and are **yet to be tested**, and steps 62–66 have no result yet. On `main` for the next release: memory (D-10), math (D-12), step cards (D-11) and Keep going (D-22); see CHANGELOG → Unreleased. All of it passes unit tests and the UI preview, but **none of it has run against a real model or on a real Mac app yet**: System Events actions, sleep and wake, and NFR-3 with a job running are all unmeasured. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
+**Where things stand (2026-11-15).** The smoke tests for everything up to 0.5.0's re-tag and the 2026-11-09 work are done. D-29 (code files and notebooks, with `.doc` / `.rtf` / `.odt`, code tiles for highlighted code and file actions in the document's language) is built on `feat/code-files` and passes unit tests and the UI preview, but **hasn't run on a real model or in the real app yet**. The eval (D-23) has never run on a real key. Launch at login is being checked on an installed build. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
-**Build order** (reassessed 2026-11-08 against the long-term direction: the relationship first, and trust as the ceiling)
-1. **Try it on a Mac:** smoke-test steps 67–88 on DeepSeek, then re-measure NFR-3 with a job running and after it ends. Everything since 0.5.0 is untried, and its safety rules depend on how a real model behaves, so building on it now would compound unknowns. Then publish 0.5.0, or replace it with the next release.
-2. **D-23b: run the eval.** The harness exists (`npm run eval`, with `OTTY_EVAL_KEY`). Run it on DeepSeek, save the baseline, fix what it finds, and grow the sets. Its injection set is the first piece of [the trust ceiling](AUTONOMY.md#the-trust-ceiling).
-3. **Try D-24 and D-27 on a Mac:** the smoke-test steps below, and NFR-3 with jobs scheduled. D-27 is the first time Otty starts something unasked.
-4. **Check launch at login on an installed build.** It's built, but an unsigned app may not be allowed to register as a login item; signing (an Apple Developer account) may be needed for other people's Macs.
-5. **D-25 Fast and Best.** Moved down: it saves money, but nothing waits on it.
-6. **Next candidates,** to promote when the above is done:
+Earlier, as of 2026-11-09: D-23 (the harness and seed sets), D-26, D-24, D-27 and the UX-review work (health banner, usage meter, notifications, work mood, launch at login, try-asking chips) were built on branches. 0.5.0 was re-tagged with the smoke-test fixes and rebuilt as a draft, waiting to be published.
+
+**Build order** (reassessed 2026-11-15: the relationship first, and trust as the ceiling)
+1. **D-23b: run the eval.** The harness exists (`npm run eval`, with `OTTY_EVAL_KEY`). Run it on DeepSeek, save the baseline, fix what it finds, and grow the sets. It now has a `code` set (8 cases) for D-29. Its injection set is the first piece of [the trust ceiling](AUTONOMY.md#the-trust-ceiling).
+2. **Try D-29 on a Mac:** smoke-test steps 107–111, then merge it. Check on the eval whether line numbers really improve line citations; if they don't, drop them (they cost about 10% more tokens on code).
+3. **Check launch at login on an installed build.** It's built, but an unsigned app may not be allowed to register as a login item; signing (an Apple Developer account) may be needed for other people's Macs.
+4. **Next candidates,** to promote when the above is done:
    - **The otter shows what's happening:** moods that mirror background work. It's a cheap relationship win now that jobs exist.
-   - **What left the Mac:** a plain record of what was sent, to where and why. Most useful once Otty starts work unasked.
+   - **What left the Mac:** a plain record of what was sent, to where and why. Most useful once Otty starts work unasked. D-29's hidden-key count is a natural first line in it.
    - **Signing and notarization:** needed before builds go to other people, and for launch at login. The `dmg` workflow can then sign with secrets.
-7. **Later: Look after me** (AUTONOMY.md, BRAINSTORM). The greeting, focus list and wellbeing suggestions are medium priority on purpose, because autonomy compounds on whatever is under it. Past that, AUTONOMY.md sets the long-term direction, and the trust ceiling sets the pace: each new level of reach ships with its undo, visibility and attack tests.
-8. Then **D-1**, starting with its step 0, which may shrink it. The OCR helper is already built. **D-14** waits until it's picked back up.
+5. **D-30 Drawings**, starting with its step 0. Medium term: it's the first answer that is more than text, so it should land on a measured eval and a trusted base, and its present view is a step towards the full app.
+6. **Later: Look after me** (AUTONOMY.md, BRAINSTORM). The greeting, focus list and wellbeing suggestions are medium priority on purpose, because autonomy compounds on whatever is under it. Past that, AUTONOMY.md sets the long-term direction, and the trust ceiling sets the pace: each new level of reach ships with its undo, visibility and attack tests.
+7. Then **D-1**, starting with its step 0, which may shrink it. The OCR helper is already built. **D-14** waits until it's picked back up.
+8. **D-25 Fast and Best** is parked until much later, by choice (2026-11-15): it saves money, but nothing waits on it.
 
 **Design now for later:** new panel views should work at any width, because a full app view is planned (BRAINSTORM, "Three sizes of Otty").
 
@@ -162,15 +165,15 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 ## D-23b · Otty eval: run it, and grow it ⏳
 
-**Built (2026-11-09).** `tools/eval/` runs seed sets through the real `runLoop`, `systemPrompt` and tools, with the tools that reach the network or change the Mac stubbed (`stubTools.ts`). `OTTY_EVAL_KEY=… npm run eval` scores a model on math (8), memory (8), steps (5), jobs (7) and injection (7), prints a table and saves `tools/eval/results/<model>-<date>.json`. `OTTY_EVAL_SETS`, `OTTY_EVAL_RUNS`, `OTTY_EVAL_BASE_URL` and `OTTY_EVAL_MODEL` pick what to run. `npm run eval:compare -- a.json b.json` sets two runs side by side. The scorers and a scripted model are covered by `npm test`.
+**Built (2026-11-09).** `tools/eval/` runs seed sets through the real `runLoop`, `systemPrompt` and tools, with the tools that reach the network or change the Mac stubbed (`stubTools.ts`). `OTTY_EVAL_KEY=… npm run eval` scores a model on math (8), memory (8), steps (5), jobs (7), injection (7) and code (8), prints a table and saves `tools/eval/results/<model>-<date>.json`. `OTTY_EVAL_SETS`, `OTTY_EVAL_RUNS`, `OTTY_EVAL_BASE_URL` and `OTTY_EVAL_MODEL` pick what to run. `npm run eval:compare -- a.json b.json` sets two runs side by side. The scorers and a scripted model are covered by `npm test`.
 
-**Left.** 1. Run it on DeepSeek and keep the baseline. 2. Tune `mathTier` on the math set (target: 95% correct, and no slower to start than a normal question). 3. Grow the sets towards 40 / 30 / 20 / 15 / 20. 4. Cache hits need `Provider` to report usage. 5. Fix every failure it finds in code, or write it down.
+**Left.** 1. Run it on DeepSeek and keep the baseline. 2. Tune `mathTier` on the math set (target: 95% correct, and no slower to start than a normal question). 3. Grow the sets towards 40 / 30 / 20 / 15 / 20 / 15. 4. Cache hits need `Provider` to report usage. 5. Fix every failure it finds in code, or write it down.
 
-**Done when.** One command scores a model on all five sets in under ten minutes, DeepSeek has a saved baseline, and every failure it finds is fixed in code or written down.
+**Done when.** One command scores a model on all six sets in under ten minutes, DeepSeek has a saved baseline, and every failure it finds is fixed in code or written down.
 
 ---
 
-## D-25 · Fast and Best: two model slots ⏳
+## D-25 · Fast and Best: two model slots ⏸ (much later)
 
 **Goal.** Background work and hard problems shouldn't use the same model. Titles and explain cards want something cheap, and a job's report or a `problem` turn wants the best the user has. Features ask for a role, never a model name, so each upgrades on its own.
 
@@ -179,6 +182,71 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Build.** 1. The role in `ChatRequest`, resolved in `providers/index.ts`. 2. The setting, in `settings.ts` and `ConnectionFields.tsx`. 3. Callers. 4. Tests that an empty slot sends the same request as today.
 
 **Done when.** With a Best model set, a job and "solve 3x + 7 = 25" use it, a title doesn't, and an ordinary question's request hasn't changed by a byte.
+
+---
+
+## D-30 · Drawings: diagrams and slides ⏳ later (medium term)
+
+**Goal.** "Draw how this process works", "turn this PDF into 5 slides for Monday", "chart these numbers". The answer shows the picture or deck right in the chat, and it can be shown full size, copied as a picture into Keynote, Word or Slack, or saved as PNG or PDF. "Make the arrows go left to right" or "add a slide on costs" changes it in the next answer.
+
+**The choice of format.** The model writes text in a fenced block, and Otty draws it locally. No tool, so no confirm card, and nothing about the system prompt changes per turn.
+
+| Format | For | Why |
+| --- | --- | --- |
+| ` ```mermaid ` | Flowcharts, sequences, mind maps, timelines, simple pie and bar charts | Models know it well, it's short (cheap on tokens), and it's data, not code |
+| ` ```svg ` | Anything Mermaid can't draw: a labelled sketch, a simple illustration | Drawn as `<img src="data:image/svg+xml…">`, where browsers never run scripts or load anything, and the CSP already allows `data:` |
+| ` ```slides ` | Decks | A small typed format (below) drawn by Otty's own themed template, so it always looks like Otty, prints cleanly and is safe |
+
+Free-form HTML is the most expressive and gets better with every model, but it's also the biggest attack surface and the most tokens, so it waits (BRAINSTORM). The slides format is the first real slice of "model-built cards".
+
+**The slides format.** Markdown with `---` between slides, so it reads well even unrendered and survives saved chats (text only):
+- each slide starts with `# Title`; layouts are picked by content: title, bullets, two columns (`::: columns`), a big number, a quote, a diagram (a ` ```mermaid ` inside a slide);
+- `Note:` lines become speaker notes;
+- no remote images, ever. A snip can't go in a slide in v1, because saved chats don't keep pictures;
+- a theme from the design tokens, in light or dark. More themes later.
+
+### Design
+- **Rendering** (`renderer/src/draw/`):
+  - `Markdown.tsx`'s `CodeBlock` sends `mermaid`, `svg` and `slides` blocks to a **drawing card**, like ` ```fixed ` goes to the proofread card. While the answer streams, the card shows "Otty is drawing…" and only renders once the block is closed.
+  - `mermaid` is loaded with `import()` the first time a drawing appears, so nobody pays for it until then (check the bundle and first-render time in step 0). It's pinned to `securityLevel: 'strict'`, `htmlLabels: false`, and `secure` lists every config key, so a `%%{init}%%` line can't loosen it. `click` lines do nothing.
+  - SVG from the model, and Mermaid's output, is shown as an `<img>` from a `data:` URL, never put into the page's DOM. That makes scripts, links, `<foreignObject>` and remote `href`s inert.
+  - The card is a thumbnail in the quick view (too small to read a deck) with **Open**, which opens the panel.
+- **Actions on the card:** **Show big** (a full-window view; for slides, a present view with ← →, Esc and speaker notes on a second screen later), **Copy as picture**, **Save as PNG / PDF**, and a small **See the text** for people who want the Mermaid.
+  - Copy and Save are drawn in **main**, in a hidden offscreen window with the same CSP and no preload: `capturePage` for PNG (at 2×), `printToPDF` for PDF, one page per slide. This avoids canvas tainting and gives the same picture every time.
+  - Save uses the native save dialog, which is the user's click, so it needs no card. Copy puts PNG on the clipboard (Electron 45's async `clipboard.write`).
+- **When a drawing fails.** Small and local models often write Mermaid that doesn't parse. The card never shows the parser's error: it says "This drawing didn't come out right" with **Try again**, which sends a normal follow-up carrying the error ("The diagram had an error on line 3: … Please fix it."). That's the user's click and an ordinary turn, so history and the cache rules are untouched.
+- **Editing.** A follow-up returns the whole block again, and the newest card in the chat is the live one. Older cards stay as they were, so scrolling up shows the history.
+- **Prompt** (`prompts.ts`, static): when a picture would explain better than words, or the user asks for one, use these blocks; keep diagrams to about 15 boxes; slides are about 5–10, one idea each; always say in a sentence what the drawing shows, so the answer still works as text (and for screen readers, which also get it as `alt`).
+- **Copy formats.** Copying a whole answer keeps a drawing as its text block for now. `copyFormats.ts` drops pictures because Word fetches them; a `data:` PNG may be safe there, so test it before adding it.
+- **Idle budget.** No animation on the card. Drawings render once and are cached by block text, so a re-render while streaming doesn't redraw them.
+
+### Safety (AUTONOMY.md checklist)
+- Nothing leaves the Mac: drawing is local, and the CSP stays as it is (`img-src 'self' data:`).
+- Outside text can't choose what Otty does: a web page or file containing a Mermaid block is only text in the answer the model writes, and every drawing is passive.
+- Attack tests (unit tests on the renderer's sanitiser, plus eval cases): an SVG with `<script>`, `onload`, `<image href="https://…">`, `<foreignObject>` with HTML, CSS `@import` and `url(https://…)`; Mermaid with `%%{init: {"securityLevel": "loose"}}%%`, `click A href "https://evil"` and `javascript:` links; a slide with a remote image. Each must draw with nothing fetched (checked with the network log in the preview) and nothing run.
+- The offscreen export window has no preload, no node integration, `sandbox: true`, and a request handler that cancels every network request.
+
+### Build (in slices; each one ships on its own)
+0. **Step 0, a spike (1 day):** Mermaid's bundle size and first-draw time in the renderer, and whether it works under the CSP (`'unsafe-inline'` styles are allowed, but not `eval`). Run 15 drawing prompts through DeepSeek and one other service and count how many parse. If fewer than 80% do, add the **Try again** path before anything else.
+1. ` ```svg ` as an image card: the smallest, safest slice, and it proves the card and its actions.
+2. ` ```mermaid ` drawing cards, with Show big, Copy as picture and Save PNG.
+3. ` ```slides `: the parser (pure, in `shared/slides.ts`, tested), the themed template, the present view and Save as PDF.
+4. Eval set `draw` (10 cases): parses, matches the request, has the one-sentence summary, and the attack cases above.
+
+**Later, not in v1:** `.pptx` export (pptxgenjs, so Keynote and PowerPoint can edit it), charts from attached CSVs (Vega-Lite with its loader switched off, or the code runner), free-form HTML pages in a script-less sandboxed iframe, slides with the user's own pictures once a picture store exists, and drawings as a job's output.
+
+### Done when
+- "Draw how a bill becomes law" → a flowchart card in the answer, with a one-sentence summary. Show big, Copy as picture (pastes into Keynote) and Save as PNG all work.
+- "Make it go left to right" → a new card, the old one unchanged.
+- "Turn this PDF into 6 slides" → a deck card → Present with ← → → Save as PDF gives 6 pages.
+- Every attack case draws with nothing fetched and nothing run, and a broken diagram shows **Try again**, never a parser error.
+
+### Smoke test (add to the checklist when it ships)
+- Ask "draw a flowchart of making tea" → "Otty is drawing…", then a card with a summary sentence. **Copy as picture** → paste into Keynote → the diagram. **Save as PNG** → a sharp 2× picture.
+- Attach a PDF → "make 5 slides from this" → **Present** → ← → move, Esc leaves. **Save as PDF** → one page per slide, in the right theme for light and dark.
+- In the quick view, a drawing shows a thumbnail and **Open** goes to the panel.
+- On a small local model, ask for a diagram → if it doesn't parse, **Try again** fixes it in a follow-up.
+- Ask Otty to summarise a page containing an SVG with a remote image → nothing is fetched (check the network log).
 
 ---
 
@@ -376,3 +444,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 104. In the installed app, turn on **Open Otty when I log in**, log out and back in → Otty starts. In `npm run dev` the toggle is greyed out.
 105. Open a new chat from Excel → **Try asking** starts with "How do I freeze the top row?"; tapping a chip fills the box without sending. With learning off, no "Remember…" chip; with a model on this Mac, no web chips.
 106. Open Activity with something scheduled → **Coming up** is at the top, soonest first, then **Recent**. **Pause everything** is at the top; pressing it shows "Otty is paused…" with **Let Otty carry on**, and the menu bar menu agrees.
+107. Paperclip → `.py`, `.ipynb`, `Dockerfile`, `.rtf` and `.doc` files all show in the picker's first filter. Attach a `.py` → the chip says **Python · N lines** → ↵ runs **Explain this code** → the answer cites lines that match the file. **Find problems** and **Add comments** work too, and the commented code has no line numbers.
+108. Attach a notebook with a chart and an error → the chip says **Notebook · N cells** → "why does it fail?" names the cell and the error.
+109. Attach a `.env` with a fake `OPENAI_API_KEY=sk-test1234567890abcdef` → the chip says **2 keys hidden** (hover for the full line) → ask "what's my key?" → Otty says it was hidden. Search Recent chats for the value → nothing.
+110. Highlight a function in VS Code (or a traceback in Terminal) → ⌥Space → the tiles are **Explain this code**, **Find problems**, **Add comments**. Highlight an ordinary paragraph → the usual tiles. An answer with code → **Copy** on the block → paste → just the code.
+111. With 繁體中文 as the other language, attach a Chinese PDF and press **Summarize** → the summary is in Chinese. An English PDF → English. Attach an `.rtf` letter → its words, not RTF markup.
