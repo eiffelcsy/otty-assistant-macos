@@ -192,12 +192,13 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-19.5 A report is a normal chat. **Activity** shows every job and running answer, with Stop, Allow, Keep going and Open.
 - FR-19.6 With **Remember my chats** off, nothing about a job is written to disk. Forgetting a chat removes its jobs.
 
-### FR-21 Drawings: diagrams and slides (P2, *Planned*, D-30)
+### FR-21 Drawings: diagrams and slides (P1)
 - FR-21.1 When a picture explains better, or the user asks for one, answers can include a diagram (flowchart, sequence, mind map, timeline, simple chart), a simple SVG picture, or a slide deck, drawn on the Mac with nothing fetched.
 - FR-21.2 Each drawing is a card with a one-sentence summary, **Show big**, **Copy as picture**, **Save as PNG / PDF** and **See the text**. Slides also have a present view (← →, Esc).
 - FR-21.3 A follow-up ("left to right", "add a slide on costs") makes a new card; earlier ones stay as they were.
 - FR-21.4 A drawing that doesn't come out never shows an error message from the drawing library; it offers **Try again**, which asks the model to fix it.
 - FR-21.5 Drawings never run scripts, follow links or load anything from the internet, whatever the model or a page writes. They survive saved chats, because they're kept as text.
+- FR-21.6 Slides are written as Markdown with `---` (or `# ` headings) between slides, and Otty draws them with its own theme, in light and dark. Present shows them full screen with ← →, speaker notes and Esc.
 
 ### FR-20 Look after me (P2, *Planned*)
 - FR-20.1 One permission, asked for at onboarding and changeable in Settings, lets Otty offer wellbeing and productivity suggestions unprompted, including a greeting with a priority list for the next few hours. It says plainly what's sent and how often.

@@ -4,6 +4,23 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Drawings: diagrams, pictures and slides (D-30, 2026-11-15)
+
+- **Answers can draw.** When a picture explains better, or you ask for one, the answer carries a ` ```mermaid ` diagram (flowcharts, sequences, mind maps, timelines, pie and bar charts), a ` ```svg ` picture, or a ` ```slides ` deck, drawn on the Mac in Otty's own colours. "Otty is drawing…" shows until the answer ends.
+- **A card for each drawing:** **Show big** (its own window), **Copy as picture**, **Save PNG** (at 2×), **Save PDF** and **See the text**. Decks show slide 1 and a count, and **Present** opens them full screen with ← →, speaker notes (N) and Esc.
+- **The slides format** (`shared/slides.ts`): Markdown with `---` between slides (or just `# ` headings), bullets, two columns, quotes, a big-number slide, speaker notes and `~~~mermaid` diagrams on a slide. Every word is escaped and only `data:` pictures go in.
+- **Safe by construction:** drawings are only ever shown as `data:` pictures, so nothing in them can run, link or load. SVG goes through DOMPurify with remote references stripped (`draw/sanitize.ts`); Mermaid runs in strict mode with directives and `click` lines removed first; exports are made in a hidden window with JavaScript off and every non-`data:` request cancelled (`main/draw.ts`). Main only accepts SVG pictures and decks from a card.
+- **When a drawing fails**, the card says so and offers **Try again**, which sends an ordinary follow-up with the error. It never shows a parser error.
+- Mermaid, the sanitiser and the drawing code load the first time a drawing appears, so the app's main bundle grew by about 26 kB. Step 0 checked it all under the built app's CSP (`ui-preview-csp`, with the policy now in `csp.config.ts`).
+- **Eval:** a `draw` set of 10 cases (diagrams, a chart, slides with a diagram, an SVG, two "don't draw" cases, and two hostile pages).
+
+### The eval's first real run (D-23b, 2026-11-15)
+
+- **Baseline: 104 / 106 on deepseek-flash** (two runs of 53 cases, saved in `tools/eval/baselines/`). The first run scored 39 / 43: sums done in the head, how-to answers as numbered lists instead of step cards, and "I've been learning Spanish" not remembered.
+- **Per-turn hints** (`main/hints.ts`): where code already knows the answer needs `calculate`, `show_steps`, a drawing, or might be worth remembering, one short line goes in the turn's note (never the system prompt, so the cache holds). The memory hint only runs with learning on, and `guard.ts` still decides. Each hint is a scaffold to retest on every model change.
+- Unit conversions ("38 °C in Fahrenheit") now count as calculations. The eval harness adds the same hints as the app.
+- Six scorers were too strict and are fixed (⇧⌘4 vs ⌘⇧4, "the last cell", a warning that quotes an injected command, an SVG's `xmlns`, "above $300", a model's own styling directive).
+
 ### Code files and notebooks (D-29, 2026-11-15)
 
 - **Code files are their own kind:** a `.py`, `.ts`, `Dockerfile` or `Makefile` shows as **Python · 240 lines** and so on, about 80 languages and well-known file names (`files/languages.ts`). They're sent with line numbers (`  42│ `) and cut at a whole line when they don't fit ("Otty read lines 1–800 of 2,300"), so answers can point to real lines. The file picker's first filter now shows code, notebooks, TIFF and BMP.

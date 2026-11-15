@@ -57,7 +57,7 @@ The long-run direction, from something you ask to something that looks after thi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Hidden keys in highlighted text and snips too: run `maskSecrets` on a highlight before sending, and OCR'd snips once D-1 reads them | H | S | idea, from D-29 |
+| Hidden keys in highlighted text and snips too: run `maskSecrets` on a highlight before sending, and OCR'd snips once D-1 reads them | H | S | → D-32 |
 | Show what was hidden: tap "2 keys hidden" to see which lines (on the Mac only), and "send this one" for a false alarm | M | S | idea, from D-29 |
 | Code from a GitHub or Gist page in the app note: offer **Explain this code** on the page, read through `read_page`'s raw view | M | S | idea, from D-29 |
 | Highlighted code gets code tiles: text captured from VS Code, Xcode, Terminal or a code-looking selection offers **Explain this code** / **Find problems** first | M | S | shipped (D-29) |
@@ -111,12 +111,17 @@ The long-run direction, from something you ask to something that looks after thi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Edit a drawing by hand: tap a box in a diagram to rename it, or drag slides to reorder, and the card's text updates (the next answer sees it) | M | M | idea, from D-30 |
+| More slide themes, picked on the card (Otty, plain, high contrast), and the user's own accent colour | L | S | idea, from D-30 |
+| Eval: check drawings really parse by running Mermaid in jsdom in the harness, not just their shape | M | S | idea, from D-30 |
+| Eval: grow the sets towards 40 / 30 / 20 / 15 / 20 / 15 / 15, and report cache hits once `Provider` returns usage | M | S–M | idea, left from D-23b |
+| A drawing in the quick view opens the panel at that card, rather than the panel's bottom | L | S | idea, from D-30 |
 | Drawings as a job's output: a background look that ends in a deck or diagram, not just a report | M | S | idea, after D-30 |
 | Editable `.pptx` export of a slides card (pptxgenjs), so Keynote and PowerPoint can change it | M | S–M | idea, after D-30 |
-| Charts from an attached CSV or a highlighted table: Vega-Lite with its loader off, or numbers worked out by the code runner | H | M | idea, after D-30 |
+| Charts from an attached CSV or a highlighted table: Vega-Lite with its loader off, or numbers worked out by the code runner | H | M | → D-35 |
 | Free-form HTML pages from the model (posters, one-page explainers) in a script-less sandboxed frame; scales best with better models, biggest attack surface | M | M | considering, after D-30's attack tests |
 | Slides with the user's own pictures and snips, once there's a picture store that saved chats can use | M | M | idea, after D-30 |
-| Drawings: Mermaid diagrams, SVG pictures and a typed slides format, drawn on the Mac, with Copy as picture, Save as PNG / PDF and a present view | H | L | → D-30 |
+| Drawings: Mermaid diagrams, SVG pictures and a typed slides format, drawn on the Mac, with Copy as picture, Save as PNG / PDF and a present view | H | L | shipped (D-30) |
 | Show what Claude's web searches cost in the usage meter, since each one is billed | M | S | idea |
 | Copy a proofread reason as a note, or send a whole fix to the phrasebook | L | S | idea |
 | Paste back / replace selection: activate the source app and simulate ⌘V with clipboard restore | H | S–M | shipped |
@@ -289,12 +294,12 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Close the DNS gap in reading pages from the Mac: pin the checked address for the connection, so a name can't change between the check and the fetch | M | S | idea |
 | Otty says plainly when a model can't use tools, instead of quietly going without them | M | S | idea |
 | Two model slots, Fast and Best: features ask for a role, not a model name, so background work and hard tasks upgrade separately | H | S | → D-25, parked until much later by choice (2026-11-15) |
-| Scaffold ledger: note which model weakness each prompt rule or routing step works around, and retest on every upgrade | M | S | idea, needs the Otty eval |
-| Otty eval: 50–100 real-style tasks, scored for quality, speed and cost, so any new model is judged in an hour. Grows out of `tools/math-eval/` | H | M | seed sets shipped (D-23); baseline needs a key |
+| Scaffold ledger: note which model weakness each prompt rule or routing step works around, and retest on every upgrade | M | S | started: `hints.ts` names the weakness behind each hint; the rest of the prompt is still to do |
+| Otty eval: 50–100 real-style tasks, scored for quality, speed and cost, so any new model is judged in an hour. Grows out of `tools/math-eval/` | H | M | shipped: 53 cases in 7 sets, baseline 104 / 106 on deepseek-flash (2026-11-15) |
 | Tools before pipelines: let the model pull context when it needs it (read the window, find a file, check the calendar) rather than deciding in code what it sees | H | M | idea |
 | Trust ladder: give every tool a risk level and undo, so autonomy widens per action as evals prove reliability (show, then suggest, then do with a confirm) | H | M | idea, the path back to parked computer use |
 | Re-read history: after a model upgrade, offer to refresh memories, titles and summaries from saved chats, so old data improves too | M | S–M | idea, after D-10; opt-in, shows the cost first |
-| Model-built cards: answers can use a small typed set of tables, checklists and choices, so better models compose better UI with no new code | M | M | idea, D-11 step cards are the first card and D-30's slides the second |
+| Model-built cards: answers can use a small typed set of tables, checklists and choices, so better models compose better UI with no new code | M | M | idea, D-11 step cards are the first card and D-30's drawings and slides the second |
 | Goal mode, "Get this done": plan, act, check and report for a stated goal, built on D-11 step cards | H | L | idea, after D-11 |
 | Proactive help, gated by measured precision: stays off until evals show it's rarely wrong, and always opt-in | H | L | idea, extends the paw-raise idea |
 | Re-test D-1 before building it: compare a plain model call with the local classifier on the same captures, for accuracy, speed and privacy | H | S | → D-1 step 0 |
@@ -442,17 +447,17 @@ How much Otty can do is limited by how much can be undone, explained and defende
 | --- | --- | --- | --- |
 | One stop control: pause everything Otty is doing, from the otter or the menu bar, in reach of anyone | H | S | shipped (D-27) |
 | Red-team sets: attacks in the eval that grow with every feature and every real attack, run before each release. Extends D-23's injection set | H | S–M | considering |
-| What left the Mac: a plain record of what was sent, to where and why | H | M | considering |
+| What left the Mac: a plain record of what was sent, to where and why | H | M | → D-31 |
 | Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | considering, the base for "do, with undo" |
 | Why did you do that? on everything: one plain trail from action to job, trigger and the moment you agreed. Extends "Why did this happen?" | H | M | considering |
 | Taint tracking: code knows which runs touched outside text, and what they may do narrows to match | H | M | considering, builds on D-26's labels |
 | Grow the eval sets from the seed sizes (8 / 8 / 5 / 7 / 7) to the planned 40 / 30 / 20 / 15 / 20, adding a case for every real failure and every real attack | H | M | idea, from D-23 |
 | Run the eval's injection and safety sets in CI on a schedule, with a small key budget, so a prompt change that weakens a rule is caught before release | H | S | idea, from D-23 |
 | Cache hits in the eval's table: needs `Provider` to report usage, which no caller reads yet | L | S | idea, from D-23 |
-| Recurring jobs ("every Monday at 9"): the same card, with a daily cap and a longest gap in code, and a way to see and end it | H | M | idea, after D-27's one-off jobs |
+| Recurring jobs ("every Monday at 9"): the same card, with a daily cap and a longest gap in code, and a way to see and end it | H | M | → D-34 |
 | Say "Used" in the quick view as well as the panel, and for a job's report: which memories (none, today) a scheduled look relied on | L | S | idea, from D-24 |
 | Money, not tokens: a maintained price table per service and model, so the meter and job cards can say "about $0.40 this month". Prices change, so it needs a date and a way to stay current | M | S | idea, from the usage meter |
-| A monthly spending cap the user sets, enforced in code: past it, background work asks first and the meter says why | H | S | idea, from the usage meter |
+| A monthly spending cap the user sets, enforced in code: past it, background work asks first and the meter says why | H | S | → D-33 |
 | The health line in the quick view too, and after a hotkey that did nothing, instead of only on the next panel open | M | S | idea, from the health banner |
 | Try-asking chips that learn: drop ones the user has already used, and add ones for features they haven't found yet (pairs with the feature-teaching collection) | M | S | idea, from try-asking |
 | Group notifications: several finished looks in one, and none during Focus or screen sharing | M | S | idea, from notifications |
