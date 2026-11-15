@@ -229,6 +229,12 @@ Language users: **bilingual / multilingual people who work in English** and some
 | CI: typecheck and build on every PR, then tests, then an unsigned `.dmg` artifact | H | S | shipped (D-4) |
 | Test names the model and warns about no vision | M | S | shipped |
 | Native Swift shell if Electron size or feel becomes a problem | M | L | parked until there's a reason |
+| Electron fuses (no `RunAsNode`, no `--inspect`, asar integrity), because Otty holds Accessibility and Screen Recording and another process could borrow them | H | S | idea, from LAUNCH_READINESS §5.7 |
+| Log files with no content, and a "Copy diagnostics" button that shows exactly what it would send | H | S | idea, from LAUNCH_READINESS §14 |
+| Opt-in crash reports and a counts-only daily summary, listed in Activity like everything else that leaves | M | M | idea, from LAUNCH_READINESS §14 |
+| Hosted "Otty" service: sign in instead of pasting a key, with a free allowance; a new preset in `services.ts` | H | L | idea, from LAUNCH_READINESS §2 and §9 |
+| Move to /Applications on first launch, so permissions and updates don't break when run from the DMG | M | S | idea, from LAUNCH_READINESS §5.10 |
+| Refuse to save a key in plain text when the Keychain isn't available, and read `DEEPSEEK_API_KEY` only in dev | M | S | idea, from LAUNCH_READINESS §10 |
 
 ## UX polish backlog
 
