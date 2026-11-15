@@ -79,7 +79,6 @@ Earlier, as of 2026-11-09: D-23 (the harness and seed sets), D-26, D-24, D-27 an
 2. **Try D-29 on a Mac:** smoke-test steps 107–111, then merge it. Check on the eval whether line numbers really improve line citations; if they don't, drop them (they cost about 10% more tokens on code).
 3. **Check launch at login on an installed build.** It's built, but an unsigned app may not be allowed to register as a login item; signing (an Apple Developer account) may be needed for other people's Macs.
 4. **Next candidates,** to promote when the above is done:
-   - **The otter shows what's happening:** moods that mirror background work. It's a cheap relationship win now that jobs exist.
    - **What left the Mac:** a plain record of what was sent, to where and why. Most useful once Otty starts work unasked. D-29's hidden-key count is a natural first line in it.
    - **Signing and notarization:** needed before builds go to other people, and for launch at login. The `dmg` workflow can then sign with secrets.
 5. **D-30 Drawings**, starting with its step 0. Medium term: it's the first answer that is more than text, so it should land on a measured eval and a trusted base, and its present view is a step towards the full app.
