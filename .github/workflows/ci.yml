@@ -35,6 +35,8 @@ jobs:
           restore-keys: electron-${{ runner.os }}-
 
       - run: npm ci
+      # D-48: type-aware lint against a baseline that may only shrink.
+      - run: npm run lint
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
@@ -61,8 +63,7 @@ jobs:
           restore-keys: electron-${{ runner.os }}-
 
       - run: npm ci
-      - run: npm run build:smoke
-      # Playwright drives Electron itself, so no browsers are downloaded.
+      # Builds, then runs. Playwright drives Electron itself, so no browsers are downloaded.
       - run: npm run smoke
 
       - name: Keep the report, traces and screenshots

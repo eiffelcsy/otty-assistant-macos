@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join, resolve } from 'path'
 import type { SmokeControl } from './app/main'
-import type { SmokeSnapshot } from './app/types'
+import type { SmokeMac, SmokeSnapshot } from './app/types'
 import { World } from './world/server'
 
 export const ROOT = resolve(__dirname, '../..')
@@ -76,6 +76,7 @@ export class Otty {
     return this.app.evaluate(
       (_electron, [source, a]) => {
         const c = (globalThis as unknown as { __ottySmoke: SmokeControl }).__ottySmoke
+        // oxlint-disable-next-line no-eval -- runs in main on a function the spec wrote, never on app data
         return (0, eval)(`(${source})`)(c, a)
       },
       [fn.toString(), arg] as const
@@ -112,6 +113,36 @@ export class Otty {
     await this.app.close().catch(() => {})
   }
 
+  // ── Helpers shared by specs ──
+
+  /** The full panel, opened the way the menu bar's "Open chat" does. */
+  async openPanel(): Promise<Page> {
+    await this.control((c) => c.clickTray('Open chat'))
+    const panel = await this.view('panel')
+    await expect(panel.locator('body')).toBeVisible()
+    return panel
+  }
+
+  /** Type a question into a panel or quick view and send it. */
+  async ask(page: Page, text: string): Promise<void> {
+    const box = page.locator('textarea').last()
+    await box.fill(text)
+    await box.press('Enter')
+  }
+
+  /** Change what the fake Mac reports (selection, app in front, permissions, snips). */
+  mac(change: Partial<SmokeMac>): Promise<unknown> {
+    return this.control((c, a) => c.mac(a), change)
+  }
+
+  /** Press one of Otty's global shortcuts, as the user would. Fails if Otty didn't register it. */
+  async press(accelerator: string): Promise<void> {
+    expect(await this.control((c, a) => c.press(a), accelerator), `${accelerator} isn't registered`).toBe(true)
+  }
+
+  /** Text that should never reach a user. A spec whose answers legitimately contain such text can turn the check off. */
+  rawTextAllowed = false
+
   /** The checks every test ends with. */
   async expectClean(): Promise<void> {
     const s = await this.snapshot()
@@ -119,8 +150,22 @@ export class Otty {
     expect(s.errors, 'main crashed or left a promise unhandled').toEqual([])
     expect(this.pageErrors, 'a window logged an error').toEqual([])
     expect(this.world.unscripted, 'the app asked the world for something nobody scripted').toEqual([])
+    if (!this.rawTextAllowed) await this.expectNoRawErrors()
+  }
+
+  /** CLAUDE.md: friendly copy, no raw errors. Checks the visible text of every open window. */
+  async expectNoRawErrors(): Promise<void> {
+    for (const page of this.app.windows()) {
+      if (page.isClosed()) continue
+      const text = await page.locator('body').innerText().catch(() => '')
+      const found = RAW_ERROR.map((re) => text.match(re)?.[0]).filter(Boolean)
+      expect(found, `raw error text in ${page.url().match(/view=(\w+)/)?.[1] ?? 'a window'}`).toEqual([])
+    }
   }
 }
+
+/** Shapes of text that mean an error leaked to the screen. */
+const RAW_ERROR = [/\b(?:Type|Reference|Syntax|Range)Error\b/, /\bError: /, /\bundefined\b/, /\bNaN\b/, /\[object \w+\]/, /\bat \S+ \(\S+:\d+:\d+\)/, /\bstatus code \d{3}\b/i]
 
 /** The user's clipboard text, put back after each test. Formats other than text aren't kept. */
 function readClipboard(): string {
@@ -142,6 +187,7 @@ export const test = base.extend<{ seed: Seed; world: World; otty: Otty }, { worl
   seed: [ONBOARDED, { option: true }],
 
   worldServer: [
+    // oxlint-disable-next-line no-empty-pattern -- Playwright reads a fixture's dependencies from this pattern
     async ({}, use) => {
       const world = new World()
       const url = await world.start()

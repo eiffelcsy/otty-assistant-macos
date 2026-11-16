@@ -34,11 +34,11 @@ export function installNet(world: string): void {
   }
 
   globalThis.fetch = async (input: string | URL | Request, init: RequestInit = {}): Promise<Response> => {
-    const request = input instanceof Request ? input : null
-    let url = request ? request.url : String(input)
-    const merged: RequestInit = request
-      ? { method: request.method, headers: request.headers, body: request.body, signal: request.signal, ...(request.body ? { duplex: 'half' } : {}), ...init }
-      : init
+    let url = input instanceof Request ? input.url : input instanceof URL ? input.href : input
+    const merged: RequestInit =
+      input instanceof Request
+        ? { method: input.method, headers: input.headers, body: input.body, signal: input.signal, ...(input.body ? { duplex: 'half' } : {}), ...init }
+        : init
     if (merged.redirect === 'manual' || merged.redirect === 'error') return hop(url, merged)
     for (let i = 0; i <= MAX_REDIRECTS; i++) {
       const res = await hop(url, merged)

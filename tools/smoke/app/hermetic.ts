@@ -35,6 +35,7 @@ function target(args: unknown[]): { path: string } | { host: string; port: numbe
  * main goes through (`fetch`, `http`, `https`, `tls`), however the caller got hold of its `connect`.
  */
 export function guardSockets(worldPort: number): void {
+  // oxlint-disable-next-line typescript/unbound-method -- kept to be called with each socket as `this`, below
   const connect = net.Socket.prototype.connect as (this: net.Socket, ...a: unknown[]) => net.Socket
   net.Socket.prototype.connect = function (this: net.Socket, ...args: unknown[]) {
     const t = target(args)
@@ -43,7 +44,7 @@ export function guardSockets(worldPort: number): void {
     const err = refuse(`connect ${'host' in t ? `${t.host}:${t.port}` : ''}`)
     process.nextTick(() => this.destroy(err)) // fails like a refused connection, so callers take their error path
     return this
-  } as typeof net.Socket.prototype.connect
+  }
 }
 
 type ExecFile = typeof child_process.execFile

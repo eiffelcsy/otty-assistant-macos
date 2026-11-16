@@ -11,14 +11,17 @@ network and the Mac. Specs in `tools/smoke/specs/*.smoke.ts` drive the windows. 
 ## Run it
 
 ```bash
-npm run build:smoke && npm run smoke
+npm run smoke
 ```
+
+It builds first (so it never tests a stale build) and holds a machine-wide lock while it runs, because smoke runs
+share the real clipboard, window focus and `out/`. Several agents can call it at once; they take turns.
 
 - One area: `npm run smoke -- launch` (a file name), or by step: `npm run smoke -- --grep @step-44`.
 - The release gate only: `npm run smoke -- --grep @gate`.
 - The harness's own checks: `npm run smoke -- --grep @harness`.
 
-Always rebuild (`build:smoke`) after changing `src/`: the harness tests the built app, not the sources.
+`npm run smoke -- --no-build …` skips the build when nothing changed since the last run.
 
 ## Report
 

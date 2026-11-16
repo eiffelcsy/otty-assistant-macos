@@ -93,9 +93,10 @@ export class World {
   }
 
   async start(): Promise<string> {
-    this.server = createServer((req, res) => void this.handle(req, res).catch((err) => this.fail(res, `world error: ${String(err)}`)))
-    await new Promise<void>((resolve) => this.server!.listen(0, '127.0.0.1', resolve))
-    return `http://127.0.0.1:${(this.server!.address() as AddressInfo).port}`
+    const server = createServer((req, res) => void this.handle(req, res).catch((err) => this.fail(res, `world error: ${String(err)}`)))
+    this.server = server
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
+    return `http://127.0.0.1:${(server.address() as AddressInfo).port}`
   }
 
   async stop(): Promise<void> {

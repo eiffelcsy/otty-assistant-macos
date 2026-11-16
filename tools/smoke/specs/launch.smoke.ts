@@ -16,8 +16,7 @@ test.describe('first launch', () => {
 test('asks, streams an answer, and keeps the chat across a relaunch', { tag: ['@step-15', '@step-16', '@gate'] }, async ({ otty, world }) => {
   world.reply('What do otters eat?', { say: 'Otters mostly eat **fish** and shellfish.' })
   world.backgroundReply = 'Otters and food'
-  await otty.control((c) => c.clickTray('Open chat'))
-  const panel = await otty.view('panel')
+  const panel = await otty.openPanel()
   await panel.getByPlaceholder('Ask Otty anything…').fill('What do otters eat?')
   await panel.getByRole('button', { name: 'Send' }).click()
   await expect(panel.getByText('Otters mostly eat')).toBeVisible()
@@ -28,8 +27,7 @@ test('asks, streams an answer, and keeps the chat across a relaunch', { tag: ['@
   expect(sent?.authorization).toBe('Bearer sk-smoke-0000000000000000')
 
   await otty.relaunch()
-  await otty.control((c) => c.clickTray('Open chat'))
-  const again = await otty.view('panel')
+  const again = await otty.openPanel()
   await again.getByRole('button', { name: 'Recent chats' }).click()
   await again.getByRole('button', { name: /Otters and food/ }).click()
   await expect(again.getByText('What do otters eat?')).toBeVisible()
@@ -39,14 +37,11 @@ test('asks, streams an answer, and keeps the chat across a relaunch', { tag: ['@
 test('a force quit mid-answer keeps the question', { tag: ['@step-44'] }, async ({ otty, world }) => {
   world.reply('Tell me a long story', { say: 'Once upon a time…' })
   world.backgroundReply = 'A long story'
-  await otty.control((c) => c.clickTray('Open chat'))
-  const panel = await otty.view('panel')
-  await panel.getByPlaceholder('Ask Otty anything…').fill('Tell me a long story')
-  await panel.getByRole('button', { name: 'Send' }).click()
+  const panel = await otty.openPanel()
+  await otty.ask(panel, 'Tell me a long story')
   await expect(panel.getByText('Once upon a time')).toBeVisible()
   await otty.crash()
-  await otty.control((c) => c.clickTray('Open chat'))
-  const again = await otty.view('panel')
+  const again = await otty.openPanel()
   await again.getByRole('button', { name: 'Recent chats' }).click()
   await again.getByRole('button', { name: /A long story|Tell me a long story/ }).first().click()
   await expect(again.getByText('Tell me a long story')).toBeVisible()

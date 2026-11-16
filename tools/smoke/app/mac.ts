@@ -4,6 +4,7 @@
  */
 import { writeFileSync } from 'fs'
 import { clipboard, nativeImage, screen, type Menu, type MenuItem, type Notification } from 'electron'
+import type * as ElectronModule from 'electron'
 import type { SmokeCall, SmokeMac } from './types'
 
 export const mac: SmokeMac = {
@@ -45,8 +46,8 @@ export function macProcess(file: string, args: string[]): Promise<{ stdout: stri
   if (text.includes('keystroke "c" using {command down}')) {
     // The real ⌘C copies the highlight into the clipboard Otty is watching.
     if (!mac.accessibility) return Promise.reject(new Error('not allowed'))
-    if (mac.selection !== null) clipboard.writeText(mac.selection)
-    return ok()
+    // Electron 45's clipboard is async: the copy lands before osascript "returns", as a real ⌘C would.
+    return mac.selection !== null ? clipboard.writeText(mac.selection).then(() => ok()) : ok()
   }
   if (text.includes('first application process whose frontmost is true')) {
     const f = mac.front
@@ -70,7 +71,7 @@ export function trayItems(): string[] {
 export function clickTray(label: string): boolean {
   const item = flatten(trayMenu).find((i) => i.label === label)
   if (!item) return false
-  item.click(undefined, undefined, undefined as never)
+  item.click()
   return true
 }
 
@@ -114,7 +115,7 @@ function overlayClass<C extends new (...args: never[]) => object>(Real: C, fakes
  * so the swap happens where Otty asks for it. The smoke entry itself keeps the real module.
  */
 export function installMac(): void {
-  const electron = require('electron') as typeof import('electron')
+  const electron = require('electron') as typeof ElectronModule
   const fakes: Partial<Record<keyof typeof electron, unknown>> = {
     globalShortcut: {
       register: (accelerator: string, run: () => void) => {
