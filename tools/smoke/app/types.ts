@@ -25,6 +25,9 @@ export interface SmokeMac {
   screenImage: string | null
   /** What an osascript run by a step card or a tool prints, and whether it fails. */
   script: { stdout: string; fail?: string }
+  /** Where the mouse is, in screen points. Null means the middle of the main display, so window placement never
+   * depends on where a real pointer happens to be. */
+  cursor: { x: number; y: number } | null
 }
 
 /** Something Otty did to the Mac, recorded instead of done. */

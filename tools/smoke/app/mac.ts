@@ -14,7 +14,8 @@ export const mac: SmokeMac = {
   front: null,
   snip: null,
   screenImage: null,
-  script: { stdout: '' }
+  script: { stdout: '' },
+  cursor: null
 }
 
 export const calls: SmokeCall[] = []
@@ -169,6 +170,13 @@ export function installMac(): void {
     systemPreferences: overlay(electron.systemPreferences, {
       isTrustedAccessibilityClient: () => mac.accessibility,
       getMediaAccessStatus: (kind: string) => (kind === 'screen' ? (mac.screen ? 'granted' : 'denied') : 'granted')
+    }),
+    screen: overlay(electron.screen, {
+      getCursorScreenPoint: () => {
+        if (mac.cursor) return mac.cursor
+        const { x, y, width, height } = screen.getPrimaryDisplay().workArea
+        return { x: Math.round(x + width / 2), y: Math.round(y + height / 2) }
+      }
     }),
     desktopCapturer: overlay(electron.desktopCapturer, {
       getSources: async () => {
