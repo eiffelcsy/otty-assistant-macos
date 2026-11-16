@@ -89,6 +89,7 @@ export function Panel() {
       setSettings(s)
       if (!s.onboarded) setView('onboarding')
     })
+    return window.otty.onSettings(setSettings)
   }, [])
 
   useEffect(() => {

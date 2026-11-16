@@ -441,6 +441,7 @@ const api: OttyApi = {
   }),
   rewind: async (_id, _undo, mode) => (mode === 'edit' ? { text: 'Explain this simply', captures: [{ id: 'c1', context: highlighted, app }], files: [] } : null),
   onActivity: () => () => {},
+  onSettings: () => () => {},
   setChatLearn: async (on) => emit({ type: 'learn', on }),
   listMemories: async () => memories,
   addMemory: async (text) => {

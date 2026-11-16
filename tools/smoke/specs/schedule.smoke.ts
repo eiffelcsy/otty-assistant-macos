@@ -302,9 +302,7 @@ test('a daily look runs and moves to tomorrow; asleep across two times it runs o
   await expect(done).toHaveCount(2)
 })
 
-test.fixme('Activity’s pause bar follows Pause everything from the menu bar, and Let Otty carry on from a row', { tag: ['@step-96', '@step-106'] }, async ({ otty, world }) => {
-  // Panel.tsx reads settings once when it mounts, and neither the menu bar's Pause everything nor a row's
-  // Let Otty carry on (Activity.tsx calls saveSettings directly) updates it, so the bar disagrees until a relaunch.
+test('Activity’s pause bar follows Pause everything from the menu bar, and Let Otty carry on from a row', { tag: ['@step-96', '@step-106'] }, async ({ otty, world }) => {
   const panel = await otty.openPanel()
   await scheduleLater(otty, world, panel, { ...RAIL, at: nineTomorrow() })
   await openActivity(panel)

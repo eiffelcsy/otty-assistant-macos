@@ -40,6 +40,7 @@ const api: OttyApi = {
   rewindPlan: (messageId: string) => ipcRenderer.invoke('chat:rewind-plan', messageId),
   rewind: (messageId: string, undo: string[], mode: 'retry' | 'edit') => ipcRenderer.invoke('chat:rewind', messageId, undo, mode),
   onActivity: (cb) => listen('activity:changed', cb),
+  onSettings: (cb) => listen('settings:changed', cb),
   setChatLearn: (on) => ipcRenderer.invoke('chat:learn', on),
   listMemories: () => ipcRenderer.invoke('memory:list'),
   addMemory: (text) => ipcRenderer.invoke('memory:add', text),
