@@ -101,3 +101,17 @@ test('a highlight question, a search and a page each have a row; Open goes to th
   await expect(row(panel, 'Searched DeepSeek')).toHaveCount(0)
   await expect(row(panel, 'facts.example.org')).toHaveCount(0)
 })
+
+test('Settings › Privacy opens What left your Mac even when nothing is in Activity', { tag: ['@step-117'] }, async ({ otty, world }) => {
+  world.reply(turn('What do otters eat?'), { say: 'Mostly fish and shellfish.' })
+  const panel = await otty.openPanel()
+  await otty.ask(panel, 'What do otters eat?')
+  await expect(panel.getByText('Mostly fish and shellfish.')).toBeVisible()
+  // Nothing is running or waiting, so the header has no Activity button: this is the only way in.
+  await expect(panel.getByTitle('Activity', { exact: true })).toHaveCount(0)
+  await panel.getByRole('button', { name: 'Settings' }).click()
+  await panel.getByRole('button', { name: 'See what left your Mac' }).click()
+  await expect(panel.getByRole('tab', { name: 'What left your Mac' })).toHaveAttribute('aria-selected', 'true')
+  // The question's own row, not the chat-title one beside it.
+  await expect(panel.locator('.sent-row__line').getByText('Asked DeepSeek', { exact: true })).toBeVisible()
+})

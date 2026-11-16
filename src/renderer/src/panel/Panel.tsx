@@ -13,7 +13,7 @@ import { prettyKey } from '../lib/keys'
 import { useAttachments } from '../lib/useAttachments'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
-import { Activity } from './Activity'
+import { Activity, type Tab as ActivityTab } from './Activity'
 import { History } from './History'
 import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor } from './Messages'
 import { FindBar } from './FindBar'
@@ -42,6 +42,8 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
   const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history' | 'activity'>('chat')
+  /** Which Activity list to open on; the header button always opens "What Otty is doing". */
+  const [activityTab, setActivityTab] = useState<ActivityTab>('work')
   /** The capture tray: highlights and snips waiting to be asked about, each with its own app. */
   const [captures, setCaptures] = useState<Capture[]>([])
   /** The app the user was in, for a question without captures. */
@@ -118,7 +120,10 @@ export function Panel() {
     () =>
       window.otty.onPanelOpen((p: PanelOpenPayload) => {
         if (p.notice === 'open-settings') return setView('settings')
-        if (p.notice === 'open-activity') return setView('activity')
+        if (p.notice === 'open-activity') {
+          setActivityTab('work')
+          return setView('activity')
+        }
         if (p.notice === 'open-memory') {
           setView('settings')
           setMemoryFocus((n) => n + 1)
@@ -256,7 +261,10 @@ export function Panel() {
                 <button
                   className="icon-btn icon-btn--dot"
                   title={view === 'activity' ? 'Back to chat' : 'Activity'}
-                  onClick={() => setView(view === 'activity' ? 'chat' : 'activity')}
+                  onClick={() => {
+                    setActivityTab('work')
+                    setView(view === 'activity' ? 'chat' : 'activity')
+                  }}
                 >
                   <Icon name={view === 'activity' ? 'comment-alt' : 'binoculars'} />
                   {view !== 'activity' && activity.some((i) => i.unseen) && <span className="icon-btn__dot" />}
@@ -309,9 +317,20 @@ export function Panel() {
           </header>
 
           {view === 'settings' ? (
-            <Settings settings={settings} onSaved={setSettings} memoryFocus={memoryFocus} onOpenChat={() => setView('chat')} />
+            <Settings
+              settings={settings}
+              onSaved={setSettings}
+              memoryFocus={memoryFocus}
+              onOpenChat={() => setView('chat')}
+              onOpenSent={() => {
+                setActivityTab('sent')
+                setView('activity')
+              }}
+            />
           ) : view === 'activity' ? (
             <Activity
+              key={activityTab}
+              startTab={activityTab}
               items={activity}
               onOpen={() => setView('chat')}
               onOpenChat={(id) => void window.otty.openChat(id).then(() => setView('chat'))}
