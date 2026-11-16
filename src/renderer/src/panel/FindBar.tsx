@@ -60,6 +60,10 @@ export function FindBar({
       const view = box.getBoundingClientRect()
       if (at.top < view.top + 40 || at.bottom > view.bottom - 40) {
         box.scrollBy({ top: at.top - view.top - view.height / 2, behavior: 'smooth' })
+      } else {
+        // In view now, but the chat may still be gliding down to a just-finished answer, which would carry the match
+        // away. Pinning the position stops any smooth scroll that's under way.
+        box.scrollTo({ top: box.scrollTop })
       }
     }
   }, [matches, current, chat])

@@ -114,3 +114,30 @@ test('the find bar holds its place while a follow-up streams in, and Esc closes 
   await panel.keyboard.press('Escape')
   await expect.poll(() => panelShown(otty)).toBe(false)
 })
+
+test('⌘F straight after an answer keeps the current match in view while the chat finishes gliding down', { tag: ['@step-34'] }, async ({ otty, world }) => {
+  const panel = await otty.openPanel()
+  await turn(otty, panel, world, 'How does the ocean feed itself?', `It starts with plankton drifting near the surface.\n\n${filler('the ocean', 5)}`)
+  await turn(otty, panel, world, 'What eats it?', `Krill eat plankton by the tonne.\n\n${filler('krill', 5)}`)
+  // No waiting for the view to reach the bottom this time: find while it may still be moving.
+  await turn(otty, panel, world, 'And then?', `Whales strain krill and plankton through baleen.\n\n${filler('whales', 8)}`, false)
+  await panel.keyboard.press('Meta+F')
+  await panel.getByPlaceholder('Find in this chat').fill('plankton')
+  // Wait until the chat stops moving (ten still frames), then the current match must still be on screen.
+  await panel.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const chat = document.querySelector('.chat')!
+        let last = -1
+        let still = 0
+        const tick = () => {
+          still = chat.scrollTop === last ? still + 1 : 0
+          last = chat.scrollTop
+          if (still >= 10) resolve()
+          else requestAnimationFrame(tick)
+        }
+        tick()
+      })
+  )
+  await expect.poll(() => current(panel)).toMatchObject({ text: 'plankton', inView: true })
+})
