@@ -18,6 +18,7 @@ vi.mock('../store', () => ({ chatStore: () => ({ write: async () => {}, delete: 
 vi.mock('../files', () => ({ takeFiles: () => [] }))
 
 const { ChatSession } = await import('../llm')
+const { MemoryLedger, setLedger } = await import('../ledger')
 
 let requests: { messages: unknown[] }[] = []
 let replies: object[][] = []
@@ -124,5 +125,31 @@ describe('try again and edit (D-36)', () => {
     await session.rewind(answers()[1], [], 'retry')
     await settle()
     expect(JSON.stringify(requests[0])).toBe(JSON.stringify(before))
+  })
+
+  it('reads its list from the action ledger, the same as from the answer, and marks what it undid (D-46)', async () => {
+    const log = new MemoryLedger()
+    setLedger(() => log)
+    try {
+      const { session, started, answers } = rig()
+      replies = [
+        call('c1', 'copy_to_clipboard', { text: 'Hello' }),
+        call('c2', 'start_job', { title: 'Laptops', brief: 'Compare laptops under $1,000.' }),
+        answer('Copied, and I’m looking into laptops.')
+      ]
+      await session.send('Copy hello and look into laptops', [], null)
+      const [id] = answers()
+      expect(log.list().map((r) => [r.summary, r.status, r.canUndo])).toEqual([
+        ['Started. The user will find the report in Activity.', 'done', true],
+        ['Copied.', 'done', false]
+      ])
+      const plan = await session.rewindPlan(id)
+      expect(plan).toEqual({ undo: [{ id: `job:${started[0]}`, label: 'Stop looking into “Laptops”' }], lasting: ['Copied.'] })
+      replies = [answer('Again.')]
+      await session.rewind(id, [`job:${started[0]}`], 'retry')
+      expect(log.list().find((r) => r.canUndo)?.undone).toBe(true)
+    } finally {
+      setLedger(() => null)
+    }
   })
 })

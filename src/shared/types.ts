@@ -222,6 +222,18 @@ export interface UsageReport {
 /** Why something left the Mac (D-31). */
 export type SentKind = 'question' | 'job' | 'title' | 'explain' | 'check' | 'search' | 'page'
 
+/** One row of "What Otty changed" (D-46): a change Otty made, in plain words. */
+export interface ChangeItem {
+  id: number
+  at: number
+  summary: string
+  status: 'running' | 'done' | 'failed' | 'denied'
+  /** Otty can take it back: a memory or a look. */
+  canUndo: boolean
+  undone?: boolean
+  chatId?: string
+}
+
 /** One row of "What left your Mac". Built in code from what was sent, never the text itself. */
 export interface SentItem {
   id: number
@@ -511,6 +523,8 @@ export interface OttyApi {
   seenActivity(): Promise<void>
   /** What left the Mac, newest first. */
   listSent(): Promise<SentItem[]>
+  /** What Otty changed, newest first (D-46). */
+  listChanges(): Promise<ChangeItem[]>
   /** What Try again or Edit on the latest turn would undo (D-36). Null when it isn't the latest turn. */
   rewindPlan(messageId: string): Promise<RewindPlan | null>
   /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */

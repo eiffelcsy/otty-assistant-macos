@@ -4,6 +4,12 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### What Otty changed: the action ledger (D-46, 2026-11-17)
+
+- **Every change Otty makes is written down before it runs**: a reminder, a copy, a link opened, a memory, a look started, a step card's button. Each row says what happened, which chat and answer it came from, and whether Otty can undo it, with anything that looked like a key hidden. It lives and dies with chats, like what left your Mac (schema v9).
+- **Activity › What Otty changed** lists them, newest first, beside what left your Mac, and Settings › Privacy has **See what Otty changed**. Activity's tabs now read Doing, Left your Mac and Changed.
+- **Try again reads the ledger** to say what it can take back and what's done for good, and marks what it undid; so does Undo on a Noted line. Chats from before the ledger keep working from their saved answers.
+
 ### Every message from a window is checked, and the app's root is split (D-44, D-45 steps 1–2, 2026-11-17)
 
 - **Main checks everything a window sends (D-44).** Every channel is in one table (`ipc/check.ts`) with the views that may use it and a check for each argument. A message from the wrong window, a subframe or with an argument that doesn't fit is refused with a log line. Activity sends ids only, and main looks up what each one is. A rule test keeps every handler in the table and the preload's channels in step with it, and a fuzz test throws thousands of wrong inputs at every channel.

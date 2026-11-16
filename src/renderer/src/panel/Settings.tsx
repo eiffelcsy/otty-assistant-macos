@@ -103,15 +103,15 @@ export function Settings({
   onSaved,
   memoryFocus = 0,
   onOpenChat,
-  onOpenSent
+  onOpenActivity
 }: {
   settings: PublicSettings
   onSaved: (s: PublicSettings) => void
   /** Bumped when Edit on a Noted line asks for the list. */
   memoryFocus?: number
   onOpenChat: () => void
-  /** Opens Activity at "What left your Mac", which is otherwise reachable only while Activity has something in it. */
-  onOpenSent: () => void
+  /** Opens Activity at "What left your Mac" or "What Otty changed", otherwise reachable only while Activity has something in it. */
+  onOpenActivity: (tab: 'sent' | 'changed') => void
 }) {
   const [form, setForm] = useState(settings)
   const [key, setKey] = useState('')
@@ -233,8 +233,11 @@ export function Settings({
             <span className="hint">Counted from a chat’s last message. Older chats are forgotten when you save.</span>
           </div>
         )}
-        <button type="button" className="btn btn--soft btn--small" onClick={onOpenSent}>
+        <button type="button" className="btn btn--soft btn--small" onClick={() => onOpenActivity('sent')}>
           <Icon name="shield-check" /> See what left your Mac
+        </button>
+        <button type="button" className="btn btn--soft btn--small" onClick={() => onOpenActivity('changed')}>
+          <Icon name="time-past" /> See what Otty changed
         </button>
         {settings.rememberChats && (
           <button

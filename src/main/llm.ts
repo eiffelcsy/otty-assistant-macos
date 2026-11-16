@@ -35,6 +35,7 @@ import { createExplainCache, termsToWarm } from './explainCache'
 import { toolDefs, type ToolOutcome } from './tools'
 import { CHAT_TOOLS, LASTING_TOOLS, OUTSIDE_TOOLS, type RunTaint } from './toolSafety'
 import { runLoop } from './loop'
+import { begin, type Ledger } from './ledger'
 import { count } from './usage'
 import { instantAnswer } from './math'
 import { act, isRisky } from './act'
@@ -242,6 +243,8 @@ export interface SessionDeps {
   memory(): MemoryStore
   profile(): Profile
   provider(sent: SentTag): Provider
+  /** What Otty changed (D-46), or null when nothing keeps it. */
+  ledger(): Ledger | null
 }
 
 export class ChatSession {
@@ -304,6 +307,7 @@ export class ChatSession {
     const note = answer.memories?.find((n) => n.memoryId === memoryId && !n.undone)
     if (!note) return
     const undone = safely(note, () => undo(this.deps.memory(), note))
+    if (undone.undone) this.deps.ledger()?.markUndone(thread.id, 'memory', String(memoryId))
     answer.memories = answer.memories!.map((n) => (n === note ? undone : n))
     this.persist(thread, { messages: at, history: thread.history.length })
     this.emit({ type: 'memory', id: answerId, note: undone })
@@ -328,11 +332,22 @@ export class ChatSession {
   async rewindPlan(messageId: string): Promise<RewindPlan | null> {
     const turn = this.latestTurn(messageId)
     if (!turn) return null
+    const live = (id: string) => this.hooks.jobLive?.(id).catch(() => false) ?? false
+    const rows = this.deps.ledger()?.forAnswers(turn.thread.id, turn.answers.map((a) => a.id)).filter((r) => r.status === 'done' && !r.undoneAt)
+    // D-46: what the ledger wrote down. A chat answered before it had one keeps the answer's own fields.
+    if (rows?.length) {
+      const memories = rows.filter((r) => r.undo === 'memory' && r.ref).map((r) => ({ id: `memory:${r.answerId}:${r.ref}`, label: r.undoLabel ?? r.summary }))
+      const jobs = []
+      for (const r of rows) if (r.undo === 'job' && r.ref && (await live(r.ref))) jobs.push({ id: `job:${r.ref}`, label: r.undoLabel ?? r.summary })
+      const steps = rows.some((r) => r.tool.startsWith('step:')) ? ['Steps you ran from the card stay done.'] : []
+      const lasting = rows.filter((r) => r.undo === 'none' && !r.tool.startsWith('step:')).map((r) => r.summary)
+      return { undo: [...memories, ...jobs], lasting: [...lasting, ...steps] }
+    }
     const undo: RewindPlan['undo'] = []
     const lasting: string[] = []
     for (const a of turn.answers) {
       for (const n of a.memories ?? []) if (!n.undone) undo.push({ id: `memory:${a.id}:${n.memoryId}`, label: UNDO_NOTE[n.action](n.text) })
-      for (const j of a.jobs ?? []) if (await this.hooks.jobLive?.(j.id).catch(() => false)) undo.push({ id: `job:${j.id}`, label: `Stop looking into “${j.title}”` })
+      for (const j of a.jobs ?? []) if (await live(j.id)) undo.push({ id: `job:${j.id}`, label: `Stop looking into “${j.title}”` })
       lasting.push(...(a.lasting ?? []))
       if (a.steps?.steps.some((st) => st.done && st.action)) lasting.push('Steps you ran from the card stay done.')
     }
@@ -350,8 +365,16 @@ export class ChatSession {
     const { thread, user, userAt, historyAt, answers } = turn
     const wanted = new Set(undoIds)
     for (const a of answers) {
-      for (const n of a.memories ?? []) if (!n.undone && wanted.has(`memory:${a.id}:${n.memoryId}`)) safely(undefined, () => void undo(this.deps.memory(), n))
-      for (const j of a.jobs ?? []) if (wanted.has(`job:${j.id}`)) await this.hooks.withdrawJob?.(j.id).catch((err) => console.error('Could not stop a look', err))
+      for (const n of a.memories ?? []) {
+        if (n.undone || !wanted.has(`memory:${a.id}:${n.memoryId}`)) continue
+        safely(undefined, () => void undo(this.deps.memory(), n))
+        this.deps.ledger()?.markUndone(thread.id, 'memory', String(n.memoryId))
+      }
+      for (const j of a.jobs ?? []) {
+        if (!wanted.has(`job:${j.id}`)) continue
+        await this.hooks.withdrawJob?.(j.id).catch((err) => console.error('Could not stop a look', err))
+        this.deps.ledger()?.markUndone(thread.id, 'job', j.id)
+      }
     }
     const asked = thread.history[historyAt]
     const keep = mode === 'retry' ? 1 : 0
@@ -656,8 +679,9 @@ export class ChatSession {
     const learning = (act: () => ReturnType<typeof remember>) => {
       if (!this.learns(thread)) return { result: 'Not saved: the user turned learning off for this chat. Don’t say it was saved.', status: 'denied' as const }
       const { outcome, note } = safely({ outcome: { result: 'That didn’t work.', status: 'error' as const } }, act)
-      if (note) this.note(thread, answer, note)
-      return outcome
+      if (!note) return outcome
+      this.note(thread, answer, note)
+      return { ...outcome, undo: { ref: String(note.memoryId), label: UNDO_NOTE[note.action](note.text) } }
     }
 
     // D-41: the user's own data is in this turn's context: a capture or file in this chat, or a memory that matched.
@@ -676,6 +700,7 @@ export class ChatSession {
         context: {
           allowed: CHAT_TOOLS,
           taint,
+          cause: { chatId: thread.id, answerId: id },
           sent: { chatId: thread.id, group: id },
           confirm: (title, detail) => this.askConfirm(live, title, detail),
           knownUrl: (url) => isKnownUrl(url, history),
@@ -796,8 +821,9 @@ export class ChatSession {
     const problem = await this.hooks.startJob({ id: jobId, title, brief, sourceThread: thread.id, seedUrls, language, ...(dueAt ? { dueAt } : {}), ...(repeat ? { repeat } : {}) })
     if (problem) return { result: problem, status: 'error' }
     answer.jobs = [...(answer.jobs ?? []), { id: jobId, title }]
-    if (repeat && dueAt) return { result: `Scheduled ${repeatWords(repeat, dueAt)}, starting ${describeWhen(dueAt)}. Each look leaves its own note in Activity.`, status: 'done' }
-    return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in Activity.` : 'Started. The user will find the report in Activity.', status: 'done' }
+    const undo = { ref: jobId, label: `Stop looking into “${title}”` }
+    if (repeat && dueAt) return { result: `Scheduled ${repeatWords(repeat, dueAt)}, starting ${describeWhen(dueAt)}. Each look leaves its own note in Activity.`, status: 'done', undo }
+    return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in Activity.` : 'Started. The user will find the report in Activity.', status: 'done', undo }
   }
 
   /** A chart of the user's own table. Code adds it up; the model only said what to chart (D-35). */
@@ -844,7 +870,10 @@ export class ChatSession {
     if (!found || !step?.action || step.manual) return
     if (isRisky(step.action) && !sure) return
     const thread = this.thread
+    // A step's button changes something in another app, so it's written down first (D-46). It can't be undone.
+    const done = begin({ tool: `step:${step.action.kind}`, chatId: thread.id, answerId, summary: `Step: ${step.text}`, undo: 'none' }, this.deps.ledger())
     const result = await act(step.action, found.card.app ?? null)
+    done({ status: result.ok ? 'done' : 'failed' })
     step.note = result.message
     if (result.ok) step.done = true
     if (result.manual) step.manual = true

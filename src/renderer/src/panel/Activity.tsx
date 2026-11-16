@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ActivityItem } from '../../../shared/types'
 import { describeWhen } from '../../../shared/when'
 import { Icon } from '../components/Icon'
+import { ChangeList } from './ChangeList'
 import { SentList } from './SentList'
 
 const STATES: Record<ActivityItem['state'], string> = {
@@ -108,11 +109,12 @@ function PauseBar({ paused, onPause }: { paused: boolean; onPause: (on: boolean)
   )
 }
 
-export type Tab = 'work' | 'sent'
+export type Tab = 'work' | 'sent' | 'changed'
 
 /**
  * What Otty is doing while the user looks away: what's coming up first, soonest at the top, then the rest, newest
- * first. The second tab is what left the Mac (D-31), so "what did it send?" has an answer next to "what did it do?".
+ * first. Beside it: what left the Mac (D-31) and what Otty changed (D-46), so "what did it send?" and "what did it
+ * change?" have answers next to "what is it doing?".
  */
 export function Activity({
   items,
@@ -134,14 +136,19 @@ export function Activity({
   return (
     <div className="activity">
       <div className="activity__tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'work'} className="activity__tab" onClick={() => setTab('work')}>
-          What Otty is doing
+        <button role="tab" aria-selected={tab === 'work'} aria-label="What Otty is doing" title="What Otty is doing" className="activity__tab" onClick={() => setTab('work')}>
+          Doing
         </button>
-        <button role="tab" aria-selected={tab === 'sent'} className="activity__tab" onClick={() => setTab('sent')}>
-          What left your Mac
+        <button role="tab" aria-selected={tab === 'sent'} aria-label="What left your Mac" title="What left your Mac" className="activity__tab" onClick={() => setTab('sent')}>
+          Left your Mac
+        </button>
+        <button role="tab" aria-selected={tab === 'changed'} aria-label="What Otty changed" title="What Otty changed" className="activity__tab" onClick={() => setTab('changed')}>
+          Changed
         </button>
       </div>
-      {tab === 'work' ? <Work items={items} onOpen={onOpen} paused={paused} onPause={onPause} /> : <SentList onOpenChat={onOpenChat} />}
+      {tab === 'work' && <Work items={items} onOpen={onOpen} paused={paused} onPause={onPause} />}
+      {tab === 'sent' && <SentList onOpenChat={onOpenChat} />}
+      {tab === 'changed' && <ChangeList onOpenChat={onOpenChat} />}
     </div>
   )
 }

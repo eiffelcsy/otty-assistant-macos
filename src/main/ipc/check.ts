@@ -76,6 +76,7 @@ export const CHANNELS = {
   'activity:open': { views: PANEL, args: [id] },
   'activity:seen': { views: PANEL, args: [] },
   'sent:list': { views: PANEL, args: [] },
+  'actions:list': { views: PANEL, args: [] },
   'memory:list': { views: PANEL, args: [] },
   'memory:add': { views: PANEL, args: [text(2_000)] },
   'memory:update': { views: PANEL, args: [int(0, Number.MAX_SAFE_INTEGER), record] },

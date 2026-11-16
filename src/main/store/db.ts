@@ -212,6 +212,28 @@ const MIGRATIONS: string[] = [
     at integer not null,
     primary key (job_id, call_id)
   ) without rowid;
+  `,
+  // v9. D-46: the action ledger. Every change Otty makes, written before it runs: what, why (the chat and answer, or
+  // the job) and how to undo it. No foreign keys: like \`sent\`, it's cleared with its chat by hand.
+  `
+  create table actions(
+    id integer primary key,
+    at integer not null,
+    tool text not null,
+    chat_id text,
+    answer_id text,
+    job_id text,
+    summary text not null,
+    -- 'memory' | 'job' | 'none'
+    undo text not null,
+    ref text,
+    undo_label text,
+    -- 'running' | 'done' | 'failed' | 'denied'
+    status text not null,
+    undone_at integer
+  );
+  create index actions_at on actions(at);
+  create index actions_chat on actions(chat_id, answer_id) where chat_id is not null;
   `
 ]
 

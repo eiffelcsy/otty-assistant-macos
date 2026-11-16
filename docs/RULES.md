@@ -47,6 +47,7 @@ Where the checks live:
 | Smoke harness | `tools/smoke/check-release.mjs` in CI; smoke `harness.smoke.ts` "every way out of the machine is refused". Rule test `boundaries.test.ts` (no test hooks in `src/`). |
 | Eval | Test `eval.test.ts` (the scorers). Prose only for *run it after a prompt change*: it needs a key; `npm run verify` says when it applies. |
 | Drawings | Test `sanitize.test.ts`, `draw.test.ts`, `slides.test.ts`, `drawing.test.ts`. |
+| Action ledger | Tests `ledger.test.ts` (both backends, masking, forgetting, a failing ledger never throws) and `rewind.test.ts` "reads its list from the action ledger…". Smoke `ledger.smoke.ts`. |
 | What left the Mac | Typecheck (`activeProvider(sent: SentTag)`). Rule test `requests.test.ts` (every call passes a tag; searches and pages are recorded). Test `sent.test.ts`. |
 | Monthly limit | Test `repeat.test.ts` "the monthly limit"; `trust.test.ts` "the monthly limit (D-33)". |
 | Repeating jobs | Test `repeat.test.ts` "repeating jobs"; `trust.test.ts` "repeats (D-34)". |

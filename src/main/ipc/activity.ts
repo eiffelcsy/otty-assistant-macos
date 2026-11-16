@@ -1,5 +1,5 @@
 import { getStored } from '../settings'
-import { activity, chat, jobs, sentLog } from '../core'
+import { activity, chat, jobs, ledger, sentLog } from '../core'
 import { handle } from './check'
 
 /** Activity sends ids only; main looks up what each one is, so a window can't say what kind of thing it is (D-44). */
@@ -23,4 +23,5 @@ export function registerActivity(): void {
   handle('activity:resume', (_e, id: string) => jobs.resume(id))
   handle('activity:seen', () => jobs.markSeen())
   handle('sent:list', () => sentLog().list())
+  handle('actions:list', () => ledger().list())
 }

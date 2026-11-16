@@ -30,6 +30,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ draw.ts        drawing export (no JS, no network), view│
 │ chart.ts       charts of the user's tables, by code    │
 │ sent.ts        what left the Mac: one row per request  │
+│ ledger.ts      what Otty changed, and how to undo it   │
 │ usage.ts       the usage meter and the month's total   │
 │ providers/     one adapter per API format, profiles    │
 │ store/         ChatStore on SQLite (otty.db): chats,   │
@@ -82,7 +83,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-39 | Pause until: "for an hour" or "until tomorrow" on Pause everything | ⏳ | — | S (½ day) |
 | D-40 | Show what was hidden: tap "1 key hidden" to see which lines, on the Mac only | ⏳ | D-32 | S (½ day) |
 | D-45 | Split the composition root: no electron in the loop (steps 1–2 shipped) | ⏳ step 3 | a settings split | S–M (1 day) |
-| D-46 | Action ledger v1: every change Otty makes, with how to undo it | ⏳ | D-42 ✅ | M (2 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S (1 day) |
@@ -103,7 +103,7 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 3. **The ✋ steps on a Mac**, by a person, and a fresh eval baseline.
 4. **Harness extras** from BRAINSTORM, only as specs need them.
 5. **D-48 phase 2** (coverage ratchet, component and property tests, screenshots of the UI preview, docs-drift checks).
-6. **Hardening (D-41 to D-46)**, in the order below. ✅ D-41 to D-43 (CHANGELOG), on `feat/hardening-gates`; D-44 and D-45's steps 1–2 on `feat/hardening-ipc`.
+6. **Hardening (D-41 to D-46)**, in the order below. ✅ D-41 to D-43 (CHANGELOG), on `feat/hardening-gates`; D-44 and D-45's steps 1–2 on `feat/hardening-ipc`; D-46 on `feat/action-ledger`.
 7. **Features (D-37 to D-40)**, in the order below.
 8. **D-48 phase 3** (mutation testing, eval in CI) when the beta is close.
 
@@ -113,7 +113,7 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 3. ✅ **D-43 Job states and step writes.** Repeating looks made the runner bigger. Pin down its states before goals or Look after me add more.
 4. ✅ **D-44 Check every IPC input.** This is LAUNCH_READINESS 10.5, which a signed beta needs anyway.
 5. ✅ (steps 1–2) **D-45 Split the composition root.** A pure refactor, best done between batches, and now under the smoke harness. `llm.ts` (927 lines) and `index.ts` (571) both grew by a third since 0.5.0.
-6. **D-46 Action ledger v1.** It's the base for "do, with undo", and D-36's rewind already waits on it. Ship it before any new level of reach.
+6. ✅ **D-46 Action ledger v1.** It's the base for "do, with undo", and D-36's rewind already waits on it. Ship it before any new level of reach.
 
 **Features** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five scored 2 (H with S–M, or M with S), so the order is by how many people meet it. D-36, Retry and edit, shipped with that batch:
 1. **D-37 Feed Otty.** The otter is the front door. Dropping something on it to ask about it is the most "Otty" way in, and it reuses the file and capture paths.
@@ -377,24 +377,6 @@ Steps 1 and 2 shipped (CHANGELOG): `ChatSession` takes `SessionDeps`, and `index
 
 **Done when.** A test imports `runLoop` and `JobRunner` with no electron mock, and the eval stops stubbing the tools that only need the network.
 
-## D-46 · Action ledger v1 ⏳
-
-**Goal.** This is the start of Otty's version control (AUTONOMY, "The trust ceiling"). Every change Otty makes is written down before it runs: what it was, why, what it looked like before, and how to undo it. D-36's rewind, Activity and future "do, with undo" actions all read from it.
-
-**Today.** Each kind of change keeps its own trail. Memories have their Noted line and Undo, an answer keeps `memories`, `jobs` and a `lasting` list of up to 160 characters of tool output, step cards keep `done`, and D-31's sent log covers what left the Mac. Rewind assembles these by hand, and step cards say "can't be undone yet".
-
-**Design.**
-- A new `actions` table (migration): `id`, `at`, `tool`, `cause` (`chat:<thread>/<message>` or `job:<id>`), `summary` (plain words, no secrets: through `maskSecrets`), `before` (only where it's small and safe, such as a memory's old text), `undo` (`'memory' | 'job' | 'none'`, with a reason when it's none), and `undoneAt`. It lives and dies with chats, like the sent log.
-- `runTool` writes a row before any tool whose row says `changes !== 'nothing'`, and marks it done or failed after. Step-card actions write rows from `act/`.
-- `rewindPlan` and the Noted line's Undo read and update the ledger, instead of fields on the answer. Saved chats from before the ledger keep their old fields, read through `store/upgrade.ts`.
-- Activity gets a "What Otty changed" list beside "What left your Mac".
-
-**Not in v1.** Rewind for a whole job or a whole day, undo for reminders (that needs EventKit ids), and a delay on things that leave.
-
-**Done when.** Every changing tool and step-card action leaves a row, rewind's list comes from the ledger and matches today's, and "Forget all chats" clears it.
-
----
-
 ## D-25 · Fast and Best: two model slots ⏸ (much later)
 
 **Goal.** Background work and hard problems shouldn't use the same model. Titles and explain cards want something cheap, and a job's report or a `problem` turn wants the best the user has. Features ask for a role, never a model name, so each upgrades on its own.
@@ -627,3 +609,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 128. `npm run smoke` → it passes, and `npm run smoke -- --grep @harness` shows every way out of the machine refused. ✋ Run it with your own Otty open and check that it keeps working and its chats are unchanged.
 129. `npm run build:mac`, then `npm run smoke:packaged` → "The packaged app started". ✋ It launches the real built app for a few seconds, so run it on a Mac with the build.
 130. Highlight a line of private notes, ⌥Space, and ask Otty to summarise a page that tells it to search for the highlighted text → after reading the page, a **Look this up?** card shows the exact words before any search; **No thanks** keeps them on the Mac. In a chat with nothing highlighted or attached, a search after a page needs no card.
+131. Ask Otty to add a reminder and say yes → Settings › Privacy › **See what Otty changed** lists "Reminder added" as can't be undone. Remember something, then **Try again** → the card offers to forget it, and afterwards the row says undone. **Forget all chats** → the list is empty.

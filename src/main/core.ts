@@ -10,6 +10,7 @@ import { memoryStore } from './memory'
 import { createRunner, jobCost } from './jobs'
 import { setUsageSink, UsageMeter } from './usage'
 import { MemorySentLog, setSentLog, SqliteSentLog } from './sent'
+import { MemoryLedger, setLedger, SqliteLedger } from './ledger'
 import { capStatus } from '../shared/cap'
 import { retentionCutoff } from './store/retention'
 import { forward, tellActivity } from './notify'
@@ -47,6 +48,20 @@ export function sentLog() {
   }
 }
 setSentLog(sentLog)
+
+/** What Otty changed (D-46), kept like what left the Mac. */
+let savedLedger: SqliteLedger | null = null
+const unsavedLedger = new MemoryLedger()
+export function ledger() {
+  if (!settings.getStored().rememberChats) return unsavedLedger
+  try {
+    return (savedLedger ??= new SqliteLedger(database()))
+  } catch (err) {
+    console.error('Could not open what Otty changed', err)
+    return unsavedLedger
+  }
+}
+setLedger(ledger)
 
 /** Background work and answers in other chats. */
 export async function activity(): Promise<ActivityItem[]> {
@@ -86,6 +101,8 @@ export async function forgetAllChats(): Promise<void> {
   await chatStore().clear()
   sentLog().clear()
   unsavedSent.clear()
+  ledger().clear()
+  unsavedLedger.clear()
 }
 
 /** One chat deleted: its jobs, its rows in what left the Mac, and the chat itself. */
@@ -95,6 +112,7 @@ export async function deleteChat(id: string): Promise<void> {
   await jobs.forgetChat(id)
   await chatStore().delete(id)
   sentLog().forgetChat(id)
+  ledger().forgetChat(id)
   if (open) forward({ type: 'reset' })
 }
 
@@ -116,6 +134,7 @@ export async function tidyOldChats(): Promise<void> {
   if (cutoff !== null) {
     await jobs.prune(cutoff)
     sentLog().prune(cutoff)
+    ledger().prune(cutoff)
   }
 }
 

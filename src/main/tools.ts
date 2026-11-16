@@ -10,7 +10,8 @@ import { getApiKey, getStored } from './settings'
 import { deepseekFetch, deepseekSearch, WebError, type WebConfig } from './web'
 import { record } from './sent'
 import { maskSecrets } from '../shared/secrets'
-import { needsCard, needsOnce, type RunTaint } from './toolSafety'
+import { needsCard, needsOnce, SAFETY, type RunTaint, type Safety } from './toolSafety'
+import { begin, type UndoKind } from './ledger'
 
 const run = promisify(execFile)
 
@@ -42,6 +43,8 @@ export interface ToolContext {
   startJob?(args: Record<string, unknown>): Promise<ToolOutcome>
   /** Asks to run a read-only job later. Only a chat turn can, and always with a card. */
   scheduleJob?(args: Record<string, unknown>): Promise<ToolOutcome>
+  /** What a change is written down against in the ledger (D-46). Left out, nothing is written. */
+  cause?: { chatId?: string; answerId?: string; jobId?: string }
   /** Whose searches and pages these are, for "What left your Mac". */
   sent?: { chatId?: string; group?: string }
 }
@@ -63,6 +66,8 @@ export interface ToolOutcome {
   status: 'done' | 'denied' | 'error'
   /** Replaces the chip's words once the result is known. `copy` is what tapping the chip copies. */
   chip?: { label: string; copy?: string }
+  /** How the change can be taken back: the memory or job it made, and what Undo would say (D-46). */
+  undo?: { ref: string; label: string }
 }
 
 const searchWebDef = {
@@ -379,6 +384,19 @@ export async function runTool(name: string, args: Args, ctx: ToolContext, callId
   if (!ctx.allowed.has(name)) return { result: `The tool ${name} isn't available here.`, status: 'error' }
   // A resumed job reruns its unanswered call, which may already have run before a restart.
   if (ctx.runId && needsOnce(name) && !(await ctx.claims?.claim(ctx.runId, callId))) return { result: 'This was already done once, so it wasn’t done again.', status: 'denied' }
+  // D-46: a change is written down before it runs, and marked once it's done.
+  const changes = (SAFETY as Record<string, Safety>)[name]?.changes
+  if (!changes || changes === 'nothing') return runOne(name, args, ctx)
+  const done = begin({ tool: name, ...ctx.cause, summary: toolLabel(name, args).label, undo: UNDO_KIND[name] ?? 'none' })
+  const out = await runOne(name, args, ctx)
+  done({ status: out.status === 'error' ? 'failed' : out.status, summary: out.result, ...(out.undo ? { ref: out.undo.ref, undoLabel: out.undo.label } : {}) })
+  return out
+}
+
+/** How the ledger can take a tool's change back. Anything else can't be. */
+const UNDO_KIND: Record<string, UndoKind> = { remember: 'memory', forget: 'memory', start_job: 'job', schedule_job: 'job' }
+
+async function runOne(name: string, args: Args, ctx: ToolContext): Promise<ToolOutcome> {
   try {
     switch (name) {
       case 'search_web':

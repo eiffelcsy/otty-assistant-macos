@@ -66,6 +66,7 @@ const api: OttyApi = {
   openActivity: (item) => ipcRenderer.invoke('activity:open', item.id),
   seenActivity: () => ipcRenderer.invoke('activity:seen'),
   listSent: () => ipcRenderer.invoke('sent:list'),
+  listChanges: () => ipcRenderer.invoke('actions:list'),
   rewindPlan: (messageId: string) => ipcRenderer.invoke('chat:rewind-plan', messageId),
   rewind: (messageId: string, undo: string[], mode: 'retry' | 'edit') => ipcRenderer.invoke('chat:rewind', messageId, undo, mode),
   onActivity: (cb) => listen('activity:changed', cb),

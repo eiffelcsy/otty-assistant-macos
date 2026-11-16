@@ -471,7 +471,7 @@ How much Otty can do is limited by how much can be undone, explained and defende
 | Red-team sets: attacks in the eval that grow with every feature and every real attack, run before each release. Extends D-23's injection set | H | S–M | considering |
 | What left the Mac: a plain record of what was sent, to where and why | H | M | shipped (D-31) |
 | What left your Mac: filter by chat or service, and a weekly one-line summary ("42 requests, all to DeepSeek") | M | S | idea, from D-31 |
-| Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | → D-46 (v1: memories, jobs, lasting tools and step cards; rewind of a job or a day comes later) |
+| Action ledger: every change saved with what it looked like before, why it happened and how to reverse it, before it runs. Otty's version control | H | M | shipped v1 (D-46: memories, jobs, lasting tools and step cards); rewind of a job or a day, and undo for reminders, come later |
 | Why did you do that? on everything: one plain trail from action to job, trigger and the moment you agreed. Extends "Why did this happen?" | H | M | considering |
 | Taint tracking: code knows which runs touched outside text, and what they may do narrows to match | H | M | shipped for a chat turn (D-41, the search leak); per-connection taint comes with connections |
 | Grow the eval sets from the seed sizes (8 / 8 / 5 / 7 / 7) to the planned 40 / 30 / 20 / 15 / 20, adding a case for every real failure and every real attack | H | M | idea, from D-23 |

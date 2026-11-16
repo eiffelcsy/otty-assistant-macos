@@ -1,3 +1,4 @@
+import { actions } from './ledger'
 import { activeProfile, activeProvider } from './providers'
 import { memoryStore } from './memory'
 import { getStored } from './settings'
@@ -12,5 +13,6 @@ export const liveDeps: SessionDeps = {
   pruneChats: pruneOldChats,
   memory: memoryStore,
   profile: activeProfile,
-  provider: activeProvider
+  provider: activeProvider,
+  ledger: actions
 }

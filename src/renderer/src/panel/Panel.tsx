@@ -322,8 +322,8 @@ export function Panel() {
               onSaved={setSettings}
               memoryFocus={memoryFocus}
               onOpenChat={() => setView('chat')}
-              onOpenSent={() => {
-                setActivityTab('sent')
+              onOpenActivity={(tab) => {
+                setActivityTab(tab)
                 setView('activity')
               }}
             />
