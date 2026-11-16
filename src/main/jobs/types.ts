@@ -68,4 +68,6 @@ export interface JobStore {
   clear(): Promise<void>
   /** Forgets finished jobs last updated before `cutoff`. */
   prune(cutoff: number): Promise<number>
+  /** True only the first time a job claims a call, even across a restart, so a change is never made twice (D-42). */
+  claim(jobId: string, callId: string): Promise<boolean>
 }

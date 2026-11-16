@@ -4,6 +4,7 @@ import { compact } from '../store/db'
 import { stripHistory } from '../store/images'
 import type { Job, JobChange, JobStatus, JobStore } from './types'
 import { readRepeat } from '../../shared/repeat'
+import { claimOnce } from '../toolSafety'
 
 const FINISHED: JobStatus[] = ['done', 'failed']
 
@@ -162,12 +163,18 @@ export class SqliteJobStore implements JobStore {
     const { changes } = this.db.prepare(`delete from jobs where updated_at < ? and status in (${marks})`).run(cutoff, ...FINISHED)
     return Number(changes)
   }
+
+  async claim(jobId: string, callId: string): Promise<boolean> {
+    const { changes } = this.db.prepare('insert or ignore into claims(job_id, call_id, at) values (?, ?, ?)').run(jobId, callId, Date.now())
+    return Number(changes) === 1
+  }
 }
 
 /** With "Remember my chats" off: nothing is written, and nothing survives a quit. */
 export class MemoryJobStore implements JobStore {
   private jobs = new Map<string, Job>()
   private history = new Map<string, Message[]>()
+  private claimed = new Set<string>()
 
   async list(): Promise<Job[]> {
     return [...this.jobs.values()].map((j) => ({ ...j }))
@@ -210,16 +217,22 @@ export class MemoryJobStore implements JobStore {
   async delete(id: string): Promise<void> {
     this.jobs.delete(id)
     this.history.delete(id)
+    for (const key of this.claimed) if (key.startsWith(`${id}:`)) this.claimed.delete(key)
   }
 
   async clear(): Promise<void> {
     this.jobs.clear()
     this.history.clear()
+    this.claimed.clear()
   }
 
   async prune(cutoff: number): Promise<number> {
     const old = [...this.jobs.values()].filter((j) => j.updatedAt < cutoff && FINISHED.includes(j.status))
     for (const j of old) await this.delete(j.id)
     return old.length
+  }
+
+  async claim(jobId: string, callId: string): Promise<boolean> {
+    return this.jobs.has(jobId) && claimOnce(this.claimed, jobId, callId)
   }
 }

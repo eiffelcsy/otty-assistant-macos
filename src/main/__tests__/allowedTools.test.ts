@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CHAT_TOOLS } from '../toolSafety'
 import type { Message, Provider, ProviderEvent, ChatRequest } from '../providers'
 
 let baseUrl = 'https://api.deepseek.com'
@@ -27,7 +28,7 @@ describe('allowed tools', () => {
 
   it('offers only what’s allowed', () => {
     expect(toolDefs(allowed).map((t) => t.function.name)).toEqual(['search_web', 'read_page'])
-    expect(toolDefs().map((t) => t.function.name)).toContain('open_url')
+    expect(toolDefs(CHAT_TOOLS).map((t) => t.function.name)).toContain('open_url')
   })
 
   it('still refuses the web with web lookups off, even when allowed', async () => {
@@ -59,7 +60,7 @@ describe('the tool loop', () => {
     system: 's',
     history,
     tools: () => [],
-    context: { confirm: async () => true, knownUrl: () => true },
+    context: { allowed: CHAT_TOOLS, confirm: async () => true, knownUrl: () => true },
     maxRounds: 2,
     signal: new AbortController().signal,
     onEvent: () => {}

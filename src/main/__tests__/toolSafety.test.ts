@@ -4,14 +4,14 @@ let baseUrl = 'https://api.deepseek.com'
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {} }))
 vi.mock('../settings', () => ({ getApiKey: () => 'key', getStored: () => ({ baseUrl, model: 'claude-sonnet-5-5', apiFormat: baseUrl.includes('anthropic') ? 'anthropic' : 'auto', learn: true }) }))
 const { toolDefs } = await import('../tools')
-const { claimOnce, JOB_TOOLS, needsOnce, OUTSIDE_TOOLS, ruleOfTwo, SAFETY } = await import('../toolSafety')
+const { CHAT_TOOLS, claimOnce, JOB_TOOLS, needsOnce, OUTSIDE_TOOLS, ruleOfTwo, SAFETY } = await import('../toolSafety')
 
 /** Every tool the model can be offered, whichever service is in use. */
 function offered(): Set<string> {
   const all = new Set<string>()
   for (const url of ['https://api.deepseek.com', 'https://api.anthropic.com', 'https://api.openai.com/v1']) {
     baseUrl = url
-    for (const d of toolDefs()) all.add(d.function.name)
+    for (const d of toolDefs(CHAT_TOOLS)) all.add(d.function.name)
   }
   baseUrl = 'https://api.deepseek.com'
   return all

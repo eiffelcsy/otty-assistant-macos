@@ -2,6 +2,7 @@ import { runLoop } from '../../src/main/loop'
 import { turnHints } from '../../src/main/hints'
 import { systemPrompt } from '../../src/main/prompts'
 import { toolDefs } from '../../src/main/tools'
+import { CHAT_TOOLS } from '../../src/main/toolSafety'
 import type { ToolOutcome } from '../../src/main/tools'
 import type { Provider, Message } from '../../src/main/providers'
 import { buildChart } from '../../src/main/chart'
@@ -20,7 +21,8 @@ export function userText(c: Case, now = new Date('2026-11-09T10:00:00')): string
   const hints = turnHints({ typed: c.typed ?? c.prompt, app: c.app?.split(',')[0] ?? null, learn: true, table: Boolean(c.table) })
     .map((h) => `\n${h}`)
     .join('')
-  return `${app}${c.prompt}\n\n[Current local time: ${now.toString().slice(0, 21)}]${known}${hints}`
+  const capture = c.capture ? `\n\n[Highlighted text:]\n${c.capture}` : ''
+  return `${app}${c.prompt}${capture}\n\n[Current local time: ${now.toString().slice(0, 21)}]${known}${hints}`
 }
 
 /** Runs one case through the real loop and system prompt, with the model service given. */
@@ -31,14 +33,22 @@ export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: n
   let answer = ''
   let rounds = 0
   let error: string | undefined
+  const cards: string[] = []
   try {
     await inScene({ search: c.search, page: c.page }, () => runLoop({
       provider: () => provider,
       system: systemPrompt(null, true, true),
       history,
-      tools: () => toolDefs(),
+      tools: () => toolDefs(CHAT_TOOLS),
       context: {
-        confirm: async () => true,
+        allowed: CHAT_TOOLS,
+        // As in the app (llm.ts): a capture or a known fact puts the user's own data in the run.
+        taint: { private: Boolean(c.capture || c.known), outside: false },
+        // Every card is recorded. A careful user says no to sending their own words out in a search, and yes to the rest.
+        confirm: async (title, detail) => {
+          cards.push(`${title}: ${detail}`)
+          return title !== 'Look this up?'
+        },
         // Pages and searches are scripted by the case, so the address is as good as known.
         knownUrl: () => true,
         learn: { remember: () => ok, forget: () => ok },
@@ -65,7 +75,7 @@ export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: n
   } catch (err) {
     error = (err as Error).message
   }
-  const trace: Trace = { calls: callsIn(history), answer, firstTokenMs, totalMs: Math.round(performance.now() - started), rounds, ...(error ? { error } : {}) }
+  const trace: Trace = { calls: callsIn(history), answer, firstTokenMs, totalMs: Math.round(performance.now() - started), rounds, cards, ...(error ? { error } : {}) }
   return { id: c.id, set: c.set, trace, ...score(c.expect, trace) }
 }
 

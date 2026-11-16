@@ -33,7 +33,7 @@ import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
 import { createExplainCache, termsToWarm } from './explainCache'
 import { toolDefs, type ToolOutcome } from './tools'
-import { OUTSIDE_TOOLS } from './toolSafety'
+import { CHAT_TOOLS, LASTING_TOOLS, OUTSIDE_TOOLS, type RunTaint } from './toolSafety'
 import { runLoop } from './loop'
 import { count } from './usage'
 import { instantAnswer } from './math'
@@ -94,8 +94,6 @@ export interface SessionHooks {
   withdrawJob?(id: string): Promise<void>
 }
 
-/** Tools whose effect Otty can't take back, listed before an answer is replaced (D-36). */
-const LASTING = new Set(['create_reminder', 'open_url', 'copy_to_clipboard'])
 
 /** What Undo on a Noted line would do, said as an undo. */
 const UNDO_NOTE: Record<MemoryNote['action'], (text: string) => string> = {
@@ -650,14 +648,22 @@ export class ChatSession {
       return outcome
     }
 
+    // D-41: the user's own data is in this turn's context: a capture or file in this chat, or a memory that matched.
+    const taint: RunTaint = {
+      private: used.length > 0 || thread.messages.some((m) => m.role === 'user' && (m.captures.length > 0 || Boolean(m.files?.length))),
+      outside: false
+    }
+
     try {
       const sent = { kind: 'question' as const, chatId: thread.id, group: id, what: turn.sent }
       await runLoop({
         provider: () => activeProvider(sent),
         system,
         history,
-        tools: toolDefs,
+        tools: () => toolDefs(CHAT_TOOLS),
         context: {
+          allowed: CHAT_TOOLS,
+          taint,
           sent: { chatId: thread.id, group: id },
           confirm: (title, detail) => this.askConfirm(live, title, detail),
           knownUrl: (url) => isKnownUrl(url, history),
@@ -678,7 +684,7 @@ export class ChatSession {
             answer.text += e.text
             this.tell(thread, { type: 'delta', id, text: e.text })
           }
-          if (e.type === 'tool-result' && LASTING.has(e.name) && e.outcome.status === 'done') answer.lasting = [...(answer.lasting ?? []), e.outcome.result.slice(0, 160)]
+          if (e.type === 'tool-result' && LASTING_TOOLS.has(e.name) && e.outcome.status === 'done') answer.lasting = [...(answer.lasting ?? []), e.outcome.result.slice(0, 160)]
           if (e.type === 'tool-result' && OUTSIDE_TOOLS.has(e.name)) {
             heard.hadOutside = true
             heard.outside += `\n${e.outcome.result}`

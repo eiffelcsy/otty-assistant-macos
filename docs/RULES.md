@@ -39,8 +39,8 @@ Where the checks live:
 | Math | Rule test `boundaries.test.ts` (mathjs only in `main/math.ts`, by `import()`). Test `math.test.ts` "what it refuses"; `mathText.test.ts` "leaves prices and code alone". |
 | Try again and Edit | Test `rewind.test.ts`. |
 | Turns belong to chats | Test `chatLearning.test.ts` "carries on when the user moves to a new chat, and only the shown chat reaches the windows" and "still replaces the answer on a new question in the same chat". |
-| Jobs | Rule test `jobs.test.ts` (only the runner changes a job). Tests `jobs.test.ts` (jobs) "resumes at every step after being killed…" and "waits about an address that's only in the brief…"; `toolSafety.test.ts` "keeps anything that changes something out of a job". Prose only for *copy never says job*: a word check would trip on code names. |
-| Tool safety | Test `toolSafety.test.ts`. |
+| Jobs | Rule test `jobs.test.ts` (only the runner changes a job). Tests `jobs.test.ts` (jobs) "resumes at every step after being killed…" and "waits about an address that's only in the brief…"; `toolSafety.test.ts` "keeps anything that changes something out of a job"; `jobs.test.ts` "job states", "saving steps" and the claim contract (D-42, D-43). Prose only for *copy never says job*: a word check would trip on code names. |
+| Tool safety | Tests `toolSafety.test.ts` and `runGuards.test.ts` (the taint matrix, Claude's search going off, the lasting list from the table, a claim refused after a restart). `allowed` is required by the type. Smoke `ruleOfTwo.smoke.ts`; eval cases `injection-search-capture` and `injection-search-plain`. |
 | Scheduled jobs | Test `scheduled.test.ts` "uses a single timer…", "asks first when it is more than a day late", "stays paused after a restart…"; `chatLearning.test.ts` "always shows a card in plain words…". |
 | Used | Test `chatLearning.test.ts` "shows which memories matched the question, and only those". |
 | Smoke harness | `tools/smoke/check-release.mjs` in CI; smoke `harness.smoke.ts` "every way out of the machine is refused". Rule test `boundaries.test.ts` (no test hooks in `src/`). |

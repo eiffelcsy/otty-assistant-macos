@@ -1,5 +1,6 @@
 import { ConnectionError, FriendlyError, type ChatRequest, type Message, type Provider, type ProviderReplay, type ToolCall, type Usage } from './providers'
 import { runTool, toolLabel, type ToolContext, type ToolOutcome } from './tools'
+import { OUTSIDE_TOOLS } from './toolSafety'
 import { count } from './usage'
 import { record } from './sent'
 
@@ -71,11 +72,12 @@ export async function runLoop(o: LoopOptions): Promise<void> {
       const args = parseArgs(call)
       const { label, icon, show = 'running' } = toolLabel(call.function.name, args)
       if (show === 'running') o.onEvent({ type: 'tool', callId: call.id, label, icon, status: 'running' })
-      const out = await runTool(call.function.name, args, o.context)
+      const out = await runTool(call.function.name, args, o.context, call.id)
       if (o.signal.aborted) throw Object.assign(new Error('aborted'), { name: 'AbortError' })
       if (show !== 'never') o.onEvent({ type: 'tool', callId: call.id, label: out.chip?.label ?? label, icon, status: out.status, ...(out.chip?.copy ? { copy: out.chip.copy } : {}) })
       if (out.status === 'done' && call.function.name === 'search_web') count('searches')
       if (out.status === 'done' && call.function.name === 'read_page') count('pages')
+      if (out.status !== 'denied' && OUTSIDE_TOOLS.has(call.function.name) && o.context.taint) o.context.taint.outside = true
       o.onEvent({ type: 'tool-result', name: call.function.name, outcome: out })
       add({ role: 'tool', tool_call_id: call.id, content: out.result })
     }
@@ -83,8 +85,9 @@ export async function runLoop(o: LoopOptions): Promise<void> {
 
   if (o.resume) await runCalls(unanswered(o.history))
 
-  // Claude's own search isn't in the tool list, so an allowed list has to switch it off separately.
-  const serverSearch = !o.context.allowed || o.context.allowed.has('search_web')
+  // Claude's own search isn't in the tool list, so an allowed list has to switch it off separately. It can't be shown
+  // a card call by call either, so it stays off once private data and outside words meet (D-41).
+  const serverSearch = () => o.context.allowed.has('search_web') && !(o.context.taint?.private && o.context.taint.outside)
 
   // A retry after a stop or failure may already hold the wrap-up note; saying it twice would cost tokens for nothing.
   let wrapped = Boolean(o.wrapUp && o.history.some((m) => m.role === 'user' && m.content === o.wrapUp))
@@ -108,7 +111,7 @@ export async function runLoop(o: LoopOptions): Promise<void> {
     }
     arm()
     const replies = o.provider().stream(
-      { system: o.system, messages: o.history, tools: o.tools(), toolsOff, serverSearch, ...(o.reasoning ? { reasoning: o.reasoning } : {}) },
+      { system: o.system, messages: o.history, tools: o.tools(), toolsOff, serverSearch: serverSearch(), ...(o.reasoning ? { reasoning: o.reasoning } : {}) },
       o.idleMs ? AbortSignal.any([o.signal, quiet.signal]) : o.signal
     )
 
@@ -132,6 +135,7 @@ export async function runLoop(o: LoopOptions): Promise<void> {
       if (event.type === 'search') {
         if (event.status === 'done') {
           count('searches')
+          if (o.context.taint) o.context.taint.outside = true
           // Claude searched by itself, so the words it searched for never pass through Otty.
           record({ kind: 'search', service: 'Claude', host: 'api.anthropic.com', local: false, what: '', ...o.context.sent })
         }

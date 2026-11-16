@@ -8,7 +8,8 @@ import { ConnectionError, FriendlyError } from '../../providers/errors'
 import type { Thread } from '../../store'
 import { LIMITS, Supervisor, type Limits } from '../limits'
 import { MemoryJobStore, SqliteJobStore } from '../stores'
-import type { Job, JobStore } from '../types'
+import { assertMove, MOVES } from '../states'
+import type { Job, JobStatus, JobStore } from '../types'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {}, app: { isPackaged: true } }))
 vi.mock('../../settings', () => ({ getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm' }), getApiKey: () => 'k' }))
@@ -111,6 +112,77 @@ describe.each([
     await s.delete('a')
     expect(await s.get('a')).toBeUndefined()
     expect(await s.steps('a')).toEqual([])
+  })
+
+  it('keeps a series and its runs linked', async () => {
+    const s = make()
+    await s.add({ ...sample('series'), status: 'scheduled', dueAt: 5, repeat: { every: 'week', day: 1 } })
+    await s.add({ ...sample('run'), seriesId: 'series' })
+    expect(await s.get('series')).toMatchObject({ dueAt: 5, repeat: { every: 'week', day: 1 } })
+    expect(await s.get('run')).toMatchObject({ seriesId: 'series' })
+  })
+
+  it('lets a job claim each call once, and forgets its claims with it (D-42)', async () => {
+    const s = make()
+    await s.add(sample('a'))
+    await s.add(sample('b'))
+    expect([await s.claim('a', 'c1'), await s.claim('a', 'c1'), await s.claim('a', 'c2'), await s.claim('b', 'c1')]).toEqual([true, false, true, true])
+    await s.delete('a')
+    await s.add(sample('a'))
+    expect(await s.claim('a', 'c1')).toBe(true)
+  })
+})
+
+describe('job states (D-43)', () => {
+  const all = Object.keys(MOVES) as JobStatus[]
+
+  it('allows exactly the moves in the table, and staying put', () => {
+    for (const from of all) {
+      for (const to of all) {
+        const legal = from === to || MOVES[from].includes(to)
+        if (legal) expect(() => assertMove(from, to)).not.toThrow()
+        else expect(() => assertMove(from, to), `${from} → ${to}`).toThrow(/can't go/)
+      }
+    }
+    expect(MOVES.done).toEqual([])
+  })
+})
+
+describe('saving steps (D-43)', () => {
+  it('keeps steps in order on a store that answers out of order', async () => {
+    const order: number[] = []
+    class Slow extends MemoryJobStore {
+      override async appendStep(id: string, seq: number, m: Message) {
+        await new Promise((r) => setTimeout(r, Math.random() * 5))
+        order.push(seq)
+        return super.appendStep(id, seq, m)
+      }
+      override async update(...args: Parameters<MemoryJobStore['update']>) {
+        await new Promise((r) => setTimeout(r, Math.random() * 5))
+        return super.update(...args)
+      }
+    }
+    const r = rig(new Slow())
+    r.turns.push(search('1'), search('2'), search('3'), say('Done.'))
+    await r.runner.start(job)
+    await vi.waitFor(async () => expect((await r.store.list())[0]?.status).toBe('done'))
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+    expect(order.length).toBeGreaterThan(6)
+  })
+
+  it('fails with a friendly note when a step can’t be saved', async () => {
+    class Broken extends MemoryJobStore {
+      override async appendStep(id: string, seq: number, m: Message) {
+        if (seq >= 2) throw new Error('disk full')
+        return super.appendStep(id, seq, m)
+      }
+    }
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const r = rig(new Broken())
+    r.turns.push(search('1'), say('Done.'))
+    await r.runner.start(job)
+    await vi.waitFor(async () => expect((await r.store.list())[0]?.status).toBe('failed'))
+    expect((await r.store.list())[0].error).toMatch(/couldn’t save its progress/)
   })
 })
 

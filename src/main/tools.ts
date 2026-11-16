@@ -10,6 +10,7 @@ import { getApiKey, getStored } from './settings'
 import { deepseekFetch, deepseekSearch, WebError, type WebConfig } from './web'
 import { record } from './sent'
 import { maskSecrets } from '../shared/secrets'
+import { needsCard, needsOnce, type RunTaint } from './toolSafety'
 
 const run = promisify(execFile)
 
@@ -20,9 +21,14 @@ export interface ToolContext {
   knownUrl(url: string): boolean
   /**
    * The only tools this work may use, checked first thing in `runTool`, because a model can call a tool it wasn't
-   * offered. Left out, every tool is allowed: a chat turn, which the user is watching.
+   * offered. Always given: a chat turn passes `CHAT_TOOLS`, a job `JOB_TOOLS` (D-42).
    */
-  allowed?: ReadonlySet<string>
+  allowed: ReadonlySet<string>
+  /** What the run holds so far (D-41). The loop marks `outside` as results come in. */
+  taint?: RunTaint
+  /** Work that can be resumed: a change it makes is claimed once per call, so a rerun can't repeat it (D-42). */
+  runId?: string
+  claims?: Claims
   /** How `remember` and `forget` reach the chat. Left out, this work can't touch what Otty knows. */
   learn?: {
     remember(args: Record<string, unknown>): ToolOutcome
@@ -38,6 +44,11 @@ export interface ToolContext {
   scheduleJob?(args: Record<string, unknown>): Promise<ToolOutcome>
   /** Whose searches and pages these are, for "What left your Mac". */
   sent?: { chatId?: string; group?: string }
+}
+
+/** Calls already made by work that can be resumed. `claim` is true only the first time for a run and call. */
+export interface Claims {
+  claim(runId: string, callId: string): Promise<boolean>
 }
 
 /** Where a lookup went. Called just before it goes, so a failed one is still listed: it left either way. */
@@ -116,9 +127,8 @@ function webConfig(): WebConfig | null {
 }
 
 /** The tools offered to the model. Claude brings its own search, and pages are read from the Mac unless DeepSeek does it. */
-export function toolDefs(allowed?: ReadonlySet<string>) {
-  const defs = serviceDefs()
-  return allowed ? defs.filter((d) => allowed.has(d.function.name)) : defs
+export function toolDefs(allowed: ReadonlySet<string>) {
+  return serviceDefs().filter((d) => allowed.has(d.function.name))
 }
 
 function serviceDefs() {
@@ -365,14 +375,19 @@ function hostOf(url: string): string {
   }
 }
 
-export async function runTool(name: string, args: Args, ctx: ToolContext): Promise<ToolOutcome> {
-  if (ctx.allowed && !ctx.allowed.has(name)) return { result: `The tool ${name} isn't available here.`, status: 'error' }
+export async function runTool(name: string, args: Args, ctx: ToolContext, callId = ''): Promise<ToolOutcome> {
+  if (!ctx.allowed.has(name)) return { result: `The tool ${name} isn't available here.`, status: 'error' }
+  // A resumed job reruns its unanswered call, which may already have run before a restart.
+  if (ctx.runId && needsOnce(name) && !(await ctx.claims?.claim(ctx.runId, callId))) return { result: 'This was already done once, so it wasn’t done again.', status: 'denied' }
   try {
     switch (name) {
       case 'search_web':
         // A model can call this even when it isn't offered, so "nothing leaves the Mac" is enforced here too.
         if (webOff()) return { result: 'Web lookups are off with this model.', status: 'error' }
         const query = String(args.query ?? '')
+        // D-41: once private data and outside words meet, the model's own query is shown before it leaves. The other
+        // tools that send words out always ask (open_url, jobs), or only go to addresses Otty already knows (read_page).
+        if (needsCard(name, ctx.taint) && !(await ctx.confirm('Look this up?', query))) return { result: 'The user declined.', status: 'denied' }
         return { result: await searchWeb(query, noter(ctx, 'search', query)), status: 'done' }
 
       case 'read_page': {

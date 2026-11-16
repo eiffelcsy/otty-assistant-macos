@@ -4,6 +4,12 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Hardening: the search leak, tool gates and job states (D-41, D-42, D-43, 2026-11-17)
+
+- **The search leak is closed (D-41).** A chat turn now knows when it holds the user's own data (a highlight, a snip, a file, a memory that matched) and when it has read someone else's words. Once both are true, a search the model writes shows a **Look this up?** card with the exact words before it leaves, and Claude's own search, which can't be shown call by call, turns off for the rest of the turn. Two new eval cases cover it, with and without a highlight.
+- **Tool gates come from the table only (D-42).** Every run must name the tools it may use, so a new kind of run can't get all of them by forgetting. What Try again lists as done for good comes from the table, where opening a link is now `lasting`. A job's call that changes something is claimed once (a new `claims` table, schema v8), so a job resumed after a restart can't make a change twice.
+- **Job states as a table (D-43).** `jobs/states.ts` lists every legal move, and anything else throws. A status is saved before it's shown, and a job's steps are written in order through one chain, so a slow store can't reorder them and a failed write fails the job with friendly words instead of vanishing.
+
 ### The smoke test runs itself (D-47, 2026-11-16)
 
 - **`npm run smoke` drives the real release build** with Playwright: 130 tests across 119 of the 127 checklist steps, in about 5 minutes, on a dev Mac or in CI. A ✋ marks what a person must still check, and a test fails when a step has neither.

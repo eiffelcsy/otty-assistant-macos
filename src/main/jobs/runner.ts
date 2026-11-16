@@ -13,6 +13,7 @@ import { jobPrompt } from '../prompts'
 import { ConnectionError, FriendlyError, type Message, type Provider, type SentTag } from '../providers'
 import type { Thread } from '../store'
 import { LIMITS, Supervisor, type Limits } from './limits'
+import { assertMove } from './states'
 import type { Job, JobChange, JobStore } from './types'
 
 // Worked out from the table in `toolSafety.ts`: reading the public web, changing nothing. A tool that changes
@@ -103,11 +104,13 @@ export class JobRunner {
     return this.deps.store()
   }
 
+  /** Saved first, so a failed write can't leave the job in memory saying something the store doesn't. */
   private async change(job: Job, change: JobChange): Promise<void> {
-    Object.assign(job, change)
+    if (change.status) assertMove(job.status, change.status)
+    const at = this.now()
+    await this.store.update(job.id, { ...change, updatedAt: at })
+    Object.assign(job, change, { updatedAt: at })
     for (const key of ['waitUrl', 'error', 'resultThread', 'seenAt', 'dueAt'] as const) if (job[key] === null) delete job[key]
-    await this.store.update(job.id, { ...change, updatedAt: this.now() })
-    job.updatedAt = this.now()
   }
 
   /** Words for the model if it can't start, or null once it's on its way. */
@@ -375,6 +378,12 @@ export class JobRunner {
     const supervisor = new Supervisor(counts(), this.limits)
     const timer = setTimeout(() => supervisor.update({ ...counts(), workedMs: this.limits.workMs }), Math.max(0, this.limits.workMs - workedBefore))
 
+    // Writes go one after another, in the order things happened, whatever the store does underneath (D-43).
+    let writes = Promise.resolve()
+    const write = (fn: () => Promise<void>) => {
+      writes = writes.then(fn)
+    }
+
     // The brief is the model's own text, so it never counts as knowing an address. Only what's seeded or found does.
     const known = (url: string) => job.seedUrls.includes(normalized(url)) || isKnownUrl(url, history.slice(1))
 
@@ -389,6 +398,11 @@ export class JobRunner {
         tools: () => this.deps.tools(JOB_TOOLS),
         context: {
           allowed: JOB_TOOLS,
+          // A job holds only its brief, never the user's data. Its tools change nothing today; a changing one would be
+          // claimed once per call, so a resumed job can't repeat it.
+          taint: { private: false, outside: false },
+          runId: job.id,
+          claims: store,
           sent: { group: job.id, ...(job.sourceThread ? { chatId: job.sourceThread } : {}) },
           knownUrl: known,
           // Nobody is there to answer, so the question is saved and the job stops here until someone does.
@@ -417,21 +431,28 @@ export class JobRunner {
           // Something came through, so any "trying again" note is out of date.
           if (job.error && job.status === 'working') {
             delete job.error
-            void store.update(job.id, { error: null })
+            write(() => store.update(job.id, { error: null }))
             this.deps.onChange(false)
           }
-          void store.appendStep(job.id, history.length - 1, m)
+          const seq = history.length - 1
+          write(() => store.appendStep(job.id, seq, m))
           if (m.role === 'assistant') {
             job.rounds++
             for (const call of m.tool_calls ?? []) supervisor.sawCall(call.function.name, call.function.arguments)
           }
           job.workedMs = counts().workedMs
-          void store.update(job.id, { rounds: job.rounds, lookups: job.lookups, workedMs: job.workedMs, tokens: job.tokens ?? 0, updatedAt: this.now() })
+          const progress = { rounds: job.rounds, lookups: job.lookups, workedMs: job.workedMs, tokens: job.tokens ?? 0, updatedAt: this.now() }
+          write(() => store.update(job.id, progress))
         }
       })
       return supervisor
     } finally {
       clearTimeout(timer)
+      // Every step is saved before the job finishes, fails or stops. A write that failed fails the job, here.
+      await writes.catch((err: unknown) => {
+        console.error('Could not save a job step', err)
+        throw new FriendlyError('Otty couldn’t save its progress, so it stopped. Try again to carry on from the last saved step.')
+      })
     }
   }
 

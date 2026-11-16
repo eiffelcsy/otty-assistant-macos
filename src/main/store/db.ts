@@ -203,6 +203,15 @@ const MIGRATIONS: string[] = [
   `
   alter table jobs add column repeat text;
   alter table jobs add column series_id text;
+  `,
+  // v8. D-42: calls a job has made that change something, so a job resumed after a restart can't make one twice.
+  `
+  create table claims(
+    job_id text not null references jobs(id) on delete cascade,
+    call_id text not null,
+    at integer not null,
+    primary key (job_id, call_id)
+  ) without rowid;
   `
 ]
 

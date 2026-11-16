@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CHAT_TOOLS } from '../toolSafety'
 
 const { fetchPage } = vi.hoisted(() => ({ fetchPage: vi.fn(async () => 'Page text') }))
 
@@ -18,20 +19,20 @@ describe('read_page', () => {
 
   it('reads a known address without asking', async () => {
     const confirm = vi.fn(async () => false)
-    const out = await runTool('read_page', { url }, { confirm, knownUrl: () => true })
+    const out = await runTool('read_page', { url }, { allowed: CHAT_TOOLS, confirm, knownUrl: () => true })
     expect(out.status).toBe('done')
     expect(confirm).not.toHaveBeenCalled()
   })
 
   it('shows the full address before reading an unknown one', async () => {
     const confirm = vi.fn(async () => true)
-    const out = await runTool('read_page', { url }, { confirm, knownUrl: () => false })
+    const out = await runTool('read_page', { url }, { allowed: CHAT_TOOLS, confirm, knownUrl: () => false })
     expect(confirm).toHaveBeenCalledWith('Read this page?', url)
     expect(out.status).toBe('done')
   })
 
   it('sends nothing when the user declines', async () => {
-    const out = await runTool('read_page', { url }, { confirm: async () => false, knownUrl: () => false })
+    const out = await runTool('read_page', { url }, { allowed: CHAT_TOOLS, confirm: async () => false, knownUrl: () => false })
     expect(out.status).toBe('denied')
     expect(fetchPage).not.toHaveBeenCalled()
   })

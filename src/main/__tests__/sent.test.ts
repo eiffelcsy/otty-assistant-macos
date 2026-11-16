@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { CHAT_TOOLS } from '../toolSafety'
 import { openDatabase } from '../store/db'
 import { fold, MemorySentLog, questionWhat, record, setSentLog, SqliteSentLog, type SentRow } from '../sent'
 
@@ -57,7 +58,7 @@ describe('what left the Mac (D-31)', () => {
     const log = new MemorySentLog()
     setSentLog(() => log)
     const { runTool } = await import('../tools')
-    const out = await runTool('read_page', { url: 'https://paste.example/abc' }, { confirm: async () => true, knownUrl: () => true, sent: { chatId: 'c9', group: 'a9' } })
+    const out = await runTool('read_page', { url: 'https://paste.example/abc' }, { allowed: CHAT_TOOLS, confirm: async () => true, knownUrl: () => true, sent: { chatId: 'c9', group: 'a9' } })
     expect(out.result).not.toContain('AKIAABCDEFGHIJKLMNOP')
     expect(out.result).not.toContain('hunter2222')
     expect(out.result).toContain('[hidden key]')
