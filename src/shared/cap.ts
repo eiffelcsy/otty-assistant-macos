@@ -21,7 +21,8 @@ export function capStatus(cap: MonthlyCap | null, month: { questions: number; to
   return { ...cap, used, over: used >= cap.limit }
 }
 
-const amount = (cap: MonthlyCap) => (cap.unit === 'questions' ? `${cap.limit.toLocaleString()} questions` : `${cap.limit.toLocaleString()} tokens`)
+/** "1 question", "25 questions", "1 token": a limit of one is singular. */
+const amount = (cap: MonthlyCap) => `${cap.limit.toLocaleString()} ${cap.unit === 'questions' ? 'question' : 'token'}${cap.limit === 1 ? '' : 's'}`
 
 const REACHED = 'You’ve reached this month’s limit'
 

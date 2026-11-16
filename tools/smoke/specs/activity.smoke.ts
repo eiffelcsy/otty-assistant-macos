@@ -181,8 +181,7 @@ test('a monthly limit of 1 question: questions still go through with a line at t
   await expect(panel.getByRole('checkbox', { name: 'Set a monthly limit' })).toBeChecked()
 })
 
-test.fixme('the limit line counts one question in the singular', { tag: ['@step-119'] }, async ({ otty, world }) => {
-  // capPassed and capReached (shared/cap.ts) say "limit of 1 questions".
+test('the limit line counts one question in the singular', { tag: ['@step-119'] }, async ({ otty, world }) => {
   const panel = await otty.openPanel()
   await panel.getByRole('button', { name: 'Settings' }).click()
   await panel.getByRole('checkbox', { name: 'Set a monthly limit' }).check()
