@@ -175,7 +175,6 @@ test('a long answer with an explain card keeps the card, the esc / ↵ row and s
 })
 
 test('Esc closes an open explain card in the quick view', { tag: ['@step-25'] }, async ({ otty, world }) => {
-  test.fixme(true, 'Esc with an explain card open does nothing: Quick skips closing, and nothing closes the card')
   const quick = await highlight(otty, 'Kelp forests shelter sea otters.')
   world.reply('What shelters them?', { say: 'The [kelp forest](#explain) does.' })
   world.backgroundReply = 'An underwater forest of tall seaweed.'
