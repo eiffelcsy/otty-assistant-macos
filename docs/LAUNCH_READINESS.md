@@ -228,8 +228,8 @@ What exists is good. What's missing:
 | 7.4 | Dependabot hygiene | S | PRs 46 (vitest 5) and 50 are open. Group updates and merge regularly; pin GitHub Actions to commit SHAs for the release workflow, since it handles signing secrets |
 | 7.5 | Scheduled eval | S | BRAINSTORM already has it: run the injection and safety sets weekly with a capped key, and before each release. Fail the release if the score drops below the baseline |
 | 7.6 | Licence check | S | A step that lists the licences of everything shipped and fails on a licence you haven't approved, and writes the third-party notices file (§12.6) |
-| 7.7 | An end-to-end smoke | M–L | BRAINSTORM's "Otty test harness". Playwright can launch Electron apps (`_electron`, **verify**) and drive the panel and quick view. Hotkeys and macOS permissions can't run on CI, but launching, onboarding, sending a question to a stubbed provider and reopening a saved chat can. It catches "the packaged app doesn't start", which unit tests can't |
-| 7.8 | Test the packaged app | S | After build, launch the `.app` headless for a few seconds and check it didn't crash (an asar or fuse mistake shows up here) |
+| 7.7 | An end-to-end smoke | M–L | BRAINSTORM's "Otty test harness". Playwright can launch Electron apps (`_electron`, **verify**) and drive the panel and quick view. Hotkeys and macOS permissions can't run on CI, but launching, onboarding, sending a question to a stubbed provider and reopening a saved chat can. It catches "the packaged app doesn't start", which unit tests can't. **Planned as DEVLOG D-47** |
+| 7.8 | Test the packaged app | S | After build, launch the `.app` headless for a few seconds and check it didn't crash (an asar or fuse mistake shows up here). Part of D-47's last step |
 | 7.9 | Server CI | M | If you build the hosted service (§9), it needs its own tests, staging environment and deploy pipeline |
 
 ---

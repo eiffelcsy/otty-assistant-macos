@@ -70,7 +70,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ next | — | S–M (1 day) |
+| D-47 | Smoke harness: `npm run smoke` drives the real app against a fake world, and the checklist runs itself | ⏳ **now, top priority** | — (takes D-45's `MacHands` piece) | L (5–7 days, three PRs) |
+| D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | ⏳ **now, with D-47** | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
+| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ | — | S–M (1 day) |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ | — | S–M (1–2 days) |
 | D-39 | Pause until: "for an hour" or "until tomorrow" on Pause everything | ⏳ | — | S (½ day) |
 | D-40 | Show what was hidden: tap "1 key hidden" to see which lines, on the Mac only | ⏳ | D-32 | S (½ day) |
@@ -78,13 +80,13 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-42 | Tool gates from the table only: `allowed` required, one list of lasting tools, `claimOnce` wired | ⏳ | — | S (½–1 day) |
 | D-43 | Job states as a table, and step writes that can't get lost | ⏳ | — | S–M (1 day) |
 | D-44 | Check every IPC input (LAUNCH_READINESS 10.5) | ⏳ | — | S–M (1 day) |
-| D-45 | Split the composition root: `ChatSession` deps, `index.ts` into parts, no electron in the loop | ⏳ | D-42 | M (2 days) |
+| D-45 | Split the composition root: `ChatSession` deps, `index.ts` into parts, no electron in the loop | ⏳ | D-42, D-47 (its ports) | M (2 days) |
 | D-46 | Action ledger v1: every change Otty makes, with how to undo it | ⏳ | D-42 | M (2 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S (1 day) |
 
-**Where things stand (2026-11-15, later).** D-31 to D-36 are built on `feat/next-five`, stacked on `feat/drawings` (PR 52, D-30 and the eval fixes), which is stacked on `feat/code-files` (PR 51, D-29). All pass unit tests, the typecheck, the build and the UI preview. **None has run in the real app yet**: the smoke steps below (107–127) are the check. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
+**Where things stand (2026-11-16).** The D-29 to D-36 stack is merged into `main` (PRs 51, 52 and 53). It passes unit tests, the typecheck, the build and the UI preview, but **D-31 to D-36 haven't run in the real app yet**. Smoke steps 107–127 are the check, and D-47 is how they'll run. `main` requires a PR with a green `ci` check, and branches must be up to date before merging.
 
 **Eval.** The committed baseline is still **104 / 106 on deepseek-flash** (`tools/eval/baselines/`). The jobs and draw sets, with the five new cases, scored 40 / 44 over two runs after the fixes below. Both repeat cases and the no-data chart case passed every time. The misses:
 - One deck closed its own fence with a ` ``` ` inside, and one answer refused to draw a hostile page at all. Both are model flakes that passed in the baseline.
@@ -94,24 +96,305 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 
 **Known misses in the baseline** (two runs per case): `math-mean` makes two `calculate` calls where one would do (right answer, a little slower); `memory-inferred` remembers "I've been learning Spanish" one time in two, even with the hint. Both are judgement calls, and code (the guard, the calculator) stays in charge either way. Retest on every model change.
 
-**Build order** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five scored 2 (H with S–M, or M with S), so the order is by how many people meet it. D-36, Retry and edit, shipped with this batch:
+**Priority (2026-11-16): verification first.** Development should be as hands-off as possible, so before anything else agents need to be able to prove their own work: the app runs, the checklist passes, and the code keeps the rules. Everything below waits for the first three steps.
+1. **D-47 spikes** (½ day): mock keychain, `_electron.launch`, panel windows as pages, the tray menu.
+2. **D-47 PR 1, ports and the smoke switch.** It takes D-45's `MacHands` piece, so there's one Mac port, not two.
+3. **D-47 PR 2, the world, the harness and the first specs**, the CI job and the `smoke` skill.
+4. **D-48 phase 1, agents check their own work** (`npm run verify`, Claude Code hooks, lint, the first rule tests, the PR template). It touches config and new files, so it can run alongside steps 2–3 in its own session, as long as only one of them edits `package.json` at a time.
+5. **D-47 PR 3, the rest of the checklist**, the ✋ marks, coverage, `@gate`, and the packaged-app check. Then run steps 107–127 through it and fix what turns up.
+6. **D-48 phase 2** (coverage ratchet, component and property tests, screenshots of the UI preview, docs-drift checks).
+7. **Hardening (D-41 to D-46)**, in the order below.
+8. **Features (D-37 to D-40)**, in the order below.
+9. **D-48 phase 3** (mutation testing, eval in CI) when the beta is close.
+
+**Hardening from the architecture review (2026-11-16).** These aren't features, so they fit the beta's feature freeze (LAUNCH_READINESS 13.2). They come after the verification work and before D-37, because each one closes a gap that every new feature would build on.
+1. **D-41 Close the search leak.** It's the only open path found for private data to leave after an injection.
+2. **D-42 Tool gates from the table only.** Small. It removes a second, already-wrong list and makes tool access opt-in.
+3. **D-43 Job states and step writes.** Repeating looks made the runner bigger. Pin down its states before goals or Look after me add more.
+4. **D-44 Check every IPC input.** This is LAUNCH_READINESS 10.5, which a signed beta needs anyway.
+5. **D-45 Split the composition root.** A pure refactor, best done between batches, and now under the smoke harness. Its `MacHands` piece moved into D-47's first PR. `llm.ts` (927 lines) and `index.ts` (571) both grew by a third since 0.5.0.
+6. **D-46 Action ledger v1.** It's the base for "do, with undo", and D-36's rewind already waits on it. Ship it before any new level of reach.
+
+**Features** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five scored 2 (H with S–M, or M with S), so the order is by how many people meet it. D-36, Retry and edit, shipped with that batch:
 1. **D-37 Feed Otty.** The otter is the front door. Dropping something on it to ask about it is the most "Otty" way in, and it reuses the file and capture paths.
 2. **D-38 Otter moods.** The relationship pillar. Sleepy, waking, cheering and puzzled faces have to fit the idle budget, so they're stepped frames, not endless animation.
 3. **D-39 Pause until.** A small trust control that pairs with repeating looks and the monthly limit: "pause for an hour" shouldn't need a remembered undo.
 4. **D-40 Show what was hidden.** It finishes D-32: the user can check a hidden key was a key, on the Mac only.
 5. Then **Look after me** (AUTONOMY.md, BRAINSTORM), **D-1** (starting with its step 0) and **D-14** when picked back up. **D-25** is parked until much later, by choice.
 
-**Hardening from the architecture review (2026-11-16).** These aren't features, so they fit the beta's feature freeze (LAUNCH_READINESS 13.2). Proposed order: they come after the stack lands and before D-37, because each one closes a gap that every new feature would build on.
-1. **D-41 Close the search leak.** It's the only open path found for private data to leave after an injection.
-2. **D-42 Tool gates from the table only.** Small. It removes a second, already-wrong list and makes tool access opt-in.
-3. **D-43 Job states and step writes.** Repeating looks made the runner bigger. Pin down its states before goals or Look after me add more.
-4. **D-44 Check every IPC input.** This is LAUNCH_READINESS 10.5, which a signed beta needs anyway.
-5. **D-45 Split the composition root.** A pure refactor, best done between batches. `llm.ts` (927 lines) and `index.ts` (571) both grew by a third since 0.5.0.
-6. **D-46 Action ledger v1.** It's the base for "do, with undo", and D-36's rewind already waits on it. Ship it before any new level of reach.
-
-**Checks waiting** (not features): smoke-test steps 107–127 on a Mac, launch at login on an installed build, and signing and notarization before builds go to other people.
+**Checks waiting** (not features): smoke-test steps 107–127 (through D-47), launch at login on an installed build, and signing and notarization before builds go to other people.
 
 **Design now for later:** new panel views should work at any width, because a full app view is planned (BRAINSTORM, "Three sizes of Otty").
+
+---
+
+## D-47 · Smoke harness: the checklist runs itself ⏳ now, top priority
+
+**Goal.** `npm run smoke` launches the real app, drives its windows with Playwright and checks most of the smoke-test checklist in under ten minutes. It runs on a dev Mac or in CI, with no key, no network and no clicks, and Claude can run it and read the result. What only a person at a Mac can check (hotkeys in other apps, macOS permission prompts, pasting into Word, real sleep, the installed `.dmg`) shrinks to a short by-hand list. This is LAUNCH_READINESS 7.7 and 7.8, and BRAINSTORM's "Otty test harness".
+
+**Today.**
+- The checklist has 127 steps, all run by hand, and steps 107–127 have never run.
+- Unit tests, the eval (real model, stubbed tools) and `ui-preview` (real views, a mock `window.otty`) each cover a slice. None covers the wiring between them: the preload, IPC, windows, the store across a relaunch, the CSP of a real build.
+- Main reaches the outside world through many doors:
+  - the network: both provider adapters (`fetch`, the Anthropic SDK), `web.ts`, `getJson` in `tools.ts`, and `pageReader.ts` with its own DNS lookup;
+  - macOS: `osascript` in `capture.ts`, `act/` and `tools.ts`, plus `globalShortcut`, `Notification`, `dialog`, `powerMonitor`, `safeStorage` and `setLoginItemSettings`, spread across `index.ts`, `settings.ts` and `files/`.
+
+**Principles.** These are what make a green run mean something.
+1. **Test the real app, fake only the world.** Everything from the preload to `otty.db` is the code that ships. Fakes sit only at the edges: the network, macOS, time and the user's hands. No stubbed `ChatSession`, no mock IPC.
+2. **Hermetic.** Nothing leaves the machine during a smoke run, and nothing on it changes. The run gets its own home folder and keychain, and no real shortcuts, login items or notifications. The user's clipboard is put back afterwards. A request the world doesn't know fails the test loudly instead of going out.
+3. **Deterministic.** Model replies are scripted, the clock can be moved, and nothing sleeps: tests wait on events and visible state with Playwright's auto-waiting `expect`. A flaky test is a bug, and CI fails on flakes.
+4. **The seam can't ship.** Test-only code is compiled only into the smoke build, which is never packaged, and a check proves the release bundle doesn't contain it.
+5. **Seams that improve the app.** The ports added here (one door for the network, one for the Mac, one clock) are what D-45 asks for anyway. The network door is also where `web: 'off'` can later be enforced in code.
+6. **The checklist stays the source of truth.** Every step is checked by a spec, marked as by-hand with a reason, or both. A unit test fails when a step is neither.
+
+**Design.**
+
+```
+  Playwright worker (tools/smoke/)              Otty smoke build (out-smoke/)
+ ┌─────────────────────────────────┐          ┌─────────────────────────────────┐
+ │ specs → page objects, per view  │─drives──▶│ renderer windows      (real)    │
+ │ fixture: launch, home, guards   │          │ preload, IPC, main    (real)    │
+ │ control ── electronApp.evaluate ┼─────────▶│ smoke/control  (main only)      │
+ │                                 │          │ ports: net · mac · clock ·      │
+ │ world: fake model, search and   │◀── HTTP ─┤        power · hotkeys          │
+ │ pages on 127.0.0.1:<random>     │          │ net sends every request here    │
+ └─────────────────────────────────┘          └─────────────────────────────────┘
+```
+
+### 1. Ports in the app (`src/main/ports/`)
+Each port is an interface with one production adapter, chosen once at startup. In a normal build nothing behaves differently.
+- **`net.ts`.** `net.fetch(url, init)` and `net.resolve(host)`. Every outbound request from main goes through it:
+  - both adapters (the Anthropic SDK takes a `fetch` option);
+  - `web.ts` and `getJson` in `tools.ts`;
+  - `pageReader.ts`, whose `Resolve` type is already the seam.
+  The production adapter is the global `fetch` and `dns.lookup`. A unit test fails if `fetch(`, `dns`, `https.request` or `new Anthropic(` without `fetch:` appears outside `net.ts`, like the tool-safety table's test. *Later:* `net.ts` refuses anything but a local address when the profile's `web` is `off`.
+- **`mac.ts`.** It has two halves:
+  - `MacHands`, D-45's object for what Otty *does*: `osascript` for step cards and reminders, opening addresses and System Settings, notifications and the login item;
+  - `MacSenses`, for what Otty *reads*: the selection through the ⌘C trick, the frontmost app and its page, snips and whole-screen pictures, permissions, and the open dialog's choice.
+  `capture.ts`, `act/`, `permissions.ts`, `files/` and `index.ts` call these instead of `execFile` or electron directly.
+- **`clock.ts`.** `now()`, `setTimeout` and `clearTimeout`. `JobRunner` (which already takes `deps.now`), repeats, chat retention, habits and the explain warm-up take it. The global `Date` is never faked in main, because undici and Electron depend on it.
+- **`power.ts` and `hotkeys.ts`.** Thin wrappers over `powerMonitor` and `globalShortcut`, so a test can fire "resume" or "⌥Space" through the same handler a real one reaches.
+
+### 2. The smoke switch (`src/main/smoke/`)
+- **Two builds.** `electron-vite build --mode smoke` writes `out-smoke/` with `__SMOKE__ = true`. Release builds define it `false`. `index.ts` loads `./smoke/install` with `if (__SMOKE__) await import(…)`, so the release bundle doesn't contain the file at all. Even in a smoke build, it installs only when `OTTY_SMOKE_WORLD` is also set.
+- **Same app otherwise.** The smoke build keeps the production CSP and everything else from `npm run build`; only `__SMOKE__` differs. A check compares the two bundles' module lists and fails if anything outside `smoke/` differs.
+- **`install.ts`** runs before `app.whenReady`:
+  - It points `userData` at `OTTY_SMOKE_HOME`, a fresh temp folder per test, so `otty.db`, settings and the single-instance lock are the run's own. The real Otty can stay open during a run.
+  - It names the app `Otty Smoke` and adds `--use-mock-keychain`, so `safeStorage` never touches the login keychain (spike below).
+  - It installs the smoke adapters:
+    - **net** rewrites `https://host/path` to `http://127.0.0.1:<port>/host/path` and refuses everything else. World hosts resolve to `203.0.113.x`, a documentation range that `isPrivateAddress` treats as public and that never routes, so `pageReader`'s public-only check still runs for real. `session.webRequest` cancels any renderer request that isn't for the app's own files.
+    - **mac:** senses return scripted values; hands record each call with its argv and never run `osascript`.
+    - **clock:** real time plus an offset the test can move. `advance(ms)` fires timers that come due, in order. Where a view reads `Date` itself, the fixture sets Playwright's `page.clock` to the same offset.
+    - **hotkeys and power:** recorded handlers the test can fire.
+- **`control.ts`** is the test's handle, on `globalThis.__ottySmoke` in main only. It is never on the preload, so no renderer, and so no answer, can reach it. It offers `press(hotkey)`, `senses.set(…)`, `hands.calls()`, `clock.advance()` and `clock.set()`, `power.emit('suspend' | 'resume')`, `theme('dark' | 'light')`, `nextOpenDialog(paths)` and `ready()`.
+
+### 3. The world (`tools/smoke/world/`)
+The world is a small HTTP server per Playwright worker, on a random local port, reset for each test.
+- **Model.** It speaks OpenAI's chat completions and Anthropic's messages, streamed and not.
+  - Specs script replies in one neutral shape: `say`, `think`, `call(tool, args)`, `usage`, `fail(status)`. A reply is matched to a request by the latest user words or by order.
+  - An unscripted request gets a 500, and the test fails with "no reply scripted for: …".
+  - Every request is kept, so specs can check what was sent: the byte-identical prefix DeepSeek's cache needs (steps 55, 76), that no secret is in the body (109, 118), the turn note, and which tools were offered.
+- **Search and pages.** DeepSeek search, DuckDuckGo and Wikipedia shapes, and pages by address. That includes hostile pages (97, 116) and redirects to private addresses (61).
+- **Weather.** `offline()` drops connections, for the "Wi-Fi off" steps; `slow(ms)` delays them.
+- **No drift.** A contract test in `npm test` runs the real adapters against the world's streams, so a fake that drifts from the wire format fails before any spec does.
+- **Hand-written replies.** Replies are written by hand, never recorded from a real model. That keeps keys and personal text out of fixtures and stops replies changing under us. How a real model behaves stays the eval's job.
+
+### 4. The harness (`tools/smoke/`)
+- **`playwright.config.ts`.**
+  - `workers: 1`, because windows and focus are global on a Mac.
+  - `retries: 1` on CI with `failOnFlakyTests`, and `0` locally.
+  - `trace: 'retain-on-failure'`, a screenshot and the main-process log on failure.
+  - A 10-minute budget for the whole run.
+- **`fixtures.ts`.**
+  - `otty` launches `out-smoke/` with `_electron.launch`, with a fresh home and world per test (or per file, for long flows), and waits for `control.ready()`.
+  - It gives a page object for each view by its `?view=`.
+  - `relaunch()` keeps the home for "quit and relaunch" steps, and `crash()` kills the process (step 44).
+  - It saves the user's clipboard before each test and restores it after.
+- **Guards on every test.**
+  - Fail on any uncaught error or `console.error` in main or a renderer.
+  - Fail on raw-error shapes in visible text (`Error:`, `undefined`, `[object`, a stack line, a bare status code). This turns "no raw errors" from CLAUDE.md into a check.
+  - Run `@axe-core/playwright` on each view in light and dark mode, for contrast (steps 13, 65, 75).
+- **Page objects (`pages/`).** `Panel`, `Quick`, `Bubble`, `Settings`, `Activity`, `Recent` and `Viewer`, found by role and accessible name. A `data-testid` is added only where no name is worth giving, which is also an accessibility fix. Specs check exact copy only where the copy is the point.
+- **Specs (`specs/`).** One file per area, and each test tagged with its steps (`{ tag: ['@step-29', '@gate'] }`). The areas:
+  - launch and onboarding; asking and streaming; explain cards; captures and the tray;
+  - history and search; find in chat; files and hidden keys; memory; math;
+  - step cards (with hands recorded); drawings and exports; charts;
+  - jobs, schedules and repeats; Pause everything; the monthly limit;
+  - the sent log; rewind; web safety and attacks; the health banner; try-asking chips.
+- **Release gate.** `@gate` marks the ~20 steps of LAUNCH_READINESS 6.8's release gate, run alone with `npm run smoke -- --grep @gate`.
+
+### 5. The checklist and coverage
+- **Marking by-hand steps.** In the checklist below, a step or part of one that a person must check gets ✋ and a reason, for example "✋ real ⌥Space in Safari".
+- **Coverage test.** `tools/smoke/__tests__/coverage.test.ts` runs in `npm test`. It reads the checklist and the spec tags, and fails when a step has neither, or a tag names a step that doesn't exist.
+- **New doc rule.** A shipped feature adds its checklist steps, each with a spec or a ✋ and its reason.
+- **Expected to stay by hand:**
+  - real hotkeys in other apps, and the ⌘C trick;
+  - macOS permission prompts, and Safari's automation prompt;
+  - dragging from Finder;
+  - pasting into Word, Pages, Numbers and Excel (what's on the clipboard is checked automatically);
+  - real sleep and Wi-Fi, and two displays;
+  - the `.dmg`, the icon and launch at login;
+  - how accurate the OCR helper is, idle CPU, and how the otter looks.
+
+### 6. CI, the packaged app and Claude
+- **CI job.** A `smoke` job on `macos-latest` runs after `ci`: `npm run build:smoke`, then `npx playwright test`. On failure it uploads the report, traces and screenshots. Playwright drives Electron itself, so no browsers are downloaded.
+- **Release-bundle check.** In the `ci` job, after `npm run build`: `out/` contains no `__ottySmoke`, no `OTTY_SMOKE` and no `smoke/` module.
+- **Packaged app (LAUNCH_READINESS 7.8).** A separate check launches the built `.app` for a few seconds with a fresh home and checks that it reaches ready (one stdout line) without crashing. Once Electron fuses turn off `--inspect` and RunAsNode (BRAINSTORM), Playwright can't drive the packaged app, which is right. So the full smoke runs on `out-smoke/` with the dev Electron binary, and this check covers packaging.
+- **For Claude.** A project skill, `.claude/skills/smoke/`, builds, runs and reports the failed steps with their trace paths, so "run the smoke test" works in a session.
+
+**Spikes first** (half a day, before the build steps).
+- Does `--use-mock-keychain` keep `safeStorage` off the login keychain in Electron 45? If not, the smoke adapter saves keys plain in the temp home; `settings.ts` already has a `plain` path.
+- Does `_electron.launch` work with Electron 45 and electron-vite's output, and can `electronApp.evaluate` reach `globalThis` in main?
+- Are the non-activating `panel` windows and the quick view reachable as Playwright pages, and is focus steady enough on a CI runner?
+- Can the menu-bar tray menu be driven (its `Menu` items through `control`), or does it stay ✋?
+
+**Build steps** (three PRs).
+1. **Ports and the switch.** `net`, `mac`, `clock`, `power` and `hotkeys`; the grep test; `--mode smoke`; the release-bundle check. Nothing changes for users, and every existing test passes unchanged.
+2. **World, harness and the first specs.** Launch, onboarding, asking, relaunch and history (steps 1, 2, 15–17, 44). Also the guards, the CI job and the skill.
+3. **The rest.** Specs for the other areas, the ✋ marks, the coverage test and the `@gate` tags. Then the packaged-app check.
+
+**Tests of the harness itself.** The world's contract test, the coverage test, the grep test, the release-bundle check, and one spec that tries to reach a real host and must fail.
+
+**Done when.**
+- `npm run smoke` passes on a dev Mac and in CI in under 10 minutes. Nothing leaves the machine (the world's log is the only traffic), and the user's keychain, clipboard, login items and real Otty are untouched while it runs.
+- Every checklist step has a spec tag, a ✋ with a reason, or both, and steps 107–127 have run this way at least once.
+- The release bundle contains no smoke code, and the check proves it.
+- A deliberately broken build fails the run with a trace that points at the problem. Try a renamed IPC channel, and a CSP that blocks the fonts.
+- Claude can run it through the skill and say which steps failed.
+
+### Smoke test (add to the checklist when it ships)
+- `npm run smoke` → it passes, and the HTML report opens. Run it with the real Otty open → the real one keeps working and its chats are unchanged.
+- Rename one IPC channel on purpose and run it again → it fails, and the trace opens at the broken step.
+
+## D-48 · Agents check their own work ⏳ now, with D-47
+
+**Goal.** A coding agent can take a DEVLOG entry to a green PR, and the checks, not the owner, prove three things:
+- the code **works**: unit tests, the smoke harness, the eval;
+- it's **clean**: lint, no dead code, the house style;
+- it **matches the intent**: every "Done when" line has evidence, and every rule in CLAUDE.md still holds.
+
+The owner reads a short PR summary and its evidence, not the diff.
+
+**Today: the gaps.**
+Checked 2026-11-16. There are 54 test files, the typecheck is `strict` with `noUnusedLocals`, CI runs typecheck, tests and the build, and there are no `as any` or `@ts-ignore`. What's missing:
+
+1. **No single "am I done?" command.** An agent has to remember typecheck, test, build, and when the eval or UI preview matters. Each one forgotten is a gap.
+2. **Nothing makes an agent check before it stops.** No `.claude/settings.json`, no hooks, no allowlist for the check commands, so an agent can end a turn with a red typecheck.
+3. **No linter or formatter.** TypeScript misses the bugs that matter most in an Electron main process:
+   - floating promises (an unawaited IPC handler or store write);
+   - promises passed where a callback is expected;
+   - `switch` statements over `ChatEvent` that don't cover every case;
+   - React hook rules.
+   Agent diffs also drift in style, which makes review harder.
+4. **Most CLAUDE.md rules are prose only.** Some are already enforced in code: the tool-safety table test, `llm.test.ts` for the cache, the search contract, `rewind.test.ts`. Most aren't, for example:
+   - the renderer never gets paths, file contents or the key;
+   - `loop.ts` imports no electron;
+   - a released migration is never edited;
+   - `osascript` only takes model text through argv;
+   - no remote images, no emoji in UI chrome, no new hex colours outside the tokens;
+   - only `JobRunner` changes a job's status, and only `complete()` is used for background calls.
+   An agent following prose gets most of these right most of the time, so a rule that matters needs a check that fails.
+5. **No coverage numbers, and the renderer is barely tested.** It has 7 test files, against 47 for main, shared and tools. The proofread, step, confirm, chart and drawing cards and the panel views are checked only by eye in the UI preview.
+6. **Tests can pass without catching bugs.** Agent-written tests often restate the code. Nothing measures whether they'd fail on a real bug, and that matters most for the safety code: `toolSafety.ts`, `knownUrls.ts`, `isPrivateAddress`, `maskSecrets`, `memory/guard.ts`, `act/risk.ts`, `act/open.ts`, `cap.ts` and `repeat.ts`.
+7. **No proof of intent.** "Done when" is prose in DEVLOG, and nothing links a PR to its entry or each line to a test or smoke step. An agent can pass every check and still build the wrong thing.
+8. **The eval is manual.** Changes to a prompt, a hint or a tool description need `npm run eval` and a baseline compare. Nothing triggers that, and it needs a key.
+9. **Docs drift.** The docs pass at the end of every iteration is manual. Nothing checks that paths named in CLAUDE.md exist, that roadmap IDs have entries, or that a shipped feature moved to CHANGELOG. "Where things stand" was a day stale when this was written.
+10. **UI regressions are invisible to an agent.** A CSS change can break a view nobody looks at. The UI preview has no screenshots to compare.
+11. **The idle budget (NFR-3) is checked by hand** with `OTTY_METRICS=1`. An agent adding an `infinite` animation wouldn't notice.
+12. **No security scanning in CI** (LAUNCH_READINESS 7.3). The Swift OCR helper is built but never run against a known picture.
+
+**Design.** There are three phases. Phase 1 is small, and it makes every later PR, D-47's included, check itself.
+
+### Phase 1: the loop closes (1–2 days, with D-47)
+- **`npm run verify`** is the one answer to "am I done?". Its tiers:
+  - `verify:quick` runs lint, the typecheck and `vitest --changed`;
+  - `verify` adds the full tests, the build and the release-bundle check;
+  - `verify:full` adds `npm run smoke`.
+  - A small script reads `git diff --name-only main` and says what else applies: the eval for `prompts.ts`, `hints.ts`, `tools.ts` and tool descriptions; the UI preview for the renderer; the idle check for `styles.css` and `Otter.tsx`.
+  CI runs the same scripts, so local and CI can't disagree.
+- **Claude Code hooks** in `.claude/settings.json`, committed:
+  - after an edit, a `PostToolUse` hook lints the edited file, which is quick;
+  - a `Stop` hook runs `verify:quick` and blocks the stop with the failures when it's red;
+  - a permission allowlist covers the verify, test, smoke and eval commands, so checks never wait on a prompt.
+- **ESLint**, flat config with type-aware `typescript-eslint`:
+  - `no-floating-promises`, `no-misused-promises`, `switch-exhaustiveness-check`, `consistent-type-imports`;
+  - `react-hooks` (rules-of-hooks, exhaustive-deps);
+  - `no-restricted-imports` for the boundaries: `src/shared` imports neither electron nor node, the renderer never imports main, `loop.ts` and `runner.ts` don't import electron once D-45 lands.
+  - Prettier, applied in one formatting-only commit, so later diffs show only real changes.
+  - Existing findings go in a baseline file that may only shrink.
+- **Rule tests** (`src/__tests__/rules/`). Each test names the CLAUDE.md rule it guards. The first ones:
+  - released migrations match committed hashes;
+  - no `osascript -e` with model text inside the script;
+  - no `<img src=http`, no remote `url(` and no emoji in renderer chrome;
+  - no hex colour outside the `styles.css` tokens;
+  - the preload exposes no path or key;
+  - every `activeProvider(` call passes a `SentTag`.
+  `docs/RULES.md` maps each CLAUDE.md bullet to its test, or to "prose only" with a reason. A test fails when a bullet is in neither column.
+- **Intent evidence.**
+  - A PR template asks for the DEVLOG entry, and each "Done when" line with its evidence: a test name, a smoke tag (`@D-47`) or a screenshot. It also covers what changed in the docs and what's left by hand.
+  - A project skill, `.claude/skills/ship/`, runs the whole path: `verify`, `/code-review`, `/security-review` for anything that touches a tool, IPC, the network or `act/`, an intent check (a subagent reads the entry and the diff and lists any "Done when" line without evidence), the docs pass, and the PR.
+  - Bug fixes start with a test that fails on `main`, and the PR says so.
+
+### Phase 2: deeper checks (2–3 days, after D-47)
+- **Coverage ratchet.** `vitest --coverage` with v8, with a floor per folder at today's numbers that only goes up, and full coverage asked for on the safety modules listed above.
+- **Renderer tests.** Testing Library tests (`jsdom` is already installed) for each card and the panel's states, starting with confirm, proofread, step and chart cards.
+- **Property tests** with `fast-check` for the pure parsers and guards: `maskSecrets`, `isPrivateAddress`, `shared/match.ts`, `shared/diff.ts`, `shared/table.ts`, `draw/sanitize.ts`, `repeat.ts` and `knownUrls.ts`.
+- **Screenshots of the UI preview.** Playwright's `toHaveScreenshot` for every `?view` and `&scene`, in light and dark mode, in one fixed CI environment. An agent can read the diff images itself.
+- **Docs-drift test.**
+  - Paths named in CLAUDE.md and the DEVLOG architecture exist.
+  - Every roadmap ID has an entry, and every entry a roadmap row.
+  - A PR that changes `src/` without touching CHANGELOG or DEVLOG has to say why in its template.
+- **Idle check.** A smoke spec finds no running `infinite` animation on the bubble when idle, as a proxy for NFR-3 that doesn't depend on CPU noise. `OTTY_METRICS` stays the by-hand number.
+- **Dead code.** `knip` for unused files, exports and dependencies.
+- **Typecheck.** Turn on `noUncheckedIndexedAccess`, one folder at a time.
+- **OCR helper.** CI runs `otty-ocr` on a fixture picture with English and Chinese words.
+
+### Phase 3: near the beta
+- **Mutation testing.** Stryker on the safety modules, weekly and before a release. A surviving mutant gets a test.
+- **Eval in CI.** Runs only when prompt, hint or tool files change, with a capped key, and fails on a drop below the baseline (LAUNCH_READINESS 7.5). *Owner decision:* the key and its monthly cap.
+- **Security scanning.** LAUNCH_READINESS 7.3: dependency review, `npm audit --omit=dev` and CodeQL.
+- **Branch protection.** Make `smoke` and `lint` required checks next to `ci`.
+- **Auto-merge for low-risk PRs**, once its gate is met (below), with the post-merge revert in place first.
+
+**Baselines.** An agent never updates a baseline file (screenshots, eval, lint, coverage) in the same PR as the change it excuses. A baseline change is its own PR, with the reason.
+
+### Shape: a kit that other projects can use
+The checks are written once here, in a form other agent-coded projects can pick up. D-47 and D-48 aren't one bundle. D-48 is the general **kit**, and D-47 is Otty's biggest **check**, plugged into it.
+
+| Kit (reusable, no Otty imports) | Otty's checks and config (stays here) |
+| --- | --- |
+| The `verify` runner and its tiers; routing from changed paths to checks | The tier contents: lint, typecheck, vitest, build, smoke, eval |
+| Claude Code hooks (`PostToolUse`, `Stop`) and the allowlist | Which commands each tier runs |
+| Rule coverage: every bullet in an instructions file maps to a test or to "prose only" | The rules and their tests |
+| Checklist coverage: every manual step has a spec tag or a ✋ | The checklist and the specs |
+| Intent evidence: PR template, `ship` skill, intent check against a plan entry | Where plans live (DEVLOG) |
+| Baseline policy and ratchets (coverage floors, lint baseline) | The numbers |
+| Merge policy: risk classes by path, and the auto-merge gate below | Which paths are which class |
+| An Electron + Playwright fixture with the guards (errors, raw-error text, axe) | The ports, the fake world, page objects and specs |
+
+- **Where it lives for now.** In `tools/verify/`, configured by one `verify.config.ts` at the root. A lint rule forbids imports from `src/` into `tools/verify/`, so the boundary holds from day one.
+- **When to extract it.** Only when a second project uses it, not before. A framework designed from one user gets the wrong seams. It then becomes a Claude Code plugin (hooks, the `ship`, `verify` and `smoke` skills) plus a small npm package (the runner and the coverage checks), and Otty uses that package.
+
+### Auto-merge, earned
+Auto-merge stays off until the record earns it. It's the same rule as Otty's own reach: autonomy grows only with undo, visibility and a track record (AUTONOMY.md).
+- **Risk classes come from paths, in code**, in `verify.config.ts`, like `toolSafety.ts`:
+  - **low:** docs, tests, `tools/`, copy;
+  - **normal:** most of `src/`;
+  - **guarded:** `toolSafety.ts`, `act/`, `ports/net.ts`, `pageReader.ts`, `knownUrls.ts`, `shared/secrets.ts`, `memory/guard.ts`, `store/db.ts` migrations, the preload and CSP, `prompts.ts` and `hints.ts`, and the verify kit itself.
+  A PR takes the class of its riskiest file.
+- **The gate per class.** A class opens to auto-merge only when, over a rolling window:
+  - the last 30 agent PRs in that class merged with no revert and no bug traced back to them within 14 days;
+  - the flake rate is zero;
+  - every required check ran, not skipped.
+  Low opens first; guarded never auto-merges.
+- **The undo.** A post-merge `smoke` run on `main` reverts the merge by itself if it fails, and opens an issue. Any revert closes that class again until the window refills.
+- **What 99.99% means here.** It can't be measured directly, so the measures are the ones above (escaped bugs per merged PR, reverts, flakes), plus a mutation score on the guarded modules. They're shown on a small report in the kit.
+
+**Done when.**
+- An agent session that leaves a type error can't end its turn without seeing it, and `npm run verify` is what CI runs.
+- Lint, rule tests and the docs-drift test are in CI, and `docs/RULES.md` has no unmapped CLAUDE.md bullet.
+- A PR opened through the `ship` skill lists every "Done when" line with evidence, and the intent check flags a deliberately missing one.
+- Coverage floors and UI screenshots are in CI, and a deliberate CSS break in one card fails with a diff image.
 
 ---
 
@@ -187,7 +470,7 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 
 ---
 
-## D-37 · Feed Otty ⏳ next
+## D-37 · Feed Otty ⏳
 
 **Goal.** Drop a file, a picture or dragged text on the otter to ask about it. The otter opens its mouth while something is over it and munches once, then the quick view opens with the file or text in the tray, ready for a question or a tile.
 
@@ -299,7 +582,7 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 **Design.**
 1. `SessionDeps` for `ChatSession`: settings, the chat, memory and sent stores, the provider, and the hooks it already has. `index.ts` builds it once.
 2. Split `index.ts` into `ipc/` (one file per area, using D-44's `handle`), `captureRoute.ts` (one `deliver(payload)` for the panel, quick view or new window), and `notify.ts` (notifications, badge and mood from `activityChanged`).
-3. Tools that touch the Mac (`open_url`, `copy_to_clipboard`, `create_reminder`) reach electron through a `MacHands` object in `ToolContext`. Then `loop.ts` and `runner.ts` load in plain Node.
+3. Tools that touch the Mac (`open_url`, `copy_to_clipboard`, `create_reminder`) reach electron through a `MacHands` object in `ToolContext`. Then `loop.ts` and `runner.ts` load in plain Node. This piece now ships in D-47's first PR as `ports/mac.ts`; D-45 only moves the tools onto it.
 
 **Done when.** All tests pass unchanged, `index.ts` is under 200 lines, `ChatSession` has no global calls, and a test imports `runLoop` with no electron mock.
 
