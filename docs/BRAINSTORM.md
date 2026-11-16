@@ -222,14 +222,17 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Sign and notarize (Developer ID) so permissions survive updates | H | M | considering, needed before sharing builds |
 | Auto-update (electron-updater) | M | M | idea |
 | Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | shipped (counts and tokens; money needs a price table, see below) |
-| An Otty test harness: drive the real overlay and windows in Electron with real input, as a repeatable `npm` script rather than one-off scripts | M | M | planned (D-47) |
+| An Otty test harness: drive the real overlay and windows in Electron with real input, as a repeatable `npm` script rather than one-off scripts | M | M | shipped (D-47) |
 | One fake world for both test tools: `ui-preview` scenes fed by D-47's scripted model and pages instead of a hand-written mock `window.otty`, so the two can't drift | M | M | idea, from D-47 |
 | Smoke on a CI matrix: the oldest supported macOS and an Intel runner, for the release gate (LAUNCH_READINESS 6.8) | M | S | idea, from D-47 |
 | `net.ts` as the one door out: enforce `web: 'off'` there in code, and feed What left your Mac from it instead of tagging each call site | H | S | idea, from D-47 |
-| Agents check their own work: one `verify` command, a Stop hook, lint, CLAUDE.md rules as tests, a PR template with evidence for each "Done when" line | H | M | planned (D-48) |
+| Agents check their own work: one `verify` command, a Stop hook, lint, CLAUDE.md rules as tests, a PR template with evidence for each "Done when" line | H | M | phase 1 shipped (D-48) |
 | An agent "owner's summary" on each PR: what changed for users in plain words, the evidence, what still needs a person, so merging takes minutes | H | S | idea, from D-48 |
 | Write "Done when" lines as checkable statements from the start (each names its test or smoke tag), so the intent check has something to match | M | S | idea, from D-48 |
 | Extract the verify kit into its own repo (Claude Code plugin + npm package) once a second project uses it | M | M | idea, from D-48 |
+| Pick a Dockerfile (or any file with no extension) from the paperclip's first filter: macOS greys out files a filter can't match by extension | M | S | idea, from D-47 (step 107, check on a Mac first) |
+| Smoke harness extras the spec agents asked for: a results folder per run, a shared `plain(key)` seed helper, `world.hold()`/`release()`, a fake desktop switch, a recorded `app.relaunch()`, a "shortcut taken by another app" list | M | S | idea, from D-47 |
+| Run parallel coding agents in small waves (two or three) on a smaller model for mechanical work: eight at once spent two 5-hour usage windows mostly re-reading the same code | M | S | idea, from D-47 |
 | Only run the `dmg` workflow on PRs that change packaging, and allow auto-merge, because Mac runner queues held up a release | M | S | idea |
 | Provider presets in Settings (DeepSeek, OpenAI, local Ollama) with a model picker | M | S | shipped |
 | Fully local mode (local LLM via an Ollama-compatible endpoint) for privacy-first users | M | S | stretch goal: built, labelled experimental, not fully supported |
