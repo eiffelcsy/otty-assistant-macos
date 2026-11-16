@@ -37,11 +37,45 @@ jobs:
       - run: npm ci
       # D-48: type-aware lint against a baseline that may only shrink.
       - run: npm run lint
+      # D-48: no unused files, exports or dependencies.
+      - run: npm run knip
       - run: npm run typecheck
-      - run: npm test
+      # Unit tests, held to coverage floors that only go up (D-48).
+      - run: npm run coverage
       - run: npm run build
       # D-47: nothing of the smoke harness may reach the release build.
       - run: node tools/smoke/check-release.mjs
+
+  screens:
+    # D-48: every UI preview view and scene, light and dark, against the committed screenshots.
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Cache Electron binary
+        uses: actions/cache@v6
+        with:
+          path: ~/Library/Caches/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npm run screens
+
+      - name: Keep the diff images
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screens-diff
+          path: tools/ui-preview/screens/results/
+          retention-days: 14
 
   smoke:
     # D-47: the real app, driven by Playwright against a fake world. Nothing leaves the runner.

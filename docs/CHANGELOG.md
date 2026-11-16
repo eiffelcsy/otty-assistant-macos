@@ -4,6 +4,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Agents check their own work, phase 2 (D-48, 2026-11-17)
+
+- **Coverage floors that only go up** (`npm run coverage`, in CI): per folder, and on their own for the eleven safety modules, so a drop can't hide in an average.
+- **Property tests** (fast-check) for the parsers and guards: hidden keys, word diffs, matching, tables, repeats, private addresses, known addresses and the SVG sanitiser. **Card tests** (Testing Library) click the confirm, step and rewind cards like a person would.
+- **Screenshots of every UI preview scene**, light and dark (`npm run screens`, a CI job of its own): a card moved by a few pixels fails with a diff image an agent can read.
+- **A docs-drift test**: every path CLAUDE.md and DEVLOG's architecture name exists, and every roadmap row has its entry. **knip** keeps out unused files, exports and dependencies, and found four. **An idle check** fails on any smooth endless animation on the otter. The OCR helper now reads a line of Chinese in CI.
+- **Fixed in the harness:** a smoke run turned non-ASCII text on the real clipboard into question marks when it put the user's clipboard back.
+
 ### The smoke test runs itself (D-47, 2026-11-16)
 
 - **`npm run smoke` drives the real release build** with Playwright: 130 tests across 119 of the 127 checklist steps, in about 5 minutes, on a dev Mac or in CI. A ✋ marks what a person must still check, and a test fails when a step has neither.

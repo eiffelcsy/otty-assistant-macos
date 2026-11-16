@@ -23,7 +23,7 @@ import {
 } from './search'
 import type { Turn } from './turn'
 
-export type { ServerSearch, Turn } from './turn'
+export type { Turn } from './turn'
 export type { LookupAnswer, QueryMatch, ReadResult, SearchResult } from './search'
 
 export interface SeenRequest {
