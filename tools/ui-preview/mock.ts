@@ -70,6 +70,7 @@ const settings: PublicSettings = {
   homeLanguage: q.get('home') === 'none' ? null : 'zh-HK',
   learn: true,
   workPaused: false,
+  workPausedUntil: null,
   notifyDone: false,
   openAtLogin: false,
   canOpenAtLogin: true,
@@ -440,6 +441,7 @@ const api: OttyApi = {
   openActivity: noop,
   seenActivity: noop,
   listSent: async () => (q.get('sent') === 'none' ? [] : sentSample),
+  hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
   listChanges: async () => (q.get('sent') === 'none' ? [] : changeSample),
   rewindPlan: async () => ({
     undo: [

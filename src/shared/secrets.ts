@@ -55,30 +55,52 @@ export interface Masked {
   text: string
   /** How many things were hidden. */
   hidden: number
+  /** With `lines`: each hidden thing's line, its value cut to a hint ("sk-…3456"), so the user can tell what it was. */
+  lines?: string[]
+}
+
+/** Enough of a value to recognise it, never enough to use it. */
+export function hint(value: string): string {
+  if (value.includes('\n')) return '[a private key]'
+  return value.length < 20 ? '…' : `${value.slice(0, 3)}…${value.slice(-4)}`
+}
+
+/** The line around `at` in `text`, with `value` there shown as its hint, kept short. */
+function lineAround(text: string, at: number, value: string): string {
+  const start = text.lastIndexOf('\n', at) + 1
+  const end = text.indexOf('\n', at + value.length)
+  const line = text.slice(start, at) + hint(value) + text.slice(at + value.length, end === -1 ? undefined : end)
+  return line.trim().slice(0, 200)
 }
 
 /**
  * `shapesOnly` is for the user's own typed words: a key pasted by mistake has a shape, but "my password is…" may be
  * meant, so `NAME=value` is left as they wrote it.
  */
-export function maskSecrets(text: string, opts: { shapesOnly?: boolean } = {}): Masked {
+export function maskSecrets(text: string, opts: { shapesOnly?: boolean; lines?: boolean } = {}): Masked {
   let hidden = 0
   let out = text
+  const lines: string[] = []
   for (const re of SHAPES) {
-    out = out.replace(re, () => {
+    const before = out
+    out = out.replace(re, (value: string, at: number) => {
       hidden++
+      if (opts.lines) lines.push(lineAround(before, at, value))
       return HIDDEN
     })
   }
-  if (opts.shapesOnly) return { text: out, hidden }
-  out = out.replace(ASSIGNED, (all, lead: string, key: string, dq?: string, sq?: string, bare?: string) => {
+  const done = () => ({ text: out, hidden, ...(opts.lines ? { lines } : {}) })
+  if (opts.shapesOnly) return done()
+  const before = out
+  out = out.replace(ASSIGNED, (all: string, lead: string, key: string, dq: string | undefined, sq: string | undefined, bare: string | undefined, at: number) => {
     const value = dq ?? sq ?? bare ?? ''
     if (value.includes(HIDDEN)) return all
     if (bare !== undefined && (NOT_SECRET.test(bare) || LOOKS_LIKE_CODE.test(bare) || /^\d+$/.test(bare))) return all
     if (NOT_SECRET.test(value)) return all
     hidden++
     const quote = dq !== undefined ? '"' : sq !== undefined ? "'" : ''
+    if (opts.lines) lines.push(lineAround(before, at + all.length - value.length - quote.length, value))
     return `${lead}${key}${quote}${HIDDEN}${quote}`
   })
-  return { text: out, hidden }
+  return done()
 }

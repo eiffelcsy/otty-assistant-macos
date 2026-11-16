@@ -180,6 +180,8 @@ export interface PublicSettings {
   learn: boolean
   /** The user paused everything Otty does in the background. Stays on across restarts. */
   workPaused: boolean
+  /** When a pause ends by itself (ms since epoch), or null for "until I say" (D-39). */
+  workPausedUntil: number | null
   /** A macOS notification when something Otty did on its own is ready or needs an OK. Off until chosen. */
   notifyDone: boolean
   /** Otty opens when the user logs in. macOS keeps this, not Otty's settings file. */
@@ -554,6 +556,8 @@ export interface OttyApi {
   readFile(id: string): Promise<AttachResult>
   /** Forgets a file that won't be sent. */
   discardFile(id: string): Promise<void>
+  /** The lines where Otty hid something in a message or file, each value cut to a hint; null once Otty restarted (D-40). */
+  hiddenLines(id: string): Promise<string[] | null>
 
   captureSelection(): Promise<PanelOpenPayload>
   captureScreenshot(): Promise<PanelOpenPayload>

@@ -88,6 +88,7 @@ export const CHANNELS = {
   'files:register': { views: CHAT, args: [checkedLater] },
   'files:read': { views: CHAT, args: [id] },
   'files:discard': { views: CHAT, args: [id] },
+  'hidden:show': { views: CHAT, args: [id] },
   'capture:selection': { views: PANEL, args: [] },
   'capture:screenshot': { views: PANEL, args: [] },
   'panel:close': { views: PANEL, args: [] },

@@ -11,6 +11,7 @@ import { createRunner, jobCost } from './jobs'
 import { setUsageSink, UsageMeter } from './usage'
 import { MemorySentLog, setSentLog, SqliteSentLog } from './sent'
 import { MemoryLedger, setLedger, SqliteLedger } from './ledger'
+import { forgetHidden } from './hiddenLines'
 import { capStatus } from '../shared/cap'
 import { retentionCutoff } from './store/retention'
 import { forward, tellActivity } from './notify'
@@ -103,6 +104,7 @@ export async function forgetAllChats(): Promise<void> {
   unsavedSent.clear()
   ledger().clear()
   unsavedLedger.clear()
+  forgetHidden()
 }
 
 /** One chat deleted: its jobs, its rows in what left the Mac, and the chat itself. */

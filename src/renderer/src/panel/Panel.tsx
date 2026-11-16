@@ -13,6 +13,7 @@ import { prettyKey } from '../lib/keys'
 import { useAttachments } from '../lib/useAttachments'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
+import { pauseEnd } from '../../../shared/pauseUntil'
 import { Activity, type Tab as ActivityTab } from './Activity'
 import { History } from './History'
 import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor } from './Messages'
@@ -335,7 +336,10 @@ export function Panel() {
               onOpen={() => setView('chat')}
               onOpenChat={(id) => void window.otty.openChat(id).then(() => setView('chat'))}
               paused={settings.workPaused}
-              onPause={(on) => void window.otty.saveSettings({ workPaused: on }).then(setSettings)}
+              pausedUntil={settings.workPausedUntil}
+              onPause={(choice) =>
+                void window.otty.saveSettings(choice === false ? { workPaused: false } : { workPaused: true, workPausedUntil: pauseEnd(choice) }).then(setSettings)
+              }
             />
           ) : view === 'history' ? (
             <History onOpen={() => setView('chat')} focusSearch={searchFocus} keep={settings.keepChats} />
@@ -364,7 +368,7 @@ export function Panel() {
                       {m.captures.length > 0 && <CaptureList captures={m.captures} />}
                       {m.files && <FileList files={m.files} />}
                       <div className="msg__bubble">{m.text}</div>
-                      <HiddenLine hidden={m.hidden} />
+                      <HiddenLine id={m.id} hidden={m.hidden} />
                     </div>
                   ) : (
                     <AssistantMessage

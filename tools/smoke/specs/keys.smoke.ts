@@ -90,3 +90,22 @@ test('a highlighted key is hidden before sending and says so; typed words stay a
   await expectNotFound(panel, TERMINAL_KEY)
   expect(dbText(otty)).not.toContain(TERMINAL_KEY)
 })
+
+test('tapping “Otty hid 1 key” shows the line with a hint of the key, and after a restart says it’s gone', { tag: ['@step-133'] }, async ({ otty, world }) => {
+  world.reply(turn('my token'), { say: 'I won’t keep that.' })
+  world.backgroundReply = 'A token'
+  const panel = await otty.openPanel()
+  await otty.ask(panel, `my token is ${TERMINAL_KEY} for the build`)
+  const line = panel.getByRole('button', { name: 'Otty hid 1 key before sending' })
+  await line.click()
+  const sheet = panel.locator('.hidden-sheet')
+  await expect(sheet).toContainText(`my token is ${TERMINAL_KEY.slice(0, 3)}…${TERMINAL_KEY.slice(-4)} for the build`)
+  expect(JSON.stringify(world.modelRequests())).not.toContain(`${TERMINAL_KEY.slice(0, 3)}…`)
+
+  await otty.relaunch()
+  const again = await otty.openPanel()
+  await again.getByRole('button', { name: 'Recent chats' }).click()
+  await again.getByRole('button', { name: /A token/ }).click()
+  await again.getByRole('button', { name: 'Otty hid 1 key before sending' }).click()
+  await expect(again.locator('.hidden-sheet')).toContainText('Otty doesn’t keep these once it restarts')
+})

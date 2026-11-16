@@ -3,7 +3,7 @@ import { getStored } from './settings'
 import { closeStore } from './store'
 import { startMetrics } from './metrics'
 import { openChat } from './captureRoute'
-import { createTray, registerHotkeys } from './controls'
+import { checkPause, createTray, registerHotkeys } from './controls'
 import { jobs, startServices } from './core'
 import { registerIpc } from './ipc'
 import { setBadge } from './notify'
@@ -29,7 +29,10 @@ if (!app.requestSingleInstanceLock()) {
     registerHotkeys()
     setImmediate(startServices)
     powerMonitor.on('suspend', () => jobs.suspend())
-    powerMonitor.on('resume', () => setTimeout(() => void jobs.wake(), WAKE_DELAY))
+    powerMonitor.on('resume', () => {
+      checkPause()
+      setTimeout(() => void jobs.wake(), WAKE_DELAY)
+    })
 
     createTray()
 

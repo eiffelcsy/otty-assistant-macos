@@ -157,16 +157,18 @@ const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
  * Hides keys in what the user typed and highlighted before anything is sent or saved (D-32). Highlighted text gets
  * the full check; typed words only lose well-known key shapes, because "my password is…" may be meant.
  */
-export function hideKeys(typed: string, captures: Capture[]): { typed: string; captures: Capture[]; hidden: number } {
-  const own = maskSecrets(typed, { shapesOnly: true })
+export function hideKeys(typed: string, captures: Capture[]): { typed: string; captures: Capture[]; hidden: number; lines: string[] } {
+  const own = maskSecrets(typed, { shapesOnly: true, lines: true })
   let hidden = own.hidden
+  const lines = [...(own.lines ?? [])]
   const masked = captures.map((c): Capture => {
     if (c.context.kind !== 'text') return c
-    const m = maskSecrets(c.context.text)
+    const m = maskSecrets(c.context.text, { lines: true })
     hidden += m.hidden
+    lines.push(...(m.lines ?? []))
     return m.hidden ? { ...c, context: { ...c.context, text: m.text } } : c
   })
-  return { typed: own.text, captures: masked, hidden }
+  return { typed: own.text, captures: masked, hidden, lines }
 }
 
 /** Told to the model, so it doesn't ask what the gap is or guess at it. */
@@ -245,6 +247,8 @@ export interface SessionDeps {
   provider(sent: SentTag): Provider
   /** What Otty changed (D-46), or null when nothing keeps it. */
   ledger(): Ledger | null
+  /** Keeps a message's hidden lines in memory, for "Otty hid 1 key" (D-40). */
+  keepHidden(id: string, lines: string[]): void
 }
 
 export class ChatSession {
@@ -509,7 +513,7 @@ export class ChatSession {
     app: AppInfo | null,
     opts: Pick<SendOptions, 'language' | 'action' | 'files'> = {}
   ): Promise<void> {
-    const { typed: text, captures, hidden } = hideKeys(rawText, rawCaptures)
+    const { typed: text, captures, hidden, lines: hiddenAt } = hideKeys(rawText, rawCaptures)
     const thread = this.thread
     // A new question in the same chat replaces its answer: one history can't take two turns at once.
     this.stopChat(thread.id)
@@ -539,6 +543,8 @@ export class ChatSession {
       ...(files.length ? { files } : {}),
       ...(hidden ? { hidden } : {})
     }
+    // On the Mac only, for "Otty hid 1 key": never saved, never sent (D-40).
+    this.deps.keepHidden(userMsg.id, hiddenAt)
     if (!thread.messages.length) {
       thread.title = titleFor(text, captures, files[0]?.name)
       const where = captures[0]?.app ?? app

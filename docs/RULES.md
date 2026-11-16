@@ -25,7 +25,7 @@ Where the checks live:
 | Docs | Prose only: a map of where the docs are. |
 | Otty is heading from | Prose only: a design direction, judged in review against `docs/AUTONOMY.md`. Its hard limits have their own rows (Tool safety, Jobs, Memory). |
 | Keep the docs moving | Prose only: a process rule. D-48 phase 2 adds a docs-drift test. |
-| Attachments | Rule tests `preload.test.ts` (ids and names only) and `boundaries.test.ts` (`pdfjs-dist` and `mammoth` by `import()` only, as runtime dependencies; `maskSecrets` in the worker). Test `code.test.ts` (files) "hides well-known key shapes anywhere"; `trust.test.ts` "takes out key shapes but leaves NAME=value as the user wrote it". |
+| Attachments | Rule tests `preload.test.ts` (ids and names only) and `boundaries.test.ts` (`pdfjs-dist` and `mammoth` by `import()` only, as runtime dependencies; `maskSecrets` in the worker). Test `code.test.ts` (files) "hides well-known key shapes anywhere"; `trust.test.ts` "takes out key shapes but leaves NAME=value as the user wrote it".. Test `hiddenLines.test.ts` (hinted lines never reach otty.db or a request, D-40). |
 | Hotkeys | Smoke `launch.smoke.ts` (shortcuts registered). Prose only for *no panel views that only work in one column*: a layout judgement. |
 | UI work | Prose only: how to use the UI preview. |
 | Pick up text | Rule test `boundaries.test.ts` "asks Apple Vision for Chinese before English". Test `ocr.test.ts`. |
@@ -42,7 +42,7 @@ Where the checks live:
 | Turns belong to chats | Test `chatLearning.test.ts` "carries on when the user moves to a new chat, and only the shown chat reaches the windows" and "still replaces the answer on a new question in the same chat". |
 | Jobs | Rule test `jobs.test.ts` (only the runner changes a job). Tests `jobs.test.ts` (jobs) "resumes at every step after being killed…" and "waits about an address that's only in the brief…"; `toolSafety.test.ts` "keeps anything that changes something out of a job"; `jobs.test.ts` "job states", "saving steps" and the claim contract (D-42, D-43). Prose only for *copy never says job*: a word check would trip on code names. |
 | Tool safety | Tests `toolSafety.test.ts` and `runGuards.test.ts` (the taint matrix, Claude's search going off, the lasting list from the table, a claim refused after a restart). `allowed` is required by the type. Smoke `ruleOfTwo.smoke.ts`; eval cases `injection-search-capture` and `injection-search-plain`. |
-| Scheduled jobs | Test `scheduled.test.ts` "uses a single timer…", "asks first when it is more than a day late", "stays paused after a restart…"; `chatLearning.test.ts` "always shows a card in plain words…". |
+| Scheduled jobs | Test `scheduled.test.ts` "uses a single timer…", "asks first when it is more than a day late", "stays paused after a restart…"; `chatLearning.test.ts` "always shows a card in plain words…".. Tests `pauseUntil.test.ts` and smoke `schedule.smoke.ts` "Pause for an hour…" (D-39). |
 | Used | Test `chatLearning.test.ts` "shows which memories matched the question, and only those". |
 | Smoke harness | `tools/smoke/check-release.mjs` in CI; smoke `harness.smoke.ts` "every way out of the machine is refused". Rule test `boundaries.test.ts` (no test hooks in `src/`). |
 | Eval | Test `eval.test.ts` (the scorers). Prose only for *run it after a prompt change*: it needs a key; `npm run verify` says when it applies. |

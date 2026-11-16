@@ -78,10 +78,8 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phase 1 built; phase 2 next | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
-| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ | — | S–M (1 day) |
-| D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ | — | S–M (1–2 days) |
-| D-39 | Pause until: "for an hour" or "until tomorrow" on Pause everything | ⏳ | — | S (½ day) |
-| D-40 | Show what was hidden: tap "1 key hidden" to see which lines, on the Mac only | ⏳ | D-32 | S (½ day) |
+| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M (1 day) |
+| D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M (1–2 days) |
 | D-45 | Split the composition root: no electron in the loop (steps 1–2 shipped) | ⏳ step 3 | a settings split | S–M (1 day) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
@@ -104,7 +102,7 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 4. **Harness extras** from BRAINSTORM, only as specs need them.
 5. **D-48 phase 2** (coverage ratchet, component and property tests, screenshots of the UI preview, docs-drift checks).
 6. **Hardening (D-41 to D-46)**, in the order below. ✅ D-41 to D-43 (CHANGELOG), on `feat/hardening-gates`; D-44 and D-45's steps 1–2 on `feat/hardening-ipc`; D-46 on `feat/action-ledger`.
-7. **Features (D-37 to D-40)**, in the order below.
+7. **Features (D-37 to D-40)**, in the order below. ✅ D-39 and D-40 (CHANGELOG), on `feat/pause-and-hidden`. D-37 and D-38 wait for painted frames from `tools/otty-art/source/` (art is never hand-made in code), and D-37 also needs files in the quick view, which has none yet.
 8. **D-48 phase 3** (mutation testing, eval in CI) when the beta is close.
 
 **Hardening from the architecture review (2026-11-16).** These aren't features, so they fit the beta's feature freeze (LAUNCH_READINESS 13.2). They come after the verification work and before D-37, because each one closes a gap that every new feature would build on.
@@ -118,8 +116,8 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 **Features** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five scored 2 (H with S–M, or M with S), so the order is by how many people meet it. D-36, Retry and edit, shipped with that batch:
 1. **D-37 Feed Otty.** The otter is the front door. Dropping something on it to ask about it is the most "Otty" way in, and it reuses the file and capture paths.
 2. **D-38 Otter moods.** The relationship pillar. Sleepy, waking, cheering and puzzled faces have to fit the idle budget, so they're stepped frames, not endless animation.
-3. **D-39 Pause until.** A small trust control that pairs with repeating looks and the monthly limit: "pause for an hour" shouldn't need a remembered undo.
-4. **D-40 Show what was hidden.** It finishes D-32: the user can check a hidden key was a key, on the Mac only.
+3. ✅ **D-39 Pause until.** A small trust control that pairs with repeating looks and the monthly limit: "pause for an hour" shouldn't need a remembered undo.
+4. ✅ **D-40 Show what was hidden.** It finishes D-32: the user can check a hidden key was a key, on the Mac only.
 5. Then **Look after me** (AUTONOMY.md, BRAINSTORM), **D-1** (starting with its step 0) and **D-14** when picked back up. **D-25** is parked until much later, by choice.
 
 **Checks waiting** (not features): the ✋ smoke-test steps on a Mac, launch at login on an installed build, and signing and notarization before builds go to other people.
@@ -349,22 +347,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 **Design.** Moods are states in `Otter.tsx`, each a few painted frames stepped by CSS (`steps()`), run once or on a slow loop, and paused under `data-asleep`. Main already sends `bubble:state` and `bubble:mood`. Add `sleepy` after idle (a timer reset on any event, not a poll) and `error`. New frames come from `tools/otty-art/source/` through `prepare.py`. Reduce motion turns them into still frames.
 
 **Done when.** Each mood shows on its trigger, and `OTTY_METRICS=1` shows idle under 0.5% of a core with the otter asleep and awake.
-
-## D-39 · Pause until ⏳
-
-**Goal.** **Pause everything** offers "for an hour", "until tomorrow morning" and "until I say", so a meeting doesn't need a remembered undo. The menu bar and Activity say when Otty carries on.
-
-**Design.** `settings.workPausedUntil` (ms), saved. `JobRunner`'s single timer also covers the pause's end (no polling), and launch or wake past it releases the pause. The release goes through the same path as **Let Otty carry on**.
-
-**Done when.** Pausing for an hour stops a running job and a scheduled one. After the hour, or after sleeping through it, both carry on once, and the row and tooltip said when.
-
-## D-40 · Show what was hidden ⏳
-
-**Goal.** Tap "Otty hid 1 key before sending" (or a file chip's "2 keys hidden") to see which lines were hidden, on the Mac only. A note says how to send one anyway if it was a false alarm: retype it.
-
-**Design.** Main keeps the hidden lines for the chat on show in memory only, never in `otty.db` or a renderer bundle that's saved, and shows them in a small sheet on request (`hidden:show`). The sheet shows the line with the value partly masked (`sk-…3456`), enough to recognise. After a restart they're gone, and the sheet says so.
-
-**Done when.** The sheet names the right lines, nothing about the value reaches `otty.db` (a test searches the file), and the model never sees it.
 
 ## D-45 · Split the composition root ⏳ step 3
 
@@ -610,3 +592,5 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 129. `npm run build:mac`, then `npm run smoke:packaged` → "The packaged app started". ✋ It launches the real built app for a few seconds, so run it on a Mac with the build.
 130. Highlight a line of private notes, ⌥Space, and ask Otty to summarise a page that tells it to search for the highlighted text → after reading the page, a **Look this up?** card shows the exact words before any search; **No thanks** keeps them on the Mac. In a chat with nothing highlighted or attached, a search after a page needs no card.
 131. Ask Otty to add a reminder and say yes → Settings › Privacy › **See what Otty changed** lists "Reminder added" as can't be undone. Remember something, then **Try again** → the card offers to forget it, and afterwards the row says undone. **Forget all chats** → the list is empty.
+132. In Activity, **Pause everything** → **For an hour** → the bar and the menu bar say "paused until" a time an hour away. Let the Mac sleep through it, then wake it → Otty carries on by itself, and a scheduled look runs once. **Until tomorrow morning** says tomorrow at 9:00. **Until I say** waits for **Let Otty carry on**.
+133. Paste a key into a question → under it, **Otty hid 1 key before sending**. Tap it → the line, with only the first 3 and last 4 characters of the key, and a note to retype it to send it anyway. Quit and reopen Otty, then tap it again → it says Otty doesn't keep these after a restart. A file with keys → its "N keys hidden" line shows the same.

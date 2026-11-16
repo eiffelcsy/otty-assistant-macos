@@ -85,6 +85,7 @@ const api: OttyApi = {
   dropFiles: (files) => ipcRenderer.invoke('files:register', files.map((f) => webUtils.getPathForFile(f)).filter(Boolean)),
   readFile: (id) => ipcRenderer.invoke('files:read', id),
   discardFile: (id) => ipcRenderer.invoke('files:discard', id),
+  hiddenLines: (id) => ipcRenderer.invoke('hidden:show', id),
 
   captureSelection: () => ipcRenderer.invoke('capture:selection'),
   captureScreenshot: () => ipcRenderer.invoke('capture:screenshot'),

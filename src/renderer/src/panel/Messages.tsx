@@ -1,6 +1,7 @@
 import { useContext, useEffect, useRef, useState } from 'react'
 import type { AppInfo, Capture, EditDraft, MemoryNote, RewindPlan, ScreenContext, ToolChipInfo, UsedMemory } from '../../../shared/types'
 import { Icon } from '../components/Icon'
+import { HiddenSheet } from '../components/HiddenSheet'
 import { StepCard } from '../components/StepCard'
 import { DrawingCard } from '../draw/DrawingCard'
 import { capturedText } from '../../../shared/captures'
@@ -189,13 +190,22 @@ function UsedLine({ used }: { used: UsedMemory[] }) {
 }
 
 /** Under a question: keys Otty took out of what was typed or highlighted before sending it (D-32). */
-export function HiddenLine({ hidden }: { hidden?: number }) {
+export function HiddenLine({ id, hidden }: { id: string; hidden?: number }) {
+  const [open, setOpen] = useState(false)
   if (!hidden) return null
   return (
-    <div className="hidden-line" title="Things that looked like keys or passwords became [hidden key], here and in what was sent">
-      <Icon name="shield-check" />
-      <span>{hidden === 1 ? 'Otty hid 1 key before sending' : `Otty hid ${hidden} keys before sending`}</span>
-    </div>
+    <>
+      <button
+        className="hidden-line"
+        aria-expanded={open}
+        title="Things that looked like keys or passwords became [hidden key], here and in what was sent. Tap to see which lines."
+        onClick={() => setOpen((o) => !o)}
+      >
+        <Icon name="shield-check" />
+        <span>{hidden === 1 ? 'Otty hid 1 key before sending' : `Otty hid ${hidden} keys before sending`}</span>
+      </button>
+      {open && <HiddenSheet id={id} />}
+    </>
   )
 }
 

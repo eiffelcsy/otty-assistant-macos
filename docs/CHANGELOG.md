@@ -4,6 +4,11 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Pause until, and see what was hidden (D-39, D-40, 2026-11-17)
+
+- **Pause everything asks for how long (D-39):** for an hour, until tomorrow morning (9:00) or until you say. Activity and the menu bar say when Otty carries on, and it does by itself then, through the same path as **Let Otty carry on**. One timer covers the end, and waking or launching past it ends the pause too, so a meeting needs no remembered undo.
+- **Tap "Otty hid 1 key before sending" to see which line (D-40),** with only the first 3 and last 4 characters of a key (nothing of a short password), and a note that retyping it sends it anyway. A file's "N keys hidden" does the same. The lines stay in memory on the Mac only: never in `otty.db` or anything sent, and gone after a restart, which the sheet says.
+
 ### What Otty changed: the action ledger (D-46, 2026-11-17)
 
 - **Every change Otty makes is written down before it runs**: a reminder, a copy, a link opened, a memory, a look started, a step card's button. Each row says what happened, which chat and answer it came from, and whether Otty can undo it, with anything that looked like a key hidden. It lives and dies with chats, like what left your Mac (schema v9).

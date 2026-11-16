@@ -1,5 +1,7 @@
 import { BrowserWindow, globalShortcut, Menu, Tray } from 'electron'
 import type { SettingsUpdate } from '../shared/types'
+import { pauseEnd, type PauseChoice } from '../shared/pauseUntil'
+import { describeWhen } from '../shared/when'
 import * as settings from './settings'
 import { askAboutSelection, openChat, snapWholeScreen, snipScreen } from './captureRoute'
 import { activityChanged, chat, forgetAllChats, jobs, tidyOldChats } from './core'
@@ -9,6 +11,34 @@ import { getBubble, openSettings } from './windows'
 // D-45: what the user controls Otty with outside its windows: the menu bar, the hotkeys, and applying settings.
 
 let tray: Tray | null = null
+/** The one timer for a pause that ends by itself (D-39). A sleeping Mac stalls it, so wake checks too. */
+let pauseTimer: NodeJS.Timeout | null = null
+
+/** "Otty (paused until today at 10:30 AM)". */
+function pausedWords(): string {
+  const { workPaused, workPausedUntil } = settings.getStored()
+  if (!workPaused) return 'Otty'
+  return workPausedUntil ? `Otty (paused until ${describeWhen(workPausedUntil)})` : 'Otty (paused)'
+}
+
+export function pause(choice: PauseChoice): void {
+  applySettings({ workPaused: true, workPausedUntil: pauseEnd(choice) })
+}
+
+/** A pause whose time has come ends the same way as Let Otty carry on. Otherwise, the timer is set for its end. */
+export function checkPause(): void {
+  if (pauseTimer) clearTimeout(pauseTimer)
+  pauseTimer = null
+  const { workPaused, workPausedUntil } = settings.getStored()
+  if (!workPaused || !workPausedUntil) return
+  const left = workPausedUntil - Date.now()
+  if (left <= 0) {
+    applySettings({ workPaused: false })
+    return
+  }
+  // setTimeout's limit is about 24 days; a pause is two days at most, so this is one timer, not a poll.
+  pauseTimer = setTimeout(checkPause, left)
+}
 
 export function registerHotkeys(): void {
   globalShortcut.unregisterAll()
@@ -36,7 +66,18 @@ export function menuTemplate(): Electron.MenuItemConstructorOptions[] {
     { label: 'Open chat', click: openChat },
     { type: 'separator' },
     // The one stop control: whatever Otty is doing on its own stops, and nothing new starts, until this is undone.
-    { label: s.workPaused ? 'Let Otty carry on' : 'Pause everything Otty is doing', click: () => applySettings({ workPaused: !s.workPaused }) },
+    ...(s.workPaused
+      ? [{ label: pausedWords().replace(/^Otty \((.*)\)$/, 'Otty is $1'), enabled: false }, { label: 'Let Otty carry on', click: () => applySettings({ workPaused: false }) }]
+      : [
+          {
+            label: 'Pause everything Otty is doing',
+            submenu: [
+              { label: 'For an hour', click: () => pause('hour') },
+              { label: 'Until tomorrow morning', click: () => pause('morning') },
+              { label: 'Until I say', click: () => pause('manual') }
+            ]
+          }
+        ]),
     {
       label: s.showBubble ? 'Hide floating Otty' : 'Show floating Otty',
       click: () => applySettings({ showBubble: !s.showBubble })
@@ -53,8 +94,9 @@ function refreshTray(): void {
 
 export function createTray(): void {
   tray = new Tray(trayIcon())
-  tray.setToolTip(settings.getStored().workPaused ? 'Otty (paused)' : 'Otty')
+  tray.setToolTip(pausedWords())
   refreshTray()
+  checkPause()
 }
 
 export function applySettings(u: SettingsUpdate) {
@@ -64,8 +106,9 @@ export function applySettings(u: SettingsUpdate) {
   if (u.workPaused !== undefined) {
     if (u.workPaused) chat.stopAll()
     void (u.workPaused ? jobs.hold() : jobs.release()).catch((err) => console.error('Could not change what Otty does on its own', err))
-    tray?.setToolTip(u.workPaused ? 'Otty (paused)' : 'Otty')
+    tray?.setToolTip(pausedWords())
     void activityChanged(false)
+    checkPause()
   }
   if (u.askHotkey !== undefined || u.snapHotkey !== undefined || u.screenHotkey !== undefined) registerHotkeys()
   if (u.showBubble !== undefined) {

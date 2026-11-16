@@ -2,6 +2,7 @@ import type { AnswerLanguage, Capture, PanelOpenPayload, SendOptions } from '../
 import { chatStore } from '../store'
 import { discardFile, pickFiles, readFile, registerFiles } from '../files'
 import { explainTerm } from '../llm'
+import { hiddenLines } from '../hiddenLines'
 import { memoryStore } from '../memory'
 import { isSecret } from '../memory/guard'
 import { chat, deleteChat, forgetAllChats, resetChat, stuckOnStep } from '../core'
@@ -64,4 +65,5 @@ export function registerChat(): void {
   handle('files:register', (_e, paths: unknown) => registerFiles(paths))
   handle('files:read', (_e, id: string) => readFile(id))
   handle('files:discard', (_e, id: string) => discardFile(id))
+  handle('hidden:show', (_e, id: string) => hiddenLines(id))
 }

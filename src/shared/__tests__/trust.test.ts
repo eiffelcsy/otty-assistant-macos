@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { capPassed, capReached, capStatus, cleanCap, isCapNote, monthStart } from '../cap'
 import { healthProblem } from '../health'
 import { firstRun, nextRun, parseRepeat, readRepeat, repeatWords, runsPerMonth } from '../repeat'
-import { HIDDEN, maskSecrets } from '../secrets'
+import { hint, HIDDEN, maskSecrets } from '../secrets'
 
 const settings = { takenHotkeys: [], askHotkey: 'Alt+Space', snapHotkey: 'Alt+Shift+Space', screenHotkey: 'Command+Alt+Shift+Space' }
 
@@ -108,5 +108,25 @@ describe('hiding keys in typed words (D-32)', () => {
     expect(out.text).toBe(`my key is ${HIDDEN} and DB_PASSWORD=hunter22 is the other one`)
     expect(out.hidden).toBe(1)
     expect(maskSecrets(typed).hidden).toBe(2)
+  })
+})
+
+describe('what was hidden, shown as a hint (D-40)', () => {
+  it('names each hidden thing’s line with only a hint of its value', () => {
+    const text = 'start\nOPENAI_KEY=sk-abcdefghijklmnop1234 in prod\nDB_PASSWORD="hunter22pass"\nend'
+    const { lines, hidden } = maskSecrets(text, { lines: true })
+    expect(hidden).toBe(2)
+    expect(lines).toEqual(['OPENAI_KEY=sk-…1234 in prod', 'DB_PASSWORD="…"'])
+    expect(lines!.join()).not.toMatch(/abcdefghijklmnop|hunter22/)
+  })
+
+  it('cuts a value to its first three and last four, and a private key to words', () => {
+    expect(hint('sk-abcdefghijklmnop1234')).toBe('sk-…1234')
+    expect(hint('short')).toBe('…')
+    expect(hint('-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----')).toBe('[a private key]')
+  })
+
+  it('adds nothing unless asked', () => {
+    expect(maskSecrets('token = "abcdef123456"')).not.toHaveProperty('lines')
   })
 })

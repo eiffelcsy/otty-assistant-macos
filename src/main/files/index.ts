@@ -8,6 +8,7 @@ import { promisify } from 'util'
 import type { AttachResult, FileAttachment, PendingFile } from '../../shared/types'
 import { encodeImage } from '../capture'
 import { kindOf, PICKER_EXTENSIONS, type Extracted } from './extract'
+import { keepHidden } from '../hiddenLines'
 import { CODE_EXTENSIONS } from './languages'
 import type { ReadReply, ReadRequest } from './worker'
 
@@ -118,6 +119,7 @@ export async function readFile(id: string): Promise<AttachResult> {
   if (!reply.ok) return fail(reply.message ?? 'Otty couldn’t read this file. It may be damaged.')
   if (!entries.has(id)) return fail('Removed.') // ✕ was pressed while it was being read
   e.doc = reply.result
+  if ('hiddenLines' in reply.result) keepHidden(id, reply.result.hiddenLines)
   e.meta = { id, name: e.name, kind, ...describe(reply.result) }
   return { ok: true, file: e.meta }
 }

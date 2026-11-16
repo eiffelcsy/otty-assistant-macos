@@ -251,7 +251,7 @@ export function Quick() {
                     m.role === 'user' ? (
                       <div key={m.id} className="quick__asked">
                         {m.text}
-                        <HiddenLine hidden={m.hidden} />
+                        <HiddenLine id={m.id} hidden={m.hidden} />
                       </div>
                     ) : (
                       <AssistantMessage
