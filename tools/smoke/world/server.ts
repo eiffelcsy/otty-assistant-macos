@@ -5,9 +5,26 @@
  */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'http'
 import type { AddressInfo } from 'net'
-import { openAiStream, openAiComplete, type Turn } from './openai'
+import { anthropicComplete, anthropicError, anthropicStream } from './anthropic'
+import { openAiComplete, openAiError, openAiStream } from './openai'
+import {
+  ddgAnswer,
+  deepseekResults,
+  matchesQuery,
+  searchService,
+  wikiKey,
+  wikiSearch,
+  wikiSummary,
+  type Failure,
+  type LookupAnswer,
+  type QueryMatch,
+  type ReadResult,
+  type SearchResult
+} from './search'
+import type { Turn } from './turn'
 
-export type { Turn } from './openai'
+export type { ServerSearch, Turn } from './turn'
+export type { LookupAnswer, QueryMatch, ReadResult, SearchResult } from './search'
 
 export interface SeenRequest {
   url: string
@@ -15,16 +32,23 @@ export interface SeenRequest {
   /** Parsed JSON body, or the raw text. */
   body: unknown
   authorization?: string
+  /** Anthropic-style servers take the key here. */
+  apiKey?: string
 }
 
 type Match = string | RegExp | ((lastUserText: string, body: ModelBody) => boolean)
 
+/** A model request, in either format. Anthropic's has `system` apart; OpenAI's has it as the first message. */
 export interface ModelBody {
   model?: string
   stream?: boolean
+  system?: unknown
   messages?: { role: string; content?: unknown }[]
-  tools?: { function?: { name: string } }[]
+  /** OpenAI's tools are `{ function: { name } }`; Anthropic's are `{ name }`, and its own search has a `type`. */
+  tools?: { function?: { name: string }; name?: string; type?: string }[]
 }
+
+export type ModelFormat = 'openai' | 'anthropic'
 
 interface Script {
   match: Match
@@ -47,9 +71,33 @@ export function textOf(content: unknown): string {
   return ''
 }
 
+/** True for a message the user wrote, not one that only carries tool results (Anthropic sends those as `user`). */
+function fromUser(m: { role: string; content?: unknown }): boolean {
+  if (m.role !== 'user') return false
+  return typeof m.content === 'string' || (Array.isArray(m.content) && m.content.some((p) => p && typeof p === 'object' && (p as { type?: string }).type === 'text'))
+}
+
 export function lastUserText(body: ModelBody): string {
-  const user = [...(body.messages ?? [])].reverse().find((m) => m.role === 'user')
+  const user = [...(body.messages ?? [])].reverse().find(fromUser)
   return user ? textOf(user.content) : ''
+}
+
+/** The names of the tools a request offered, in either format. Claude's own search shows as its `name`. */
+export function toolNames(body: ModelBody): string[] {
+  return (body.tools ?? []).map((t) => t.function?.name ?? t.name ?? '')
+}
+
+/** Which API format a request is in, by its address. */
+export function modelFormat(url: string): ModelFormat | null {
+  let path: string
+  try {
+    path = new URL(url).pathname
+  } catch {
+    return null
+  }
+  if (path.endsWith('/chat/completions')) return 'openai'
+  if (path.endsWith('/v1/messages')) return 'anthropic'
+  return null
 }
 
 function matches(m: Match, text: string, body: ModelBody): boolean {
@@ -58,12 +106,23 @@ function matches(m: Match, text: string, body: ModelBody): boolean {
   return m(text, body)
 }
 
+/** A string field of a JSON body, or ''. */
+const field = (body: unknown, name: string): string => {
+  const v = body && typeof body === 'object' ? (body as Record<string, unknown>)[name] : undefined
+  return typeof v === 'string' ? v : ''
+}
+
+const isFailure = (x: unknown): x is Failure => Boolean(x && typeof x === 'object' && 'status' in x)
+
 export class World {
   readonly requests: SeenRequest[] = []
   /** Requests nobody scripted. Each fails the test. */
   readonly unscripted: string[] = []
   private scripts: Script[] = []
   private pages = new Map<string, Page>()
+  private searches: { match: QueryMatch; answer: SearchResult[] | Failure }[] = []
+  private reads = new Map<string, ReadResult | Failure>()
+  private lookups: { match: QueryMatch; answer: LookupAnswer }[] = []
   private server: Server | null = null
   /** Background calls (titles, explain warm-ups) get this unless a script matches. */
   backgroundReply = 'Smoke chat'
@@ -79,9 +138,32 @@ export class World {
     return this
   }
 
+  /** DeepSeek's search: every query that matches gets these results, or fails with `{ status }`. */
+  search(match: QueryMatch, answer: SearchResult[] | Failure): this {
+    this.searches.push({ match, answer })
+    return this
+  }
+
+  /** DeepSeek's page reader, for this exact address. A string is the page's text. */
+  read(url: string, answer: ReadResult | Failure | string): this {
+    this.reads.set(url, typeof answer === 'string' ? { content: answer } : answer)
+    return this
+  }
+
+  /** The keyless lookup: DuckDuckGo and Wikipedia both answer a matching query (empty where `answer` has nothing). */
+  lookup(match: QueryMatch, answer: LookupAnswer): this {
+    this.lookups.push({ match, answer })
+    return this
+  }
+
   /** The model requests the app sent, newest last. */
-  modelRequests(): ModelBody[] {
-    return this.requests.filter((r) => r.url.endsWith('/chat/completions') || r.url.endsWith('/v1/messages')).map((r) => r.body as ModelBody)
+  modelRequests(format?: ModelFormat): ModelBody[] {
+    return this.requests.filter((r) => (format ? modelFormat(r.url) === format : modelFormat(r.url))).map((r) => r.body as ModelBody)
+  }
+
+  /** The streamed model requests: the user's turns, not titles, explain warm-ups or connection tests. */
+  turnRequests(format?: ModelFormat): ModelBody[] {
+    return this.modelRequests(format).filter((b) => b.stream)
   }
 
   reset(): void {
@@ -89,6 +171,9 @@ export class World {
     this.unscripted.length = 0
     this.scripts = []
     this.pages.clear()
+    this.searches = []
+    this.reads.clear()
+    this.lookups = []
     this.backgroundReply = 'Smoke chat'
   }
 
@@ -106,14 +191,21 @@ export class World {
     this.server = null
   }
 
-  private fail(res: ServerResponse, why: string): void {
+  private fail(res: ServerResponse, why: string, format: ModelFormat = 'openai'): void {
     this.unscripted.push(why)
-    if (!res.headersSent) res.writeHead(500, { 'content-type': 'application/json' })
-    res.end(JSON.stringify({ error: { message: why } }))
+    if (res.headersSent) return void res.end()
+    if (format === 'anthropic') anthropicError(res, 500, why)
+    else openAiError(res, 500, why)
+  }
+
+  private json(res: ServerResponse, body: object, status = 200): void {
+    res.writeHead(status, { 'content-type': 'application/json' })
+    res.end(JSON.stringify(body))
   }
 
   private async handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    const url = String(req.headers['x-smoke-url'] ?? '')
+    // Without the smoke build in front (the contract test), the path itself is `/<host><path>`.
+    const url = String(req.headers['x-smoke-url'] ?? `https:/${req.url ?? '/'}`)
     const raw = await new Promise<string>((resolve) => {
       let data = ''
       req.on('data', (c) => (data += c))
@@ -126,9 +218,13 @@ export class World {
       /* not JSON */
     }
     const authorization = req.headers['authorization'] ? String(req.headers['authorization']) : undefined
-    this.requests.push({ url, method: req.method ?? 'GET', body, ...(authorization ? { authorization } : {}) })
+    const apiKey = req.headers['x-api-key'] ? String(req.headers['x-api-key']) : undefined
+    this.requests.push({ url, method: req.method ?? 'GET', body, ...(authorization ? { authorization } : {}), ...(apiKey ? { apiKey } : {}) })
 
-    if (url.endsWith('/chat/completions')) return this.model(res, body as ModelBody)
+    const format = modelFormat(url)
+    if (format) return this.model(res, body as ModelBody, format)
+    const service = searchService(url)
+    if (service) return this.searchService(res, service, url, body)
     const page = this.pages.get(url)
     if (page) {
       const headers: Record<string, string> = { 'content-type': page.contentType ?? 'text/html; charset=utf-8' }
@@ -140,20 +236,52 @@ export class World {
     this.fail(res, `no page scripted for ${req.method} ${url}`)
   }
 
-  private model(res: ServerResponse, body: ModelBody): void {
+  private searchService(res: ServerResponse, service: NonNullable<ReturnType<typeof searchService>>, url: string, body: unknown): void {
+    const u = new URL(url)
+    const lookup = (q: string) => this.lookups.find((l) => matchesQuery(l.match, q))?.answer
+    switch (service) {
+      case 'deepseek-search': {
+        const query = field(body, 'query')
+        const found = this.searches.find((s) => matchesQuery(s.match, query))
+        if (!found) return this.fail(res, `no search scripted for: ${query}`)
+        if (isFailure(found.answer)) return this.json(res, { error: { message: 'scripted failure' } }, found.answer.status)
+        return this.json(res, deepseekResults(found.answer))
+      }
+      case 'deepseek-fetch': {
+        const address = field(body, 'url')
+        const found = this.reads.get(address)
+        if (!found) return this.fail(res, `no page scripted for DeepSeek's reader: ${address}`)
+        if (isFailure(found)) return this.json(res, { error: { message: 'scripted failure' } }, found.status)
+        return this.json(res, { title: found.title ?? '', content: found.content })
+      }
+      case 'ddg':
+      case 'wiki-search': {
+        const query = u.searchParams.get('q') ?? ''
+        const answer = lookup(query)
+        if (!answer) return this.fail(res, `no lookup scripted for: ${query}`)
+        return this.json(res, service === 'ddg' ? ddgAnswer(answer) : wikiSearch(answer))
+      }
+      case 'wiki-summary': {
+        const key = decodeURIComponent(u.pathname.split('/').pop() ?? '')
+        const page = this.lookups.flatMap((l) => l.answer.wiki ?? []).find((w) => wikiKey(w.title) === key)
+        if (!page) return this.fail(res, `no Wikipedia page scripted for: ${key}`)
+        return this.json(res, wikiSummary(page))
+      }
+    }
+  }
+
+  private model(res: ServerResponse, body: ModelBody, format: ModelFormat): void {
     const text = lastUserText(body)
     const script = this.scripts.find((s) => s.used < s.turns.length && matches(s.match, text, body))
+    const complete = format === 'anthropic' ? anthropicComplete : openAiComplete
     if (!script) {
-      if (!body.stream) return openAiComplete(res, { say: this.backgroundReply }, body)
-      return this.fail(res, `no reply scripted for: ${text.slice(0, 120)}`)
+      if (!body.stream) return complete(res, { say: this.backgroundReply }, body)
+      return this.fail(res, `no reply scripted for: ${text.slice(0, 120)}`, format)
     }
     const turn = script.turns[script.used++]
-    if (turn.status) {
-      res.writeHead(turn.status, { 'content-type': 'application/json' })
-      res.end(JSON.stringify({ error: { message: turn.error ?? 'scripted failure' } }))
-      return
-    }
-    if (body.stream) openAiStream(res, turn, body)
-    else openAiComplete(res, turn, body)
+    if (turn.status) return (format === 'anthropic' ? anthropicError : openAiError)(res, turn.status, turn.error ?? 'scripted failure')
+    if (!body.stream) return complete(res, turn, body)
+    if (format === 'anthropic') anthropicStream(res, turn, body)
+    else openAiStream(res, turn, body)
   }
 }
