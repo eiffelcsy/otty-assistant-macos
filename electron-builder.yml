@@ -5,6 +5,8 @@ directories:
   output: dist
 files:
   - out/**
+  # The UI preview is a dev tool that can build into out/ui-preview; it must never ship.
+  - '!out/ui-preview/**'
   - package.json
 extraResources:
   - from: build/bin/otty-ocr

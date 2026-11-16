@@ -38,3 +38,39 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # D-47: nothing of the smoke harness may reach the release build.
+      - run: node tools/smoke/check-release.mjs
+
+  smoke:
+    # D-47: the real app, driven by Playwright against a fake world. Nothing leaves the runner.
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Cache Electron binary
+        uses: actions/cache@v6
+        with:
+          path: ~/Library/Caches/electron
+          key: electron-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: electron-${{ runner.os }}-
+
+      - run: npm ci
+      - run: npm run build:smoke
+      # Playwright drives Electron itself, so no browsers are downloaded.
+      - run: npm run smoke
+
+      - name: Keep the report, traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-report
+          path: |
+            tools/smoke/report/
+            tools/smoke/results/
+          retention-days: 14

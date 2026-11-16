@@ -7,3 +7,6 @@ dist/
 .venv/
 build/bin/
 tools/eval/results/
+out-smoke/
+tools/smoke/results/
+tools/smoke/report/
