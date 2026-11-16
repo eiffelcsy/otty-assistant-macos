@@ -115,7 +115,7 @@ function overlayClass<C extends new (...args: never[]) => object>(Real: C, fakes
  * Electron's own module can't be changed (its getters aren't configurable, and native methods are reset at ready),
  * so the swap happens where Otty asks for it. The smoke entry itself keeps the real module.
  */
-export function installMac(): void {
+export function installMac(appRoot: string): void {
   const electron = require('electron') as typeof ElectronModule
   const fakes: Partial<Record<keyof typeof electron, unknown>> = {
     globalShortcut: {
@@ -171,6 +171,9 @@ export function installMac(): void {
       isTrustedAccessibilityClient: () => mac.accessibility,
       getMediaAccessStatus: (kind: string) => (kind === 'screen' ? (mac.screen ? 'granted' : 'denied') : 'granted')
     }),
+    // Electron takes the app's path from the entry it was started with, which is out-smoke/ here. The app it runs is
+    // the repo's (out/main), so report that, as `electron-vite dev` and a release would: the OCR helper is found by it.
+    app: overlay(electron.app, { getAppPath: () => appRoot }),
     screen: overlay(electron.screen, {
       getCursorScreenPoint: () => {
         if (mac.cursor) return mac.cursor

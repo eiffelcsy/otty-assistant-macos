@@ -31,7 +31,7 @@ guardSockets(Number(new URL(world).port))
 guardProcesses(macProcess, (file) => REAL.has(file) || file.endsWith('/build/bin/otty-ocr'))
 guardRenderers()
 installNet(world)
-installMac()
+installMac(join(__dirname, '..'))
 installClock(Number(process.env['OTTY_SMOKE_CLOCK'] ?? 0))
 
 let ready = false
