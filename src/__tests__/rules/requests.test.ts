@@ -6,11 +6,11 @@ import { lineAt, read, sourceFiles, withoutComments } from './source'
 
 const MAIN = sourceFiles('src/main')
 
-/** Each `activeProvider(…)` call: where it is, its argument, and the 400 characters after it. */
+/** Each `activeProvider(…)` call, or a chat session's `deps.provider(…)` (D-45): where, its argument, and what follows. */
 function calls() {
   return MAIN.flatMap((file) => {
     const code = withoutComments(read(file))
-    return [...code.matchAll(/(?<!function )\bactiveProvider\(([^)]*)\)/g)].map((m) => ({
+    return [...code.matchAll(/(?<!function )\b(?:activeProvider|deps\.provider)\(([^)]*)\)/g)].map((m) => ({
       at: `${file}:${lineAt(code, m.index)}`,
       arg: m[1].trim(),
       after: code.slice(m.index, m.index + 400)
@@ -40,7 +40,7 @@ describe('CLAUDE.md "Explain terms…": background calls use complete() and the 
     const background = calls().filter((c) => /kind: '(title|explain)'/.test(c.arg))
     expect(background.map((c) => c.arg.match(/kind: '(\w+)'/)?.[1]).sort((a = '', b = '') => a.localeCompare(b))).toEqual(['explain', 'title'])
     for (const c of background) {
-      expect(c.after, c.at).toMatch(/^activeProvider\([^)]*\)\.complete\(\{/)
+      expect(c.after, c.at).toMatch(/^(?:activeProvider|deps\.provider)\([^)]*\)\.complete\(\{/)
       const request = c.after.slice(c.after.indexOf('.complete('), c.after.indexOf('})', c.after.indexOf('.complete(')))
       expect(request, c.at).toMatch(/reasoning: 'least'/)
       expect(c.after, c.at).not.toMatch(/this\.history|\.history\.push/)

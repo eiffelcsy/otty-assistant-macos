@@ -13,7 +13,7 @@ interface SavedKey {
   plain?: boolean
 }
 
-interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'openAtLogin' | 'canOpenAtLogin'> {
+export interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'openAtLogin' | 'canOpenAtLogin'> {
   /** One per service, so a key only ever goes to the service it belongs to. */
   apiKeys?: Partial<Record<ServiceId, SavedKey>>
   /** The single key from before 0.5, moved into `apiKeys` on load. */

@@ -12,7 +12,12 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 ```
 ┌──────────────── main process (Node 24) ────────────────┐
-│ index.ts       lifecycle, tray, hotkeys, IPC, badge    │
+│ index.ts       the lifecycle, nothing else             │
+│ core.ts        the chat, jobs and stores, made once    │
+│ ipc/           every channel, checked in check.ts      │
+│ captureRoute   where a capture goes: tray or window    │
+│ controls.ts    menu bar, hotkeys, applying settings    │
+│ notify.ts      chat events, otter face, notifications  │
 │ windows.ts     bubble · quick view · panel · pickup    │
 │ capture.ts     selection (⌘C trick), snip, frontmost   │
 │ llm.ts         ChatSession: turns, background work     │
@@ -76,8 +81,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ | — | S–M (1–2 days) |
 | D-39 | Pause until: "for an hour" or "until tomorrow" on Pause everything | ⏳ | — | S (½ day) |
 | D-40 | Show what was hidden: tap "1 key hidden" to see which lines, on the Mac only | ⏳ | D-32 | S (½ day) |
-| D-44 | Check every IPC input (LAUNCH_READINESS 10.5) | ⏳ | — | S–M (1 day) |
-| D-45 | Split the composition root: `ChatSession` deps, `index.ts` into parts, no electron in the loop | ⏳ | D-42 ✅ | M (2 days) |
+| D-45 | Split the composition root: no electron in the loop (steps 1–2 shipped) | ⏳ step 3 | a settings split | S–M (1 day) |
 | D-46 | Action ledger v1: every change Otty makes, with how to undo it | ⏳ | D-42 ✅ | M (2 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
@@ -99,7 +103,7 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 3. **The ✋ steps on a Mac**, by a person, and a fresh eval baseline.
 4. **Harness extras** from BRAINSTORM, only as specs need them.
 5. **D-48 phase 2** (coverage ratchet, component and property tests, screenshots of the UI preview, docs-drift checks).
-6. **Hardening (D-41 to D-46)**, in the order below. ✅ D-41 to D-43 (CHANGELOG), on `feat/hardening-gates`.
+6. **Hardening (D-41 to D-46)**, in the order below. ✅ D-41 to D-43 (CHANGELOG), on `feat/hardening-gates`; D-44 and D-45's steps 1–2 on `feat/hardening-ipc`.
 7. **Features (D-37 to D-40)**, in the order below.
 8. **D-48 phase 3** (mutation testing, eval in CI) when the beta is close.
 
@@ -107,8 +111,8 @@ Rerun the full eval and save a new baseline once this lands. The harness had a r
 1. ✅ **D-41 Close the search leak.** It's the only open path found for private data to leave after an injection.
 2. ✅ **D-42 Tool gates from the table only.** Small. It removes a second, already-wrong list and makes tool access opt-in.
 3. ✅ **D-43 Job states and step writes.** Repeating looks made the runner bigger. Pin down its states before goals or Look after me add more.
-4. **D-44 Check every IPC input.** This is LAUNCH_READINESS 10.5, which a signed beta needs anyway.
-5. **D-45 Split the composition root.** A pure refactor, best done between batches, and now under the smoke harness. `llm.ts` (927 lines) and `index.ts` (571) both grew by a third since 0.5.0.
+4. ✅ **D-44 Check every IPC input.** This is LAUNCH_READINESS 10.5, which a signed beta needs anyway.
+5. ✅ (steps 1–2) **D-45 Split the composition root.** A pure refactor, best done between batches, and now under the smoke harness. `llm.ts` (927 lines) and `index.ts` (571) both grew by a third since 0.5.0.
 6. **D-46 Action ledger v1.** It's the base for "do, with undo", and D-36's rewind already waits on it. Ship it before any new level of reach.
 
 **Features** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five scored 2 (H with S–M, or M with S), so the order is by how many people meet it. D-36, Retry and edit, shipped with that batch:
@@ -362,35 +366,16 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 **Done when.** The sheet names the right lines, nothing about the value reaches `otty.db` (a test searches the file), and the model never sees it.
 
-## D-44 · Check every IPC input ⏳
+## D-45 · Split the composition root ⏳ step 3
 
-**Goal.** A compromised renderer is the threat the sandbox exists for, so main shouldn't trust the shape of anything a renderer sends. This is LAUNCH_READINESS 10.5, planned here.
+Steps 1 and 2 shipped (CHANGELOG): `ChatSession` takes `SessionDeps`, and `index.ts` is the lifecycle only, with `core.ts`, `ipc/`, `captureRoute.ts`, `controls.ts` and `notify.ts` around it.
 
-**Today.** Some handlers already check their input (`cleanCap`, `validExport`, `rewind` mapping `undo` through `String`, and `runStep` looking actions up). Others trust it. `activity:stop` and `activity:open` take a whole `ActivityItem` and branch on its `kind`. Several handlers cast their `_e, x: T` arguments with no check, across 62 `ipcMain` handlers. No handler checks which window sent the message.
+**Step 3, left: no electron in the loop.** `loop.ts` reaches electron through `tools.ts` and `providers/index.ts`, and both reach it through `settings.ts` (the keychain and the app's folder), not only through the Mac tools. A `MacHands` object alone wouldn't free the loop, so it waits for a settings split:
+1. `settings.ts` becomes a pure store over a small `SettingsBackend` (a file and a keychain), with the electron backend plugged in by `core.ts`, like `setSentLog` and `setUsageSink`.
+2. Tools that touch the Mac (`open_url`, `copy_to_clipboard`, `create_reminder`) reach it through a `MacHands` object in `ToolContext`.
+3. `loop.ts` imports errors and types from `providers/errors` and `providers/types`, not the `providers` index.
 
-**Design.**
-- Add `main/ipc/check.ts`, a few small guards (`id`, `bool`, `int(min, max)`, `oneOf(...)`, `text(max)`) and a `handle(channel, guards, fn)` wrapper that rejects bad input with a log line, not a throw that reaches the UI.
-- Activity takes ids only. Main looks up the kind (job or chat) itself, as `runStep` does for actions.
-- Check the sender: a handler is registered for the views that use it (`panel`, `quick`, `bubble`, `pickup`, `viewer`). A message from another frame, or from a view that doesn't use that channel, is refused. For example, the bubble can't call `chats:clear`.
-- Add a test that lists `ipcMain.handle` calls in `index.ts` and fails when one isn't registered through `handle`.
-
-**Done when.** Every handler goes through `handle`, the test enforces that, and a fuzz test sending wrong types to each channel produces no throw and no side effect.
-
-## D-45 · Split the composition root ⏳
-
-**Goal.** Make the turn engine testable without stubs, and let jobs and chat share more of it. A pure refactor, with no change anyone can see.
-
-**Today.**
-- `ChatSession` reaches into globals: `getStored()`, `chatStore()`, `memoryStore()`, `activeProfile()` and `activeProvider` (20 calls in `llm.ts`). `JobRunner` already takes `RunnerDeps`, which is the pattern to copy.
-- `index.ts` is the lifecycle, 62 IPC handlers, the capture router, notifications and the bubble mood all at once. Each of the three capture functions repeats the same "panel, quick view or new window" branching.
-- `loop.ts` imports `tools.ts`, which imports `electron` (clipboard, shell). That blocks running jobs in a utility process (an open decision in AUTONOMY.md) and is why the eval stubs tools.
-
-**Design.**
-1. `SessionDeps` for `ChatSession`: settings, the chat, memory and sent stores, the provider, and the hooks it already has. `index.ts` builds it once.
-2. Split `index.ts` into `ipc/` (one file per area, using D-44's `handle`), `captureRoute.ts` (one `deliver(payload)` for the panel, quick view or new window), and `notify.ts` (notifications, badge and mood from `activityChanged`).
-3. Tools that touch the Mac (`open_url`, `copy_to_clipboard`, `create_reminder`) reach electron through a `MacHands` object in `ToolContext`. Then `loop.ts` and `runner.ts` load in plain Node. (D-47 needed no ports after all, so this stays here.)
-
-**Done when.** All tests pass unchanged, `index.ts` is under 200 lines, `ChatSession` has no global calls, and a test imports `runLoop` with no electron mock.
+**Done when.** A test imports `runLoop` and `JobRunner` with no electron mock, and the eval stops stubbing the tools that only need the network.
 
 ## D-46 · Action ledger v1 ⏳
 

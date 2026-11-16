@@ -25,10 +25,10 @@ import { mathTier } from '../shared/math'
 import { turnHints } from './hints'
 import { describeWhen, parseDue } from '../shared/when'
 import { firstRun, parseRepeat, repeatWords, runsPerMonth, type Repeat } from '../shared/repeat'
-import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
+import type { ChatStore, Thread, WriteFrom } from './store'
 import { fileBudget, fitFiles, sampleText, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
-import { getStored } from './settings'
+import { getStored, type StoredSettings } from './settings'
 import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
 import { createExplainCache, termsToWarm } from './explainCache'
@@ -40,9 +40,10 @@ import { instantAnswer } from './math'
 import { act, isRisky } from './act'
 import { stepCard } from './act/card'
 import { urlsIn } from './knownUrls'
-import { forget as forgetMemory, MEMORY_NOTE, memoryStore, observe, remember, undo, type LearnTurn } from './memory'
+import { forget as forgetMemory, MEMORY_NOTE, observe, remember, undo, type LearnTurn, type MemoryStore } from './memory'
 import { isKnownUrl } from './knownUrls'
-import { activeProfile, activeProvider, FriendlyError, NoVisionError, type ContentPart } from './providers'
+import { activeProvider, FriendlyError, NoVisionError, type ContentPart, type Profile, type Provider, type SentTag } from './providers'
+import { liveDeps } from './sessionDeps'
 
 // The conversation: what's sent, what comes back and what's saved. Talking to the model service is `providers/`.
 
@@ -117,10 +118,10 @@ function safely<T>(fallback: T, fn: () => T): T {
 }
 
 /** What's sent with this question. An earlier note stays in the history, so if nothing's left to say, that has to be said. */
-function memoryNote(question: string, app: string | null, history: Thread['history']): { note: string; used: UsedMemory[] } {
+function memoryNote(memory: MemoryStore | null, question: string, app: string | null, history: Thread['history']): { note: string; used: UsedMemory[] } {
   const none = { note: '', ids: [] as number[], matched: [] as { id: number; text: string }[] }
-  const { note, ids, matched } = getStored().learn ? safely(none, () => memoryStore().forPrompt(question, app)) : none
-  safely(undefined, () => ids.length && memoryStore().markUsed(ids))
+  const { note, ids, matched } = memory ? safely(none, () => memory.forPrompt(question, app)) : none
+  safely(undefined, () => ids.length && memory?.markUsed(ids))
   const used = matched.slice(0, 2).map((m) => ({ memoryId: m.id, text: m.text }))
   if (note) return { note, used }
   const told = history.some((m) => m.role === 'user' && JSON.stringify(m.content).includes(MEMORY_NOTE))
@@ -233,6 +234,16 @@ function newThread(): Thread {
   return { id: randomUUID(), title: 'New chat', createdAt: now, updatedAt: now, messages: [], history: [] }
 }
 
+/** Everything a chat session reaches outside itself (D-45). The app's are in `sessionDeps.ts`. */
+export interface SessionDeps {
+  settings(): StoredSettings
+  chats(): ChatStore
+  pruneChats(): Promise<number>
+  memory(): MemoryStore
+  profile(): Profile
+  provider(sent: SentTag): Provider
+}
+
 export class ChatSession {
   /** The chat on show. */
   private thread = newThread()
@@ -252,7 +263,8 @@ export class ChatSession {
 
   constructor(
     private emit: (e: ChatEvent) => void,
-    private hooks: SessionHooks = {}
+    private hooks: SessionHooks = {},
+    private deps: SessionDeps = liveDeps
   ) {}
 
   get threadId(): string {
@@ -271,7 +283,7 @@ export class ChatSession {
 
   /** Whether this chat teaches Otty anything. Memories are still used in its answers either way. */
   private learns(thread: Thread): boolean {
-    return Boolean(getStored().learn) && thread.learn !== false
+    return Boolean(this.deps.settings().learn) && thread.learn !== false
   }
 
   /** "Don't learn from this chat". */
@@ -291,7 +303,7 @@ export class ChatSession {
     if (answer?.role !== 'assistant') return
     const note = answer.memories?.find((n) => n.memoryId === memoryId && !n.undone)
     if (!note) return
-    const undone = safely(note, () => undo(memoryStore(), note))
+    const undone = safely(note, () => undo(this.deps.memory(), note))
     answer.memories = answer.memories!.map((n) => (n === note ? undone : n))
     this.persist(thread, { messages: at, history: thread.history.length })
     this.emit({ type: 'memory', id: answerId, note: undone })
@@ -338,7 +350,7 @@ export class ChatSession {
     const { thread, user, userAt, historyAt, answers } = turn
     const wanted = new Set(undoIds)
     for (const a of answers) {
-      for (const n of a.memories ?? []) if (!n.undone && wanted.has(`memory:${a.id}:${n.memoryId}`)) safely(undefined, () => void undo(memoryStore(), n))
+      for (const n of a.memories ?? []) if (!n.undone && wanted.has(`memory:${a.id}:${n.memoryId}`)) safely(undefined, () => void undo(this.deps.memory(), n))
       for (const j of a.jobs ?? []) if (wanted.has(`job:${j.id}`)) await this.hooks.withdrawJob?.(j.id).catch((err) => console.error('Could not stop a look', err))
     }
     const asked = thread.history[historyAt]
@@ -347,7 +359,7 @@ export class ChatSession {
     thread.history.length = historyAt + keep
     thread.updatedAt = Date.now()
     if (thread.messages.length) this.persist(thread, { messages: thread.messages.length, history: thread.history.length })
-    else if (getStored().rememberChats) void chatStore().delete(thread.id).catch((err) => console.error('Could not remove an emptied chat', err))
+    else if (this.deps.settings().rememberChats) void this.deps.chats().delete(thread.id).catch((err) => console.error('Could not remove an emptied chat', err))
     this.show(thread)
 
     if (mode === 'edit') {
@@ -365,7 +377,7 @@ export class ChatSession {
       app: user.app,
       files: [],
       language: user.language ?? 'en',
-      home: getStored().homeLanguage,
+      home: this.deps.settings().homeLanguage,
       hidden: user.hidden ?? 0,
       sent: questionWhat({
         files: (user.files ?? []).map((f) => f.name),
@@ -399,7 +411,7 @@ export class ChatSession {
       this.show(this.thread, focusMessageId)
       return true
     }
-    const saved = await chatStore().get(id)
+    const saved = await this.deps.chats().get(id)
     if (!saved) return false
     this.show(structuredClone(saved), focusMessageId)
     return true
@@ -432,8 +444,8 @@ export class ChatSession {
 
   /** Saves a turn's rows, if the user keeps chats. Never throws: a failed save shouldn't break the answer. */
   private persist(thread: Thread, from: WriteFrom): void {
-    if (!getStored().rememberChats || this.forgotten.has(thread.id)) return
-    chatStore()
+    if (!this.deps.settings().rememberChats || this.forgotten.has(thread.id)) return
+    this.deps.chats()
       .write(thread, from)
       .catch((err) => console.error('Could not save chat', err))
   }
@@ -479,7 +491,7 @@ export class ChatSession {
     // A new question in the same chat replaces its answer: one history can't take two turns at once.
     this.stopChat(thread.id)
     this.makeRoom(thread.id)
-    const home = getStored().homeLanguage
+    const home = this.deps.settings().homeLanguage
     const prepared = takeFiles(opts.files)
     const language = resolveLanguage({
       typed: opts.action ? '' : text,
@@ -490,7 +502,7 @@ export class ChatSession {
       home
     })
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
-    const budget = fileBudget(activeProfile().contextTokens)
+    const budget = fileBudget(this.deps.profile().contextTokens)
     const fitted = fitFiles(prepared.map((p) => ({ name: p.meta.name, doc: p.doc, image: p.image?.dataUrl })), budget)
     const files = prepared.map((p, i) => ({ ...p.meta, note: fitted[i].note }))
     const userMsg: Extract<ChatMessage, { role: 'user' }> = {
@@ -578,14 +590,14 @@ export class ChatSession {
   private noticeHabits(thread: Thread, turn: Turn, answer: Answer): void {
     if (!this.learns(thread)) return
     const app = (turn.captures[0]?.app ?? turn.app)?.name ?? null
-    const fresh = safely([], () => observe(memoryStore(), { app, language: turn.language, action: turn.action, typed: turn.typed }))
+    const fresh = safely([], () => observe(this.deps.memory(), { app, language: turn.language, action: turn.action, typed: turn.typed }))
     for (const m of fresh) this.note(thread, answer, { memoryId: m.id, text: m.text, action: 'added' })
   }
 
   /** "Think deeper" means always think. Otherwise only a real problem is worth the wait. */
   private reasoningFor(turn: Turn): 'normal' | undefined {
     const tier = mathTier(turn.typed, turn.captures.length > 0)
-    return (tier === 'problem' || turn.action === 'working') && !getStored().thinking ? 'normal' : undefined
+    return (tier === 'problem' || turn.action === 'working') && !this.deps.settings().thinking ? 'normal' : undefined
   }
 
   private async run(thread: Thread, turn: Turn, reasoning?: 'normal'): Promise<void> {
@@ -616,7 +628,7 @@ export class ChatSession {
     if (!resend) {
       // Saved as sent: nothing already sent may change, or DeepSeek's cache misses from that point on.
       const where = (captures[0]?.app ?? app)?.name ?? null
-      const memory = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
+      const memory = memoryNote(this.deps.settings().learn ? this.deps.memory() : null, [turn.typed, capturedText(captures)].join(' '), where, history)
       used = memory.used
       const stepNotes = this.stepNotes.get(thread.id) ?? []
       this.stepNotes.delete(thread.id)
@@ -624,7 +636,7 @@ export class ChatSession {
       const note = [turnNote(language, home), memory.note, hiddenNote(turn.hidden), ...hints, ...stepNotes].filter(Boolean).join('\n')
       history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), note) })
     }
-    const system = systemPrompt(home, activeProfile().web !== 'off', Boolean(getStored().learn))
+    const system = systemPrompt(home, this.deps.profile().web !== 'off', Boolean(this.deps.settings().learn))
     this.tell(thread, { type: 'start', id, language })
     if (used.length) {
       answer.used = used
@@ -657,7 +669,7 @@ export class ChatSession {
     try {
       const sent = { kind: 'question' as const, chatId: thread.id, group: id, what: turn.sent }
       await runLoop({
-        provider: () => activeProvider(sent),
+        provider: () => this.deps.provider(sent),
         system,
         history,
         tools: () => toolDefs(CHAT_TOOLS),
@@ -672,8 +684,8 @@ export class ChatSession {
           startJob: (args) => this.offerJob(live, answer, args, language),
           scheduleJob: (args) => this.offerJob(live, answer, args, language, true),
           learn: {
-            remember: (args) => learning(() => remember(memoryStore(), args, heard, place)),
-            forget: (args) => learning(() => forgetMemory(memoryStore(), args, heard))
+            remember: (args) => learning(() => remember(this.deps.memory(), args, heard, place)),
+            forget: (args) => learning(() => forgetMemory(this.deps.memory(), args, heard))
           }
         },
         maxRounds: MAX_TOOL_ROUNDS,
@@ -721,7 +733,7 @@ export class ChatSession {
       thread.updatedAt = Date.now()
       // Only this turn's rows: the cost doesn't grow with the length of the chat.
       this.persist(thread, { messages: answerAt, history: turnStart })
-      void pruneOldChats().catch((err) => console.error('Could not forget old chats', err))
+      void this.deps.pruneChats().catch((err) => console.error('Could not forget old chats', err))
       if (finished) this.afterAnswer(thread, answer, answerAt === 1)
     }
   }
@@ -735,12 +747,12 @@ export class ChatSession {
 
   /** The instant title stays if this fails. `thread` is the chat the turn ran on, which may not be the current one. */
   private async writeTitle(thread: Thread, answer: string): Promise<void> {
-    if (!getStored().rememberChats) return
+    if (!this.deps.settings().rememberChats) return
     const asked = thread.messages[0]
     if (asked?.role !== 'user') return
     try {
       const question = [asked.text, capturedText(asked.captures)].filter(Boolean).join('\n')
-      const { text } = await activeProvider({ kind: 'title', chatId: thread.id }).complete({ messages: [{ role: 'user', content: titlePrompt(question, answer) }], maxTokens: 24, reasoning: 'least' })
+      const { text } = await this.deps.provider({ kind: 'title', chatId: thread.id }).complete({ messages: [{ role: 'user', content: titlePrompt(question, answer) }], maxTokens: 24, reasoning: 'least' })
       const title = cleanTitle(text)
       if (!title) return
       thread.title = title

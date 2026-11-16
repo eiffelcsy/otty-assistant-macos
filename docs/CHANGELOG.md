@@ -4,6 +4,11 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Every message from a window is checked, and the app's root is split (D-44, D-45 steps 1–2, 2026-11-17)
+
+- **Main checks everything a window sends (D-44).** Every channel is in one table (`ipc/check.ts`) with the views that may use it and a check for each argument. A message from the wrong window, a subframe or with an argument that doesn't fit is refused with a log line. Activity sends ids only, and main looks up what each one is. A rule test keeps every handler in the table and the preload's channels in step with it, and a fuzz test throws thousands of wrong inputs at every channel.
+- **The composition root is split (D-45).** `index.ts` went from 574 lines to 47: the chat, jobs and stores are made once in `core.ts`, the windows' messages are in `ipc/`, where a capture goes is one `deliver` in `captureRoute.ts`, the menu bar and hotkeys are in `controls.ts`, and what the user is told is in `notify.ts`. `ChatSession` reaches settings, stores and the model service only through `SessionDeps`. Nothing anyone can see changed.
+
 ### Hardening: the search leak, tool gates and job states (D-41, D-42, D-43, 2026-11-17)
 
 - **The search leak is closed (D-41).** A chat turn now knows when it holds the user's own data (a highlight, a snip, a file, a memory that matched) and when it has read someone else's words. Once both are true, a search the model writes shows a **Look this up?** card with the exact words before it leaves, and Claude's own search, which can't be shown call by call, turns off for the rest of the turn. Two new eval cases cover it, with and without a highlight.
