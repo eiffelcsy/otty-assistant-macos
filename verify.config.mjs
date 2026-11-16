@@ -25,6 +25,32 @@ export default {
     // Before a PR that touches anything the app shows.
     full: [...standard, ['smoke (builds, then runs)', 'npm run smoke --silent']]
   },
+  // Risk classes for merging (tools/verify/risk.mjs, `node tools/verify/risk.mjs`). A change takes the class of its
+  // riskiest file; guarded beats low, and anything in neither list is normal. Guarded gets /security-review and never
+  // auto-merges.
+  risk: {
+    guarded: [
+      'src/main/toolSafety.ts',
+      'src/main/act/**',
+      'src/main/web.ts',
+      'src/main/pageReader.ts',
+      'src/main/knownUrls.ts',
+      'src/shared/secrets.ts',
+      'src/main/memory/guard.ts',
+      'src/main/store/db.ts',
+      'src/preload/**',
+      'csp.config.ts',
+      'src/main/prompts.ts',
+      'src/main/hints.ts',
+      'tools/verify/**',
+      'tools/smoke/app/**',
+      'verify.config.mjs',
+      '.claude/settings.json',
+      '.claude/skills/**',
+      '.github/workflows/**'
+    ],
+    low: ['docs/**', '**/__tests__/**', 'tools/**', '**/*.md']
+  },
   // What else a change needs, by the files it touches. `unlessChanged` drops a note when its proof is in the change too.
   routes: [
     {

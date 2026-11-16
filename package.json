@@ -21,7 +21,9 @@
     "verify": "node tools/verify/verify.mjs standard",
     "verify:quick": "node tools/verify/verify.mjs quick",
     "verify:full": "node tools/verify/verify.mjs full",
-    "build:mac": "node tools/otty-ocr/build.mjs && electron-vite build && electron-builder --mac --publish never"
+    "build:mac": "node tools/otty-ocr/build.mjs && electron-vite build && electron-builder --mac --publish never",
+    "risk": "node tools/verify/risk.mjs",
+    "smoke:packaged": "node tools/smoke/packaged.mjs"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^1.5.0",

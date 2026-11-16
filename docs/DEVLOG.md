@@ -359,12 +359,12 @@ The checks are written once here, in a form other agent-coded projects can pick 
 | Merge policy: risk classes by path, and the auto-merge gate below | Which paths are which class |
 | An Electron + Playwright fixture with the guards (errors, raw-error text, axe) | The ports, the fake world, page objects and specs |
 
-- **Where it lives for now.** In `tools/verify/`, configured by one `verify.config.ts` at the root. A lint rule forbids imports from `src/` into `tools/verify/`, so the boundary holds from day one.
+- **Where it lives for now.** In `tools/verify/`, configured by one `verify.config.mjs` at the root. A lint rule forbids imports from `src/` into `tools/verify/`, so the boundary holds from day one.
 - **When to extract it.** Only when a second project uses it, not before. A framework designed from one user gets the wrong seams. It then becomes a Claude Code plugin (hooks, the `ship`, `verify` and `smoke` skills) plus a small npm package (the runner and the coverage checks), and Otty uses that package.
 
 ### Auto-merge, earned
 Auto-merge stays off until the record earns it. It's the same rule as Otty's own reach: autonomy grows only with undo, visibility and a track record (AUTONOMY.md).
-- **Risk classes come from paths, in code**, in `verify.config.ts`, like `toolSafety.ts`:
+- **Risk classes come from paths, in code**, in `verify.config.mjs`, like `toolSafety.ts`:
   - **low:** docs, tests, `tools/`, copy;
   - **normal:** most of `src/`;
   - **guarded:** `toolSafety.ts`, `act/`, `web.ts`, `pageReader.ts`, `knownUrls.ts`, `shared/secrets.ts`, `memory/guard.ts`, `store/db.ts` migrations, the preload and CSP, `prompts.ts` and `hints.ts`, and the verify kit itself.
