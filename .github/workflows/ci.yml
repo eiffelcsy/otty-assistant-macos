@@ -46,7 +46,7 @@ jobs:
   smoke:
     # D-47: the real app, driven by Playwright against a fake world. Nothing leaves the runner.
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v7
 
@@ -63,7 +63,8 @@ jobs:
           restore-keys: electron-${{ runner.os }}-
 
       - run: npm ci
-      # Builds, then runs. Playwright drives Electron itself, so no browsers are downloaded.
+      # Builds (the OCR helper, the app and the smoke entry), then runs. Playwright drives Electron itself, so no
+      # browsers are downloaded.
       - run: npm run smoke
 
       - name: Keep the report, traces and screenshots

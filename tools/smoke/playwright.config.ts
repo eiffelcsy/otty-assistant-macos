@@ -12,7 +12,8 @@ export default defineConfig({
   retries: process.env['CI'] ? 1 : 0,
   failOnFlakyTests: !!process.env['CI'],
   timeout: 60_000,
-  globalTimeout: 10 * 60_000,
+  // About 5 minutes on a dev Mac; GitHub's macOS runners are about twice as slow.
+  globalTimeout: (process.env['CI'] ? 30 : 10) * 60_000,
   expect: { timeout: 10_000 },
   reporter: process.env['CI'] ? [['list'], ['html', { outputFolder: 'report', open: 'never' }]] : [['list']],
   use: { trace: 'retain-on-failure', screenshot: 'only-on-failure' }

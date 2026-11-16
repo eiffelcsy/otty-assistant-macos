@@ -10,7 +10,7 @@
     "predev": "node tools/otty-ocr/build.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
-    "build:smoke": "electron-vite build && vite build -c tools/smoke/vite.entry.config.mts --logLevel warn",
+    "build:smoke": "node tools/otty-ocr/build.mjs && electron-vite build && vite build -c tools/smoke/vite.entry.config.mts --logLevel warn",
     "smoke": "node tools/smoke/run.mjs",
     "preview": "electron-vite preview",
     "test": "vitest run",
