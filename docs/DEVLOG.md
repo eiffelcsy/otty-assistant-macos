@@ -292,23 +292,24 @@ Checked 2026-11-16. There are 54 test files, the typecheck is `strict` with `noU
 
 **Design.** There are three phases. Phase 1 is small, and it makes every later PR, D-47's included, check itself.
 
-### Phase 1: the loop closes (1–2 days, with D-47)
+### Phase 1: the loop closes (1–2 days, with D-47) — 🔨 mostly built on `feat/smoke-harness`
 - **`npm run verify`** is the one answer to "am I done?". Its tiers:
   - `verify:quick` runs lint, the typecheck and `vitest --changed`;
   - `verify` adds the full tests, the build and the release-bundle check;
   - `verify:full` adds `npm run smoke`.
-  - A small script reads `git diff --name-only main` and says what else applies: the eval for `prompts.ts`, `hints.ts`, `tools.ts` and tool descriptions; the UI preview for the renderer; the idle check for `styles.css` and `Otter.tsx`.
-  CI runs the same scripts, so local and CI can't disagree.
+  - The routes in `verify.config.mjs` read what changed since `origin/main` and say what else applies: the eval for prompts, hints, tools and providers; the smoke harness for app code; the UI preview for the renderer; the idle check for `styles.css` and `Otter.tsx`; the schema rule for `db.ts`; the docs pass.
+  ✅ Built: `tools/verify/verify.mjs` (generic) and `verify.config.mjs` (Otty's tiers and routes). `npm run verify:quick` takes about 12 s.
 - **Claude Code hooks** in `.claude/settings.json`, committed:
   - after an edit, a `PostToolUse` hook lints the edited file, which is quick;
   - a `Stop` hook runs `verify:quick` and blocks the stop with the failures when it's red;
   - a permission allowlist covers the verify, test, smoke and eval commands, so checks never wait on a prompt.
-- **ESLint**, flat config with type-aware `typescript-eslint`:
+  ✅ Built: `tools/verify/hooks/` (`after-edit.mjs`, `on-stop.mjs`, also on `SubagentStop`). The stop check runs only when code changed, and lets an agent stop on its second try, so a check it can't fix never traps it.
+- **Lint.** ✅ Built with **oxlint**, not ESLint: TypeScript here is 7.0, which has no JS API, and `typescript-eslint` supports only TypeScript before 6.1. Oxlint's type-aware mode is built on typescript-go and lints the whole repo in about 1.5 s. `.oxlintrc.json` has:
   - `no-floating-promises`, `no-misused-promises`, `switch-exhaustiveness-check`, `consistent-type-imports`;
   - `react-hooks` (rules-of-hooks, exhaustive-deps);
   - `no-restricted-imports` for the boundaries: `src/shared` imports neither electron nor node, the renderer never imports main, `loop.ts` and `runner.ts` don't import electron once D-45 lands.
-  - Prettier, applied in one formatting-only commit, so later diffs show only real changes.
-  - Existing findings go in a baseline file that may only shrink.
+  - Existing findings (163) are in `tools/verify/baseline/lint.json`, which may only shrink: `tools/verify/lint.mjs` fails on any new finding and `--shrink` lowers the baseline, never raises it. A finding someone wants to keep gets an inline disable with a reason.
+  - *Not yet:* Prettier. Most findings are async UI handlers without `void`; fix them in small PRs under the smoke harness.
 - **Rule tests** (`src/__tests__/rules/`). Each test names the CLAUDE.md rule it guards. The first ones:
   - released migrations match committed hashes;
   - no `osascript -e` with model text inside the script;
@@ -321,6 +322,7 @@ Checked 2026-11-16. There are 54 test files, the typecheck is `strict` with `noU
   - A PR template asks for the DEVLOG entry, and each "Done when" line with its evidence: a test name, a smoke tag (`@D-47`) or a screenshot. It also covers what changed in the docs and what's left by hand.
   - A project skill, `.claude/skills/ship/`, runs the whole path: `verify`, `/code-review`, `/security-review` for anything that touches a tool, IPC, the network or `act/`, an intent check (a subagent reads the entry and the diff and lists any "Done when" line without evidence), the docs pass, and the PR.
   - Bug fixes start with a test that fails on `main`, and the PR says so.
+  ✅ Built: `.github/pull_request_template.md`, `.claude/skills/ship/`, and `tools/verify/risk.mjs` (`npm run risk`), which gives a change the class of its riskiest path from `verify.config.mjs`.
 
 ### Phase 2: deeper checks (2–3 days, after D-47)
 - **Coverage ratchet.** `vitest --coverage` with v8, with a floor per folder at today's numbers that only goes up, and full coverage asked for on the safety modules listed above.
