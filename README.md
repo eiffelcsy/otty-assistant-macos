@@ -50,12 +50,16 @@ The `dmg` workflow on GitHub Actions builds the same thing, and attaches it to a
 ## Check it
 
 ```bash
-npm run typecheck
+npm run verify:quick
 ```
 
+Lint, typecheck and the unit tests for what changed: the same check a coding agent runs before it stops. `npm run verify` adds every unit test, the build and the release check, which is what CI runs.
+
 ```bash
-npm test
+npm run smoke
 ```
+
+Drives the real app with Playwright against a fake model, search and web (about 5 minutes, nothing leaves the Mac, and your own Otty and keychain are left alone). `npm run smoke -- --grep @gate` runs just the release gate. Steps marked ✋ in DEVLOG's smoke-test checklist still need a person.
 
 ## Stack
 

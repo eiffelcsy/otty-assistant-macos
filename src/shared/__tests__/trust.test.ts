@@ -33,6 +33,12 @@ describe('the monthly limit (D-33)', () => {
     expect(capPassed(cap)).not.toMatch(/\$|cost|price/i)
   })
 
+  it('says a limit of one in the singular', () => {
+    expect(capReached({ unit: 'questions', limit: 1 })).toBe('You’ve reached this month’s limit of 1 question. Run it anyway?')
+    expect(isCapNote(capReached({ unit: 'questions', limit: 1 }))).toBe(true)
+    expect(capPassed({ unit: 'tokens', limit: 1 })).toMatch(/limit of 1 token\./)
+  })
+
   it('counts from the first of the month', () => {
     expect(monthStart(new Date(2026, 10, 15, 13, 0))).toEqual(new Date(2026, 10, 1))
   })

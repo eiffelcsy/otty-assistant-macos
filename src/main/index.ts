@@ -368,7 +368,10 @@ function applySettings(u: SettingsUpdate) {
     else b?.hide()
   }
   refreshTray()
-  return settings.getPublic()
+  // Every window shows the same settings, whichever one (or the menu bar) changed them.
+  const now = settings.getPublic()
+  for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send('settings:changed', now)
+  return now
 }
 
 function registerIpc(): void {

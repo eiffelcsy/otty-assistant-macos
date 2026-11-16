@@ -108,7 +108,7 @@ function PauseBar({ paused, onPause }: { paused: boolean; onPause: (on: boolean)
   )
 }
 
-type Tab = 'work' | 'sent'
+export type Tab = 'work' | 'sent'
 
 /**
  * What Otty is doing while the user looks away: what's coming up first, soonest at the top, then the rest, newest
@@ -119,15 +119,18 @@ export function Activity({
   onOpen,
   onOpenChat,
   paused,
-  onPause
+  onPause,
+  startTab = 'work'
 }: {
   items: ActivityItem[]
   onOpen: () => void
   onOpenChat: (chatId: string) => void
   paused: boolean
   onPause: (on: boolean) => void
+  /** Which list shows first: Settings › Privacy opens "What left your Mac" directly. */
+  startTab?: Tab
 }) {
-  const [tab, setTab] = useState<Tab>('work')
+  const [tab, setTab] = useState<Tab>(startTab)
   return (
     <div className="activity">
       <div className="activity__tabs" role="tablist">

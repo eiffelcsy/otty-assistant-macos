@@ -516,6 +516,8 @@ export interface OttyApi {
   /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */
   rewind(messageId: string, undo: string[], mode: 'retry' | 'edit'): Promise<EditDraft | null>
   onActivity(cb: (items: ActivityItem[]) => void): () => void
+  /** Settings changed in main (the menu bar, another window), so every view shows the same. */
+  onSettings(cb: (settings: PublicSettings) => void): () => void
   /** "Don't learn from this chat", for the open chat. */
   setChatLearn(on: boolean): Promise<void>
   listMemories(): Promise<Memory[]>

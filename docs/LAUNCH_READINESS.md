@@ -228,8 +228,8 @@ What exists is good. What's missing:
 | 7.4 | Dependabot hygiene | S | PRs 46 (vitest 5) and 50 are open. Group updates and merge regularly; pin GitHub Actions to commit SHAs for the release workflow, since it handles signing secrets |
 | 7.5 | Scheduled eval | S | BRAINSTORM already has it: run the injection and safety sets weekly with a capped key, and before each release. Fail the release if the score drops below the baseline |
 | 7.6 | Licence check | S | A step that lists the licences of everything shipped and fails on a licence you haven't approved, and writes the third-party notices file (§12.6) |
-| 7.7 | An end-to-end smoke | M–L | BRAINSTORM's "Otty test harness". Playwright can launch Electron apps (`_electron`, **verify**) and drive the panel and quick view. Hotkeys and macOS permissions can't run on CI, but launching, onboarding, sending a question to a stubbed provider and reopening a saved chat can. It catches "the packaged app doesn't start", which unit tests can't |
-| 7.8 | Test the packaged app | S | After build, launch the `.app` headless for a few seconds and check it didn't crash (an asar or fuse mistake shows up here) |
+| 7.7 | An end-to-end smoke | M–L | BRAINSTORM's "Otty test harness". Playwright can launch Electron apps (`_electron`, **verify**) and drive the panel and quick view. Hotkeys and macOS permissions can't run on CI, but launching, onboarding, sending a question to a stubbed provider and reopening a saved chat can. It catches "the packaged app doesn't start", which unit tests can't. **Done (D-47): `npm run smoke`, 130 tests, in CI** |
+| 7.8 | Test the packaged app | S | After build, launch the `.app` headless for a few seconds and check it didn't crash (an asar or fuse mistake shows up here). **Done (D-47): `npm run smoke:packaged`, in the dmg workflow** |
 | 7.9 | Server CI | M | If you build the hosted service (§9), it needs its own tests, staging environment and deploy pipeline |
 
 ---
@@ -322,7 +322,7 @@ Otty's whole pitch is trust, so this has to be excellent, not just compliant.
 
 | # | Item | Size | Notes |
 | --- | --- | --- | --- |
-| 13.1 | Land the stack | M | Merge PRs 51 → 52 → 53 (in order), run smoke steps 107–127 on a Mac, fix what turns up. Nothing after this until it's green |
+| 13.1 | Land the stack | M | ✅ PRs 51–53 merged (2026-11-16), and steps 107–127 run through `npm run smoke` (D-47); the bugs it found are fixed. Left: the ✋ steps on a Mac |
 | 13.2 | Feature freeze for the beta | — | D-37 to D-40 and Look after me wait. A beta is for finding problems in what exists, and every new feature is a new thing to support |
 | 13.3 | The device matrix | M | Apple Silicon and Intel; the oldest supported macOS (13, NFR-7) through the current one; one and two displays; Spaces and full-screen apps (BRAINSTORM notes); a Chinese input method; dark mode; Retina and non-Retina; a fresh user account with no permissions. Borrow Macs or use testers for the ones you don't have |
 | 13.4 | Permission flows on a signed build | S | The single most likely place for a tester to get stuck. Fresh install → onboarding → grant each permission → quit → update → check grants survive. Also: a user who says no to everything still gets a working Otty with friendly guidance |
@@ -411,7 +411,7 @@ Goal: find out whether people get through onboarding, come back, and what breaks
 | Priority | Item | Section | Size |
 | --- | --- | --- | --- |
 | ✅ | Business model (hybrid), default model (DeepSeek), markets (SG, HK) | 2.1, 2.2, 2.4 | — |
-| P0 | Merge PRs 51–53, run the smoke test, feature freeze | 13.1, 13.2 | M |
+| P0 | ✅ Merge PRs 51–53 and run the smoke test (D-47); feature freeze | 13.1, 13.2 | M |
 | P0 | Make the repo private: CI split (Linux for typecheck and tests), public storage for update files | 2.6, 7.2, 6.1 | S–M |
 | P0 | Change the bundle id to a domain you own | 5.8 | S |
 | P0 | Apple Developer account, Developer ID, notarization, sign the OCR helper | 5.1–5.5 | M |

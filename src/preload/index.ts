@@ -7,6 +7,35 @@ function listen<T>(channel: string, cb: (v: T) => void): () => void {
   return () => ipcRenderer.removeListener(channel, handler)
 }
 
+/**
+ * A capture can reach a window before its page has subscribed (a shortcut pressed just after launch), and an
+ * ipcRenderer message with no listener is gone. The preload runs first, so it keeps such messages, a few at most,
+ * and hands them to the first subscriber.
+ */
+const HELD = 4
+const held = new Map<string, unknown[]>()
+const subscribers = new Map<string, number>()
+for (const channel of ['quick:open', 'panel:open']) {
+  held.set(channel, [])
+  ipcRenderer.on(channel, (_e, v: unknown) => {
+    if (subscribers.get(channel)) return
+    const waiting = held.get(channel)!
+    waiting.push(v)
+    if (waiting.length > HELD) waiting.shift()
+  })
+}
+
+function listenHeld<T>(channel: string, cb: (v: T) => void): () => void {
+  subscribers.set(channel, (subscribers.get(channel) ?? 0) + 1)
+  const off = listen(channel, cb)
+  const waiting = held.get(channel)!.splice(0) as T[]
+  if (waiting.length) queueMicrotask(() => waiting.forEach(cb))
+  return () => {
+    subscribers.set(channel, (subscribers.get(channel) ?? 1) - 1)
+    off()
+  }
+}
+
 const api: OttyApi = {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (u) => ipcRenderer.invoke('settings:save', u),
@@ -40,6 +69,7 @@ const api: OttyApi = {
   rewindPlan: (messageId: string) => ipcRenderer.invoke('chat:rewind-plan', messageId),
   rewind: (messageId: string, undo: string[], mode: 'retry' | 'edit') => ipcRenderer.invoke('chat:rewind', messageId, undo, mode),
   onActivity: (cb) => listen('activity:changed', cb),
+  onSettings: (cb) => listen('settings:changed', cb),
   setChatLearn: (on) => ipcRenderer.invoke('chat:learn', on),
   listMemories: () => ipcRenderer.invoke('memory:list'),
   addMemory: (text) => ipcRenderer.invoke('memory:add', text),
@@ -79,8 +109,8 @@ const api: OttyApi = {
   bubbleDrag: (phase) => ipcRenderer.send('bubble:drag', phase),
 
   onChatEvent: (cb) => listen('chat:event', cb),
-  onPanelOpen: (cb) => listen('panel:open', cb),
-  onQuickOpen: (cb) => listen('quick:open', cb),
+  onPanelOpen: (cb) => listenHeld('panel:open', cb),
+  onQuickOpen: (cb) => listenHeld('quick:open', cb),
   onBubbleState: (cb) => listen('bubble:state', cb),
   onBubbleMood: (cb) => listen('bubble:mood', cb),
   onBubbleBadge: (cb) => listen('bubble:badge', cb),

@@ -5,22 +5,33 @@ import { capPassed } from '../../../shared/cap'
 import { Icon } from '../components/Icon'
 import { prettyKey } from '../lib/keys'
 
-/** Looks again whenever the panel comes back into view, so allowing something in System Settings clears it. No polling. */
+/**
+ * Looks again whenever the panel comes back into view, so allowing something in System Settings clears it, and the
+ * monthly limit again when an answer or a look finishes, since that's what passes it while the panel stays open.
+ * No polling.
+ */
 function useHealth(): { perms: Permissions | null; cap: CapStatus | null } {
   const [perms, setPerms] = useState<Permissions | null>(null)
   const [cap, setCap] = useState<CapStatus | null>(null)
   useEffect(() => {
+    const checkCap = () => void window.otty.getUsage().then((u) => setCap(u.cap ?? null))
     const check = () => {
       void window.otty.getPermissions().then(setPerms)
-      void window.otty.getUsage().then((u) => setCap(u.cap ?? null))
+      checkCap()
     }
     check()
     const onVisible = () => document.visibilityState === 'visible' && check()
     window.addEventListener('focus', check)
     document.addEventListener('visibilitychange', onVisible)
+    const offChat = window.otty.onChatEvent((e) => {
+      if (e.type === 'done') checkCap()
+    })
+    const offActivity = window.otty.onActivity(checkCap)
     return () => {
       window.removeEventListener('focus', check)
       document.removeEventListener('visibilitychange', onVisible)
+      offChat()
+      offActivity()
     }
   }, [])
   return { perms, cap }

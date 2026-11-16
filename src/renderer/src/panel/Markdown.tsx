@@ -54,6 +54,8 @@ function ExplainTerm({
   const wanted = useRef(lang)
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
   const [viewport, setViewport] = useState(0)
+  /** Bumped to re-place the card beside its term after the chat scrolls under it. */
+  const [moved, setMoved] = useState(0)
   const anchor = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
 
@@ -82,7 +84,7 @@ function ExplainTerm({
     const below = r.bottom + 8
     const top = below + h > window.innerHeight - 12 ? Math.max(12, r.top - h - 8) : below
     setPos({ left, top })
-  }, [open, text, viewport])
+  }, [open, text, viewport, moved])
 
   // The quick view grows its window when a card opens; re-place the card once it has.
   useLayoutEffect(() => {
@@ -97,12 +99,29 @@ function ExplainTerm({
     const close = (e: MouseEvent) => {
       if (!card.current?.contains(e.target as Node) && !anchor.current?.contains(e.target as Node)) setOpen(false)
     }
-    const closeOnScroll = () => setOpen(false)
+    // A scroll closes the card only once its term has left the view. Otherwise the card follows it: opening a card
+    // can grow the quick view's window, and that relayout scrolls the answer, which used to close the card at once.
+    const scroller = document.querySelector('.chat, .quick__answer')
+    const closeOnScroll = () => {
+      const term = anchor.current?.getBoundingClientRect()
+      const view = scroller?.getBoundingClientRect()
+      if (!term || !view || term.bottom < view.top || term.top > view.bottom) setOpen(false)
+      else setMoved((n) => n + 1)
+    }
+    // The quick view and the panel leave Esc to an open card (they check for `.explain-card`), so the card closes
+    // first, focus goes back to its term, and the next Esc closes the window.
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setOpen(false)
+      anchor.current?.focus()
+    }
     window.addEventListener('mousedown', close)
-    document.querySelector('.chat, .quick__answer')?.addEventListener('scroll', closeOnScroll)
+    window.addEventListener('keydown', closeOnEscape)
+    scroller?.addEventListener('scroll', closeOnScroll)
     return () => {
       window.removeEventListener('mousedown', close)
-      document.querySelector('.chat, .quick__answer')?.removeEventListener('scroll', closeOnScroll)
+      window.removeEventListener('keydown', closeOnEscape)
+      scroller?.removeEventListener('scroll', closeOnScroll)
     }
   }, [open])
 

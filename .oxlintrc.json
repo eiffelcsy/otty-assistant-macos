@@ -1,0 +1,161 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "react",
+    "import",
+    "unicorn"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2024": true
+  },
+  "ignorePatterns": [
+    "out/**",
+    "out-smoke/**",
+    "dist/**",
+    "build/**",
+    "tools/smoke/results/**",
+    "tools/smoke/report/**",
+    "tools/eval/results/**",
+    ".venv/**"
+  ],
+  "rules": {
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/switch-exhaustiveness-check": [
+      "error",
+      {
+        "considerDefaultExhaustiveForUnions": true
+      }
+    ],
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/consistent-type-imports": "error",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "error",
+    "eqeqeq": [
+      "error",
+      "smart"
+    ],
+    "no-console": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/shared/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "electron",
+                "message": "src/shared runs in main and the renderer: no electron."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "node:*",
+                  "fs",
+                  "path",
+                  "os",
+                  "child_process",
+                  "net",
+                  "dns",
+                  "crypto",
+                  "http",
+                  "https"
+                ],
+                "message": "src/shared runs in the renderer too: no Node modules."
+              },
+              {
+                "group": [
+                  "**/main/**",
+                  "**/renderer/**",
+                  "**/preload/**"
+                ],
+                "message": "src/shared is the bottom layer: it imports nothing from the app."
+              },
+              {
+                "group": [
+                  "**/tools/**"
+                ],
+                "message": "Nothing in src/ may import from tools/: tools are never shipped."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/renderer/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "electron",
+                "message": "Renderers reach main only through window.otty (the preload)."
+              }
+            ],
+            "patterns": [
+              {
+                "group": [
+                  "**/main/**",
+                  "**/preload/**"
+                ],
+                "message": "Renderers never import main or the preload; they get ChatEvents and ids."
+              },
+              {
+                "group": [
+                  "**/tools/**"
+                ],
+                "message": "Nothing in src/ may import from tools/: tools are never shipped."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "src/main/**",
+        "src/preload/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/tools/**"
+                ],
+                "message": "Nothing in src/ may import from tools/: tools are never shipped."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "tools/smoke/**"
+      ],
+      "rules": {
+        "react/rules-of-hooks": "off",
+        "react/exhaustive-deps": "off"
+      }
+    }
+  ]
+}

@@ -16,6 +16,7 @@ on:
       - package.json
       - package-lock.json
       - tools/otty-ocr/**
+      - tools/smoke/packaged.mjs
 
 concurrency:
   group: dmg-${{ github.ref }}
@@ -58,6 +59,10 @@ jobs:
         run: npm run build:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      # D-47 step 3: the packaged app starts, with a fresh home and a mock keychain (LAUNCH_READINESS 7.8).
+      - name: Check the packaged app starts
+        run: node tools/smoke/packaged.mjs
 
       - uses: actions/upload-artifact@v7
         with:

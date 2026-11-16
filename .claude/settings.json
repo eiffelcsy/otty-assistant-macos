@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run verify)",
+      "Bash(npm run verify:*)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(npm run build)",
+      "Bash(npm run build:smoke)",
+      "Bash(npm run smoke)",
+      "Bash(npm run smoke:*)",
+      "Bash(node tools/verify/lint.mjs:*)",
+      "Bash(node tools/verify/verify.mjs:*)",
+      "Bash(node tools/smoke/check-release.mjs)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx oxlint:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/tools/verify/hooks/after-edit.mjs\"", "timeout": 60 }]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/tools/verify/hooks/on-stop.mjs\"", "timeout": 300 }]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/tools/verify/hooks/on-stop.mjs\"", "timeout": 300 }]
+      }
+    ]
+  }
+}

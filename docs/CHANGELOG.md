@@ -4,6 +4,27 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The smoke test runs itself (D-47, 2026-11-16)
+
+- **`npm run smoke` drives the real release build** with Playwright: 130 tests across 119 of the 127 checklist steps, in about 5 minutes, on a dev Mac or in CI. A ✋ marks what a person must still check, and a test fails when a step has neither.
+- **Nothing in the app was changed for it.** A separate entry (`tools/smoke/app/`) loads `out/` unchanged after making the run hermetic: its own home and a mock keychain, sockets only to a fake world, a short list of real processes, and the Mac faked through `require('electron')`, `execFile`, `fetch`, DNS and `Date`. Its first escape test found a real leak in its own guard, now closed at `net.Socket#connect`.
+- **The fake world** speaks OpenAI's and Anthropic's formats, DeepSeek search and page reading, DuckDuckGo and Wikipedia, and a contract test runs the real adapters against it.
+- **CI** gains a smoke job, a check that the release build has no smoke code, and a packaged-app start check in the dmg workflow. electron-builder no longer packages `out/ui-preview/`.
+
+### Agents check their own work, phase 1 (D-48, 2026-11-16)
+
+- **`npm run verify`** in three tiers, with notes on what else a change needs by the files it touches; **type-aware lint** (oxlint) gated by a baseline that may only shrink; **Claude Code hooks** that lint each edit and run the quick checks before an agent stops; a **PR template**, a **`ship` skill** with an intent check, and **risk classes** for earning auto-merge.
+- **CLAUDE.md's rules as tests:** `docs/RULES.md` maps every bullet to what enforces it, and 46 rule tests cover released migrations, osascript argv, remote images, colours, the preload, request tags and boundaries.
+
+### Fixed, found by the smoke harness (2026-11-16)
+
+- The monthly-limit line now shows as soon as the limit is passed in an open panel, and says "1 question", not "1 questions".
+- Esc closes an open explain card (then the window), and a card no longer closes itself when the quick view grows.
+- Activity's pause bar follows Pause everything from the menu bar, since every window now hears about settings changes.
+- What left your Mac can be opened from Settings › Privacy at any time.
+- Find in chat keeps its match in view when ⌘F comes while the chat is still scrolling to an answer.
+- A capture that reaches a window before its page is listening is kept, not dropped.
+
 ### Try again and Edit question (D-36, 2026-11-15)
 
 - **Under the latest answer: Try again and Edit question.** Try again asks the same question again for a new answer. Edit question puts the question and its highlights back in the box to change and resend; files have to be attached again, and Otty says so. It works on an answer that failed too. The quick view has Try again.
