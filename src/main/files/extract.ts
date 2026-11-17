@@ -16,12 +16,14 @@ export { FileError }
 // nativeImage isn't available here. No Electron imports: this runs in tests too.
 
 /** `hidden` counts what `maskSecrets` replaced, for the chip ("Otty hid 2 things…"). */
+/** `hiddenLines` are their lines, with each value cut to a hint (D-40): main keeps them in memory, never sends them. */
+type Hidden = { hidden?: number; hiddenLines?: string[] }
 export type Extracted =
   | { kind: 'pdf'; pages: string[] }
   | { kind: 'docx' | 'doc'; text: string }
-  | { kind: 'text'; text: string; hidden?: number }
-  | { kind: 'code'; lang: string; text: string; hidden?: number }
-  | { kind: 'notebook'; lang: string; cells: NotebookCell[]; hidden?: number }
+  | ({ kind: 'text'; text: string } & Hidden)
+  | ({ kind: 'code'; lang: string; text: string } & Hidden)
+  | ({ kind: 'notebook'; lang: string; cells: NotebookCell[] } & Hidden)
 
 /** Plain text: no line numbers. Code is matched by `codeLanguage` first. */
 const TEXT_EXT = new Set('txt text md markdown csv tsv log srt vtt'.split(' '))
@@ -58,15 +60,17 @@ export async function extract(path: string, kind: Exclude<FileKind, 'image'>, na
   if (kind === 'notebook') {
     const nb = readNotebook(decodeText(buf))
     let hidden = 0
+    const hiddenLines: string[] = []
     const cells = nb.cells.map((c) => {
-      const m = maskSecrets(c.text)
+      const m = maskSecrets(c.text, { lines: true })
       hidden += m.hidden
+      hiddenLines.push(...(m.lines ?? []))
       return { ...c, text: m.text }
     })
-    return { kind, lang: nb.lang, cells, ...(hidden ? { hidden } : {}) }
+    return { kind, lang: nb.lang, cells, ...(hidden ? { hidden, hiddenLines } : {}) }
   }
-  const { text, hidden } = maskSecrets(decodeText(buf))
-  const extra = hidden ? { hidden } : {}
+  const { text, hidden, lines } = maskSecrets(decodeText(buf), { lines: true })
+  const extra = hidden ? { hidden, hiddenLines: lines } : {}
   if (kind === 'code') return { kind, lang: codeLanguage(name) ?? 'Code', text, ...extra }
   return { kind: 'text', text, ...extra }
 }

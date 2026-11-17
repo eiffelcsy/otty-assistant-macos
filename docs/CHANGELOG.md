@@ -4,6 +4,45 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### New eval baseline (2026-11-17)
+
+- **118 / 120 on deepseek-flash** over two runs of 60 cases, including the D-41 search cases. The old baseline was 104 / 106 over 53 cases. The two misses are model judgement calls in which no tool ran (DEVLOG, "Eval").
+
+### Pause until, and see what was hidden (D-39, D-40, 2026-11-17)
+
+- **Pause everything asks for how long (D-39):** for an hour, until tomorrow morning (9:00) or until you say. Activity and the menu bar say when Otty carries on, and it does by itself then, through the same path as **Let Otty carry on**. One timer covers the end, and waking or launching past it ends the pause too, so a meeting needs no remembered undo.
+- **Tap "Otty hid 1 key before sending" to see which line (D-40),** with only the first 3 and last 4 characters of a key (nothing of a short password), and a note that retyping it sends it anyway. A file's "N keys hidden" does the same. The lines stay in memory on the Mac only: never in `otty.db` or anything sent, and gone after a restart, which the sheet says.
+
+### What Otty changed: the action ledger (D-46, 2026-11-17)
+
+- **Every change Otty makes is written down before it runs**: a reminder, a copy, a link opened, a memory, a look started, a step card's button. Each row says what happened, which chat and answer it came from, and whether Otty can undo it, with anything that looked like a key hidden. It lives and dies with chats, like what left your Mac (schema v9).
+- **Activity › What Otty changed** lists them, newest first, beside what left your Mac, and Settings › Privacy has **See what Otty changed**. Activity's tabs now read Doing, Left your Mac and Changed.
+- **Try again reads the ledger** to say what it can take back and what's done for good, and marks what it undid; so does Undo on a Noted line. Chats from before the ledger keep working from their saved answers.
+
+### Every message from a window is checked, and the app's root is split (D-44, D-45 steps 1–2, 2026-11-17)
+
+- **Main checks everything a window sends (D-44).** Every channel is in one table (`ipc/check.ts`) with the views that may use it and a check for each argument. A message from the wrong window, a subframe or with an argument that doesn't fit is refused with a log line. Activity sends ids only, and main looks up what each one is. A rule test keeps every handler in the table and the preload's channels in step with it, and a fuzz test throws thousands of wrong inputs at every channel.
+- **The composition root is split (D-45).** `index.ts` went from 574 lines to 47: the chat, jobs and stores are made once in `core.ts`, the windows' messages are in `ipc/`, where a capture goes is one `deliver` in `captureRoute.ts`, the menu bar and hotkeys are in `controls.ts`, and what the user is told is in `notify.ts`. `ChatSession` reaches settings, stores and the model service only through `SessionDeps`. Nothing anyone can see changed.
+
+### Hardening: the search leak, tool gates and job states (D-41, D-42, D-43, 2026-11-17)
+
+- **The search leak is closed (D-41).** A chat turn now knows when it holds the user's own data (a highlight, a snip, a file, a memory that matched) and when it has read someone else's words. Once both are true, a search the model writes shows a **Look this up?** card with the exact words before it leaves, and Claude's own search, which can't be shown call by call, turns off for the rest of the turn. Two new eval cases cover it, with and without a highlight.
+- **Tool gates come from the table only (D-42).** Every run must name the tools it may use, so a new kind of run can't get all of them by forgetting. What Try again lists as done for good comes from the table, where opening a link is now `lasting`. A job's call that changes something is claimed once (a new `claims` table, schema v8), so a job resumed after a restart can't make a change twice.
+- **Job states as a table (D-43).** `jobs/states.ts` lists every legal move, and anything else throws. A status is saved before it's shown, and a job's steps are written in order through one chain, so a slow store can't reorder them and a failed write fails the job with friendly words instead of vanishing.
+
+### Agents check their own work, phase 2 (D-48, 2026-11-17)
+
+- **Coverage floors that only go up** (`npm run coverage`, in CI): per folder, and on their own for the eleven safety modules, so a drop can't hide in an average.
+- **Property tests** (fast-check) for the parsers and guards: hidden keys, word diffs, matching, tables, repeats, private addresses, known addresses and the SVG sanitiser. **Card tests** (Testing Library) click the confirm, step and rewind cards like a person would.
+- **Screenshots of every UI preview scene**, light and dark (`npm run screens`, a CI job of its own): a card moved by a few pixels fails with a diff image an agent can read.
+- **A docs-drift test**: every path CLAUDE.md and DEVLOG's architecture name exists, and every roadmap row has its entry. **knip** keeps out unused files, exports and dependencies, and found four. **An idle check** fails on any smooth endless animation on the otter. The OCR helper now reads a line of Chinese in CI.
+- **Fixed in the harness:** a smoke run turned non-ASCII text on the real clipboard into question marks when it put the user's clipboard back.
+- **Fixed:** on a slower Mac, ⌘F straight after an answer could leave the current match just off screen once the chat finished gliding. Find now brings it back when the glide ends. Found by CI's smoke run.
+- **Fixed:** a drawing or chart that finished rendering after its answer could push the end of the chat off screen. The chat now keeps following while it's at its end, until you scroll away. Found by the screenshots.
+- **Fixed:** with a full tray on a slow Mac, focusing the box could scroll the whole panel and push its header off the top. `scroll.screens.ts` checks both scrolling fixes with the CPU slowed 4x.
+- **CI runs smoke only on PRs into `main`** (and pushes to it), so a stack of PRs doesn't run it once per branch.
+- **Screenshot baselines come from CI's Mac** (`npm run screens:update` copies them), because another macOS draws Chinese text slightly differently.
+
 ### The smoke test runs itself (D-47, 2026-11-16)
 
 - **`npm run smoke` drives the real release build** with Playwright: 130 tests across 119 of the 127 checklist steps, in about 5 minutes, on a dev Mac or in CI. A ✋ marks what a person must still check, and a test fails when a step has neither.

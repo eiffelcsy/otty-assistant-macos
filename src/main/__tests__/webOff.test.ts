@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { CHAT_TOOLS } from '../toolSafety'
 
 let baseUrl = 'http://localhost:11434/v1'
 let model = 'm'
@@ -7,8 +8,8 @@ vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {} }
 vi.mock('../settings', () => ({ getApiKey: () => 'key', getStored: () => ({ baseUrl, model }) }))
 const { runTool, toolDefs } = await import('../tools')
 
-const ctx = { confirm: async () => true, knownUrl: () => true }
-const names = () => toolDefs().map((t) => t.function.name)
+const ctx = { allowed: CHAT_TOOLS, confirm: async () => true, knownUrl: () => true }
+const names = () => toolDefs(CHAT_TOOLS).map((t) => t.function.name)
 
 beforeEach(() => {
   baseUrl = 'http://localhost:11434/v1'
@@ -60,7 +61,7 @@ describe('other services', () => {
     const confirm = vi.fn(async () => false)
     const fetchSpy = vi.fn()
     vi.stubGlobal('fetch', fetchSpy)
-    const out = await runTool('read_page', { url: 'https://example.com/?secret=1' }, { confirm, knownUrl: () => false })
+    const out = await runTool('read_page', { url: 'https://example.com/?secret=1' }, { allowed: CHAT_TOOLS, confirm, knownUrl: () => false })
     expect(confirm).toHaveBeenCalledWith('Read this page?', 'https://example.com/?secret=1')
     expect(out.status).toBe('denied')
     expect(fetchSpy).not.toHaveBeenCalled()
@@ -70,7 +71,7 @@ describe('other services', () => {
     baseUrl = 'https://api.openai.com/v1'
     const fetchSpy = vi.fn()
     vi.stubGlobal('fetch', fetchSpy)
-    const out = await runTool('read_page', { url: 'http://192.168.1.1/' }, { confirm: async () => true, knownUrl: () => true })
+    const out = await runTool('read_page', { url: 'http://192.168.1.1/' }, { allowed: CHAT_TOOLS, confirm: async () => true, knownUrl: () => true })
     expect(out.status).toBe('error')
     expect(out.result).toContain('public web pages')
     expect(fetchSpy).not.toHaveBeenCalled()

@@ -52,7 +52,7 @@ Worth listing, because a lot of this is rare in early apps and it's the base for
 | Transparency | "What left the Mac" (`sent.ts`, Activity), usage meter, monthly limit, Pause everything | Directly reusable as marketing and as compliance evidence |
 | Providers | One adapter per API format (`providers/`), profiles, presets for DeepSeek, Claude, OpenAI, local and custom | Makes a hosted "Otty" service a new preset rather than a rewrite (§9) |
 | Data | SQLite with forward-only migrations, a guard against a newer schema (`db.ts` throws), retention setting, old shapes read by `upgrade.ts` | Updates won't silently corrupt chats |
-| Tests | 54 test files, 746 tests, a search contract test, a cache byte-for-byte test, a real-model eval (104/106 baseline) with injection cases | Strong base for a release gate |
+| Tests | 54 test files, 746 tests, a search contract test, a cache byte-for-byte test, a real-model eval (118/120 baseline) with injection cases | Strong base for a release gate |
 | CI | `ci.yml` (typecheck, test, build on macOS for every PR, `main` protected), `dmg.yml` (unsigned arm64 and x64 DMGs, draft release on `v*` tags), Dependabot | Half of a release pipeline exists |
 | Docs | REQUIREMENTS, DEVLOG with a 127-step smoke test, CHANGELOG, BRAINSTORM, AUTONOMY | Makes it possible to hand parts of this to someone else |
 
@@ -278,7 +278,7 @@ Otty's design is strong. These are the gaps that matter once strangers use it.
 | 10.2 | No plain-text key fallback | S | `settings.ts` saves the key base64-encoded but **unencrypted** when `safeStorage` isn't available. On a signed Mac build that should essentially never happen; when it does, refuse to save and say so in friendly words rather than writing the key to `settings.json` |
 | 10.3 | Ignore `DEEPSEEK_API_KEY` in the packaged app | S | `envKey` reads it in every build. Limit it to `!app.isPackaged` so a production build's key source is only the Keychain |
 | 10.4 | Encrypt `otty.db` | M | BRAINSTORM lists it. Memories and saved chats are a record of someone's life, readable by any process running as the user. SQLite encryption with a key in the Keychain (**verify** what `node:sqlite` supports, or encrypt sensitive columns). At least make sure FileVault is mentioned in the privacy page |
-| 10.5 | Check IPC inputs | S–M | Main already checks some renderer input (`cleanCap`, `validExport`, `runStep` looking actions up). Audit every `ipcMain.handle` for type and range checks, since a compromised renderer is the threat the sandbox is there for. Planned as **D-44**, which adds sender checks |
+| 10.5 | Check IPC inputs | S–M | ✅ Done (D-44, 2026-11-17): every channel is in one table with the views that may use it and a check per argument, and a rule test and a fuzz test keep it so. |
 | 10.6 | Red-team before release | M | BRAINSTORM: grow the injection set and run it before each release (7.5). Add cases for pages, files and highlights that try to make Otty send data out or change memory |
 | 10.7 | A security policy | S | `SECURITY.md` with how to report a problem privately (GitHub's private vulnerability reporting is free), and a promise on response time |
 | 10.8 | Server security | M | If hosted: least-privilege cloud accounts, 2FA everywhere (Apple, GitHub, merchant, cloud, domain registrar, email), secrets in a manager, dependency scanning on the server too |

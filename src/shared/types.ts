@@ -180,6 +180,8 @@ export interface PublicSettings {
   learn: boolean
   /** The user paused everything Otty does in the background. Stays on across restarts. */
   workPaused: boolean
+  /** When a pause ends by itself (ms since epoch), or null for "until I say" (D-39). */
+  workPausedUntil: number | null
   /** A macOS notification when something Otty did on its own is ready or needs an OK. Off until chosen. */
   notifyDone: boolean
   /** Otty opens when the user logs in. macOS keeps this, not Otty's settings file. */
@@ -221,6 +223,18 @@ export interface UsageReport {
 
 /** Why something left the Mac (D-31). */
 export type SentKind = 'question' | 'job' | 'title' | 'explain' | 'check' | 'search' | 'page'
+
+/** One row of "What Otty changed" (D-46): a change Otty made, in plain words. */
+export interface ChangeItem {
+  id: number
+  at: number
+  summary: string
+  status: 'running' | 'done' | 'failed' | 'denied'
+  /** Otty can take it back: a memory or a look. */
+  canUndo: boolean
+  undone?: boolean
+  chatId?: string
+}
 
 /** One row of "What left your Mac". Built in code from what was sent, never the text itself. */
 export interface SentItem {
@@ -511,6 +525,8 @@ export interface OttyApi {
   seenActivity(): Promise<void>
   /** What left the Mac, newest first. */
   listSent(): Promise<SentItem[]>
+  /** What Otty changed, newest first (D-46). */
+  listChanges(): Promise<ChangeItem[]>
   /** What Try again or Edit on the latest turn would undo (D-36). Null when it isn't the latest turn. */
   rewindPlan(messageId: string): Promise<RewindPlan | null>
   /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */
@@ -540,6 +556,8 @@ export interface OttyApi {
   readFile(id: string): Promise<AttachResult>
   /** Forgets a file that won't be sent. */
   discardFile(id: string): Promise<void>
+  /** The lines where Otty hid something in a message or file, each value cut to a hint; null once Otty restarted (D-40). */
+  hiddenLines(id: string): Promise<string[] | null>
 
   captureSelection(): Promise<PanelOpenPayload>
   captureScreenshot(): Promise<PanelOpenPayload>

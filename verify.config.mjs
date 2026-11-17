@@ -8,8 +8,9 @@ const quick = [
 
 const standard = [
   ['lint', 'node tools/verify/lint.mjs'],
+  ['dead code', 'npm run knip --silent'],
   ['typecheck', 'npm run typecheck --silent'],
-  ['unit tests', 'npm test --silent'],
+  ['unit tests, with coverage floors', 'npm run coverage --silent'],
   ['build', 'npm run build --silent'],
   ['no smoke code in the release build', 'node tools/smoke/check-release.mjs']
 ]
@@ -23,7 +24,25 @@ export default {
     // What CI's `ci` job runs. "Done" for anything that isn't visible in the app.
     standard,
     // Before a PR that touches anything the app shows.
-    full: [...standard, ['smoke (builds, then runs)', 'npm run smoke --silent']]
+    full: [...standard, ['screenshots', 'npm run screens --silent'], ['smoke (builds, then runs)', 'npm run smoke --silent']]
+  },
+  // Coverage floors (tools/verify/coverage.mjs), lines and branches, that only go up. Groups are folder prefixes; files
+  // are the safety modules, held on their own so a drop there can't hide in a folder's average.
+  coverage: {
+    groups: ['src/main/', 'src/shared/', 'src/renderer/'],
+    files: [
+      'src/main/toolSafety.ts',
+      'src/main/knownUrls.ts',
+      'src/main/web.ts',
+      'src/main/pageReader.ts',
+      'src/main/memory/guard.ts',
+      'src/main/act/risk.ts',
+      'src/main/act/open.ts',
+      'src/shared/secrets.ts',
+      'src/shared/cap.ts',
+      'src/shared/repeat.ts',
+      'src/renderer/src/draw/sanitize.ts'
+    ]
   },
   // Risk classes for merging (tools/verify/risk.mjs, `node tools/verify/risk.mjs`). A change takes the class of its
   // riskiest file; guarded beats low, and anything in neither list is normal. Guarded gets /security-review and never
@@ -64,7 +83,7 @@ export default {
     },
     {
       when: ['src/renderer/**/*.tsx', 'src/renderer/**/*.css'],
-      say: 'The UI changed: look at it in the UI preview (launch config `ui-preview`), in light and dark mode, and narrow and wide.'
+      say: 'The UI changed: run `npm run screens` (every preview scene, light and dark) and read any diff image in tools/ui-preview/screens/results/. A wanted change is `npm run screens:update` after CI has run, in a PR of its own.'
     },
     {
       when: ['src/renderer/src/styles.css', 'src/renderer/src/components/Otter.tsx', 'src/renderer/src/bubble/**'],

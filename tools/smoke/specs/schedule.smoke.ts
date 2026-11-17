@@ -191,7 +191,7 @@ test('Pause everything stops the running look and holds the scheduled one, acros
   await otty.control((c) => c.power('resume'))
   await expect(rows(panel, running.title)).toContainText('Lost the connection. Trying again…', { timeout: 20_000 })
 
-  expect(await otty.control((c) => c.clickTray('Pause everything Otty is doing'))).toBe(true)
+  expect(await otty.control((c) => c.clickTray('Until I say'))).toBe(true)
   await expect(rows(panel, running.title)).toContainText('Paused until you let Otty carry on.')
   await expect(rows(panel, scheduled.title)).toContainText('Paused until you let Otty carry on.')
   expect(await otty.control((c) => c.tray())).toContain('Let Otty carry on')
@@ -241,6 +241,7 @@ test('Activity: Coming up first, soonest at the top, then Recent; Pause everythi
   await expect(panel.locator('.activity__list').nth(1)).toContainText(now.title)
 
   await panel.getByRole('button', { name: 'Pause everything' }).click()
+  await panel.getByRole('button', { name: 'Until I say' }).click()
   await expect(panel.getByRole('status')).toContainText('Otty is paused. Nothing runs on its own until you let it carry on.')
   expect(await otty.control((c) => c.tray())).toContain('Let Otty carry on')
   await panel.getByRole('status').getByRole('button', { name: 'Let Otty carry on' }).click()
@@ -306,8 +307,25 @@ test('Activity’s pause bar follows Pause everything from the menu bar, and Let
   const panel = await otty.openPanel()
   await scheduleLater(otty, world, panel, { ...RAIL, at: nineTomorrow() })
   await openActivity(panel)
-  await otty.control((c) => c.clickTray('Pause everything Otty is doing'))
+  await otty.control((c) => c.clickTray('Until I say'))
   await expect(panel.getByRole('status')).toContainText('Otty is paused.')
   await otty.control((c) => c.clickTray('Let Otty carry on'))
   await expect(panel.getByRole('button', { name: 'Pause everything' })).toBeVisible()
+})
+
+test('Pause for an hour says when Otty carries on, and after the hour, or a sleep through it, it does', { tag: ['@step-132'] }, async ({ otty, world }) => {
+  const panel = await otty.openPanel()
+  await scheduleLater(otty, world, panel, { ...RAIL, at: nineTomorrow() })
+  await openActivity(panel)
+  await panel.getByRole('button', { name: 'Pause everything' }).click()
+  await panel.getByRole('button', { name: 'For an hour' }).click()
+  await expect(panel.getByRole('status')).toContainText(/Otty is paused until today at .+\. Nothing runs on its own until then\./)
+  expect((await otty.control((c) => c.tray())).some((l) => l.startsWith('Otty is paused until today at '))).toBe(true)
+
+  // The Mac slept through the hour: on waking, the pause has ended by itself, as if Let Otty carry on was pressed.
+  await otty.control((c) => c.power('suspend'))
+  await otty.control((c) => c.shiftClock(61 * 60_000))
+  await otty.control((c) => c.power('resume'))
+  await expect(panel.getByRole('button', { name: 'Pause everything' })).toBeVisible()
+  expect(await otty.control((c) => c.tray())).toContain('Pause everything Otty is doing')
 })

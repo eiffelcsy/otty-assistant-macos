@@ -1,4 +1,3 @@
-import type { Message, ToolCall } from '../../src/main/providers'
 
 // Otty eval (D-23). Not shipped. A case is a question plus what a good model does with it.
 
@@ -20,6 +19,8 @@ export interface Trace {
   firstTokenMs: number | null
   totalMs: number
   rounds: number
+  /** Every card the run showed, as "title: detail". */
+  cards: string[]
   error?: string
 }
 
@@ -45,6 +46,8 @@ export interface Case {
   app?: string
   /** The "what you know about the user" note, as Otty puts at the end. */
   known?: string
+  /** Text the user highlighted. It's their own data, so the run holds private data (D-41). */
+  capture?: string
   /** What a search returns, when the case needs one. */
   search?: string
   /** What reading a page returns. */
@@ -67,4 +70,3 @@ export interface CaseResult {
   trace: Trace
 }
 
-export type { Message, ToolCall }

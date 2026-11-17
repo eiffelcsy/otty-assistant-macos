@@ -13,6 +13,7 @@ import { prettyKey } from '../lib/keys'
 import { useAttachments } from '../lib/useAttachments'
 import { useChat } from '../lib/useChat'
 import { AskContext, HomeContext } from './Markdown'
+import { pauseEnd } from '../../../shared/pauseUntil'
 import { Activity, type Tab as ActivityTab } from './Activity'
 import { History } from './History'
 import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor } from './Messages'
@@ -76,7 +77,7 @@ export function Panel() {
     setInput(draft.text)
     setCaptures(draft.captures)
     setNotice(draft.files.length ? 'reattach' : null)
-    setTimeout(() => inputRef.current?.focus(), 0)
+    setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0)
   }
   const scrollRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef(settings)
@@ -131,7 +132,7 @@ export function Panel() {
         }
         take(p, !!p.add)
         setView((v) => (v === 'history' || v === 'activity' ? 'chat' : v))
-        setTimeout(() => inputRef.current?.focus(), 50)
+        setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50)
       }),
     []
   )
@@ -165,12 +166,42 @@ export function Panel() {
   }, [view, messages.length])
 
   // Follow the conversation, unless a search result asked to show one message or the find bar is open.
+  const following = useRef(true)
   useEffect(() => {
     if (findingRef.current !== null) return
     const found = focusId && scrollRef.current?.querySelector(`[data-msg-id="${CSS.escape(focusId)}"]`)
+    following.current = !found
     if (found) found.scrollIntoView({ block: 'center' })
     else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, focusId, view])
+
+  // Something that grows after its answer arrived (a drawing renders lazily) mustn't push the end of the chat off
+  // screen: keep following until the person scrolls away by hand (Otty's own glides never count), and again once they
+  // scroll back to the end.
+  useEffect(() => {
+    const chat = scrollRef.current
+    if (!chat || typeof ResizeObserver === 'undefined') return
+    let height = chat.scrollHeight
+    const grew = new ResizeObserver(() => {
+      if (chat.scrollHeight > height && following.current && findingRef.current === null) chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' })
+      height = chat.scrollHeight
+    })
+    for (const el of chat.children) grew.observe(el)
+    let byHand = false
+    const hand = () => (byHand = true)
+    const settled = () => {
+      if (byHand) following.current = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 8
+      byHand = false
+    }
+    const events = ['wheel', 'touchmove', 'pointerdown', 'keydown'] as const
+    for (const e of events) chat.addEventListener(e, hand, { passive: true })
+    chat.addEventListener('scrollend', settled)
+    return () => {
+      grew.disconnect()
+      for (const e of events) chat.removeEventListener(e, hand)
+      chat.removeEventListener('scrollend', settled)
+    }
+  }, [messages, view])
 
   const actions = settings && !att.reading ? actionsForTray(captures, att.ready, settings.homeLanguage, { app, readsPages: settings.readsPages }) : []
 
@@ -217,7 +248,7 @@ export function Panel() {
       dragDepth.current = 0
       setDragging(false)
       att.drop([...e.dataTransfer.files])
-      inputRef.current?.focus()
+      inputRef.current?.focus({ preventScroll: true })
     }
   }
 
@@ -322,8 +353,8 @@ export function Panel() {
               onSaved={setSettings}
               memoryFocus={memoryFocus}
               onOpenChat={() => setView('chat')}
-              onOpenSent={() => {
-                setActivityTab('sent')
+              onOpenActivity={(tab) => {
+                setActivityTab(tab)
                 setView('activity')
               }}
             />
@@ -335,7 +366,10 @@ export function Panel() {
               onOpen={() => setView('chat')}
               onOpenChat={(id) => void window.otty.openChat(id).then(() => setView('chat'))}
               paused={settings.workPaused}
-              onPause={(on) => void window.otty.saveSettings({ workPaused: on }).then(setSettings)}
+              pausedUntil={settings.workPausedUntil}
+              onPause={(choice) =>
+                void window.otty.saveSettings(choice === false ? { workPaused: false } : { workPaused: true, workPausedUntil: pauseEnd(choice) }).then(setSettings)
+              }
             />
           ) : view === 'history' ? (
             <History onOpen={() => setView('chat')} focusSearch={searchFocus} keep={settings.keepChats} />
@@ -353,7 +387,7 @@ export function Panel() {
                     app={app?.name ?? captures[0]?.app?.name ?? null}
                     onSuggest={(text) => {
                       setInput(text)
-                      setTimeout(() => inputRef.current?.focus(), 0)
+                      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0)
                     }}
                   />
                 )}
@@ -364,7 +398,7 @@ export function Panel() {
                       {m.captures.length > 0 && <CaptureList captures={m.captures} />}
                       {m.files && <FileList files={m.files} />}
                       <div className="msg__bubble">{m.text}</div>
-                      <HiddenLine hidden={m.hidden} />
+                      <HiddenLine id={m.id} hidden={m.hidden} />
                     </div>
                   ) : (
                     <AssistantMessage

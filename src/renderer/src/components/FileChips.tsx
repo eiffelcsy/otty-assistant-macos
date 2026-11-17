@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { FileAttachment, FileKind } from '../../../shared/types'
 import type { Chip } from '../lib/useAttachments'
+import { HiddenSheet } from './HiddenSheet'
 import { Icon } from './Icon'
 
 const ICON: Record<FileKind, string> = {
@@ -94,6 +96,26 @@ export function FileList({ files }: { files: FileAttachment[] }) {
           </span>
         </div>
       ))}
+      {files.map((f) => (
+        <FileHidden key={f.id} file={f} />
+      ))}
+    </div>
+  )
+}
+
+/** "budget.csv: 2 keys hidden", tapped to see which lines (D-40). */
+function FileHidden({ file }: { file: FileAttachment }) {
+  const [open, setOpen] = useState(false)
+  if (!file.hidden) return null
+  return (
+    <div className="file-hidden">
+      <button className="hidden-line" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <Icon name="shield-check" />
+        <span>
+          {file.name}: {file.hidden === 1 ? '1 key' : `${file.hidden} keys`} hidden
+        </span>
+      </button>
+      {open && <HiddenSheet id={file.id} />}
     </div>
   )
 }

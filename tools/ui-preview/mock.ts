@@ -1,5 +1,6 @@
 import type {
   ActivityItem,
+  ChangeItem,
   AnswerLanguage,
   AttachResult,
   Capture,
@@ -69,6 +70,7 @@ const settings: PublicSettings = {
   homeLanguage: q.get('home') === 'none' ? null : 'zh-HK',
   learn: true,
   workPaused: false,
+  workPausedUntil: null,
   notifyDone: false,
   openAtLogin: false,
   canOpenAtLogin: true,
@@ -279,6 +281,13 @@ const activitySample: ActivityItem[] = [
 ]
 
 const ago = (m: number) => Date.now() - m * 60_000
+const changeSample: ChangeItem[] = [
+  { id: 4, at: ago(3), summary: 'Reminder added: Call mum — 17 Nov 2026, 5:00 PM', status: 'done', canUndo: false, chatId: '1' },
+  { id: 3, at: ago(20), summary: 'Noted: Is learning Spanish', status: 'done', canUndo: true, undone: true, chatId: '2' },
+  { id: 2, at: ago(55), summary: 'Step: Click Table › Freeze Header Rows', status: 'done', canUndo: false, chatId: '1' },
+  { id: 1, at: ago(90), summary: 'Opened https://en.wikipedia.org/wiki/Otter', status: 'denied', canUndo: false, chatId: '3' }
+]
+
 const sentSample: SentItem[] = [
   { id: 9, at: ago(2), kind: 'question', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '1', what: 'Budget.csv · 1 key hidden', count: 2 },
   { id: 8, at: ago(2), kind: 'search', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '1', what: 'rail pass prices 2026', count: 1 },
@@ -432,6 +441,8 @@ const api: OttyApi = {
   openActivity: noop,
   seenActivity: noop,
   listSent: async () => (q.get('sent') === 'none' ? [] : sentSample),
+  hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
+  listChanges: async () => (q.get('sent') === 'none' ? [] : changeSample),
   rewindPlan: async () => ({
     undo: [
       { id: 'memory:a1:1', label: 'Forget “Is learning Spanish”' },

@@ -10,6 +10,8 @@ import { getApiKey, getStored } from './settings'
 import { deepseekFetch, deepseekSearch, WebError, type WebConfig } from './web'
 import { record } from './sent'
 import { maskSecrets } from '../shared/secrets'
+import { needsCard, needsOnce, SAFETY, type RunTaint, type Safety } from './toolSafety'
+import { begin, type UndoKind } from './ledger'
 
 const run = promisify(execFile)
 
@@ -20,9 +22,14 @@ export interface ToolContext {
   knownUrl(url: string): boolean
   /**
    * The only tools this work may use, checked first thing in `runTool`, because a model can call a tool it wasn't
-   * offered. Left out, every tool is allowed: a chat turn, which the user is watching.
+   * offered. Always given: a chat turn passes `CHAT_TOOLS`, a job `JOB_TOOLS` (D-42).
    */
-  allowed?: ReadonlySet<string>
+  allowed: ReadonlySet<string>
+  /** What the run holds so far (D-41). The loop marks `outside` as results come in. */
+  taint?: RunTaint
+  /** Work that can be resumed: a change it makes is claimed once per call, so a rerun can't repeat it (D-42). */
+  runId?: string
+  claims?: Claims
   /** How `remember` and `forget` reach the chat. Left out, this work can't touch what Otty knows. */
   learn?: {
     remember(args: Record<string, unknown>): ToolOutcome
@@ -36,8 +43,15 @@ export interface ToolContext {
   startJob?(args: Record<string, unknown>): Promise<ToolOutcome>
   /** Asks to run a read-only job later. Only a chat turn can, and always with a card. */
   scheduleJob?(args: Record<string, unknown>): Promise<ToolOutcome>
+  /** What a change is written down against in the ledger (D-46). Left out, nothing is written. */
+  cause?: { chatId?: string; answerId?: string; jobId?: string }
   /** Whose searches and pages these are, for "What left your Mac". */
   sent?: { chatId?: string; group?: string }
+}
+
+/** Calls already made by work that can be resumed. `claim` is true only the first time for a run and call. */
+export interface Claims {
+  claim(runId: string, callId: string): Promise<boolean>
 }
 
 /** Where a lookup went. Called just before it goes, so a failed one is still listed: it left either way. */
@@ -52,6 +66,8 @@ export interface ToolOutcome {
   status: 'done' | 'denied' | 'error'
   /** Replaces the chip's words once the result is known. `copy` is what tapping the chip copies. */
   chip?: { label: string; copy?: string }
+  /** How the change can be taken back: the memory or job it made, and what Undo would say (D-46). */
+  undo?: { ref: string; label: string }
 }
 
 const searchWebDef = {
@@ -116,9 +132,8 @@ function webConfig(): WebConfig | null {
 }
 
 /** The tools offered to the model. Claude brings its own search, and pages are read from the Mac unless DeepSeek does it. */
-export function toolDefs(allowed?: ReadonlySet<string>) {
-  const defs = serviceDefs()
-  return allowed ? defs.filter((d) => allowed.has(d.function.name)) : defs
+export function toolDefs(allowed: ReadonlySet<string>) {
+  return serviceDefs().filter((d) => allowed.has(d.function.name))
 }
 
 function serviceDefs() {
@@ -365,14 +380,32 @@ function hostOf(url: string): string {
   }
 }
 
-export async function runTool(name: string, args: Args, ctx: ToolContext): Promise<ToolOutcome> {
-  if (ctx.allowed && !ctx.allowed.has(name)) return { result: `The tool ${name} isn't available here.`, status: 'error' }
+export async function runTool(name: string, args: Args, ctx: ToolContext, callId = ''): Promise<ToolOutcome> {
+  if (!ctx.allowed.has(name)) return { result: `The tool ${name} isn't available here.`, status: 'error' }
+  // A resumed job reruns its unanswered call, which may already have run before a restart.
+  if (ctx.runId && needsOnce(name) && !(await ctx.claims?.claim(ctx.runId, callId))) return { result: 'This was already done once, so it wasn’t done again.', status: 'denied' }
+  // D-46: a change is written down before it runs, and marked once it's done.
+  const changes = (SAFETY as Record<string, Safety>)[name]?.changes
+  if (!changes || changes === 'nothing') return runOne(name, args, ctx)
+  const done = begin({ tool: name, ...ctx.cause, summary: toolLabel(name, args).label, undo: UNDO_KIND[name] ?? 'none' })
+  const out = await runOne(name, args, ctx)
+  done({ status: out.status === 'error' ? 'failed' : out.status, summary: out.result, ...(out.undo ? { ref: out.undo.ref, undoLabel: out.undo.label } : {}) })
+  return out
+}
+
+/** How the ledger can take a tool's change back. Anything else can't be. */
+const UNDO_KIND: Record<string, UndoKind> = { remember: 'memory', forget: 'memory', start_job: 'job', schedule_job: 'job' }
+
+async function runOne(name: string, args: Args, ctx: ToolContext): Promise<ToolOutcome> {
   try {
     switch (name) {
       case 'search_web':
         // A model can call this even when it isn't offered, so "nothing leaves the Mac" is enforced here too.
         if (webOff()) return { result: 'Web lookups are off with this model.', status: 'error' }
         const query = String(args.query ?? '')
+        // D-41: once private data and outside words meet, the model's own query is shown before it leaves. The other
+        // tools that send words out always ask (open_url, jobs), or only go to addresses Otty already knows (read_page).
+        if (needsCard(name, ctx.taint) && !(await ctx.confirm('Look this up?', query))) return { result: 'The user declined.', status: 'denied' }
         return { result: await searchWeb(query, noter(ctx, 'search', query)), status: 'done' }
 
       case 'read_page': {

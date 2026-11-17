@@ -25,24 +25,26 @@ import { mathTier } from '../shared/math'
 import { turnHints } from './hints'
 import { describeWhen, parseDue } from '../shared/when'
 import { firstRun, parseRepeat, repeatWords, runsPerMonth, type Repeat } from '../shared/repeat'
-import { chatStore, pruneOldChats, type Thread, type WriteFrom } from './store'
+import type { ChatStore, Thread, WriteFrom } from './store'
 import { fileBudget, fitFiles, sampleText, type FileOutput } from './files/budget'
 import { takeFiles } from './files'
-import { getStored } from './settings'
+import { getStored, type StoredSettings } from './settings'
 import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
 import { createExplainCache, termsToWarm } from './explainCache'
 import { toolDefs, type ToolOutcome } from './tools'
-import { OUTSIDE_TOOLS } from './toolSafety'
+import { CHAT_TOOLS, LASTING_TOOLS, OUTSIDE_TOOLS, type RunTaint } from './toolSafety'
 import { runLoop } from './loop'
+import { begin, type Ledger } from './ledger'
 import { count } from './usage'
 import { instantAnswer } from './math'
 import { act, isRisky } from './act'
 import { stepCard } from './act/card'
 import { urlsIn } from './knownUrls'
-import { forget as forgetMemory, MEMORY_NOTE, memoryStore, observe, remember, undo, type LearnTurn } from './memory'
+import { forget as forgetMemory, MEMORY_NOTE, observe, remember, undo, type LearnTurn, type MemoryStore } from './memory'
 import { isKnownUrl } from './knownUrls'
-import { activeProfile, activeProvider, FriendlyError, NoVisionError, type ContentPart } from './providers'
+import { activeProvider, FriendlyError, NoVisionError, type ContentPart, type Profile, type Provider, type SentTag } from './providers'
+import { liveDeps } from './sessionDeps'
 
 // The conversation: what's sent, what comes back and what's saved. Talking to the model service is `providers/`.
 
@@ -94,8 +96,6 @@ export interface SessionHooks {
   withdrawJob?(id: string): Promise<void>
 }
 
-/** Tools whose effect Otty can't take back, listed before an answer is replaced (D-36). */
-const LASTING = new Set(['create_reminder', 'open_url', 'copy_to_clipboard'])
 
 /** What Undo on a Noted line would do, said as an undo. */
 const UNDO_NOTE: Record<MemoryNote['action'], (text: string) => string> = {
@@ -119,10 +119,10 @@ function safely<T>(fallback: T, fn: () => T): T {
 }
 
 /** What's sent with this question. An earlier note stays in the history, so if nothing's left to say, that has to be said. */
-function memoryNote(question: string, app: string | null, history: Thread['history']): { note: string; used: UsedMemory[] } {
+function memoryNote(memory: MemoryStore | null, question: string, app: string | null, history: Thread['history']): { note: string; used: UsedMemory[] } {
   const none = { note: '', ids: [] as number[], matched: [] as { id: number; text: string }[] }
-  const { note, ids, matched } = getStored().learn ? safely(none, () => memoryStore().forPrompt(question, app)) : none
-  safely(undefined, () => ids.length && memoryStore().markUsed(ids))
+  const { note, ids, matched } = memory ? safely(none, () => memory.forPrompt(question, app)) : none
+  safely(undefined, () => ids.length && memory?.markUsed(ids))
   const used = matched.slice(0, 2).map((m) => ({ memoryId: m.id, text: m.text }))
   if (note) return { note, used }
   const told = history.some((m) => m.role === 'user' && JSON.stringify(m.content).includes(MEMORY_NOTE))
@@ -157,16 +157,18 @@ const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
  * Hides keys in what the user typed and highlighted before anything is sent or saved (D-32). Highlighted text gets
  * the full check; typed words only lose well-known key shapes, because "my password is…" may be meant.
  */
-export function hideKeys(typed: string, captures: Capture[]): { typed: string; captures: Capture[]; hidden: number } {
-  const own = maskSecrets(typed, { shapesOnly: true })
+export function hideKeys(typed: string, captures: Capture[]): { typed: string; captures: Capture[]; hidden: number; lines: string[] } {
+  const own = maskSecrets(typed, { shapesOnly: true, lines: true })
   let hidden = own.hidden
+  const lines = [...(own.lines ?? [])]
   const masked = captures.map((c): Capture => {
     if (c.context.kind !== 'text') return c
-    const m = maskSecrets(c.context.text)
+    const m = maskSecrets(c.context.text, { lines: true })
     hidden += m.hidden
+    lines.push(...(m.lines ?? []))
     return m.hidden ? { ...c, context: { ...c.context, text: m.text } } : c
   })
-  return { typed: own.text, captures: masked, hidden }
+  return { typed: own.text, captures: masked, hidden, lines }
 }
 
 /** Told to the model, so it doesn't ask what the gap is or guess at it. */
@@ -235,6 +237,20 @@ function newThread(): Thread {
   return { id: randomUUID(), title: 'New chat', createdAt: now, updatedAt: now, messages: [], history: [] }
 }
 
+/** Everything a chat session reaches outside itself (D-45). The app's are in `sessionDeps.ts`. */
+export interface SessionDeps {
+  settings(): StoredSettings
+  chats(): ChatStore
+  pruneChats(): Promise<number>
+  memory(): MemoryStore
+  profile(): Profile
+  provider(sent: SentTag): Provider
+  /** What Otty changed (D-46), or null when nothing keeps it. */
+  ledger(): Ledger | null
+  /** Keeps a message's hidden lines in memory, for "Otty hid 1 key" (D-40). */
+  keepHidden(id: string, lines: string[]): void
+}
+
 export class ChatSession {
   /** The chat on show. */
   private thread = newThread()
@@ -254,7 +270,8 @@ export class ChatSession {
 
   constructor(
     private emit: (e: ChatEvent) => void,
-    private hooks: SessionHooks = {}
+    private hooks: SessionHooks = {},
+    private deps: SessionDeps = liveDeps
   ) {}
 
   get threadId(): string {
@@ -273,7 +290,7 @@ export class ChatSession {
 
   /** Whether this chat teaches Otty anything. Memories are still used in its answers either way. */
   private learns(thread: Thread): boolean {
-    return Boolean(getStored().learn) && thread.learn !== false
+    return Boolean(this.deps.settings().learn) && thread.learn !== false
   }
 
   /** "Don't learn from this chat". */
@@ -293,7 +310,8 @@ export class ChatSession {
     if (answer?.role !== 'assistant') return
     const note = answer.memories?.find((n) => n.memoryId === memoryId && !n.undone)
     if (!note) return
-    const undone = safely(note, () => undo(memoryStore(), note))
+    const undone = safely(note, () => undo(this.deps.memory(), note))
+    if (undone.undone) this.deps.ledger()?.markUndone(thread.id, 'memory', String(memoryId))
     answer.memories = answer.memories!.map((n) => (n === note ? undone : n))
     this.persist(thread, { messages: at, history: thread.history.length })
     this.emit({ type: 'memory', id: answerId, note: undone })
@@ -318,11 +336,22 @@ export class ChatSession {
   async rewindPlan(messageId: string): Promise<RewindPlan | null> {
     const turn = this.latestTurn(messageId)
     if (!turn) return null
+    const live = (id: string) => this.hooks.jobLive?.(id).catch(() => false) ?? false
+    const rows = this.deps.ledger()?.forAnswers(turn.thread.id, turn.answers.map((a) => a.id)).filter((r) => r.status === 'done' && !r.undoneAt)
+    // D-46: what the ledger wrote down. A chat answered before it had one keeps the answer's own fields.
+    if (rows?.length) {
+      const memories = rows.filter((r) => r.undo === 'memory' && r.ref).map((r) => ({ id: `memory:${r.answerId}:${r.ref}`, label: r.undoLabel ?? r.summary }))
+      const jobs = []
+      for (const r of rows) if (r.undo === 'job' && r.ref && (await live(r.ref))) jobs.push({ id: `job:${r.ref}`, label: r.undoLabel ?? r.summary })
+      const steps = rows.some((r) => r.tool.startsWith('step:')) ? ['Steps you ran from the card stay done.'] : []
+      const lasting = rows.filter((r) => r.undo === 'none' && !r.tool.startsWith('step:')).map((r) => r.summary)
+      return { undo: [...memories, ...jobs], lasting: [...lasting, ...steps] }
+    }
     const undo: RewindPlan['undo'] = []
     const lasting: string[] = []
     for (const a of turn.answers) {
       for (const n of a.memories ?? []) if (!n.undone) undo.push({ id: `memory:${a.id}:${n.memoryId}`, label: UNDO_NOTE[n.action](n.text) })
-      for (const j of a.jobs ?? []) if (await this.hooks.jobLive?.(j.id).catch(() => false)) undo.push({ id: `job:${j.id}`, label: `Stop looking into “${j.title}”` })
+      for (const j of a.jobs ?? []) if (await live(j.id)) undo.push({ id: `job:${j.id}`, label: `Stop looking into “${j.title}”` })
       lasting.push(...(a.lasting ?? []))
       if (a.steps?.steps.some((st) => st.done && st.action)) lasting.push('Steps you ran from the card stay done.')
     }
@@ -340,8 +369,16 @@ export class ChatSession {
     const { thread, user, userAt, historyAt, answers } = turn
     const wanted = new Set(undoIds)
     for (const a of answers) {
-      for (const n of a.memories ?? []) if (!n.undone && wanted.has(`memory:${a.id}:${n.memoryId}`)) safely(undefined, () => void undo(memoryStore(), n))
-      for (const j of a.jobs ?? []) if (wanted.has(`job:${j.id}`)) await this.hooks.withdrawJob?.(j.id).catch((err) => console.error('Could not stop a look', err))
+      for (const n of a.memories ?? []) {
+        if (n.undone || !wanted.has(`memory:${a.id}:${n.memoryId}`)) continue
+        safely(undefined, () => void undo(this.deps.memory(), n))
+        this.deps.ledger()?.markUndone(thread.id, 'memory', String(n.memoryId))
+      }
+      for (const j of a.jobs ?? []) {
+        if (!wanted.has(`job:${j.id}`)) continue
+        await this.hooks.withdrawJob?.(j.id).catch((err) => console.error('Could not stop a look', err))
+        this.deps.ledger()?.markUndone(thread.id, 'job', j.id)
+      }
     }
     const asked = thread.history[historyAt]
     const keep = mode === 'retry' ? 1 : 0
@@ -349,7 +386,7 @@ export class ChatSession {
     thread.history.length = historyAt + keep
     thread.updatedAt = Date.now()
     if (thread.messages.length) this.persist(thread, { messages: thread.messages.length, history: thread.history.length })
-    else if (getStored().rememberChats) void chatStore().delete(thread.id).catch((err) => console.error('Could not remove an emptied chat', err))
+    else if (this.deps.settings().rememberChats) void this.deps.chats().delete(thread.id).catch((err) => console.error('Could not remove an emptied chat', err))
     this.show(thread)
 
     if (mode === 'edit') {
@@ -367,7 +404,7 @@ export class ChatSession {
       app: user.app,
       files: [],
       language: user.language ?? 'en',
-      home: getStored().homeLanguage,
+      home: this.deps.settings().homeLanguage,
       hidden: user.hidden ?? 0,
       sent: questionWhat({
         files: (user.files ?? []).map((f) => f.name),
@@ -401,7 +438,7 @@ export class ChatSession {
       this.show(this.thread, focusMessageId)
       return true
     }
-    const saved = await chatStore().get(id)
+    const saved = await this.deps.chats().get(id)
     if (!saved) return false
     this.show(structuredClone(saved), focusMessageId)
     return true
@@ -434,8 +471,8 @@ export class ChatSession {
 
   /** Saves a turn's rows, if the user keeps chats. Never throws: a failed save shouldn't break the answer. */
   private persist(thread: Thread, from: WriteFrom): void {
-    if (!getStored().rememberChats || this.forgotten.has(thread.id)) return
-    chatStore()
+    if (!this.deps.settings().rememberChats || this.forgotten.has(thread.id)) return
+    this.deps.chats()
       .write(thread, from)
       .catch((err) => console.error('Could not save chat', err))
   }
@@ -476,12 +513,12 @@ export class ChatSession {
     app: AppInfo | null,
     opts: Pick<SendOptions, 'language' | 'action' | 'files'> = {}
   ): Promise<void> {
-    const { typed: text, captures, hidden } = hideKeys(rawText, rawCaptures)
+    const { typed: text, captures, hidden, lines: hiddenAt } = hideKeys(rawText, rawCaptures)
     const thread = this.thread
     // A new question in the same chat replaces its answer: one history can't take two turns at once.
     this.stopChat(thread.id)
     this.makeRoom(thread.id)
-    const home = getStored().homeLanguage
+    const home = this.deps.settings().homeLanguage
     const prepared = takeFiles(opts.files)
     const language = resolveLanguage({
       typed: opts.action ? '' : text,
@@ -492,7 +529,7 @@ export class ChatSession {
       home
     })
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
-    const budget = fileBudget(activeProfile().contextTokens)
+    const budget = fileBudget(this.deps.profile().contextTokens)
     const fitted = fitFiles(prepared.map((p) => ({ name: p.meta.name, doc: p.doc, image: p.image?.dataUrl })), budget)
     const files = prepared.map((p, i) => ({ ...p.meta, note: fitted[i].note }))
     const userMsg: Extract<ChatMessage, { role: 'user' }> = {
@@ -506,6 +543,8 @@ export class ChatSession {
       ...(files.length ? { files } : {}),
       ...(hidden ? { hidden } : {})
     }
+    // On the Mac only, for "Otty hid 1 key": never saved, never sent (D-40).
+    this.deps.keepHidden(userMsg.id, hiddenAt)
     if (!thread.messages.length) {
       thread.title = titleFor(text, captures, files[0]?.name)
       const where = captures[0]?.app ?? app
@@ -580,14 +619,14 @@ export class ChatSession {
   private noticeHabits(thread: Thread, turn: Turn, answer: Answer): void {
     if (!this.learns(thread)) return
     const app = (turn.captures[0]?.app ?? turn.app)?.name ?? null
-    const fresh = safely([], () => observe(memoryStore(), { app, language: turn.language, action: turn.action, typed: turn.typed }))
+    const fresh = safely([], () => observe(this.deps.memory(), { app, language: turn.language, action: turn.action, typed: turn.typed }))
     for (const m of fresh) this.note(thread, answer, { memoryId: m.id, text: m.text, action: 'added' })
   }
 
   /** "Think deeper" means always think. Otherwise only a real problem is worth the wait. */
   private reasoningFor(turn: Turn): 'normal' | undefined {
     const tier = mathTier(turn.typed, turn.captures.length > 0)
-    return (tier === 'problem' || turn.action === 'working') && !getStored().thinking ? 'normal' : undefined
+    return (tier === 'problem' || turn.action === 'working') && !this.deps.settings().thinking ? 'normal' : undefined
   }
 
   private async run(thread: Thread, turn: Turn, reasoning?: 'normal'): Promise<void> {
@@ -618,7 +657,7 @@ export class ChatSession {
     if (!resend) {
       // Saved as sent: nothing already sent may change, or DeepSeek's cache misses from that point on.
       const where = (captures[0]?.app ?? app)?.name ?? null
-      const memory = memoryNote([turn.typed, capturedText(captures)].join(' '), where, history)
+      const memory = memoryNote(this.deps.settings().learn ? this.deps.memory() : null, [turn.typed, capturedText(captures)].join(' '), where, history)
       used = memory.used
       const stepNotes = this.stepNotes.get(thread.id) ?? []
       this.stepNotes.delete(thread.id)
@@ -626,7 +665,7 @@ export class ChatSession {
       const note = [turnNote(language, home), memory.note, hiddenNote(turn.hidden), ...hints, ...stepNotes].filter(Boolean).join('\n')
       history.push({ role: 'user', content: withNote(userContent(text, captures, app, files), note) })
     }
-    const system = systemPrompt(home, activeProfile().web !== 'off', Boolean(getStored().learn))
+    const system = systemPrompt(home, this.deps.profile().web !== 'off', Boolean(this.deps.settings().learn))
     this.tell(thread, { type: 'start', id, language })
     if (used.length) {
       answer.used = used
@@ -646,18 +685,28 @@ export class ChatSession {
     const learning = (act: () => ReturnType<typeof remember>) => {
       if (!this.learns(thread)) return { result: 'Not saved: the user turned learning off for this chat. Don’t say it was saved.', status: 'denied' as const }
       const { outcome, note } = safely({ outcome: { result: 'That didn’t work.', status: 'error' as const } }, act)
-      if (note) this.note(thread, answer, note)
-      return outcome
+      if (!note) return outcome
+      this.note(thread, answer, note)
+      return { ...outcome, undo: { ref: String(note.memoryId), label: UNDO_NOTE[note.action](note.text) } }
+    }
+
+    // D-41: the user's own data is in this turn's context: a capture or file in this chat, or a memory that matched.
+    const taint: RunTaint = {
+      private: used.length > 0 || thread.messages.some((m) => m.role === 'user' && (m.captures.length > 0 || Boolean(m.files?.length))),
+      outside: false
     }
 
     try {
       const sent = { kind: 'question' as const, chatId: thread.id, group: id, what: turn.sent }
       await runLoop({
-        provider: () => activeProvider(sent),
+        provider: () => this.deps.provider(sent),
         system,
         history,
-        tools: toolDefs,
+        tools: () => toolDefs(CHAT_TOOLS),
         context: {
+          allowed: CHAT_TOOLS,
+          taint,
+          cause: { chatId: thread.id, answerId: id },
           sent: { chatId: thread.id, group: id },
           confirm: (title, detail) => this.askConfirm(live, title, detail),
           knownUrl: (url) => isKnownUrl(url, history),
@@ -666,8 +715,8 @@ export class ChatSession {
           startJob: (args) => this.offerJob(live, answer, args, language),
           scheduleJob: (args) => this.offerJob(live, answer, args, language, true),
           learn: {
-            remember: (args) => learning(() => remember(memoryStore(), args, heard, place)),
-            forget: (args) => learning(() => forgetMemory(memoryStore(), args, heard))
+            remember: (args) => learning(() => remember(this.deps.memory(), args, heard, place)),
+            forget: (args) => learning(() => forgetMemory(this.deps.memory(), args, heard))
           }
         },
         maxRounds: MAX_TOOL_ROUNDS,
@@ -678,7 +727,7 @@ export class ChatSession {
             answer.text += e.text
             this.tell(thread, { type: 'delta', id, text: e.text })
           }
-          if (e.type === 'tool-result' && LASTING.has(e.name) && e.outcome.status === 'done') answer.lasting = [...(answer.lasting ?? []), e.outcome.result.slice(0, 160)]
+          if (e.type === 'tool-result' && LASTING_TOOLS.has(e.name) && e.outcome.status === 'done') answer.lasting = [...(answer.lasting ?? []), e.outcome.result.slice(0, 160)]
           if (e.type === 'tool-result' && OUTSIDE_TOOLS.has(e.name)) {
             heard.hadOutside = true
             heard.outside += `\n${e.outcome.result}`
@@ -715,7 +764,7 @@ export class ChatSession {
       thread.updatedAt = Date.now()
       // Only this turn's rows: the cost doesn't grow with the length of the chat.
       this.persist(thread, { messages: answerAt, history: turnStart })
-      void pruneOldChats().catch((err) => console.error('Could not forget old chats', err))
+      void this.deps.pruneChats().catch((err) => console.error('Could not forget old chats', err))
       if (finished) this.afterAnswer(thread, answer, answerAt === 1)
     }
   }
@@ -729,12 +778,12 @@ export class ChatSession {
 
   /** The instant title stays if this fails. `thread` is the chat the turn ran on, which may not be the current one. */
   private async writeTitle(thread: Thread, answer: string): Promise<void> {
-    if (!getStored().rememberChats) return
+    if (!this.deps.settings().rememberChats) return
     const asked = thread.messages[0]
     if (asked?.role !== 'user') return
     try {
       const question = [asked.text, capturedText(asked.captures)].filter(Boolean).join('\n')
-      const { text } = await activeProvider({ kind: 'title', chatId: thread.id }).complete({ messages: [{ role: 'user', content: titlePrompt(question, answer) }], maxTokens: 24, reasoning: 'least' })
+      const { text } = await this.deps.provider({ kind: 'title', chatId: thread.id }).complete({ messages: [{ role: 'user', content: titlePrompt(question, answer) }], maxTokens: 24, reasoning: 'least' })
       const title = cleanTitle(text)
       if (!title) return
       thread.title = title
@@ -778,8 +827,9 @@ export class ChatSession {
     const problem = await this.hooks.startJob({ id: jobId, title, brief, sourceThread: thread.id, seedUrls, language, ...(dueAt ? { dueAt } : {}), ...(repeat ? { repeat } : {}) })
     if (problem) return { result: problem, status: 'error' }
     answer.jobs = [...(answer.jobs ?? []), { id: jobId, title }]
-    if (repeat && dueAt) return { result: `Scheduled ${repeatWords(repeat, dueAt)}, starting ${describeWhen(dueAt)}. Each look leaves its own note in Activity.`, status: 'done' }
-    return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in Activity.` : 'Started. The user will find the report in Activity.', status: 'done' }
+    const undo = { ref: jobId, label: `Stop looking into “${title}”` }
+    if (repeat && dueAt) return { result: `Scheduled ${repeatWords(repeat, dueAt)}, starting ${describeWhen(dueAt)}. Each look leaves its own note in Activity.`, status: 'done', undo }
+    return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in Activity.` : 'Started. The user will find the report in Activity.', status: 'done', undo }
   }
 
   /** A chart of the user's own table. Code adds it up; the model only said what to chart (D-35). */
@@ -826,7 +876,10 @@ export class ChatSession {
     if (!found || !step?.action || step.manual) return
     if (isRisky(step.action) && !sure) return
     const thread = this.thread
+    // A step's button changes something in another app, so it's written down first (D-46). It can't be undone.
+    const done = begin({ tool: `step:${step.action.kind}`, chatId: thread.id, answerId, summary: `Step: ${step.text}`, undo: 'none' }, this.deps.ledger())
     const result = await act(step.action, found.card.app ?? null)
+    done({ status: result.ok ? 'done' : 'failed' })
     step.note = result.message
     if (result.ok) step.done = true
     if (result.manual) step.manual = true

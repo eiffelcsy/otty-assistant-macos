@@ -6,6 +6,7 @@ import { defaultHomeLanguage } from './language'
 import { profileFor } from './providers/profiles'
 import { serviceAt, type ServiceId } from '../shared/services'
 import { cleanCap } from '../shared/cap'
+import { cleanPauseEnd } from '../shared/pauseUntil'
 
 interface SavedKey {
   /** Base64 of the safeStorage-encrypted key, or of the key itself if encryption wasn't available. */
@@ -13,7 +14,7 @@ interface SavedKey {
   plain?: boolean
 }
 
-interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'openAtLogin' | 'canOpenAtLogin'> {
+export interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'openAtLogin' | 'canOpenAtLogin'> {
   /** One per service, so a key only ever goes to the service it belongs to. */
   apiKeys?: Partial<Record<ServiceId, SavedKey>>
   /** The single key from before 0.5, moved into `apiKeys` on load. */
@@ -37,6 +38,7 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   keepChats: '1y',
   learn: true,
   workPaused: false,
+  workPausedUntil: null,
   notifyDone: false,
   monthlyCap: null
 }
@@ -123,9 +125,11 @@ function loginItem(): { openAtLogin: boolean; canOpenAtLogin: boolean } {
 
 export function update(u: SettingsUpdate): PublicSettings {
   const s = load()
-  const { apiKey, openAtLogin, monthlyCap, ...rest } = u
-  // From the renderer, so it's checked: a cap that isn't one is no cap.
+  const { apiKey, openAtLogin, monthlyCap, workPausedUntil, ...rest } = u
+  // From the renderer, so it's checked: a cap that isn't one is no cap, and an end that isn't one is "until I say".
   if (monthlyCap !== undefined) s.monthlyCap = cleanCap(monthlyCap)
+  if (workPausedUntil !== undefined) s.workPausedUntil = cleanPauseEnd(workPausedUntil)
+  if (u.workPaused === false) s.workPausedUntil = null
   if (openAtLogin !== undefined && loginItem().canOpenAtLogin) app.setLoginItemSettings({ openAtLogin })
   Object.assign(s, rest)
   if (apiKey !== undefined) {

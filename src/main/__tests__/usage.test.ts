@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { CHAT_TOOLS } from '../toolSafety'
 import { openDatabase } from '../store/db'
 import { MemoryStore } from '../memory/store'
 import { compareWithQuestions, count, setUsageSink, UsageMeter, type UsageSummary } from '../usage'
@@ -77,7 +78,7 @@ describe('counting what the loop does', () => {
       system: 's',
       history: [{ role: 'user', content: 'one plus one' }],
       tools: () => [],
-      context: { confirm: async () => true, knownUrl: () => true },
+      context: { allowed: CHAT_TOOLS, confirm: async () => true, knownUrl: () => true },
       maxRounds: 3,
       signal: new AbortController().signal,
       onEvent: (e) => void (e.type === 'usage' && usage.push(e.usage.input))

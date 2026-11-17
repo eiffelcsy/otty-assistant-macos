@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { ActivityItem } from '../../../shared/types'
 import { describeWhen } from '../../../shared/when'
+import type { PauseChoice } from '../../../shared/pauseUntil'
 import { Icon } from '../components/Icon'
+import { ChangeList } from './ChangeList'
 import { SentList } from './SentList'
 
 const STATES: Record<ActivityItem['state'], string> = {
@@ -87,38 +89,60 @@ function Row({ item, onOpen }: { item: ActivityItem; onOpen: () => void }) {
 }
 
 /** The one stop control, where the work it stops is listed. The otter's menu and the menu bar have it too. */
-function PauseBar({ paused, onPause }: { paused: boolean; onPause: (on: boolean) => void }) {
+function PauseBar({ paused, until, onPause }: { paused: boolean; until: number | null; onPause: (choice: PauseChoice | false) => void }) {
+  const [choosing, setChoosing] = useState(false)
   if (paused) {
     return (
       <div className="pause-bar pause-bar--on" role="status">
         <Icon name="pause" solid />
-        <span>Otty is paused. Nothing runs on its own until you let it carry on.</span>
+        <span>{until ? `Otty is paused until ${describeWhen(until)}. Nothing runs on its own until then.` : 'Otty is paused. Nothing runs on its own until you let it carry on.'}</span>
         <button className="btn btn--primary btn--small" onClick={() => onPause(false)}>
           Let Otty carry on
         </button>
       </div>
     )
   }
+  const choose = (choice: PauseChoice) => {
+    setChoosing(false)
+    onPause(choice)
+  }
   return (
     <div className="pause-bar">
-      <button className="btn btn--soft btn--small" onClick={() => onPause(true)} title="Stops what’s running and anything scheduled, until you say so">
-        <Icon name="pause" /> Pause everything
-      </button>
+      {choosing ? (
+        <>
+          <span className="pause-bar__ask">Pause everything:</span>
+          <button className="btn btn--soft btn--small" onClick={() => choose('hour')}>
+            For an hour
+          </button>
+          <button className="btn btn--soft btn--small" onClick={() => choose('morning')}>
+            Until tomorrow morning
+          </button>
+          <button className="btn btn--soft btn--small" onClick={() => choose('manual')}>
+            Until I say
+          </button>
+        </>
+      ) : (
+        <button className="btn btn--soft btn--small" onClick={() => setChoosing(true)} title="Stops what’s running and anything scheduled, for as long as you choose">
+          <Icon name="pause" /> Pause everything
+        </button>
+      )}
     </div>
   )
 }
 
-export type Tab = 'work' | 'sent'
+export type Tab = 'work' | 'sent' | 'changed'
 
 /**
  * What Otty is doing while the user looks away: what's coming up first, soonest at the top, then the rest, newest
- * first. The second tab is what left the Mac (D-31), so "what did it send?" has an answer next to "what did it do?".
+ * first. Beside it: what left the Mac (D-31) and what Otty changed (D-46), so "what did it send?" and "what did it
+ * change?" have answers next to "what is it doing?".
  */
 export function Activity({
   items,
   onOpen,
   onOpenChat,
   paused,
+  pausedUntil,
   onPause,
   startTab = 'work'
 }: {
@@ -126,7 +150,8 @@ export function Activity({
   onOpen: () => void
   onOpenChat: (chatId: string) => void
   paused: boolean
-  onPause: (on: boolean) => void
+  pausedUntil: number | null
+  onPause: (choice: PauseChoice | false) => void
   /** Which list shows first: Settings › Privacy opens "What left your Mac" directly. */
   startTab?: Tab
 }) {
@@ -134,19 +159,24 @@ export function Activity({
   return (
     <div className="activity">
       <div className="activity__tabs" role="tablist">
-        <button role="tab" aria-selected={tab === 'work'} className="activity__tab" onClick={() => setTab('work')}>
-          What Otty is doing
+        <button role="tab" aria-selected={tab === 'work'} aria-label="What Otty is doing" title="What Otty is doing" className="activity__tab" onClick={() => setTab('work')}>
+          Doing
         </button>
-        <button role="tab" aria-selected={tab === 'sent'} className="activity__tab" onClick={() => setTab('sent')}>
-          What left your Mac
+        <button role="tab" aria-selected={tab === 'sent'} aria-label="What left your Mac" title="What left your Mac" className="activity__tab" onClick={() => setTab('sent')}>
+          Left your Mac
+        </button>
+        <button role="tab" aria-selected={tab === 'changed'} aria-label="What Otty changed" title="What Otty changed" className="activity__tab" onClick={() => setTab('changed')}>
+          Changed
         </button>
       </div>
-      {tab === 'work' ? <Work items={items} onOpen={onOpen} paused={paused} onPause={onPause} /> : <SentList onOpenChat={onOpenChat} />}
+      {tab === 'work' && <Work items={items} onOpen={onOpen} paused={paused} pausedUntil={pausedUntil} onPause={onPause} />}
+      {tab === 'sent' && <SentList onOpenChat={onOpenChat} />}
+      {tab === 'changed' && <ChangeList onOpenChat={onOpenChat} />}
     </div>
   )
 }
 
-function Work({ items, onOpen, paused, onPause }: { items: ActivityItem[]; onOpen: () => void; paused: boolean; onPause: (on: boolean) => void }) {
+function Work({ items, onOpen, paused, pausedUntil, onPause }: { items: ActivityItem[]; onOpen: () => void; paused: boolean; pausedUntil: number | null; onPause: (choice: PauseChoice | false) => void }) {
   const unseen = items.some((i) => i.unseen)
   useEffect(() => {
     if (unseen) void window.otty.seenActivity()
@@ -157,7 +187,7 @@ function Work({ items, onOpen, paused, onPause }: { items: ActivityItem[]; onOpe
 
   return (
     <>
-      {(items.length > 0 || paused) && <PauseBar paused={paused} onPause={onPause} />}
+      {(items.length > 0 || paused) && <PauseBar paused={paused} until={pausedUntil} onPause={onPause} />}
       {!items.length && (
         <div className="activity__empty">
           <Icon name="binoculars" />

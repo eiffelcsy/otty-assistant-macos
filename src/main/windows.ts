@@ -1,5 +1,6 @@
 import { BrowserWindow, nativeImage, screen, shell, systemPreferences } from 'electron'
-import type { OcrLine, PickupPicture, QuickState } from '../shared/types'
+import type { OcrLine, PanelOpenPayload, PickupPicture, QuickState } from '../shared/types'
+import { setView } from './ipc/check'
 import { join } from 'path'
 import { getViewer } from './draw'
 import { readText } from './ocr'
@@ -17,6 +18,8 @@ let panel: BrowserWindow | null = null
 let quick: BrowserWindow | null = null
 
 export function load(win: BrowserWindow, view: 'bubble' | 'panel' | 'quick' | 'pickup' | 'viewer'): void {
+  // So main can tell which view sent a message, and refuse one a view has no business sending (D-44).
+  setView(win.webContents, view)
   const devUrl = process.env['ELECTRON_RENDERER_URL']
   if (devUrl) win.loadURL(`${devUrl}?view=${view}`)
   else win.loadFile(join(__dirname, '../renderer/index.html'), { query: { view } })
@@ -369,4 +372,17 @@ export function expandQuickToPanel(): void {
   const [x, y] = quick.getPosition()
   quick.hide()
   showPanelAt({ x: x - GAP, y: y - GAP })
+}
+
+/** Opens the full panel with something to show, by the otter or at the cursor. */
+export function openPanel(payload: PanelOpenPayload, where: 'cursor' | 'bubble'): void {
+  getQuick()?.hide()
+  getPanel()?.webContents.send('panel:open', payload)
+  if (where === 'bubble') showPanelByBubble()
+  else showPanelAtCursor()
+}
+
+export function openSettings(): void {
+  getPanel()?.webContents.send('panel:open', { context: null, notice: 'open-settings' } satisfies PanelOpenPayload)
+  showPanelByBubble()
 }

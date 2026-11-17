@@ -1,10 +1,9 @@
 // Step cards (D-28 and on): the model proposes steps, the user presses the buttons, and the fake Mac records what
 // Otty's hands did. Anything the model wrote must reach osascript through argv, never inside a script's text.
-import { execFileSync } from 'child_process'
 import type { Page } from '@playwright/test'
 import type { SmokeCall } from '../app/types'
 import type { ModelBody } from '../world/server'
-import { expect, test, type Otty } from '../fixtures'
+import { expect, pbcopy, pbpaste, test, type Otty } from '../fixtures'
 
 /** Only streamed answers: a background call (the chat's title) quotes the question too, and mustn't use up its reply. */
 const streamed = (words: string) => (text: string, body: ModelBody) => body.stream === true && text.includes(words)
@@ -33,8 +32,6 @@ async function expectOnlyInArgv(otty: Otty, words: string[]): Promise<void> {
   }
 }
 
-const pbcopy = (text: string) => execFileSync('pbcopy', { input: text })
-const pbpaste = () => execFileSync('pbpaste', { encoding: 'utf8' })
 
 /** Highlight something in an app and press ⌥Space, so the question knows which app the steps are for. */
 async function askFrom(otty: Otty, app: { name: string; bundleId: string }, selection: string, question: string): Promise<Page> {
