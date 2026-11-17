@@ -1,4 +1,3 @@
-import type { Message, ToolCall } from '../../src/main/providers'
 
 // Otty eval (D-23). Not shipped. A case is a question plus what a good model does with it.
 
@@ -71,4 +70,3 @@ export interface CaseResult {
   trace: Trace
 }
 
-export type { Message, ToolCall }

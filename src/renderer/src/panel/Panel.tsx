@@ -166,12 +166,33 @@ export function Panel() {
   }, [view, messages.length])
 
   // Follow the conversation, unless a search result asked to show one message or the find bar is open.
+  const following = useRef(true)
   useEffect(() => {
     if (findingRef.current !== null) return
     const found = focusId && scrollRef.current?.querySelector(`[data-msg-id="${CSS.escape(focusId)}"]`)
+    following.current = !found
     if (found) found.scrollIntoView({ block: 'center' })
     else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, focusId, view])
+
+  // Something that grows after its answer arrived (a drawing renders lazily) mustn't push the end of the chat off
+  // screen: keep following while the chat is at its end, until the person scrolls away.
+  useEffect(() => {
+    const chat = scrollRef.current
+    if (!chat || typeof ResizeObserver === 'undefined') return
+    let height = chat.scrollHeight
+    const grew = new ResizeObserver(() => {
+      if (chat.scrollHeight > height && following.current && findingRef.current === null) chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' })
+      height = chat.scrollHeight
+    })
+    for (const el of chat.children) grew.observe(el)
+    const settled = () => (following.current = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 8)
+    chat.addEventListener('scrollend', settled)
+    return () => {
+      grew.disconnect()
+      chat.removeEventListener('scrollend', settled)
+    }
+  }, [messages, view])
 
   const actions = settings && !att.reading ? actionsForTray(captures, att.ready, settings.homeLanguage, { app, readsPages: settings.readsPages }) : []
 

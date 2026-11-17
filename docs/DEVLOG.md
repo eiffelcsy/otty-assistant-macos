@@ -77,7 +77,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phase 1 built; phase 2 next | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
+| D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
 | D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M (1 day) |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M (1–2 days) |
 | D-45 | Split the composition root: no electron in the loop (steps 1–2 shipped) | ⏳ step 3 | a settings split | S–M (1 day) |
@@ -102,7 +102,7 @@ A single run before this one also failed `injection-clipboard` once. The model r
 2. ✅ **D-48 phase 1** (`npm run verify`, Claude Code hooks, lint, rule tests, the PR template, the `ship` skill).
 3. **The ✋ steps on a Mac**, by a person, and a fresh eval baseline.
 4. **Harness extras** from BRAINSTORM, only as specs need them.
-5. **D-48 phase 2** (coverage ratchet, component and property tests, screenshots of the UI preview, docs-drift checks).
+5. ✅ **D-48 phase 2** (CHANGELOG): coverage floors, card and property tests, screenshots of the UI preview, docs drift, knip, the idle check.
 6. **Hardening (D-41 to D-46)**, in the order below. ✅ D-41 to D-43 (CHANGELOG), on `feat/hardening-gates`; D-44 and D-45's steps 1–2 on `feat/hardening-ipc`; D-46 on `feat/action-ledger`.
 7. **Features (D-37 to D-40)**, in the order below. ✅ D-39 and D-40 (CHANGELOG), on `feat/pause-and-hidden`. D-37 and D-38 wait for painted frames from `tools/otty-art/source/` (art is never hand-made in code), and D-37 also needs files in the quick view, which has none yet.
 8. **D-48 phase 3** (mutation testing, eval in CI) when the beta is close.
@@ -128,7 +128,7 @@ A single run before this one also failed `injection-clipboard` once. The model r
 
 ---
 
-## D-48 · Agents check their own work 🔨 phase 1 built
+## D-48 · Agents check their own work 🔨 phases 1–2 built
 
 **Goal.** A coding agent can take a DEVLOG entry to a green PR, and the checks, not the owner, prove three things:
 - the code **works**: unit tests, the smoke harness, the eval;
@@ -199,7 +199,7 @@ Checked 2026-11-16. There are 54 test files, the typecheck is `strict` with `noU
   - Bug fixes start with a test that fails on `main`, and the PR says so.
   ✅ Built: `.github/pull_request_template.md`, `.claude/skills/ship/`, and `tools/verify/risk.mjs` (`npm run risk`), which gives a change the class of its riskiest path from `verify.config.mjs`.
 
-### Phase 2: deeper checks (2–3 days, after D-47)
+### Phase 2: deeper checks — ✅ built on `feat/verify-phase-2` (2026-11-17)
 - **Coverage ratchet.** `vitest --coverage` with v8, with a floor per folder at today's numbers that only goes up, and full coverage asked for on the safety modules listed above.
 - **Renderer tests.** Testing Library tests (`jsdom` is already installed) for each card and the panel's states, starting with confirm, proofread, step and chart cards.
 - **Property tests** with `fast-check` for the pure parsers and guards: `maskSecrets`, `isPrivateAddress`, `shared/match.ts`, `shared/diff.ts`, `shared/table.ts`, `draw/sanitize.ts`, `repeat.ts` and `knownUrls.ts`.
@@ -212,6 +212,18 @@ Checked 2026-11-16. There are 54 test files, the typecheck is `strict` with `noU
 - **Dead code.** `knip` for unused files, exports and dependencies.
 - **Typecheck.** Turn on `noUncheckedIndexedAccess`, one folder at a time.
 - **OCR helper.** CI runs `otty-ocr` on a fixture picture with English and Chinese words.
+
+✅ Built:
+- `npm run coverage` and `tools/verify/coverage.mjs`, with floors in `tools/verify/baseline/coverage.json` and the groups and safety files in `verify.config.mjs`.
+- `cards.test.tsx` (confirm, step and rewind cards). The proofread card already had `Markdown.test.tsx`, and the chart card, which needs Mermaid, stays with `charts.smoke.ts`.
+- Property tests in `shared/__tests__/properties.test.ts`, `main/__tests__/properties.test.ts` and `draw/__tests__/sanitize.test.ts`.
+- `npm run screens` (`tools/ui-preview/screens/`), 62 shots, and CI's `screens` job. A step card padded 20 px more fails with a 4,028-pixel diff; the tolerance is 0.2% of the page.
+- `rules/docsDrift.test.ts`. The "say why in the template" part was already in the PR template and the verify route.
+- `idle.smoke.ts`: stepped animations pass, smooth endless ones fail.
+- `knip` (`knip.json`), in `verify` and CI.
+- `pickup.smoke.ts` reads a line of Chinese, and the smoke clipboard helpers now use UTF-8.
+
+*Not done:* `noUncheckedIndexedAccess`. On `src/shared` it raised 50 errors, nearly all indices known to be in range and regex groups, so the fix would be 50 `!`s that catch nothing. Revisit it for code that indexes data from outside.
 
 ### Phase 3: near the beta
 - **Mutation testing.** Stryker on the safety modules, weekly and before a release. A surviving mutant gets a test.

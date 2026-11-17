@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "tools/smoke/playwright.config.ts",
+    "tools/smoke/specs/*.smoke.ts",
+    "tools/smoke/*.mjs",
+    "tools/verify/**/*.mjs",
+    "tools/ui-preview/screens/*.screens.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "tools/**/*.{ts,mts,mjs}", "*.{ts,mts,mjs}"],
+  "ignoreBinaries": ["swiftc", "lipo", "pbcopy", "pbpaste"],
+  "ignoreDependencies": ["oxlint", "oxlint-tsgolint"],
+  "ignoreExportsUsedInFile": true
+}

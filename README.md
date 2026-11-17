@@ -53,7 +53,13 @@ The `dmg` workflow on GitHub Actions builds the same thing, and attaches it to a
 npm run verify:quick
 ```
 
-Lint, typecheck and the unit tests for what changed: the same check a coding agent runs before it stops. `npm run verify` adds every unit test, the build and the release check, which is what CI runs.
+Lint, typecheck and the unit tests for what changed: the same check a coding agent runs before it stops. `npm run verify` adds dead-code checks, every unit test held to coverage floors, the build and the release check, which is what CI runs.
+
+```bash
+npm run screens
+```
+
+Screenshots every UI preview scene in light and dark, and compares them with the committed ones (needs `npx playwright install chromium` once).
 
 ```bash
 npm run smoke

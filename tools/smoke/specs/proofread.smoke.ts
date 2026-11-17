@@ -1,9 +1,8 @@
 // The proofread card: the model sends a ```fixed block, and the marks come from shared/diff.ts comparing it with the
 // highlighted text, never from the model.
-import { execFileSync } from 'child_process'
 import type { Page } from '@playwright/test'
 import type { ModelBody } from '../world/server'
-import { expect, ONBOARDED, test, type Otty } from '../fixtures'
+import { expect, ONBOARDED, pbpaste, test, type Otty } from '../fixtures'
 
 /** Only streamed answers: a background call (the chat's title) quotes the question too, and mustn't use up its reply. */
 const streamed = (words: string) => (text: string, body: ModelBody) => body.stream === true && text.includes(words)
@@ -13,7 +12,6 @@ const FIXED = 'Hi Sam, I went to the shop yesterday and bought some apples for t
 const fixedReply = (reasons: string) => `\`\`\`fixed\n${FIXED}\n\`\`\`\n\n${reasons}`
 
 const lastAnswer = (page: Page) => page.locator('.msg--otty').last()
-const pbpaste = () => execFileSync('pbpaste', { encoding: 'utf8' })
 
 async function checkWriting(otty: Otty, text: string): Promise<Page> {
   await otty.mac({ selection: text, front: { name: 'Mail', bundleId: 'com.apple.mail' } })

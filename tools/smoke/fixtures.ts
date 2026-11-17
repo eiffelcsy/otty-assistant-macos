@@ -167,17 +167,23 @@ export class Otty {
 /** Shapes of text that mean an error leaked to the screen. */
 const RAW_ERROR = [/\b(?:Type|Reference|Syntax|Range)Error\b/, /\bError: /, /\bundefined\b/, /\bNaN\b/, /\[object \w+\]/, /\bat \S+ \(\S+:\d+:\d+\)/, /\bstatus code \d{3}\b/i]
 
-/** The user's clipboard text, put back after each test. Formats other than text aren't kept. */
+/** pbcopy and pbpaste turn anything outside ASCII into "?" unless the locale says UTF-8. */
+const UTF8 = { env: { ...process.env, LANG: 'en_US.UTF-8' } }
+
+/** The real clipboard's text. The user's is put back after each test; formats other than text aren't kept. */
+export const pbpaste = (): string => execFileSync('pbpaste', { ...UTF8, encoding: 'utf8' })
+export const pbcopy = (text: string): void => void execFileSync('pbcopy', { ...UTF8, input: text })
+
 function readClipboard(): string {
   try {
-    return execFileSync('pbpaste', { encoding: 'utf8' })
+    return pbpaste()
   } catch {
     return ''
   }
 }
 function writeClipboard(text: string): void {
   try {
-    execFileSync('pbcopy', { input: text })
+    pbcopy(text)
   } catch {
     /* nothing to restore */
   }

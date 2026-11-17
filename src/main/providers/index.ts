@@ -11,7 +11,7 @@ import type { Provider, Usage } from './types'
 export { ConnectionError, FriendlyError, NoVisionError } from './errors'
 export type { Profile } from './profiles'
 export type { SentTag } from '../sent'
-export type { ChatRequest, Completion, ContentPart, Message, Provider, ProviderEvent, ProviderReplay, ToolCall, Usage } from './types'
+export type { ChatRequest, ContentPart, Message, Provider, ProviderEvent, ProviderReplay, ToolCall, Usage } from './types'
 
 function config() {
   const s = getStored()
