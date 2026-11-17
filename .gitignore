@@ -10,3 +10,5 @@ tools/eval/results/
 out-smoke/
 tools/smoke/results/
 tools/smoke/report/
+coverage/
+tools/ui-preview/screens/results/
