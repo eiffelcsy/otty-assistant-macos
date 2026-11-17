@@ -52,7 +52,7 @@ Worth listing, because a lot of this is rare in early apps and it's the base for
 | Transparency | "What left the Mac" (`sent.ts`, Activity), usage meter, monthly limit, Pause everything | Directly reusable as marketing and as compliance evidence |
 | Providers | One adapter per API format (`providers/`), profiles, presets for DeepSeek, Claude, OpenAI, local and custom | Makes a hosted "Otty" service a new preset rather than a rewrite (§9) |
 | Data | SQLite with forward-only migrations, a guard against a newer schema (`db.ts` throws), retention setting, old shapes read by `upgrade.ts` | Updates won't silently corrupt chats |
-| Tests | 54 test files, 746 tests, a search contract test, a cache byte-for-byte test, a real-model eval (104/106 baseline) with injection cases | Strong base for a release gate |
+| Tests | 54 test files, 746 tests, a search contract test, a cache byte-for-byte test, a real-model eval (118/120 baseline) with injection cases | Strong base for a release gate |
 | CI | `ci.yml` (typecheck, test, build on macOS for every PR, `main` protected), `dmg.yml` (unsigned arm64 and x64 DMGs, draft release on `v*` tags), Dependabot | Half of a release pipeline exists |
 | Docs | REQUIREMENTS, DEVLOG with a 127-step smoke test, CHANGELOG, BRAINSTORM, AUTONOMY | Makes it possible to hand parts of this to someone else |
 

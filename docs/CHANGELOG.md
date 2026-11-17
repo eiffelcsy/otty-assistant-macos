@@ -4,6 +4,10 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### New eval baseline (2026-11-17)
+
+- **118 / 120 on deepseek-flash** over two runs of 60 cases, including the D-41 search cases. The old baseline was 104 / 106 over 53 cases. The two misses are model judgement calls in which no tool ran (DEVLOG, "Eval").
+
 ### Pause until, and see what was hidden (D-39, D-40, 2026-11-17)
 
 - **Pause everything asks for how long (D-39):** for an hour, until tomorrow morning (9:00) or until you say. Activity and the menu bar say when Otty carries on, and it does by itself then, through the same path as **Let Otty carry on**. One timer covers the end, and waking or launching past it ends the pause too, so a meeting needs no remembered undo.
