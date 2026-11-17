@@ -176,7 +176,8 @@ export function Panel() {
   }, [messages, focusId, view])
 
   // Something that grows after its answer arrived (a drawing renders lazily) mustn't push the end of the chat off
-  // screen: keep following while the chat is at its end, until the person scrolls away.
+  // screen: keep following until the person scrolls away by hand (Otty's own glides never count), and again once they
+  // scroll back to the end.
   useEffect(() => {
     const chat = scrollRef.current
     if (!chat || typeof ResizeObserver === 'undefined') return
@@ -186,10 +187,18 @@ export function Panel() {
       height = chat.scrollHeight
     })
     for (const el of chat.children) grew.observe(el)
-    const settled = () => (following.current = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 8)
+    let byHand = false
+    const hand = () => (byHand = true)
+    const settled = () => {
+      if (byHand) following.current = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 8
+      byHand = false
+    }
+    const events = ['wheel', 'touchmove', 'pointerdown', 'keydown'] as const
+    for (const e of events) chat.addEventListener(e, hand, { passive: true })
     chat.addEventListener('scrollend', settled)
     return () => {
       grew.disconnect()
+      for (const e of events) chat.removeEventListener(e, hand)
       chat.removeEventListener('scrollend', settled)
     }
   }, [messages, view])
