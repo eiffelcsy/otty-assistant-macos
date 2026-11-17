@@ -1,8 +1,8 @@
 import { defineConfig } from '@playwright/test'
 
 // D-48: screenshots of every UI preview view and scene, light and dark, compared with the committed ones.
-// `npm run screens` checks; `npm run screens:update` takes the baselines from CI's Mac (`from-ci.mjs`), in a PR of its own that says why. On
-// another macOS, scenes with Chinese text may differ slightly: read the diff image.
+// `npm run screens` checks; `npm run screens:update` takes the baselines from CI's Mac (`from-ci.mjs`), in a PR of its own that says why. Scenes with
+// Chinese text get a little more room, since each macOS draws it slightly differently.
 export default defineConfig({
   testDir: '.',
   testMatch: '*.screens.ts',

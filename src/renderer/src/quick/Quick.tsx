@@ -75,7 +75,7 @@ export function Quick() {
         setFollowUp('')
         setPick(undefined)
         setOpened((n) => n + 1) // re-report our size even if it hasn't changed, so main can reveal us
-        setTimeout(() => inputRef.current?.focus(), 30)
+        setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 30)
       }),
     []
   )

@@ -8,6 +8,10 @@ const SCENES: Record<string, string[]> = {
   viewer: ['picture', 'slides']
 }
 
+/** Scenes with Chinese text, which each macOS draws a little differently (about 0.7% of the picture). A moved card is
+ * still well over this. */
+const CHINESE = new Set(['panel chat', 'panel find'])
+
 /** The mock's sample chats are dated from now, so the clock is fixed for "2 hours ago" to stay the same. */
 const NOW = new Date('2026-11-17T10:00:00+08:00')
 
@@ -25,7 +29,7 @@ for (const scheme of ['light', 'dark'] as const) {
         await page.waitForTimeout(800)
         let last = ''
         await expect.poll(async () => last === (last = await scrolled()), { intervals: [250], timeout: 5_000 }).toBe(true)
-        await expect(page).toHaveScreenshot(`${view}-${scene}-${scheme}.png`)
+        await expect(page).toHaveScreenshot(`${view}-${scene}-${scheme}.png`, CHINESE.has(`${view} ${scene}`) ? { maxDiffPixelRatio: 0.01 } : {})
       })
     }
   }

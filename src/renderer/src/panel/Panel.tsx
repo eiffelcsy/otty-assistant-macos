@@ -77,7 +77,7 @@ export function Panel() {
     setInput(draft.text)
     setCaptures(draft.captures)
     setNotice(draft.files.length ? 'reattach' : null)
-    setTimeout(() => inputRef.current?.focus(), 0)
+    setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0)
   }
   const scrollRef = useRef<HTMLDivElement>(null)
   const settingsRef = useRef(settings)
@@ -132,7 +132,7 @@ export function Panel() {
         }
         take(p, !!p.add)
         setView((v) => (v === 'history' || v === 'activity' ? 'chat' : v))
-        setTimeout(() => inputRef.current?.focus(), 50)
+        setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50)
       }),
     []
   )
@@ -248,7 +248,7 @@ export function Panel() {
       dragDepth.current = 0
       setDragging(false)
       att.drop([...e.dataTransfer.files])
-      inputRef.current?.focus()
+      inputRef.current?.focus({ preventScroll: true })
     }
   }
 
@@ -387,7 +387,7 @@ export function Panel() {
                     app={app?.name ?? captures[0]?.app?.name ?? null}
                     onSuggest={(text) => {
                       setInput(text)
-                      setTimeout(() => inputRef.current?.focus(), 0)
+                      setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0)
                     }}
                   />
                 )}
