@@ -26,6 +26,18 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 - **Tool gates come from the table only (D-42).** Every run must name the tools it may use, so a new kind of run can't get all of them by forgetting. What Try again lists as done for good comes from the table, where opening a link is now `lasting`. A job's call that changes something is claimed once (a new `claims` table, schema v8), so a job resumed after a restart can't make a change twice.
 - **Job states as a table (D-43).** `jobs/states.ts` lists every legal move, and anything else throws. A status is saved before it's shown, and a job's steps are written in order through one chain, so a slow store can't reorder them and a failed write fails the job with friendly words instead of vanishing.
 
+### Agents check their own work, phase 2 (D-48, 2026-11-17)
+
+- **Coverage floors that only go up** (`npm run coverage`, in CI): per folder, and on their own for the eleven safety modules, so a drop can't hide in an average.
+- **Property tests** (fast-check) for the parsers and guards: hidden keys, word diffs, matching, tables, repeats, private addresses, known addresses and the SVG sanitiser. **Card tests** (Testing Library) click the confirm, step and rewind cards like a person would.
+- **Screenshots of every UI preview scene**, light and dark (`npm run screens`, a CI job of its own): a card moved by a few pixels fails with a diff image an agent can read.
+- **A docs-drift test**: every path CLAUDE.md and DEVLOG's architecture name exists, and every roadmap row has its entry. **knip** keeps out unused files, exports and dependencies, and found four. **An idle check** fails on any smooth endless animation on the otter. The OCR helper now reads a line of Chinese in CI.
+- **Fixed in the harness:** a smoke run turned non-ASCII text on the real clipboard into question marks when it put the user's clipboard back.
+- **Fixed:** on a slower Mac, ⌘F straight after an answer could leave the current match just off screen once the chat finished gliding. Find now brings it back when the glide ends. Found by CI's smoke run.
+- **Fixed:** a drawing or chart that finished rendering after its answer could push the end of the chat off screen. The chat now keeps following while it's at its end, until you scroll away. Found by the screenshots.
+- **CI runs smoke only on PRs into `main`** (and pushes to it), so a stack of PRs doesn't run it once per branch.
+- **Screenshot baselines come from CI's Mac** (`npm run screens:update` copies them), because another macOS draws Chinese text slightly differently.
+
 ### The smoke test runs itself (D-47, 2026-11-16)
 
 - **`npm run smoke` drives the real release build** with Playwright: 130 tests across 119 of the 127 checklist steps, in about 5 minutes, on a dev Mac or in CI. A ✋ marks what a person must still check, and a test fails when a step has neither.
