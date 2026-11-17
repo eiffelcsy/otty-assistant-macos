@@ -79,7 +79,9 @@ jobs:
           retention-days: 14
 
   smoke:
-    # D-47: the real app, driven by Playwright against a fake world. Nothing leaves the runner.
+    # D-47: the real app, driven by Playwright against a fake world. Nothing leaves the runner. Only for PRs into main
+    # and pushes to it, so a stack of PRs runs it once, when each one is retargeted to main.
+    if: github.event_name == 'push' || github.base_ref == 'main'
     runs-on: macos-latest
     timeout-minutes: 40
     steps:

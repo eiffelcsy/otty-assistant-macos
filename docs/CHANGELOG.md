@@ -12,6 +12,8 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 - **A docs-drift test**: every path CLAUDE.md and DEVLOG's architecture name exists, and every roadmap row has its entry. **knip** keeps out unused files, exports and dependencies, and found four. **An idle check** fails on any smooth endless animation on the otter. The OCR helper now reads a line of Chinese in CI.
 - **Fixed in the harness:** a smoke run turned non-ASCII text on the real clipboard into question marks when it put the user's clipboard back.
 - **Fixed:** on a slower Mac, ⌘F straight after an answer could leave the current match just off screen once the chat finished gliding. Find now brings it back when the glide ends. Found by CI's smoke run.
+- **Fixed:** a drawing or chart that finished rendering after its answer could push the end of the chat off screen. The chat now keeps following while it's at its end, until you scroll away. Found by the screenshots.
+- **CI runs smoke only on PRs into `main`** (and pushes to it), so a stack of PRs doesn't run it once per branch.
 - **Screenshot baselines come from CI's Mac** (`npm run screens:update` copies them), because another macOS draws Chinese text slightly differently.
 
 ### The smoke test runs itself (D-47, 2026-11-16)
