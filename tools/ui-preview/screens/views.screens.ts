@@ -23,7 +23,8 @@ for (const scheme of ['light', 'dark'] as const) {
         // glides to its last message at its own pace.
         await page.waitForLoadState('networkidle')
         await page.waitForTimeout(800)
-        await expect.poll(scrolled, { intervals: [250], timeout: 5_000 }).toEqual(await scrolled())
+        let last = ''
+        await expect.poll(async () => last === (last = await scrolled()), { intervals: [250], timeout: 5_000 }).toBe(true)
         await expect(page).toHaveScreenshot(`${view}-${scene}-${scheme}.png`)
       })
     }

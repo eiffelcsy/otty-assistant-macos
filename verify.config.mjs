@@ -83,7 +83,7 @@ export default {
     },
     {
       when: ['src/renderer/**/*.tsx', 'src/renderer/**/*.css'],
-      say: 'The UI changed: run `npm run screens` (every preview scene, light and dark) and read any diff image in tools/ui-preview/screens/results/. A wanted change is `npm run screens:update` in a PR of its own.'
+      say: 'The UI changed: run `npm run screens` (every preview scene, light and dark) and read any diff image in tools/ui-preview/screens/results/. A wanted change is `npm run screens:update` after CI has run, in a PR of its own. On a macOS other than CI's, Chinese text may differ slightly.'
     },
     {
       when: ['src/renderer/src/styles.css', 'src/renderer/src/components/Otter.tsx', 'src/renderer/src/bubble/**'],

@@ -12,7 +12,9 @@ const NOT_FILES = new Set([
   'userData/otty.db',
   'fileWorker.js', // the build's name for src/main/files/worker.ts
   '*.smoke.ts', // a pattern
-  'clipboard.read/readText/write/writeText' // Electron's API
+  'clipboard.read/readText/write/writeText', // Electron's API
+  'out/', // build output: CI runs the tests before it builds
+  'build/bin'
 ])
 
 const tracked = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)

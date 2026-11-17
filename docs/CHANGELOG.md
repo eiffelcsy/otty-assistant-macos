@@ -11,6 +11,8 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 - **Screenshots of every UI preview scene**, light and dark (`npm run screens`, a CI job of its own): a card moved by a few pixels fails with a diff image an agent can read.
 - **A docs-drift test**: every path CLAUDE.md and DEVLOG's architecture name exists, and every roadmap row has its entry. **knip** keeps out unused files, exports and dependencies, and found four. **An idle check** fails on any smooth endless animation on the otter. The OCR helper now reads a line of Chinese in CI.
 - **Fixed in the harness:** a smoke run turned non-ASCII text on the real clipboard into question marks when it put the user's clipboard back.
+- **Fixed:** on a slower Mac, ⌘F straight after an answer could leave the current match just off screen once the chat finished gliding. Find now brings it back when the glide ends. Found by CI's smoke run.
+- **Screenshot baselines come from CI's Mac** (`npm run screens:update` copies them), because another macOS draws Chinese text slightly differently.
 
 ### The smoke test runs itself (D-47, 2026-11-16)
 

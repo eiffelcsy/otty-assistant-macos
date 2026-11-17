@@ -26,7 +26,7 @@
     "build:mac": "node tools/otty-ocr/build.mjs && electron-vite build && electron-builder --mac --publish never",
     "risk": "node tools/verify/risk.mjs",
     "screens": "playwright test -c tools/ui-preview/screens/playwright.config.ts",
-    "screens:update": "playwright test -c tools/ui-preview/screens/playwright.config.ts --update-snapshots",
+    "screens:update": "node tools/ui-preview/screens/from-ci.mjs",
     "smoke:packaged": "node tools/smoke/packaged.mjs"
   },
   "devDependencies": {

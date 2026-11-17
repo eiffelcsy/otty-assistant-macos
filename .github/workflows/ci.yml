@@ -47,8 +47,9 @@ jobs:
       - run: node tools/smoke/check-release.mjs
 
   screens:
-    # D-48: every UI preview view and scene, light and dark, against the committed screenshots.
-    runs-on: macos-latest
+    # D-48: every UI preview view and scene, light and dark, against the committed screenshots. Pinned, because the
+    # baselines come from this Mac (tools/ui-preview/screens/from-ci.mjs): another macOS draws Chinese differently.
+    runs-on: macos-26
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
