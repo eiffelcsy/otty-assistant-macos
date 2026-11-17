@@ -58,12 +58,19 @@ export function FindBar({
       jump.current = null
       const at = r.getBoundingClientRect()
       const view = box.getBoundingClientRect()
+      const centre = () => box.scrollBy({ top: r.getBoundingClientRect().top - box.getBoundingClientRect().top - view.height / 2, behavior: 'smooth' })
       if (at.top < view.top + 40 || at.bottom > view.bottom - 40) {
-        box.scrollBy({ top: at.top - view.top - view.height / 2, behavior: 'smooth' })
+        centre()
       } else {
         // In view now, but the chat may still be gliding down to a just-finished answer, which would carry the match
-        // away. Pinning the position stops any smooth scroll that's under way.
-        box.scrollTo({ top: box.scrollTop })
+        // away. Scrolling to where it is doesn't always stop the glide, so once it ends, bring the match back if needed.
+        const back = () => {
+          const a = r.getBoundingClientRect()
+          const v = box.getBoundingClientRect()
+          if (a.top < v.top || a.bottom > v.bottom) centre()
+        }
+        box.addEventListener('scrollend', back, { once: true })
+        setTimeout(() => box.removeEventListener('scrollend', back), 1_000)
       }
     }
   }, [matches, current, chat])

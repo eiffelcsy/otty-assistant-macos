@@ -22,16 +22,16 @@ Where the checks live:
 | Web safety | Test `Markdown.test.tsx` "shows a picture's description and never loads its address"; `knownUrls.test.ts` "never trusts the model's own words…"; `readPage.test.ts`; `pageReader.test.ts` "checks every redirect…"; `copyFormats.test.ts` "never puts a remote picture or an unsafe link in the HTML"; `anthropic.test.ts` "never adds web_fetch…". Rule tests `renderer.test.ts` (nothing remote in the renderer) and `boundaries.test.ts` (no `web_fetch`). The CSP is in the build. |
 | UX for non-technical users | Smoke: every spec checks open windows for raw error text (`expectNoRawErrors` in `tools/smoke/fixtures.ts`). Tests for friendly failures, e.g. `llm.test.ts` "explains a lost connection"; confirm cards in `readPage.test.ts` and `chatLearning.test.ts` "asks on a card first, and a no starts nothing". Tone is prose only. |
 | CI | CI itself: `npm ci` fails when `package-lock.json` is out of sync. |
-| Docs | Prose only: a map of where the docs are. |
+| Docs | `rules/docsDrift.test.ts`: every path it and DEVLOG’s architecture name exists. |
 | Otty is heading from | Prose only: a design direction, judged in review against `docs/AUTONOMY.md`. Its hard limits have their own rows (Tool safety, Jobs, Memory). |
-| Keep the docs moving | Prose only: a process rule. D-48 phase 2 adds a docs-drift test. |
+| Keep the docs moving | Partly: `rules/docsDrift.test.ts` fails when a roadmap row and its entry disagree, or a shipped ID still has a DEVLOG entry. Writing the entries stays a process rule. |
 | Attachments | Rule tests `preload.test.ts` (ids and names only) and `boundaries.test.ts` (`pdfjs-dist` and `mammoth` by `import()` only, as runtime dependencies; `maskSecrets` in the worker). Test `code.test.ts` (files) "hides well-known key shapes anywhere"; `trust.test.ts` "takes out key shapes but leaves NAME=value as the user wrote it". |
 | Hotkeys | Smoke `launch.smoke.ts` (shortcuts registered). Prose only for *no panel views that only work in one column*: a layout judgement. |
-| UI work | Prose only: how to use the UI preview. |
-| Pick up text | Rule test `boundaries.test.ts` "asks Apple Vision for Chinese before English". Test `ocr.test.ts`. |
+| UI work | `npm run screens` compares every preview scene, light and dark, with committed screenshots (CI job `screens`). Using tokens is `renderer.test.ts`. |
+| Pick up text | Rule test `boundaries.test.ts` "asks Apple Vision for Chinese before English". Test `ocr.test.ts`. Smoke `pickup.smoke.ts` runs the real helper on English and Chinese. |
 | Otty is painted art | Prose only: the frames are generated, and a check would only repeat the script. |
 | UI icons are Flaticon UIcons | Rule test `renderer.test.ts` (no emoji in renderer code; no hex colour outside the tokens). |
-| Idle budget | Rule test `renderer.test.ts` (every `infinite` animation is reviewed). Test `metrics.test.ts`. The number itself is measured by hand with `OTTY_METRICS=1`. |
+| Idle budget | Rule test `renderer.test.ts` (every `infinite` animation is reviewed). Test `metrics.test.ts`. Smoke `idle.smoke.ts` fails on a smooth endless animation on the idle otter. The number itself is measured by hand with `OTTY_METRICS=1`. |
 | Whole-screen capture uses desktopCapturer | Test `wholeScreen.test.ts` "shows the friendly notice when macOS refuses…" and "hides the windows for the capture, then brings them back". |
 | Services live in src/shared/services | Test `services.test.ts` "finds every preset at its own address"; `settings.test.ts` "never hands one service's key to another". |
 | The proofread card's marks | Test `diff.test.ts`; `Markdown.test.tsx` "marks what changed against the highlighted text". |
@@ -54,4 +54,4 @@ Where the checks live:
 | Usage meter | Test `usage.test.ts`; `trust.test.ts` "says so in friendly words, never money". |
 | Health | Test `health.test.ts`, `suggestions.test.ts`. Prose only for *a chip never sends* until renderer tests (D-48 phase 2). |
 | Step cards | Rule test `osascript.test.ts` (model text reaches `osascript` only through argv; no shell). Test `act.test.ts`; `chatLearning.test.ts` "shows a card with no chip, flags risky steps and acts only in the asking app". |
-| Every iteration ends with | Prose only: a process rule. D-48 phase 2 adds a docs-drift test. |
+| Every iteration ends with | Partly: `rules/docsDrift.test.ts` fails when CLAUDE.md or DEVLOG's architecture names a path that's gone. The pass itself stays a process rule. |
