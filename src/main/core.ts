@@ -10,6 +10,8 @@ import { memoryStore } from './memory'
 import { createRunner, jobCost } from './jobs'
 import { setUsageSink, UsageMeter } from './usage'
 import { MemorySentLog, setSentLog, SqliteSentLog } from './sent'
+import { setLocalOnly } from './net'
+import { activeProfile } from './providers'
 import { MemoryLedger, setLedger, SqliteLedger } from './ledger'
 import { forgetHidden } from './hiddenLines'
 import { capStatus } from '../shared/cap'
@@ -49,6 +51,9 @@ export function sentLog() {
   }
 }
 setSentLog(sentLog)
+
+/** D-52: with a model on this Mac, the one door out refuses everything else. */
+setLocalOnly(() => activeProfile().web === 'off')
 
 /** What Otty changed (D-46), kept like what left the Mac. */
 let savedLedger: SqliteLedger | null = null

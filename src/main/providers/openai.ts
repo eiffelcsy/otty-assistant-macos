@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { FriendlyError, friendlyConnection, friendlyStatus, NoToolsError } from './errors'
 import type { Profile } from './profiles'
 import type { ChatRequest, Provider, ProviderEvent, StopReason, ToolCall, Usage } from './types'
+import { send } from '../net'
 
 // Any service with an OpenAI-style /chat/completions, including DeepSeek.
 
@@ -42,7 +43,7 @@ function requestBody(config: OpenAiConfig, req: ChatRequest): object {
 async function post(config: OpenAiConfig, body: object, signal?: AbortSignal): Promise<Response> {
   let res: Response
   try {
-    res = await fetch(`${config.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
+    res = await send(`${config.baseUrl.replace(/\/+$/, '')}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(config.key ? { Authorization: `Bearer ${config.key}` } : {}) },
       body: JSON.stringify(body),

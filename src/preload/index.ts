@@ -44,6 +44,7 @@ const api: OttyApi = {
   openPermissionSettings: (kind) => ipcRenderer.invoke('permissions:open', kind),
   relaunch: () => ipcRenderer.invoke('app:relaunch'),
   getUsage: () => ipcRenderer.invoke('usage:get'),
+  getDiagnostics: () => ipcRenderer.invoke('diagnostics:get'),
 
   sendMessage: (text, captures, opts) => ipcRenderer.invoke('chat:send', text, captures, opts),
   stop: () => ipcRenderer.invoke('chat:stop'),

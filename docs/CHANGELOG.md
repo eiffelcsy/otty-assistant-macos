@@ -4,6 +4,15 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Ready for testers: fuses, logs, safer keys, one door out (D-49 to D-53, 2026-11-18)
+
+- **Nobody can borrow Otty's permissions through its app (D-49).** The packaged app's Electron fuses are set: it can't be run as plain Node, take `NODE_OPTIONS` or a debugger, and it loads only its own checked app archive. Flipping them edits the binary, so builds are now ad-hoc signed afterwards (an arm64 Mac kills an app whose signature doesn't match), with the hardened runtime off until there's a Developer ID. A rule test keeps both. **Fixed:** `npm run smoke:packaged` could wait forever on an app that didn't quit on SIGTERM.
+- **Settings › Help › Copy diagnostics (D-50).** It shows everything first: Otty's version, macOS, the service and model, the permissions and the last lines of Otty's log. Then it copies it to paste into a message. Never a key, a custom service's address or a chat's words. The log itself is new, at `~/Library/Logs/Otty/otty.log`: main's warnings and errors, each masked for keys, without the home folder's path or any web address, cut short, and rotated at 1 MB. A service's error body is logged by size only, because it can quote the question, and a custom service's host is replaced in the report wherever a log line names it.
+- **Keys only from the Keychain (D-51).** When the Mac's Keychain can't be reached, a new key isn't saved at all, and Settings and the welcome page say why, instead of a key landing in `settings.json` in plain text. A key an older Otty kept that way still works and goes into the Keychain at the next launch. The installed app ignores `DEEPSEEK_API_KEY`.
+- **One door out (D-52).** Every request Otty makes (the model, DeepSeek's search, pages read from the Mac, Wikipedia and DuckDuckGo) goes through `send` in `net.ts`. With a model on this Mac it refuses anything else before a connection opens (the page reader checks before its DNS lookup too), so "nothing leaves your Mac" no longer depends on each tool remembering. A rule test fails on any other `fetch` in main.
+- **Move to Applications (D-53).** Run from the DMG or Downloads, the installed app offers once to move itself into Applications, where macOS keeps its permissions and updates. It comes to the front to ask, since Otty has no Dock icon. "Not now", or cancelling macOS's own replace prompt, is remembered.
+- **Docs:** BRAINSTORM gains Connections (Google Calendar, Canvas, Notion, MCP), Build your own feature (the feature kit, your own tiles, recipes) and Otty's own calendar, each with a concept note, and duplicate rows are gone. DEVLOG plans D-54 to D-58.
+
 ### New eval baseline (2026-11-17)
 
 - **118 / 120 on deepseek-flash** over two runs of 60 cases, including the D-41 search cases. The old baseline was 104 / 106 over 53 cases. The two misses are model judgement calls in which no tool ran (DEVLOG, "Eval").

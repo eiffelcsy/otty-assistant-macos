@@ -1,5 +1,7 @@
 import { app, BrowserWindow, globalShortcut, powerMonitor } from 'electron'
 import { getStored } from './settings'
+import { startLog } from './log'
+import { offerMove } from './install'
 import { closeStore } from './store'
 import { startMetrics } from './metrics'
 import { openChat } from './captureRoute'
@@ -20,6 +22,7 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.whenReady().then(() => {
+    startLog(app.getPath('logs'), app.getVersion())
     app.dock?.hide() // Otty lives in the bubble + menu bar, not the Dock.
     startMetrics()
     registerIpc()
@@ -37,6 +40,7 @@ if (!app.requestSingleInstanceLock()) {
     createTray()
 
     if (!getStored().onboarded) getPanel()?.once('ready-to-show', openChat)
+    void offerMove()
   })
 
   app.on('second-instance', openChat)

@@ -189,14 +189,14 @@ Today: `identity: null` in `electron-builder.yml`, `CSC_IDENTITY_AUTO_DISCOVERY:
 | --- | --- | --- | --- |
 | 5.1 | Join the Apple Developer Program | S | Yearly fee (**verify**). **Individual or organisation:** an individual account shows your personal legal name as the developer in macOS dialogs; an organisation account shows the company name but needs a legal entity and a D-U-N-S number, which can take weeks. Decide with §18.1 |
 | 5.2 | A Developer ID Application certificate | S | Keep the private key safe (a password manager, plus an encrypted backup). Losing it means a new identity, and macOS treats the new build as a different app for permissions |
-| 5.3 | Hardened runtime and entitlements review | S | electron-builder enables the hardened runtime by default for signing. Review `build/entitlements.mac.plist`: `allow-unsigned-executable-memory` may no longer be needed by Electron 45 (**verify**, remove if not); keep `allow-jit` and `automation.apple-events` |
+| 5.3 | Hardened runtime and entitlements review | S | **Turn the hardened runtime back on with the Developer ID:** it's off while builds are ad-hoc signed (D-49), because ad-hoc code has no Team ID and library validation refuses Electron's framework. Never add `disable-library-validation` instead. electron-builder enables the hardened runtime by default for signing. Review `build/entitlements.mac.plist`: `allow-unsigned-executable-memory` may no longer be needed by Electron 45 (**verify**, remove if not); keep `allow-jit` and `automation.apple-events` |
 | 5.4 | Sign the OCR helper | S | `otty-ocr` ships in `extraResources`. Check that it's signed with the hardened runtime in the final app (`codesign -dv --verbose=4` on it and `spctl -a -vv` on the app). An unsigned helper fails notarization |
 | 5.5 | Notarize and staple | S–M | electron-builder's `notarize` option with an App Store Connect API key (preferred over an app-specific password). Staple the ticket so first launch works offline |
 | 5.6 | Signing in CI | M | Store the certificate (base64 `.p12`) and the API key as GitHub secrets, used only in a release job that runs on tags, in a protected GitHub **environment** that needs your approval. Never on PRs from forks |
-| 5.7 | Electron fuses | S | Not configured. Otty holds Accessibility, Screen Recording and Automation grants, and an attacker who can run the app binary with `ELECTRON_RUN_AS_NODE` or `--inspect` inherits them. Turn off `RunAsNode`, `EnableNodeOptionsEnvironmentVariable` and `EnableNodeCliInspectArguments`; turn on `EnableEmbeddedAsarIntegrityValidation`, `OnlyLoadAppFromAsar` and `EnableCookieEncryption` (electron-builder's `electronFuses`, **verify** the option name for your version) |
+| 5.7 | Electron fuses | S | ✅ Done (D-49, 2026-11-18): set in `electron-builder.yml`, kept by `rules/build.test.ts`. Was: not configured. Otty holds Accessibility, Screen Recording and Automation grants, and an attacker who can run the app binary with `ELECTRON_RUN_AS_NODE` or `--inspect` inherits them. Turn off `RunAsNode`, `EnableNodeOptionsEnvironmentVariable` and `EnableNodeCliInspectArguments`; turn on `EnableEmbeddedAsarIntegrityValidation`, `OnlyLoadAppFromAsar` and `EnableCookieEncryption` (electron-builder's `electronFuses`, **verify** the option name for your version) |
 | 5.8 | Bundle identifier | S | `com.otty.assistant` implies you own `otty.com`. Use a reverse domain you own (§17). **Change it before the first public build**: macOS ties permissions, Keychain items and `userData` to it, so changing it later loses every user's grants and saved key |
 | 5.9 | Usage descriptions | S | Only `NSAppleEventsUsageDescription` is set. Check whether Screen Recording, and anything else you prompt for, needs its own string, and keep each one in friendly words |
-| 5.10 | DMG polish | S | A background with "drag Otty to Applications", a signed DMG, a sensible volume name. Consider a check that moves the app to `/Applications` on first launch, because permissions and updates break when it runs from the DMG or Downloads |
+| 5.10 | DMG polish | S | The move-to-Applications check is ✅ done (D-53, 2026-11-18). Still open: a background with "drag Otty to Applications", a signed DMG, a sensible volume name. Consider a check that moves the app to `/Applications` on first launch, because permissions and updates break when it runs from the DMG or Downloads |
 | 5.11 | Size | S | Each DMG is about 145 MB. Normal for Electron, but check what's in `out/` and `node_modules` that ships (for example whether mermaid, katex or mathjs pull in more than they need). Keep two DMGs (arm64 and x64) and pick the right one on the download page, rather than one large universal build |
 
 ---
@@ -274,9 +274,9 @@ Otty's design is strong. These are the gaps that matter once strangers use it.
 
 | # | Item | Size | Notes |
 | --- | --- | --- | --- |
-| 10.1 | Electron fuses | S | See 5.7. The most important item here, because of the permissions Otty holds |
-| 10.2 | No plain-text key fallback | S | `settings.ts` saves the key base64-encoded but **unencrypted** when `safeStorage` isn't available. On a signed Mac build that should essentially never happen; when it does, refuse to save and say so in friendly words rather than writing the key to `settings.json` |
-| 10.3 | Ignore `DEEPSEEK_API_KEY` in the packaged app | S | `envKey` reads it in every build. Limit it to `!app.isPackaged` so a production build's key source is only the Keychain |
+| 10.1 | Electron fuses | S | ✅ Done (D-49). See 5.7. The most important item here, because of the permissions Otty holds |
+| 10.2 | No plain-text key fallback | S | ✅ Done (D-51, 2026-11-18): a key isn't saved without the Keychain, and an old plain one moves in. Was: `settings.ts` saves the key base64-encoded but **unencrypted** when `safeStorage` isn't available. On a signed Mac build that should essentially never happen; when it does, refuse to save and say so in friendly words rather than writing the key to `settings.json` |
+| 10.3 | Ignore `DEEPSEEK_API_KEY` in the packaged app | S | ✅ Done (D-51). Was: `envKey` reads it in every build. Limit it to `!app.isPackaged` so a production build's key source is only the Keychain |
 | 10.4 | Encrypt `otty.db` | M | BRAINSTORM lists it. Memories and saved chats are a record of someone's life, readable by any process running as the user. SQLite encryption with a key in the Keychain (**verify** what `node:sqlite` supports, or encrypt sensitive columns). At least make sure FileVault is mentioned in the privacy page |
 | 10.5 | Check IPC inputs | S–M | ✅ Done (D-44, 2026-11-17): every channel is in one table with the views that may use it and a check per argument, and a rule test and a fuzz test keep it so. |
 | 10.6 | Red-team before release | M | BRAINSTORM: grow the injection set and run it before each release (7.5). Add cases for pages, files and highlights that try to make Otty send data out or change memory |
@@ -339,8 +339,8 @@ You can't see what happens on a tester's Mac today. Errors go to `console.error`
 
 | # | Item | Size | Notes |
 | --- | --- | --- | --- |
-| 14.1 | Log files | S | `electron-log` or a small writer to `~/Library/Logs/Otty/`, rotated, with **no content**: errors, timings, provider status codes, feature names. Run every line through `maskSecrets` too |
-| 14.2 | "Copy diagnostics" / "Send to Otty's team" | S–M | In Settings → Help: version, macOS, architecture, permissions state (`permissions.ts`), provider kind (not the key), the last log lines. The user sees exactly what's sent before sending — consistent with "What left the Mac", and it should appear there |
+| 14.1 | Log files | S | ✅ Done (D-50, 2026-11-18): `~/Library/Logs/Otty/otty.log`, masked, rotated at 1 MB, teed from main's console. Planned: `electron-log` or a small writer to `~/Library/Logs/Otty/`, rotated, with **no content**: errors, timings, provider status codes, feature names. Run every line through `maskSecrets` too |
+| 14.2 | "Copy diagnostics" / "Send to Otty's team" | S–M | ✅ Copy diagnostics done (D-50): Settings › Help, shown in full before copying. "Send to Otty's team" waits for a support address (14.6). Planned: In Settings → Help: version, macOS, architecture, permissions state (`permissions.ts`), provider kind (not the key), the last log lines. The user sees exactly what's sent before sending — consistent with "What left the Mac", and it should appear there |
 | 14.3 | Crash reports | M | Electron's `crashReporter` (not used today) or the Sentry Electron SDK, **opt-in**, with breadcrumbs stripped of content. Main process and renderer crashes, and the OCR helper's failures |
 | 14.4 | Product analytics (opt-in, counts only) | M | You'll need to know whether people get through onboarding, whether they come back, and which features they use. The usage meter's per-day counters are already the right shape (counts, no content). Send an aggregated daily summary only with consent, and show it in Activity. Avoid general-purpose analytics SDKs that collect more than you'd want to explain |
 | 14.5 | In-app feedback | S | "Tell us what you think" from the otter menu, optionally attaching diagnostics. In a beta this is the most valuable channel you have |
@@ -415,9 +415,9 @@ Goal: find out whether people get through onboarding, come back, and what breaks
 | P0 | Make the repo private: CI split (Linux for typecheck and tests), public storage for update files | 2.6, 7.2, 6.1 | S–M |
 | P0 | Change the bundle id to a domain you own | 5.8 | S |
 | P0 | Apple Developer account, Developer ID, notarization, sign the OCR helper | 5.1–5.5 | M |
-| P0 | Electron fuses | 5.7 | S |
+| ✅ | Electron fuses (D-49) | 5.7 | S |
 | P0 | Auto-update with a beta channel | 6.1–6.3 | M |
-| P0 | Log files and "Copy diagnostics" | 14.1, 14.2 | S–M |
+| ✅ | Log files and "Copy diagnostics" (D-50) | 14.1, 14.2 | S–M |
 | P0 | A short privacy notice and beta terms (18+, "answers can be wrong", it's a beta) | 11.1, 12.2 | S |
 | P0 | A `LICENSE` stating all rights reserved | 2.6 | S |
 | P1 | Signed out, offline or server down: AI-free features keep working, never locked out | Decisions | S–M |
@@ -425,7 +425,7 @@ Goal: find out whether people get through onboarding, come back, and what breaks
 | P1 | Release workflow with signing in CI | 7.1, 5.6 | M |
 | P1 | Opt-in crash reports | 14.3 | M |
 | P1 | In-app feedback and a beta channel for testers | 14.5, 14.7 | S |
-| P1 | No plain-text key fallback, env key only in dev | 10.2, 10.3 | S |
+| ✅ | No plain-text key fallback, env key only in dev (D-51) | 10.2, 10.3 | S |
 | P1 | Hide local models from onboarding | 2.5 | S |
 | P1 | Opt-in, counts-only analytics of onboarding and weekly use | 14.4 | M |
 | P1 | Key provision for non-technical testers (a capped key from your account) | 2.1 | S |
@@ -495,3 +495,4 @@ Still open:
 - Should the hosted service ever route Hong Kong users to Claude or OpenAI, given their supported regions?
 - Students: when, if ever, does Otty serve under-18s?
 - Does the mascot need redrawing by an artist before the brand is filed?
+- Connections (D-54): a Google Cloud OAuth client for Google Calendar, and whether to go through Google's verification for a sensitive scope before the beta or stay in testing mode with named testers (**verify** the limits). For Canvas at NUS, whether students may make their own tokens (**verify**). Tokens stay on the Mac by default; does the hosted service ever need one?

@@ -34,9 +34,9 @@ describe('CLAUDE.md: the preload hands the renderer no path, key or file content
   })
 
   it('returns no path, key, secret or contents field in any shared type', () => {
-    // Reviewed: hasApiKey/needsKey are yes-or-no; *Hotkey are shortcuts; tokens is a usage count. SettingsUpdate.apiKey goes the other
+    // Reviewed: hasApiKey/needsKey/keychain are yes-or-no; *Hotkey are shortcuts; tokens is a usage count. SettingsUpdate.apiKey goes the other
     // way, from the Settings field to main, and is never returned.
-    const OK = new Set(['hasApiKey', 'needsKey', 'savedKeys', 'askHotkey', 'snapHotkey', 'screenHotkey', 'takenHotkeys', 'tokens'])
+    const OK = new Set(['hasApiKey', 'needsKey', 'keychain', 'savedKeys', 'askHotkey', 'snapHotkey', 'screenHotkey', 'takenHotkeys', 'tokens'])
     const fields = [...TYPES.matchAll(/^\s+(?:readonly\s+)?(\w*(?:[Pp]ath|[Kk]ey|[Ss]ecret|[Tt]oken|[Cc]ontents?|[Pp]assword)\w*)\??:/gm)].map((m) => m[1])
     expect(fields.filter((f) => f === 'apiKey')).toHaveLength(1)
     expect(iface('SettingsUpdate')).toMatch(/\n\s+apiKey\?: string/)

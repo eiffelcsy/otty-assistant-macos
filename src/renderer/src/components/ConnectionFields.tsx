@@ -17,6 +17,7 @@ export function ConnectionFields({
   apiKey,
   onKey,
   savedKeys,
+  keychain = true,
   autoFocus
 }: {
   value: Connection
@@ -24,6 +25,8 @@ export function ConnectionFields({
   apiKey: string
   onKey: (key: string) => void
   savedKeys: ServiceId[]
+  /** False when the Keychain can't be reached, so a pasted key wouldn't be saved (D-51). */
+  keychain?: boolean
   autoFocus?: boolean
 }) {
   const [advanced, setAdvanced] = useState(false)
@@ -64,6 +67,9 @@ export function ConnectionFields({
             autoFocus={autoFocus}
           />
         </label>
+      )}
+      {picked !== 'local' && !keychain && (
+        <p className="hint hint--warn">Otty can’t reach your Mac’s Keychain right now, so it can’t keep a key safely and won’t save it. Restart your Mac, then paste the key again.</p>
       )}
       {service.keyUrl && (
         <button type="button" className="link-btn" onClick={() => window.otty.openExternal(service.keyUrl!)}>

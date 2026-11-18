@@ -1,4 +1,7 @@
 import { app } from 'electron'
+import { activeProfile } from '../providers'
+import { diagnosticsReport } from '../diagnostics'
+import { lastLines } from '../log'
 import type { PermissionKind, SettingsUpdate, UsageReport } from '../../shared/types'
 import { serviceAt, serviceById } from '../../shared/services'
 import * as settings from '../settings'
@@ -17,6 +20,27 @@ export function registerSettings(): void {
   handle('app:relaunch', () => {
     app.relaunch()
     app.quit()
+  })
+  handle('diagnostics:get', () => {
+    const s = settings.getStored()
+    const permissions = getPermissions()
+    const service = serviceById(serviceAt(s.baseUrl))
+    return diagnosticsReport({
+      version: app.getVersion(),
+      macOS: process.getSystemVersion(),
+      arch: process.arch,
+      installed: app.isPackaged,
+      inApplications: process.platform === 'darwin' && app.isInApplicationsFolder(),
+      service: service.label,
+      model: s.model,
+      web: activeProfile().web,
+      accessibility: permissions.accessibility,
+      screen: permissions.screen,
+      paused: s.workPaused,
+      log: lastLines(30),
+      // A preset's address is public; anyone else's server is theirs to keep.
+      hide: service.id === 'custom' ? [URL.canParse(s.baseUrl) ? new URL(s.baseUrl).hostname : s.baseUrl] : []
+    })
   })
   handle('usage:get', (): UsageReport => {
     const service = serviceById(serviceAt(settings.getStored().baseUrl))

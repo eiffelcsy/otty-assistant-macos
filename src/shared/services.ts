@@ -88,7 +88,8 @@ export const SERVICES: Service[] = [
   }
 ]
 
-const isLocal = (host: string) => ['localhost', '127.0.0.1', '[::1]'].includes(host) || host.endsWith('.localhost')
+/** An address on this Mac. */
+export const isLocal = (host: string): boolean => ['localhost', '127.0.0.1', '[::1]'].includes(host) || host.endsWith('.localhost')
 
 /** Which service an address belongs to. */
 export function serviceAt(baseUrl: string): ServiceId {

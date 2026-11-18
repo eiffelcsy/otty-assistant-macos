@@ -53,6 +53,7 @@ const settings: PublicSettings = {
   hasApiKey: true,
   needsKey: true,
   savedKeys: ['deepseek'],
+  keychain: true,
   readsPages: true,
   apiFormat: 'auto',
   baseUrl: 'https://api.deepseek.com',
@@ -397,6 +398,8 @@ const api: OttyApi = {
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
   relaunch: noop,
+  getDiagnostics: async () =>
+    'Otty 0.5.0 · macOS 26.1 · arm64\nInstalled app: yes · in Applications: yes\nService: DeepSeek · model deepseek-flash · web deepseek\nAccessibility: yes · Screen Recording: yes · paused: no\n\nLast 2 log lines:\n2026-11-18T09:00:00.000Z info Otty 0.5.0 started\n2026-11-18T09:12:04.120Z warn Refused chat:send: argument 2 doesn’t fit',
   getUsage: async () => ({
     days: 30,
     questions: 142,

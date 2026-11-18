@@ -156,6 +156,8 @@ export interface PublicSettings {
   needsKey: boolean
   /** Services with a key saved. Never the keys themselves. */
   savedKeys: ServiceId[]
+  /** False when the Mac's Keychain can't be reached, so a new key can't be kept safely and isn't saved (D-51). */
+  keychain: boolean
   /** False when nothing may leave the Mac. */
   readsPages: boolean
   apiFormat: ApiFormat
@@ -253,7 +255,7 @@ export interface SentItem {
   count: number
 }
 
-export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'canOpenAtLogin'>> {
+export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'canOpenAtLogin' | 'keychain'>> {
   /** Plaintext key from the settings form; main encrypts it. Empty string clears it. */
   apiKey?: string
 }
@@ -494,6 +496,8 @@ export interface OttyApi {
   /** Quits and reopens Otty, which macOS needs before a new Screen Recording permission takes effect. */
   relaunch(): Promise<void>
   getUsage(): Promise<UsageReport>
+  /** D-50: facts about the Mac and Otty, and the log's last lines, to show and then copy. */
+  getDiagnostics(): Promise<string>
 
   sendMessage(text: string, captures: Capture[], opts?: SendOptions): Promise<void>
   stop(): Promise<void>

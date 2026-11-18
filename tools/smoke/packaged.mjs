@@ -44,8 +44,10 @@ while (Date.now() - started < START_TIMEOUT && !exited) {
 if (ok) await wait(STAY_UP)
 const alive = !exited
 child.kill('SIGTERM')
-await wait(500)
-if (!child.killed) child.kill('SIGKILL')
+// `killed` only says a signal was sent. An app holding its quit (D-53's "Move to Applications?" opens on this run,
+// from dist/) would keep the check waiting forever, so it gets SIGKILL once a few seconds pass without an exit.
+for (let i = 0; i < 20 && child.exitCode === null && child.signalCode === null; i++) await wait(250)
+if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
 rmSync(home, { recursive: true, force: true })
 
 const problems = []
