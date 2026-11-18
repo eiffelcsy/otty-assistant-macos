@@ -12,7 +12,7 @@ import { assertMove, MOVES } from '../states'
 import type { Job, JobStatus, JobStore } from '../types'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {}, app: { isPackaged: true } }))
-vi.mock('../../settings', () => ({ getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm' }), getApiKey: () => 'k' }))
+vi.mock('../../settings', () => ({ isDev: () => false, getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm' }), getApiKey: () => 'k' }))
 
 /** Reads like the real tool: an unknown address asks first. */
 vi.mock('../../tools', () => ({

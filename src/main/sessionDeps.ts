@@ -1,5 +1,6 @@
 import { actions } from './ledger'
 import { keepHidden } from './hiddenLines'
+import { macHands } from './macHands'
 import { activeProfile, activeProvider } from './providers'
 import { memoryStore } from './memory'
 import { getStored } from './settings'
@@ -16,5 +17,6 @@ export const liveDeps: SessionDeps = {
   profile: activeProfile,
   provider: activeProvider,
   ledger: actions,
-  keepHidden
+  keepHidden,
+  mac: macHands
 }

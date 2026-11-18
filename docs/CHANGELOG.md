@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Ready to extend: tools as entries, no electron in the loop (D-45 step 3, 2026-11-18)
+
+Nothing changes for anyone using Otty: the model is offered the same tools, in the same order, byte for byte, under every service and setting.
+- **A tool is one entry** in `TOOLS` (`src/main/tools/`): its definition and when it's offered (`offer(setup)`), its chip, how the ledger undoes it, and how it runs. The entries are keyed by `toolSafety.ts`'s names, so a tool without a safety row, or a row without a tool, no longer compiles. The four lists that used to name each tool (definitions, labels, the run switch and the undo table) are gone, so a connection's tools (D-54) are new entries, not edits to every list.
+- **No electron in the loop (D-45 step 3).** `settings.ts` reads its file, the Keychain and the login item through a `SettingsBackend`; the Mac's (`settingsOnMac.ts`) is plugged in by `core.ts`. The tools that change the Mac (open a page, copy, add a reminder) reach it through `ToolContext.mac` (`macHands.ts`), which only a chat turn is given, so a job can't change the Mac even by mistake. `loop.ts` and `JobRunner` import provider errors and types directly. A test imports them with electron made to throw (`noElectron.test.ts`). The `Keychain` interface is what D-54's tokens will use.
+- A tool's string arguments are read with `text()`, so a model that sends an object gets an empty value rather than `[object Object]`.
+
 ### Ready for testers: fuses, logs, safer keys, one door out (D-49 to D-53, 2026-11-18)
 
 - **Nobody can borrow Otty's permissions through its app (D-49).** The packaged app's Electron fuses are set: it can't be run as plain Node, take `NODE_OPTIONS` or a debugger, and it loads only its own checked app archive. Flipping them edits the binary, so builds are now ad-hoc signed afterwards (an arm64 Mac kills an app whose signature doesn't match), with the hardened runtime off until there's a Developer ID. A rule test keeps both. **Fixed:** `npm run smoke:packaged` could wait forever on an app that didn't quit on SIGTERM.

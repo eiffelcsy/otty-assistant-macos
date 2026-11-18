@@ -14,7 +14,7 @@ const model = env.OTTY_EVAL_MODEL ?? 'deepseek-flash'
 const key = env.OTTY_EVAL_KEY
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {}, safeStorage: {}, app: { getPath: () => '' }, nativeImage: {} }))
-vi.mock('../../src/main/settings', () => ({
+vi.mock('../../src/main/settings', () => ({ isDev: () => true,
   getApiKey: () => process.env.OTTY_EVAL_KEY ?? null,
   getStored: () => ({
     baseUrl: process.env.OTTY_EVAL_BASE_URL ?? 'https://api.deepseek.com',

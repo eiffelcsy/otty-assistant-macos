@@ -10,7 +10,7 @@ vi.mock('electron', () => ({
   nativeImage: { createFromBitmap: () => ({ toPNG: () => Buffer.from('png') }) },
   app: { isPackaged: true, getPath: () => '' }
 }))
-vi.mock('../settings', () => ({
+vi.mock('../settings', () => ({ isDev: () => false,
   getStored: () => ({ baseUrl: 'https://api.deepseek.com/', apiFormat: 'auto', model: 'm', thinking: false, homeLanguage: null, rememberChats: false, learn: false }),
   getApiKey: () => 'key'
 }))

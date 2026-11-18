@@ -1,12 +1,49 @@
-import { app, safeStorage } from 'electron'
-import { readFileSync, writeFileSync, mkdirSync } from 'fs'
-import { join } from 'path'
 import type { PublicSettings, SettingsUpdate } from '../shared/types'
 import { defaultHomeLanguage } from './language'
 import { profileFor } from './providers/profiles'
 import { serviceAt, type ServiceId } from '../shared/services'
 import { cleanCap } from '../shared/cap'
 import { cleanPauseEnd } from '../shared/pauseUntil'
+
+// The settings and the keys, over a small backend (D-45 step 3). The Mac's, in `settingsOnMac.ts`, is plugged in by
+// `core.ts`, so this module, and the tool loop that reads it, never import electron.
+
+/** Where secrets are locked. The Mac's is the Keychain, through `safeStorage`; a locked value is base64. */
+export interface Keychain {
+  available(): boolean
+  lock(plain: string): string
+  /** Throws when the Keychain won't open it. */
+  unlock(locked: string): string
+}
+
+export interface SettingsBackend {
+  /** The saved settings file's text, or null on first run. */
+  read(): string | null
+  write(text: string): void
+  keychain: Keychain
+  /** The Mac's preferred languages, for the first home language. */
+  systemLanguages(): string[]
+  /** True in the installed app. Development reads `DEEPSEEK_API_KEY` and measures the cache. */
+  packaged(): boolean
+  /** Launch at login, which macOS owns. Null where it can't be set (development, other systems). */
+  loginItem: { get(): boolean; set(on: boolean): void } | null
+}
+
+let backend: SettingsBackend | null = null
+
+/** Plugged in once at launch; a test plugs in its own. Settings are read again from it. */
+export function setSettingsBackend(b: SettingsBackend): void {
+  backend = b
+  cache = null
+}
+
+function using(): SettingsBackend {
+  if (!backend) throw new Error('Settings were read before their backend was plugged in.')
+  return backend
+}
+
+/** True in development: a build that isn't the installed app. */
+export const isDev = (): boolean => !using().packaged()
 
 interface SavedKey {
   /** Base64 of the safeStorage-encrypted key, or, from an Otty before D-51, of the key itself. */
@@ -53,20 +90,16 @@ export function setTakenHotkeys(hotkeys: string[]): void {
   takenHotkeys = hotkeys
 }
 
-function file(): string {
-  return join(app.getPath('userData'), 'settings.json')
-}
-
 function load(): StoredSettings {
   if (cache) return cache
   let saved: Partial<StoredSettings> = {}
   try {
-    saved = JSON.parse(readFileSync(file(), 'utf8'))
+    saved = JSON.parse(using().read() ?? '{}')
   } catch {
-    /* first run */
+    /* damaged: start again */
   }
   // Missing means "never chosen", so follow the Mac's languages. A saved null means the user picked "None".
-  const homeLanguage = saved.homeLanguage !== undefined ? saved.homeLanguage : defaultHomeLanguage(app.getPreferredSystemLanguages())
+  const homeLanguage = saved.homeLanguage !== undefined ? saved.homeLanguage : defaultHomeLanguage(using().systemLanguages())
   cache = { ...DEFAULTS, ...saved, homeLanguage }
   moveOldKey(cache)
   lockPlainKeys(cache)
@@ -76,9 +109,10 @@ function load(): StoredSettings {
 /** A key an older Otty kept in plain text goes into the Keychain as soon as the Keychain works (D-51). */
 function lockPlainKeys(s: StoredSettings): void {
   const plain = Object.values(s.apiKeys ?? {}).filter((k) => k.plain)
-  if (!plain.length || !safeStorage.isEncryptionAvailable()) return
+  const keychain = using().keychain
+  if (!plain.length || !keychain.available()) return
   for (const k of plain) {
-    k.enc = safeStorage.encryptString(Buffer.from(k.enc, 'base64').toString('utf8')).toString('base64')
+    k.enc = keychain.lock(Buffer.from(k.enc, 'base64').toString('utf8'))
     delete k.plain
   }
   persist()
@@ -94,11 +128,10 @@ function moveOldKey(s: StoredSettings): void {
 }
 
 /** For development only: the installed app takes keys from the Keychain and nowhere else (D-51). */
-const envKey = (s: StoredSettings) => (!app.isPackaged && serviceAt(s.baseUrl) === 'deepseek' && process.env.DEEPSEEK_API_KEY) || null
+const envKey = (s: StoredSettings) => (isDev() && serviceAt(s.baseUrl) === 'deepseek' && process.env.DEEPSEEK_API_KEY) || null
 
 function persist(): void {
-  mkdirSync(app.getPath('userData'), { recursive: true })
-  writeFileSync(file(), JSON.stringify(cache, null, 2))
+  using().write(JSON.stringify(cache, null, 2))
 }
 
 export function getStored(): StoredSettings {
@@ -114,7 +147,7 @@ export function getPublic(): PublicSettings {
     needsKey: profileFor(rest.baseUrl, rest.apiFormat).needsKey,
     readsPages: profileFor(rest.baseUrl, rest.apiFormat).web !== 'off',
     takenHotkeys,
-    keychain: safeStorage.isEncryptionAvailable(),
+    keychain: using().keychain.available(),
     ...loginItem(),
     savedKeys: Object.keys(apiKeys ?? {}) as ServiceId[]
   }
@@ -124,9 +157,8 @@ export function getApiKey(): string | null {
   const s = load()
   const saved = s.apiKeys?.[serviceAt(s.baseUrl)]
   if (!saved) return envKey(s)
-  const buf = Buffer.from(saved.enc, 'base64')
   try {
-    return saved.plain ? buf.toString('utf8') : safeStorage.decryptString(buf)
+    return saved.plain ? Buffer.from(saved.enc, 'base64').toString('utf8') : using().keychain.unlock(saved.enc)
   } catch (err) {
     console.error('Could not unlock the saved key', err)
     return null
@@ -135,8 +167,8 @@ export function getApiKey(): string | null {
 
 /** Whether Otty opens at login. macOS is the source of truth, so it's read each time rather than saved. */
 function loginItem(): { openAtLogin: boolean; canOpenAtLogin: boolean } {
-  const can = process.platform === 'darwin' && app.isPackaged
-  return { canOpenAtLogin: can, openAtLogin: can && app.getLoginItemSettings().openAtLogin }
+  const item = using().loginItem
+  return { canOpenAtLogin: Boolean(item), openAtLogin: Boolean(item?.get()) }
 }
 
 export function update(u: SettingsUpdate): PublicSettings {
@@ -147,7 +179,7 @@ export function update(u: SettingsUpdate): PublicSettings {
   if (monthlyCap !== undefined) s.monthlyCap = cleanCap(monthlyCap)
   if (workPausedUntil !== undefined) s.workPausedUntil = cleanPauseEnd(workPausedUntil)
   if (u.workPaused === false) s.workPausedUntil = null
-  if (openAtLogin !== undefined && loginItem().canOpenAtLogin) app.setLoginItemSettings({ openAtLogin })
+  if (openAtLogin !== undefined) using().loginItem?.set(openAtLogin)
   Object.assign(s, rest)
   if (apiKey !== undefined) {
     const key = apiKey.trim()
@@ -155,7 +187,7 @@ export function update(u: SettingsUpdate): PublicSettings {
     const keys = (s.apiKeys ??= {})
     // Without the Keychain a key isn't saved at all, never in plain text; `keychain: false` tells the window why.
     if (!key) delete keys[service]
-    else if (safeStorage.isEncryptionAvailable()) keys[service] = { enc: safeStorage.encryptString(key).toString('base64') }
+    else if (using().keychain.available()) keys[service] = { enc: using().keychain.lock(key) }
   }
   persist()
   return getPublic()

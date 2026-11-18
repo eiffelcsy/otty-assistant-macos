@@ -1,5 +1,5 @@
 // DeepSeek's Search and Fetch APIs (D-9): real web search and page reading with the key users already have.
-// No Electron imports, so it can be tested on its own. `tools.ts` decides when to use it.
+// No Electron imports, so it can be tested on its own. `tools/web.ts` decides when to use it.
 
 import { serviceAt } from '../shared/services'
 import { send } from './net'

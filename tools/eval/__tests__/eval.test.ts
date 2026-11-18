@@ -3,7 +3,7 @@ import type { Provider, ProviderEvent, ChatRequest } from '../../../src/main/pro
 import type { Trace } from '../types'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {} }))
-vi.mock('../../../src/main/settings', () => ({ getApiKey: () => 'key', getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm', learn: true }) }))
+vi.mock('../../../src/main/settings', () => ({ isDev: () => true, getApiKey: () => 'key', getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm', learn: true }) }))
 vi.mock('../../../src/main/tools', async (orig) => (await import('../stubTools')).wrap(await orig<typeof import('../../../src/main/tools')>()))
 
 const { runCase } = await import('../harness')

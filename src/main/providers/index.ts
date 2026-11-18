@@ -1,4 +1,4 @@
-import { getApiKey, getStored } from '../settings'
+import { getApiKey, getStored, isDev } from '../settings'
 import { anthropicProvider } from './anthropic'
 import { FriendlyError } from './errors'
 import { openAiProvider } from './openai'
@@ -19,7 +19,7 @@ function config() {
   const key = getApiKey() ?? ''
   if (profile.needsKey && !key) throw new FriendlyError(`Otty needs ${profile.keyLabel} first — open Settings (the gear button) to add one.`)
   // The saved key belongs to a service online, so it's never handed to something running on this Mac.
-  return { baseUrl: s.baseUrl, model: s.model, thinking: s.thinking, key: profile.id === 'local' ? '' : key, profile }
+  return { baseUrl: s.baseUrl, model: s.model, thinking: s.thinking, key: profile.id === 'local' ? '' : key, profile, measure: isDev() }
 }
 
 /** Every request is counted for the usage meter, whoever made it: answers, jobs, titles and explain cards. */

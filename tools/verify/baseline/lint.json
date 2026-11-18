@@ -34,7 +34,6 @@
   "src/main/providers/__tests__/anthropic.test.ts::typescript(no-base-to-string)": 2,
   "src/main/providers/__tests__/openai.test.ts::typescript(no-base-to-string)": 4,
   "src/main/store/sqliteStore.ts::typescript(no-misused-spread)": 1,
-  "src/main/tools.ts::typescript(no-base-to-string)": 12,
   "src/main/windows.ts::typescript(no-floating-promises)": 3,
   "src/main/windows.ts::unicorn(prefer-string-starts-ends-with)": 1,
   "src/renderer/src/components/ConnectionFields.tsx::typescript(no-misused-promises)": 1,

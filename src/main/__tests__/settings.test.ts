@@ -34,7 +34,9 @@ const file = () => join(dir, 'settings.json')
 async function launch(saved?: object) {
   if (saved) writeFileSync(file(), JSON.stringify(saved))
   vi.resetModules()
-  return import('../settings')
+  const settings = await import('../settings')
+  settings.setSettingsBackend((await import('../settingsOnMac')).macSettings)
+  return settings
 }
 
 beforeEach(() => {

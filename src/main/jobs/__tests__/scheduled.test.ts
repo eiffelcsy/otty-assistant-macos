@@ -5,7 +5,7 @@ import { MemoryJobStore, SqliteJobStore } from '../stores'
 import type { Job, JobStore } from '../types'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {}, app: { isPackaged: true } }))
-vi.mock('../../settings', () => ({ getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm' }), getApiKey: () => 'k' }))
+vi.mock('../../settings', () => ({ isDev: () => false, getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm' }), getApiKey: () => 'k' }))
 vi.mock('../../tools', () => ({
   toolLabel: () => ({ label: 'x', icon: 'x' }),
   runTool: async (name: string) => ({ result: `Result of ${name}`, status: 'done' })

@@ -4,7 +4,7 @@ import { captureScreenshot, captureSelection, frontmostApp } from '../capture'
 import { askAboutSelection } from '../captureRoute'
 import { menuTemplate } from '../controls'
 import { closeViewer, exportDrawing, showDrawing, viewerContent } from '../draw'
-import { copyText } from '../tools'
+import { copyText } from '../macHands'
 import {
   endBubbleDrag,
   expandQuickToPanel,

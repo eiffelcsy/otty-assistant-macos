@@ -1,4 +1,3 @@
-import { app } from 'electron'
 import { FriendlyError, friendlyConnection, friendlyStatus, NoToolsError } from './errors'
 import type { Profile } from './profiles'
 import type { ChatRequest, Provider, ProviderEvent, StopReason, ToolCall, Usage } from './types'
@@ -13,6 +12,8 @@ export interface OpenAiConfig {
   /** Empty when there's none to send. */
   key: string
   profile: Profile
+  /** Development only: ask for usage on every reply and log how the cache did. */
+  measure?: boolean
 }
 
 function httpError(status: number, body: string, profile: Profile): FriendlyError {
@@ -98,7 +99,7 @@ export function openAiProvider(config: () => OpenAiConfig): Provider {
   return {
     async *stream(req, signal): AsyncGenerator<ProviderEvent> {
       const c = config()
-      const measure = !app.isPackaged
+      const measure = Boolean(c.measure)
       const sentAt = Date.now()
       const send = (tools = req.toolsOff ? [] : req.tools) =>
         post(

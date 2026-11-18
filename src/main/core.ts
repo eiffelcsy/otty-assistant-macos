@@ -2,6 +2,7 @@ import { screen } from 'electron'
 import { randomUUID } from 'crypto'
 import type { ActivityItem, Capture } from '../shared/types'
 import * as settings from './settings'
+import { macSettings } from './settingsOnMac'
 import { captureWholeScreen, withWindowsHidden } from './capture'
 import { chatStore, database, pruneOldChats } from './store'
 import { ChatSession } from './llm'
@@ -20,6 +21,9 @@ import { forward, tellActivity } from './notify'
 import { shownWindows } from './windows'
 
 // D-45: the chat, the jobs and the stores around them, made once. Windows, menus and IPC reach them from here.
+
+/** First, before anything reads a setting: the file, the Keychain and the login item are the Mac's. */
+settings.setSettingsBackend(macSettings)
 
 /** Opened at launch, once the database is. Null until then, so nothing waits on it. */
 let meter: UsageMeter | null = null

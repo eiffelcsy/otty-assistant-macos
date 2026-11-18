@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 let baseUrl = 'https://api.deepseek.com'
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {} }))
-vi.mock('../settings', () => ({ getApiKey: () => 'key', getStored: () => ({ baseUrl, model: 'claude-sonnet-5-5', apiFormat: baseUrl.includes('anthropic') ? 'anthropic' : 'auto', learn: true }) }))
+vi.mock('../settings', () => ({ isDev: () => true, getApiKey: () => 'key', getStored: () => ({ baseUrl, model: 'claude-sonnet-5-5', apiFormat: baseUrl.includes('anthropic') ? 'anthropic' : 'auto', learn: true }) }))
 const { toolDefs } = await import('../tools')
 const { CHAT_TOOLS, claimOnce, JOB_TOOLS, needsOnce, OUTSIDE_TOOLS, ruleOfTwo, SAFETY } = await import('../toolSafety')
 

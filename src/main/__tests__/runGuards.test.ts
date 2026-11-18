@@ -5,7 +5,7 @@ import type { ChatRequest, Message, Provider, ProviderEvent } from '../providers
 
 const { search, page } = vi.hoisted(() => ({ search: vi.fn(async () => 'Results'), page: vi.fn(async () => 'Page text') }))
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {} }))
-vi.mock('../settings', () => ({ getApiKey: () => 'sk-test', getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-flash' }) }))
+vi.mock('../settings', () => ({ isDev: () => true, getApiKey: () => 'sk-test', getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-flash' }) }))
 vi.mock('../web', async (original) => ({ ...(await original<object>()), deepseekSearch: search, deepseekFetch: page }))
 const { runTool } = await import('../tools')
 const { runLoop } = await import('../loop')
