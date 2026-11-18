@@ -33,7 +33,7 @@ export function theme(): SlideTheme {
     surface: v('--surface', 'Canvas'),
     text: v('--text', 'CanvasText'),
     heading: v('--heading', 'CanvasText'),
-    muted: v('--muted', 'GrayText'),
+    muted: v('--text-2', 'GrayText'),
     brand: v('--brand', 'CanvasText'),
     accent: v('--accent', 'CanvasText'),
     hairline: v('--hairline-strong', 'GrayText'),

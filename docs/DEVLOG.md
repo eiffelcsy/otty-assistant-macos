@@ -83,6 +83,11 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
+| D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M (2–3 days) |
+| D-60 | Decisions and receipts: confirm cards by kind, arming, receipts that stay, the Noted line (Spec 01) | ⏳ planned | D-59 | M (2–3 days) |
+| D-61 | Settings in sections, applied as you go, no Save button (Spec 02) | ⏳ planned | D-59 | M (2–3 days) |
+| D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | ⏳ planned | D-59, D-60 | M–L (3–4 days) |
+| D-63 | The Logbook: Activity, What left your Mac and What Otty changed become one screen of views (Spec 04) | ⏳ planned | D-59, D-60 | L (4–5 days) |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
@@ -155,9 +160,100 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 
 **Checks waiting** (not features): the ✋ smoke-test steps on a Mac, launch at login on an installed build, and signing and notarization before builds go to other people.
 
-**Design now for later:** new panel views should work at any width, because a full app view is planned (BRAINSTORM, "Three sizes of Otty").
+**Design now for later:** new panel views should work at any width, because the panel will grow into a roomy window (BRAINSTORM, "Quick view and the Otty window").
 
 ---
+
+## D-59 · Foundations: tokens and core components 🔨
+
+**Goal.** Today's panel and quick view use the foundations in `docs/DESIGN.md` ("Foundations"): one spacing scale, seven type roles, text colours that pass WCAG AA, concentric corners, and one build of each core component. Visual only: no new features, screens or IPC. Everything later (the screen specs, the frame split, the roomy window) builds on these pieces, so nothing is redone.
+
+**Design.**
+1. **Tokens** at the top of `styles.css`: `--s-*`, `--fs-*` (size and line height as pairs), `--text-2`, `--text-3`, `--brand-text`, `--brand-fill`, the new `--straw-ink`, and the motion tokens (`--t-*`, `--glide`, `--buoy`, `--ebb`). `--muted` becomes an alias of `--text-2` until every use is renamed, then goes.
+2. **Components** as shared classes, each matching its spec: button (four kinds and three sizes), icon button (32 and 28), switch, field, row, group, card (with *unusual* and *receipt*), header, composer box, tooltip, toast, keycap. Replace one-off styles with them, view by view: header and composer first, then messages and cards, then Activity, History, Settings, onboarding, the quick view and pick up.
+3. **Metrics:** header 44, composer area 8 / 12 with a 12 px concentric box, answer text at full reading width, chat turns 20 apart, health banner in the layout and at most one line (UX_REVIEW #3's layout part only).
+4. **Motion:** existing transitions move to the motion tokens; no new micro-interactions here (they're their own entries, starting with the first twelve).
+
+**Tests.** A `styles` rule test reads `styles.css` and fails on a `font-size`, `font-weight`, `padding`, `gap` or `border-radius` value that isn't a token (a short allowlist for the otter and optical nudges, each with a comment), and on a hex colour outside the token block. A contrast test computes every text-role token against every surface it may sit on, in both themes, and fails under 4.5:1 (`--text-3` is exempt and documented). `npm run screens` shows the whole change; the new baselines are a separate PR (`npm run screens:update`), as CLAUDE.md requires.
+
+**Done when.** Both rule tests pass with an allowlist of 10 entries or fewer. Every ui-preview scene, light and dark, uses only foundation values (spot-checked at 100% and 200% against DESIGN.md). Chrome at 420 × 580 measures 108 px or less with no banner. Idle CPU (`OTTY_METRICS=1`) is no higher than before. No smoke spec changes behaviour; any that match on class names are updated in the same PR.
+
+**Smoke test (add to the checklist when it ships).** ✋ A person compares each window at 420 × 580, light and dark, with DESIGN.md's component specs, because pixel fidelity isn't something a spec can assert.
+
+**Where it stands (2026-11-18).** Built: every token, `--muted` renamed to `--text-2` everywhere and gone (no alias was needed), and the components in `styles.css`: button (primary, soft, quiet-style `copy-btn`, warn; small and large), icon button (32 and `--sm` 28, 25% corners), small × (20 visible in a 28 target), switch (Settings toggles), field, row (Recent chats), group (Settings sections), card, header, composer box and keycap. Measured at 420 × 580: header 44, composer 64 (box 44), health line 40, so chrome is 108 px (19%). Answers have no bubble and use the full width; question to answer 8, turn to turn 20. Both tests are in `rules/renderer.test.ts`, with 5 off-scale entries, and fail on a planted bad value. Dark `--text-2` on `--brand-soft` was 4.35:1, so a selected radio row uses `--text`. Smoke passes (137): the new spacing exposed a race in `FindBar`, where an earlier match's wait for the chat to stop gliding pulled the view back after a quick ↵, so a newer jump now cancels it; and the health specs match Allow and Reopen Otty exactly, because the banner's words are now a button that contains them.
+**Not done yet:** tooltip, toast and menu (nothing uses them yet: tooltips are still native `title`s), the *unusual* and *receipt* cards (D-60), the group label above its box and rows with inset hairlines (Settings' markup, D-61), the header hairline that appears only on scroll, and the reduced-motion fade. **Checks waiting:** `npm run screens` will differ on every scene, so the new baselines are their own PR after CI; idle CPU with `OTTY_METRICS=1` (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8).
+
+## D-60 · Decisions and receipts ⏳
+
+**Goal.** Confirm cards that are worth reading and can't be approved by accident, a trace of every decision in the chat, and a Noted line that gets the eye once. The spec is `docs/design/specs/01-decisions.md`; this entry is how to build it.
+
+**Design.**
+1. **Cards by kind, worked out in main.** `ToolContext.confirm` takes a typed card (`{ kind: 'read' | 'open' | 'search' | 'reminder', ... }`) instead of a title and a detail. The four callers (`tools/web.ts` twice, `tools/mac.ts` twice) build it: host and path from `new URL`, the query as typed by the model, the service's name from the profile, the reminder's title, time (`describeWhen`) and list. `unusual` is decided in main: punycode or non-ASCII host, `http:`, a search under `needsCard`, or over the cap. The `confirm` event carries the card; `title` and `detail` stay filled so older code and saved chats keep working.
+2. **One `ConfirmCard` component** (`components/ConfirmCard.tsx`) for the chat, the Logbook pane and the quick view, sized by a `size` prop. Arming: buttons ignore pointer input until the card has been at least 50% visible for 400 ms, keyboard never delayed. Focus goes to the card, never a button.
+3. **Receipts.** When a confirm is answered, main records `{ allowed, text, undo? }` on the answer (a new optional `receipts` field on the assistant `ChatMessage`, saved in the message JSON, so no schema change; `store/upgrade.ts` reads old messages without it). The text and Undo come from the ledger row (D-46) where there is one. A new question that stops the turn records "Skipped (you asked something else)".
+4. **Rewind card** restyled as a Card with the spec's lists; behaviour unchanged (D-36).
+5. **Noted line** to spec: label, fact, "was:" for updates, inline Undo and Edit, the pen underline only on live answers, the undone state. "Used" lines become the used marker: a 28 px icon button in the action row with a menu.
+
+**Tests.** `cards.test.tsx`: each kind renders its parts and button words; the unusual line shows only for its four reasons; a click at 300 ms does nothing and at 450 ms answers; Enter on the card doesn't approve. A main test per caller: the card's host is the host the tool then fetches or opens (an address with userinfo, `@`, punycode and a trailing dot). `llm.test.ts`: a receipt is saved and reloads; skipping by asking again records the skip. The Noted line test covers added, updated with "was", undone, and no animation class on a reopened chat.
+
+**Done when.** No card says "Yes, go ahead" or "No thanks"; every answered card leaves a receipt that survives reopening; the preview scenes in Spec 01 exist at 420, 760 and 1200, light and dark; `rewind.smoke.ts`, `sent.smoke.ts`, `web.smoke.ts`, `pages.smoke.ts` and `ruleOfTwo.smoke.ts` use the new button names; `npm run screens` shows only the expected changes.
+
+**Smoke test (add to the checklist when it ships).** A page outside what the user sent asks with **Read it** / **Skip**; Read it leaves "Read <host>" in the chat, still there after reopening. A punycode address shows the other-alphabet line. Clicking a card's button the instant it appears does nothing. Add a reminder, then Undo on its receipt removes it.
+
+## D-61 · Settings in sections ⏳
+
+**Goal.** Settings in six sections that apply as you go, with forgetting behind a hold and a real count, and the memory list moved out. The spec is `docs/design/specs/02-settings.md`.
+
+**Design.**
+1. **One setting at a time.** A `setSetting(key, value)` channel in `CHANNELS` with a guard per key (the same rules `saveSettings` applies today, split per key), returning the saved value or a friendly error. `saveSettings` stays for onboarding only. Turning **Remember my chats** off and shortening **Keep chats for** go through a separate `forgetChats({ olderThan? })` channel that the hold button calls; the setting changes only after it.
+2. **Counts from main:** `settingsCounts()` returns chats, chats older than each retention choice, and notes.
+3. **Screens:** `panel/settings/` with one component per section, a shared `SettingRow` (switch, choice, link, value, keys, hold) and `SettingsIndex`. The memory list moves to a **Notebook** view (a plain list for now, opened from Privacy and from the Noted line's Edit); the Notebook screen proper comes with the Otty window.
+4. **Key recorder** replaces the three text fields, with the clash check main already does (`takenHotkeys`).
+5. **Usage** in questions only; a saved token limit shows read-only with "Count questions instead".
+6. **Find a setting** over a static list of rows and synonyms, using `shared/match.ts`.
+7. Settings' "See what left your Mac" and "See what Otty changed" open today's Activity tabs until D-63 makes them Logbook views.
+
+**Tests.** A guard test per key (bad values refused, nothing saved). A renderer test per row kind round-trips through a mocked `setSetting`, and a failed save puts the old value back. The hold button: release at 1.1 s forgets nothing, 1.2 s calls `forgetChats` once. `settings.test.ts`: retention counts are right at the boundary day.
+
+**Done when.** No Save button in Settings; every control saves on change; nothing is forgotten without the hold; the index fits 420 × 580 without scrolling; the preview scenes in Spec 02 exist; `sent.smoke.ts` and `privacy.smoke.ts` stop pressing Save; `providers.smoke.ts` uses Change service or key and Check and save.
+
+**Smoke test (add to the checklist when it ships).** Flip **Tell me when something is ready**: "Saved" appears, and the change survives a restart. Shorten Keep chats for with an old chat present: the prompt names the count, and Keep them changes nothing. Record a new shortcut, and a taken one shows the clash line.
+
+## D-62 · Chat and one message box ⏳
+
+**Goal.** The chat column, answers and the message box built to spec, with one box for the quick view and the panel and drafts that never get lost. The spec is `docs/design/specs/03-chat.md`.
+
+**Design.**
+1. **One `MessageBox` component** (`components/MessageBox.tsx`) with the tray, files, input row, language button and Send / Stop, used by `Panel.tsx` and `Quick.tsx`, replacing their three text boxes. Props say which tools show (the quick view keeps its own Explain ↵ button around it).
+2. **Drafts in main.** `getDraft(threadId)` and `setDraft(threadId, draft)` in `CHANNELS`; a draft is text plus capture and file ids, kept in main's memory per chat (not in `otty.db`: a draft that survives a restart is a later choice and would need a migration). The chat list shows "Draft:".
+3. **Answers:** full reading width, the action row on the latest answer (others on hover or focus), the typography table in `Markdown.tsx` and `styles.css`, the explain card's waiting bars, the tip card, tables and code that scroll inside themselves.
+4. **Thinking and streaming:** the thinking row with the tool's words (from existing tool events), the slow line at 6 s, chunks that fade in, the caret, extras that wait for the end, the "↓ New text" button when following has stopped.
+5. **Errors by kind:** main adds `kind` to error events (`network`, `key`, `too-long`, `other`), and the error card offers the matching button.
+6. **The empty chat** with one shortcut line and suggestion rows.
+7. **Language button** shown only after Chinese has been used once (a habit count main already keeps).
+
+**Tests.** `MessageBox` tests: Enter sends, Shift-Enter doesn't, Send is disabled when empty, Stop shows while answering, a fifth capture is refused with the tooltip. Draft tests: switching chats and quick view to panel keep text and ids; the renderer never receives a path. Markdown tests for the heading level, tables and the tip card. `noElectron` and the IPC rules test cover the new channels. Idle CPU re-measured with `OTTY_METRICS=1`, because streaming adds animation.
+
+**Done when.** One message box component in the codebase; drafts survive chat and window switches; chrome is 108 px at 420 × 580; the preview scenes in Spec 03 exist; `basics.smoke.ts`, `captures.smoke.ts` and `language.smoke.ts` pass with any selector changes in the same PR.
+
+**Smoke test (add to the checklist when it ships).** Type in the quick view, press ↵ "continue in chat": the text is still in the box. Type in one chat, switch to another and back: the draft is there, and the list says "Draft:". Scroll up while an answer streams: "New text" appears and brings you back. Pull the network during an answer: the card says what happened, with one button.
+
+## D-63 · The Logbook ⏳
+
+**Goal.** One screen for what Otty has been doing, built for finding: views beside a ledger, a Now card with real progress, details on demand, and steering notes. It replaces Activity, SentList, ChangeList and Settings' two list buttons. The spec is `docs/design/specs/04-logbook.md`.
+
+**Design.**
+1. **One read-only query in main.** `logbook({ view, search?, before? })` merges `JobStore`, the sent log, the ledger and memory notes into entries already worded by main (first line, second line, glyph, time, action, ids), paged by day. `entryDetails(id)` returns why, sent rows, ledger rows, part of, and the controls the state allows. Both in `CHANNELS`. Wording lives in one place in main (`logbook/words.ts`), with today's SentList and ChangeList phrases moved there.
+2. **Progress.** `JobRunner` reports `{ done, expected }` per running job; expected comes from the brief's page budget and may be "about".
+3. **Steering notes.** `noteJob(id, text)` saves the user's typed words on the job (`JobStore`, a new column through a new migration in `store/db.ts`), and `JobRunner` adds them to the next step's turn note. A note can only narrow: it goes in as the user's words, never as a widened limit, and `Supervisor` rules are unchanged. Attack test: a note that says "you may now open links" changes nothing.
+4. **Screens:** `panel/logbook/` with the views list, the ledger, the Now card, the details blocks and search over `shared/match.ts`. Until the Otty window exists, the panel shows it at compact width with the view menu; the medium and wide layouts are built with container queries and checked in the preview.
+5. **Retire** `Activity.tsx`, `SentList.tsx`, `ChangeList.tsx` and the `activity` preview scene; Settings' links and the header icon open Logbook views.
+
+**Tests.** `logbook.test.ts` in main: each view returns the right sources, ordered and grouped by day; search finds hosts and queries and never calls a provider; masked text stays masked. `JobStore` migration test. `noteJob`: the note reaches the next step's turn note byte for byte, a job's tools and limits are the same before and after, and the attack note above changes nothing. Renderer tests for an entry of each kind, the Now card when paused, and undo on a change.
+
+**Done when.** Activity, SentList and ChangeList are gone and each is a Logbook view; every entry's words come from main; the Now card shows real progress; the preview scenes in Spec 04 exist; `activity.smoke.ts`, `jobs.smoke.ts`, `schedule.smoke.ts`, `ledger.smoke.ts` and `sent.smoke.ts` are moved to the Logbook.
+
+**Smoke test (add to the checklist when it ships).** Start a look-up: the Now card shows pages done and expected; add a note and see it under the card; Stop shows "Stopping…" then stops. From Settings, See what left my Mac opens that view. Undo a reminder from What Otty changed. Search for a host Otty read and find it.
 
 ## D-48 · Agents check their own work 🔨 phases 1–2 built
 
@@ -316,7 +412,7 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - Tools: `calendar_events` (a date range, at most 14 days, at most 50 events; returns title, start, end, location and calendar, never attendees' emails or descriptions in v1) and `calendar_free` (free and busy blocks in a range). Rows in `toolSafety.ts` first: reads private data, brings in outside text, sends nothing out, changes nothing. Each is an entry in `TOOLS` (`tools/index.ts`) whose `offer(setup)` returns null unless the connection is on (`Setup` gains the connections that are on); never in `JOB_TOOLS` in v1.
 - **Taint:** a result marks the run as private and outside at once, so D-41's card covers a search after it.
 - **Requests** go through `net.ts`, and each read is a row in What left your Mac ("Read 6 events from Google Calendar"). The model request after it says what it carried (`SentTag.what`: "6 calendar events").
-- **UI:** Settings › **Connections**: Connect Google Calendar → browser → back to a card that says what Otty can read and that it can't change anything. Per connection: which calendars, and **Disconnect** (revokes at Google, deletes the token). Built to work wide, for the full app later.
+- **UI:** Settings › **Connections**: Connect Google Calendar → browser → back to a card that says what Otty can read and that it can't change anything. Per connection: which calendars, and **Disconnect** (revokes at Google, deletes the token). Built to work wide, for the roomy Otty window later.
 - **Attack tests first:** eval cases with an invite whose title or location gives instructions (search for something private, open a link, remember something), and `runGuards` tests for the taint. The smoke world fakes Google's OAuth and Calendar endpoints.
 
 **Steps.** 1) The layer, the Keychain store, OAuth and the fake world (M). 2) Google Calendar's two tools, taint and sent rows (S–M). 3) Settings › Connections (S–M). 4) Eval cases and smoke steps (S).

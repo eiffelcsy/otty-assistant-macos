@@ -88,7 +88,7 @@ describe('CLAUDE.md "Idle budget (NFR-3)": every infinite animation is reviewed'
   // Each runs only while its window is awake (`data-asleep` pauses it) or while Otty is working.
   const REVIEWED: Record<string, string> = {
     blink: 'the otter blinks: stepped, 5 s, one frame change',
-    float: 'the idle bubble: steps(8) over 1.5px, measured at 0.35% of a core against 1.6% smooth',
+    float: 'the idle bubble: 6 s in steps(10) over 1.5px (DESIGN.md, Motion); 4 s in steps(8) measured 0.35% of a core against 1.6% smooth',
     bob: 'thinking only, while an answer runs',
     rise: 'thinking only, while an answer runs',
     glow: 'while working only',
@@ -103,4 +103,109 @@ describe('CLAUDE.md "Idle budget (NFR-3)": every infinite animation is reviewed'
       'Step it or run it briefly, measure with OTTY_METRICS=1, then add it here with the reason it stays under budget'
     ).toEqual([])
   })
+})
+
+describe('DESIGN.md "Foundations": sizes, spaces, radii and weights come from the scale (D-59)', () => {
+  // Component metrics DESIGN.md writes down off the 4px grid. Keep this list short: every entry is a spec, not a shortcut.
+  const OFF_SCALE = [
+    { selector: '.msg__bubble', prop: 'padding', why: 'user bubble, 10 14 (Components, Message)' },
+    { selector: '.btn', prop: 'padding', why: 'button, 0 14 (Components, Button)' },
+    { selector: '.btn--large', prop: 'padding', why: 'large button, 0 18 (Components, Button)' },
+    { selector: '.composer__input', prop: 'padding', why: 'centres 22px lines in the 32px row (Components, Composer)' },
+    { selector: '.quick__answer', prop: 'padding', why: 'lines the answer up with the box beside the 34px otter' }
+  ]
+  const RADIUS = /^(0|50%|25%|var\(--(r-\w+|radius)\)|calc\(var\(--(r-\w+|radius)\) [+-] var\(--s-\w+\)\))$/
+  const OK: [RegExp, RegExp][] = [
+    [/^font-size$/, /^var\(--(fs|i)-\w+\)$/],
+    [/^font-weight$/, /^(500|600|700|800)$/],
+    [/^(padding(-\w+)?|(row-|column-)?gap)$/, /^(0|var\(--s-\w+\))$/],
+    [/^border(-\w+)*-radius$/, RADIUS]
+  ]
+
+  function offScale(): string[] {
+    const css = read(STYLES)
+    const end = tokenBlockEnd(css)
+    const body = withoutComments(css).slice(end)
+    const found: string[] = []
+    for (const rule of body.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+      const selector = rule[1].trim().replace(/\s+/g, ' ')
+      for (const [, prop, value] of rule[2].matchAll(/([\w-]+)\s*:\s*([^;]+);/g)) {
+        const check = OK.find(([p]) => p.test(prop))
+        if (!check) continue
+        const parts = check[1] === RADIUS ? [value.trim()] : value.trim().split(/\s+(?![^(]*\))/)
+        if (parts.every((v) => check[1].test(v))) continue
+        if (OFF_SCALE.some((o) => o.selector === selector && prop.startsWith(o.prop))) continue
+        found.push(`${STYLES}:${lineAt(css, end + (rule.index ?? 0))}  ${selector} { ${prop}: ${value.trim()} }`)
+      }
+    }
+    return found
+  }
+
+  it('uses only foundation tokens for font-size, font-weight, padding, gap and border-radius', () => {
+    expect(offScale(), 'Use --s-*, --fs-*, --i-* or --r-* from the top of styles.css (docs/DESIGN.md, Foundations)').toEqual([])
+  })
+
+  it('keeps the off-scale list short and live', () => {
+    expect(OFF_SCALE.length).toBeLessThanOrEqual(10)
+    const css = withoutComments(read(STYLES))
+    expect(OFF_SCALE.filter((o) => !css.includes(`\n${o.selector} {`))).toEqual([])
+  })
+})
+
+describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light and dark (D-59)', () => {
+  type RGB = [number, number, number]
+
+  /** The custom properties of a `:root { … }` block, with var() resolved against `base`. */
+  function tokens(block: string, base: Record<string, string> = {}): Record<string, string> {
+    const own = Object.fromEntries([...block.matchAll(/^\s*(--[\w-]+):\s*([^;]+);/gm)].map((m) => [m[1], m[2].trim()]))
+    const all = { ...base, ...own }
+    const resolve = (v: string): string => v.replace(/var\((--[\w-]+)\)/g, (_, n: string) => resolve(all[n] ?? ''))
+    return Object.fromEntries(Object.keys(all).map((k) => [k, resolve(all[k])]))
+  }
+
+  /** A colour as RGB, with any alpha laid over `under`. */
+  function colour(v: string, under?: RGB): RGB {
+    const hex = v.match(/^#([0-9a-f]{6})$/i)
+    if (hex) return [0, 2, 4].map((i) => parseInt(hex[1].slice(i, i + 2), 16)) as RGB
+    const rgba = v.match(/^rgba\(([\d.]+), ([\d.]+), ([\d.]+), ([\d.]+)\)$/)
+    if (!rgba || !under) throw new Error(`Can't read the colour ${v}`)
+    const [r, g, b, a] = rgba.slice(1).map(Number)
+    return [r, g, b].map((c, i) => c * a + under[i] * (1 - a)) as RGB
+  }
+
+  const luminance = (c: RGB) => {
+    const [r, g, b] = c.map((v) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4))
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  const contrast = (a: RGB, b: RGB) => {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+    return (hi + 0.05) / (lo + 0.05)
+  }
+
+  const css = read(STYLES)
+  const dark = css.indexOf('@media (prefers-color-scheme: dark)')
+  const light = tokens(css.slice(0, dark))
+  const themes = { light, dark: tokens(css.slice(dark, tokenBlockEnd(css)), light) }
+
+  // --text-3 is left out on purpose: placeholders and disabled only, never information.
+  const TEXT = ['--text', '--heading', '--text-2', '--brand-text', '--straw-ink']
+  const PAIRS: [string, string, string?][] = [
+    ...TEXT.flatMap((t) => ['--bg', '--surface', '--surface-2'].map((s): [string, string] => [t, s])),
+    ...TEXT.map((t): [string, string, string] => [t, '--straw-soft', '--bg']),
+    ['--text', '--brand-soft', '--surface'],
+    ['--brand-text', '--brand-soft', '--bg'],
+    ['--brand-ink', '--brand-fill'],
+    ['--danger-ink', '--danger-soft']
+  ]
+
+  for (const [name, t] of Object.entries(themes)) {
+    it(`${name}: every text role reaches 4.5:1 on what it sits on`, () => {
+      const low = PAIRS.flatMap(([fg, bg, under]) => {
+        const back = colour(t[bg], under ? colour(t[under]) : undefined)
+        const ratio = contrast(colour(t[fg], back), back)
+        return ratio < 4.5 ? [`${fg} on ${bg}: ${ratio.toFixed(2)}:1`] : []
+      })
+      expect(low).toEqual([])
+    })
+  }
 })

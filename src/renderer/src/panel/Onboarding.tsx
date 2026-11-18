@@ -62,7 +62,7 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
             <HomeLanguagePicker value={home} onChange={setHome} />
           </div>
           <button
-            className="btn btn--primary btn--wide"
+            className="btn btn--primary btn--large btn--wide"
             onClick={async () => {
               await window.otty.saveSettings({ homeLanguage: home })
               setStep(1)
@@ -78,11 +78,11 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
           <h2>Choose Otty’s brain</h2>
           <p>Otty needs an AI service to think. Keys stay locked in your Mac’s Keychain.</p>
           <ConnectionFields value={connection} onChange={setConnection} apiKey={key} onKey={setKey} savedKeys={saved} keychain={settings.keychain} autoFocus />
-          <button className="btn btn--soft btn--wide" disabled={testing || !canTest} onClick={saveAndTest}>
+          <button className="btn btn--soft btn--large btn--wide" disabled={testing || !canTest} onClick={saveAndTest}>
             {testing ? 'Checking…' : 'Save & test'}
           </button>
           {test && <div className={test.ok ? 'ok-card' : 'error-card'}>{test.message}</div>}
-          <button className="btn btn--primary btn--wide" disabled={!test?.ok} onClick={() => setStep(2)}>
+          <button className="btn btn--primary btn--large btn--wide" disabled={!test?.ok} onClick={() => setStep(2)}>
             Next
           </button>
         </div>
@@ -105,7 +105,7 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
             onOpen={() => window.otty.openPermissionSettings('screen')}
           />
           <p className="hint">Tip: after turning on Screen Recording, macOS may ask you to reopen Otty.</p>
-          <button className="btn btn--primary btn--wide" onClick={finish}>
+          <button className="btn btn--primary btn--large btn--wide" onClick={finish}>
             {perms?.accessibility && perms?.screen ? 'All set — let’s go!' : 'Skip for now'}
           </button>
         </div>
