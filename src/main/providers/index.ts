@@ -8,10 +8,10 @@ import { hostOf, record, type SentTag } from '../sent'
 import { serviceAt, serviceById } from '../../shared/services'
 import type { Provider, Usage } from './types'
 
-export { ConnectionError, FriendlyError, NoVisionError } from './errors'
+export { FriendlyError, NoVisionError } from './errors'
 export type { Profile } from './profiles'
 export type { SentTag } from '../sent'
-export type { ChatRequest, ContentPart, Message, Provider, ProviderEvent, ProviderReplay, ToolCall, Usage } from './types'
+export type { ChatRequest, ContentPart, Message, Provider, ProviderEvent } from './types'
 
 function config() {
   const s = getStored()

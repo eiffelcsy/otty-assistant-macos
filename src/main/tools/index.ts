@@ -7,7 +7,7 @@ import { copyTool, openUrlTool, reminderTool } from './mac'
 import { readPageTool, searchWebTool, webSetup } from './web'
 import type { Args, Setup, Tool, ToolContext, ToolDef, ToolLabel, ToolOutcome } from './types'
 
-export type { Claims, MacHands, Setup, Tool, ToolContext, ToolDef, ToolLabel, ToolOutcome } from './types'
+export type { MacHands, Setup, Tool, ToolContext, ToolDef, ToolLabel, ToolOutcome } from './types'
 
 /**
  * Every tool, in the order the model is offered them. Keyed by `toolSafety.ts`'s names, so a tool can't exist without
