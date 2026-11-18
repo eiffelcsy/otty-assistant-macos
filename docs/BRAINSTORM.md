@@ -264,6 +264,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Connection says "Working, checked 2 minutes ago" (Spec 02): main keeps when the last request or test succeeded, so the status is real without a test call. Today it says whether a key is saved | M | S | idea, after D-61 |
 | ⌘, opens Settings at the last section used, and ↑ ↓ move between sections (Spec 02, Keyboard) | L | S | idea, after D-61 |
 | An Undo on the Saved whisper for the last change, as UX_REVIEW #2 suggested; D-61 shipped the whisper without it | L | S | idea, after D-61 |
+| Try again as a split button: Try again, with a small chevron that opens Shorter, Simpler and In more detail. The action row wraps to two lines at 420 since D-58, which is busier than the polish bar likes | M | S | idea, found in D-58 |
+| Drafts keep the tray too: captures and file ids beside the text (Spec 03). Today a draft is the words only, and a snip waiting in the quick view's tray doesn't follow ↵ continue in chat | M | S | idea, after D-62 |
 | Recent chats as one ledger of rows: rows on the panel background, an inset hairline between them, and the open chat marked with `--surface` and `--elev-1` (DESIGN.md, Row) once the list sits beside the chat in the roomy window | M | S | idea, after D-59 |
 
 ## Speed: spending a fast, cheap model

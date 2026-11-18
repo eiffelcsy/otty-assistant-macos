@@ -15,7 +15,8 @@ import type {
   UsedMemory,
   SendOptions,
   StepApp,
-  StepCard
+  StepCard,
+  Twist
 } from '../shared/types'
 import { capturedText } from '../shared/captures'
 import { HIDDEN, maskSecrets } from '../shared/secrets'
@@ -104,6 +105,16 @@ export interface SessionHooks {
   withdrawJob?(id: string): Promise<void>
 }
 
+
+/**
+ * Try again with a twist (D-58): one line after the question, as the turn's other notes are, so everything before it
+ * is sent as it was and the cache holds.
+ */
+const TWIST: Record<Twist, string> = {
+  shorter: 'Answer this again, shorter than last time.',
+  simpler: 'Answer this again, in simpler words than last time.',
+  detail: 'Answer this again, in more detail than last time.'
+}
 
 /** What Undo on a Noted line would do, said as an undo. */
 const UNDO_NOTE: Record<MemoryNote['action'], (text: string) => string> = {
@@ -376,7 +387,7 @@ export class ChatSession {
    * the saved rows. Try again sends the same question again, byte for byte. Edit removes the question too and
    * hands it back for the box. Nothing runs while the turn is still answering.
    */
-  async rewind(messageId: string, undoIds: string[], mode: 'retry' | 'edit'): Promise<EditDraft | null> {
+  async rewind(messageId: string, undoIds: string[], mode: 'retry' | 'edit', twist?: Twist): Promise<EditDraft | null> {
     const turn = this.latestTurn(messageId)
     if (!turn || (mode === 'retry' && turn.answers.some((a) => a.calc))) return null
     const { thread, user, userAt, historyAt, answers } = turn
@@ -420,6 +431,7 @@ export class ChatSession {
 
     const typed = user.text
     const outside = contentText(asked.role === 'user' ? asked.content : '').replace(typed, '')
+    if (twist && asked.role === 'user') asked.content = withNote(asked.content, TWIST[twist])
     const again: Turn = {
       typed,
       prompt: '',

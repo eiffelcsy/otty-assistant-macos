@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react'
-import type { AppInfo, Capture, EditDraft, MemoryNote, RewindPlan, ScreenContext, ToolChipInfo, UsedMemory } from '../../../shared/types'
+import type { AppInfo, Capture, EditDraft, MemoryNote, RewindPlan, ScreenContext, ToolChipInfo, Twist, UsedMemory } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { HiddenSheet } from '../components/HiddenSheet'
 import { StepCard } from '../components/StepCard'
@@ -256,6 +256,13 @@ function CalcCard({ calc }: { calc: NonNullable<Assistant['calc']> }) {
 
 type RewindMode = 'retry' | 'edit'
 
+/** Try again with a twist (D-58): the same question, asked for another shape. */
+const TWISTS: [Twist, string][] = [
+  ['shorter', 'Shorter'],
+  ['simpler', 'Simpler'],
+  ['detail', 'In more detail']
+]
+
 /**
  * Before Try again or Edit replaces an answer (D-36): what it did that Otty can take back, ticked by default, and
  * what it can't. Only shown when there's something to say.
@@ -335,18 +342,18 @@ export function AssistantMessage({
   onSettings?: () => void
 }) {
   const [copied, setCopied] = useState(false)
-  const [rewinding, setRewinding] = useState<{ mode: RewindMode; plan: RewindPlan } | null>(null)
+  const [rewinding, setRewinding] = useState<{ mode: RewindMode; plan: RewindPlan; twist?: Twist } | null>(null)
   const ask = useContext(AskContext)
-  const go = async (mode: RewindMode, undo: string[]) => {
+  const go = async (mode: RewindMode, undo: string[], twist?: Twist) => {
     setRewinding(null)
-    const draft = await window.otty.rewind(m.id, undo, mode)
+    const draft = await window.otty.rewind(m.id, undo, mode, twist)
     if (mode === 'edit' && draft) onEdit?.(draft)
   }
-  const rewind = async (mode: RewindMode) => {
+  const rewind = async (mode: RewindMode, twist?: Twist) => {
     const plan = await window.otty.rewindPlan(m.id)
     if (!plan) return
-    if (plan.undo.length || plan.lasting.length) setRewinding({ mode, plan })
-    else await go(mode, [])
+    if (plan.undo.length || plan.lasting.length) setRewinding({ mode, plan, twist })
+    else await go(mode, [], twist)
   }
   const canRewind = latest && !m.streaming && !m.calc
   return (
@@ -423,6 +430,13 @@ export function AssistantMessage({
               Try again
             </button>
           )}
+          {canRewind &&
+            !m.error &&
+            TWISTS.map(([twist, label]) => (
+              <button key={twist} className="copy-btn" onClick={() => void rewind('retry', twist)} title={`Try again, ${label.toLowerCase()}`}>
+                {label}
+              </button>
+            ))}
           {canRewind && onEdit && (
             <button className="copy-btn" onClick={() => void rewind('edit')} title="Change your question and ask it again">
               <Icon name="edit" />
@@ -445,7 +459,7 @@ export function AssistantMessage({
         </div>
       )}
       {rewinding && (
-        <RewindCard mode={rewinding.mode} plan={rewinding.plan} onGo={(undo) => void go(rewinding.mode, undo)} onCancel={() => setRewinding(null)} />
+        <RewindCard mode={rewinding.mode} plan={rewinding.plan} onGo={(undo) => void go(rewinding.mode, undo, rewinding.twist)} onCancel={() => setRewinding(null)} />
       )}
       {m.memories?.length ? (
         <div className="memory-lines" aria-live="polite">

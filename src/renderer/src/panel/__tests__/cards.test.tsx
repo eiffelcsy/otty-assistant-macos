@@ -186,14 +186,27 @@ describe('the rewind card', () => {
     fireEvent.click(screen.getByLabelText('Forget “likes tea”'))
     const card = screen.getByText('Try this again?').closest('.rewind-card') as HTMLElement
     fireEvent.click(within(card).getByRole('button', { name: 'Try again' }))
-    await waitFor(() => expect(otty.rewind).toHaveBeenCalledWith('a1', ['job:2'], 'retry'))
+    await waitFor(() => expect(otty.rewind).toHaveBeenCalledWith('a1', ['job:2'], 'retry', undefined))
+  })
+
+  it('offers Shorter, Simpler and In more detail only under the latest finished answer (D-58)', async () => {
+    const twists = () => ['Shorter', 'Simpler', 'In more detail'].filter((name) => screen.queryByRole('button', { name }))
+    const { rerender } = render(<AssistantMessage m={answer({ text: 'Done.' })} />)
+    expect(twists()).toEqual([])
+    rerender(<AssistantMessage m={answer({ text: 'Done…', streaming: true })} latest />)
+    expect(twists()).toEqual([])
+    rerender(<AssistantMessage m={answer({ text: 'Done.' })} latest />)
+    expect(twists()).toEqual(['Shorter', 'Simpler', 'In more detail'])
+    otty.rewindPlan.mockResolvedValueOnce({ undo: [], lasting: [] })
+    fireEvent.click(screen.getByRole('button', { name: 'Simpler' }))
+    await waitFor(() => expect(otty.rewind).toHaveBeenCalledWith('a1', [], 'retry', 'simpler'))
   })
 
   it('goes straight ahead when there’s nothing to say', async () => {
     otty.rewindPlan.mockResolvedValueOnce({ undo: [], lasting: [] })
     render(<AssistantMessage m={answer({ text: 'Done.' })} latest />)
     fireEvent.click(screen.getByRole('button', { name: /Try again/ }))
-    await waitFor(() => expect(otty.rewind).toHaveBeenCalledWith('a1', [], 'retry'))
+    await waitFor(() => expect(otty.rewind).toHaveBeenCalledWith('a1', [], 'retry', undefined))
     expect(screen.queryByText('Try this again?')).toBeNull()
   })
 })

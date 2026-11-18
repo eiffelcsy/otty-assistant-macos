@@ -403,6 +403,9 @@ export interface Receipt {
   undone?: boolean
 }
 
+/** Try again with a twist (D-58). */
+export type Twist = 'shorter' | 'simpler' | 'detail'
+
 /** What Try again or Edit would take back, shown before the answer goes (D-36). Each undo is ticked by default. */
 export interface RewindPlan {
   undo: { id: string; label: string }[]
@@ -627,7 +630,8 @@ export interface OttyApi {
   /** What Try again or Edit on the latest turn would undo (D-36). Null when it isn't the latest turn. */
   rewindPlan(messageId: string): Promise<RewindPlan | null>
   /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */
-  rewind(messageId: string, undo: string[], mode: 'retry' | 'edit'): Promise<EditDraft | null>
+  /** `twist` asks for the same answer in another shape: shorter, simpler or in more detail (D-58). */
+  rewind(messageId: string, undo: string[], mode: 'retry' | 'edit', twist?: Twist): Promise<EditDraft | null>
   onActivity(cb: (items: ActivityItem[]) => void): () => void
   /** Settings changed in main (the menu bar, another window), so every view shows the same. */
   onSettings(cb: (settings: PublicSettings) => void): () => void

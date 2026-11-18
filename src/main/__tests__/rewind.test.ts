@@ -127,6 +127,21 @@ describe('try again and edit (D-36)', () => {
     expect(JSON.stringify(requests[0])).toBe(JSON.stringify(before))
   })
 
+  it('with a twist, sends exactly what Try again would, plus one line after the question (D-58)', async () => {
+    const { session, answers, settle } = rig()
+    await session.send('One', [], null)
+    await session.send('Explain HTTP 429', [], null)
+    const before = requests[1] as { messages: { role: string; content: unknown }[] }
+    requests = []
+    await session.rewind(answers()[1], [], 'retry', 'shorter')
+    await settle()
+    const sent = requests[0] as typeof before
+    const question = before.messages.at(-1)!
+    expect({ ...sent, messages: [] }).toEqual({ ...before, messages: [] })
+    expect(sent.messages.slice(0, -1)).toEqual(before.messages.slice(0, -1))
+    expect(sent.messages.at(-1)).toEqual({ ...question, content: `${String(question.content)}\n\nAnswer this again, shorter than last time.` })
+  })
+
   it('reads its list from the action ledger, the same as from the answer, and marks what it undid (D-46)', async () => {
     const log = new MemoryLedger()
     setLedger(() => log)

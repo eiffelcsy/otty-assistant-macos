@@ -90,7 +90,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
-| D-58 | Try again with a twist: Shorter, Simpler, In more detail | ⏳ planned | — | S |
 | D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M (1 day) |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M (1–2 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
@@ -407,14 +406,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - Edit, reorder and delete in Settings. Built to work wide.
 
 **Done when.** A saved tile shows only for its kinds of capture and sends its prompt as typed (renderer test and `@step-N`); a drafted tile is saved only from the card's button; 12 is the most, and a too-long name or prompt is refused in main (`settings.test.ts`).
-
-## D-58 · Try again with a twist ⏳
-
-**Goal.** Beside Try again: **Shorter**, **Simpler** and **In more detail**, so changing an answer's shape is one tap.
-
-**Design.** The same rewind as Try again (D-36): the history is cut to a prefix and the stored question resent unchanged, plus one line in that turn's `turnNote` ("Make it shorter than last time"). The cache still holds, because the note is at the end of the user message. The rewind plan is the same as Try again's. Only on the latest answer, as Try again.
-
-**Done when.** `rewind.test.ts`: the request with a twist equals Try again's plus the one line, byte for byte; the three buttons show only under the latest finished answer (`cards.test.tsx`); `@step-N` runs Shorter.
 
 ---
 
@@ -755,3 +746,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 145. Highlight something, ⌥Space, ↵, then type a follow-up in the quick view and press **↵ continue in chat** → the panel's box has the same words.
 146. Ask something, type a few words in the box, press **New chat** and ask something else → Recent chats shows the first chat with "Draft: …" in straw; open it → the words are back in the box.
 147. With a monthly limit of 5 questions, ask four → the health line says "You've used 80% of this month's limit of 5 questions", with **Change the limit**. **Not now** → it's gone, and stays gone after a relaunch until next month.
+148. Ask something, then **Shorter** under the answer → a new, shorter answer replaces it. Simpler and In more detail do the same, and only the latest finished answer offers them.

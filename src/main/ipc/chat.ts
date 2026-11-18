@@ -1,4 +1,4 @@
-import type { AnswerLanguage, Capture, PanelOpenPayload, SendOptions } from '../../shared/types'
+import type { AnswerLanguage, Capture, PanelOpenPayload, SendOptions, Twist } from '../../shared/types'
 import { chatStore } from '../store'
 import { discardFile, pickFiles, readFile, registerFiles } from '../files'
 import { explainTerm } from '../llm'
@@ -23,7 +23,7 @@ export function registerChat(): void {
   handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))
   handle('chat:undo-receipt', (_e, answerId: string, at: number) => chat.undoReceipt(answerId, at))
   handle('chat:rewind-plan', (_e, id: string) => chat.rewindPlan(id))
-  handle('chat:rewind', (_e, id: string, undo: string[], mode: 'retry' | 'edit') => chat.rewind(id, undo, mode))
+  handle('chat:rewind', (_e, id: string, undo: string[], mode: 'retry' | 'edit', twist?: Twist | null) => chat.rewind(id, undo, mode, twist ?? undefined))
   handle('chat:learn', (_e, on: boolean) => chat.setLearn(on))
   handle('chat:explain', (_e, term: string, around: string, language?: AnswerLanguage) => explainTerm(term, around, language ?? undefined))
 

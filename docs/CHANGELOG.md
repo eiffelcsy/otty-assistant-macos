@@ -4,6 +4,10 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Try again with a twist (D-58, 2026-11-18)
+
+- **Shorter**, **Simpler** and **In more detail** sit beside Try again under the latest finished answer. Each is Try again (D-36: the same undo list, the history cut to the question) with one line added after the question, "Answer this again, shorter than last time.", so everything before it is sent as it was and the cache holds (`rewind.test.ts` checks it byte for byte).
+
 ### A heads-up at 80% of the monthly limit (D-57, 2026-11-18)
 
 - With a monthly limit set, the health line says "You've used 80% of this month's limit of 300 questions" once the month reaches 80%, with **Change the limit**. Seen (Not now, or the button), it doesn't come back until next month; past the limit, the existing line takes over. Worked out in `shared/cap.ts` (`nearCap`), with the month it was seen saved as `capNoticed`. No notification, no sound.

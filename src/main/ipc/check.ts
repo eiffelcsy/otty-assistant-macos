@@ -89,7 +89,7 @@ export const CHANNELS = {
   'chats:clear': { views: PANEL, args: [] },
   'chat:confirm': { views: CHAT, args: [id, bool] },
   'chat:rewind-plan': { views: CHAT, args: [id] },
-  'chat:rewind': { views: CHAT, args: [id, list(id, 50), oneOf('retry', 'edit')] },
+  'chat:rewind': { views: CHAT, args: [id, list(id, 50), oneOf('retry', 'edit'), optional(oneOf('shorter', 'simpler', 'detail'))] },
   'chat:learn': { views: CHAT, args: [bool] },
   'chat:explain': { views: CHAT, args: [text(500), text(50_000), optional(LANGUAGE)] },
   'steps:run': { views: CHAT, args: [id, int(0, 100), optional(bool)] },
