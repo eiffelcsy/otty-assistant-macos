@@ -1464,13 +1464,9 @@ html[data-view='bubble'] body {
 .toggle--off {
   opacity: 0.45;
 }
-/* Settings toggles are switches: a 36 × 20 track at the end of the row, and the whole row flips it. */
-.settings .toggle {
-  justify-content: space-between;
-  cursor: pointer;
-}
-.settings .toggle input {
-  order: 1;
+/* Switch: a 36 × 20 track. In Settings the whole row flips it. */
+.switch {
+  flex: none;
   appearance: none;
   position: relative;
   width: 36px;
@@ -1482,7 +1478,7 @@ html[data-view='bubble'] body {
   cursor: inherit;
   transition: background var(--t-quick) var(--glide);
 }
-.settings .toggle input::before {
+.switch::before {
   content: '';
   position: absolute;
   top: 2px;
@@ -1494,12 +1490,16 @@ html[data-view='bubble'] body {
   box-shadow: var(--elev-1);
   transition: transform var(--t-quick) var(--glide);
 }
-.settings .toggle input:checked {
+.switch:checked {
   background: var(--brand-fill);
   box-shadow: none;
 }
-.settings .toggle input:checked::before {
+.switch:checked::before {
   transform: translateX(16px);
+}
+.switch:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 .hint {
   font-size: var(--fs-meta);
@@ -1576,37 +1576,360 @@ html[data-view='bubble'] body {
 .settings {
   flex: 1;
   overflow-y: auto;
-  padding: var(--s-4);
+  padding: var(--s-3) var(--s-4) var(--s-4);
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
+  gap: var(--s-6);
 }
-/* Group */
-.settings section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-4);
-  background: var(--surface);
-  border-radius: var(--r-md);
-  box-shadow: var(--elev-1);
-}
-.settings h3 {
-  margin: 0;
-  font-size: var(--fs-ui);
-  font-weight: 700;
-  line-height: var(--lh-ui);
-  color: var(--heading);
+
+/* ---------- Settings in sections (D-61, Spec 02) ---------- */
+.set-find {
   display: flex;
   align-items: center;
-  gap: var(--s-1h);
+  gap: var(--s-2);
+  height: 36px;
+  margin-bottom: calc(var(--s-4) - var(--s-6));
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--i-md);
 }
-.settings section .btn--small {
+.set-find:focus-within {
+  border-color: var(--brand);
+  box-shadow: var(--ring);
+}
+.set-find input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.set-find input::placeholder {
+  color: var(--text-3);
+}
+.set-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin: calc(var(--s-1) - var(--s-3)) 0 calc(var(--s-2) - var(--s-6)) calc(-1 * var(--s-2));
+}
+.set-bar__title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 700;
+  color: var(--heading);
+}
+/* The Saved whisper: one per section, restarted by each change. */
+.set-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.set-saved .icon {
+  font-size: var(--i-sm);
+}
+.set-saved--on {
+  animation: whisper 2.56s var(--glide) both;
+}
+@keyframes whisper {
+  0% { opacity: 0; }
+  11%, 81% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.set-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.set-group__label {
+  padding-left: var(--s-4);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.set-group__box {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+  overflow: hidden;
+}
+/* A row: 44 high on one line, growing with its description. The hairline is inset 16 and skips the last row. */
+.set-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 44px;
+  padding: var(--s-3) var(--s-4);
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+}
+.set-row + .set-row::before,
+.set-row + .meter::before,
+.meter + .set-row::before,
+.set-prompt + .set-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--s-4);
+  right: 0;
+  border-top: 1px solid var(--hairline);
+}
+.set-row--tap {
+  cursor: pointer;
+  transition: background var(--t-tap) var(--glide);
+}
+.set-row--tap:active {
+  background: var(--fill);
+}
+.set-row--off .set-row__title,
+.set-row--off .switch {
+  opacity: 0.45;
+}
+.set-row--found {
+  animation: found var(--t-drift) var(--glide);
+}
+.set-row--section {
+  min-height: 52px;
+  padding-top: var(--s-2);
+  padding-bottom: var(--s-2);
+}
+.set-row__glyph {
+  flex: none;
+  font-size: var(--i-lg);
+  color: var(--text-2);
+}
+.set-row__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+}
+.set-row__title {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 600;
+  color: var(--text);
+}
+.set-row__title--find {
+  font-weight: 500;
+}
+.set-row__title--find b {
+  font-weight: 700;
+}
+.set-row__desc,
+.set-row__sum,
+.set-row__value {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 500;
+  color: var(--text-2);
+}
+.set-row__sum {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set-row__sum--warn {
+  color: var(--straw-ink);
+}
+.set-row__value {
+  flex: none;
+}
+.set-row__failed {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--danger-ink);
+}
+.set-row__chevron {
+  flex: none;
+  font-size: var(--i-md);
+  color: var(--text-2);
+}
+.set-none {
+  margin: 0;
+  padding: var(--s-4);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+/* Choice: a pop-up button over a native menu. */
+.popup {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+.popup select {
+  appearance: none;
+  height: 28px;
+  padding: 0 var(--s-6) 0 var(--s-3);
+  border: none;
+  border-radius: var(--r-xs);
+  background: var(--fill-strong);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.popup select:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.popup .icon {
+  position: absolute;
+  right: var(--s-2);
+  font-size: var(--i-sm);
+  color: var(--text-2);
+  pointer-events: none;
+}
+/* Keys: keycaps that turn into a recording field. */
+.keycaps {
+  display: inline-flex;
+  gap: var(--s-1);
+}
+.keys-btn {
+  flex: none;
+  padding: var(--s-1);
+  border: none;
+  border-radius: var(--r-xs);
+  background: none;
+  cursor: pointer;
+}
+.keys-btn:hover {
+  background: var(--fill);
+}
+.recorder {
+  flex: none;
+  min-width: 160px;
+  height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--brand-line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+  font: inherit;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  outline: none;
+}
+/* Hold: the fill sweeps across over 1.2 s; letting go early does nothing. */
+.hold {
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.hold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--danger-ink) 22%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.hold--on::after {
+  transform: scaleX(1);
+  transition: transform 1.2s linear;
+}
+.set-prompt {
+  max-width: none;
+  margin: var(--s-2) var(--s-3);
+}
+.set-prompt .confirm-card__row {
+  margin-top: var(--s-2);
+}
+.set-conn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: 0 var(--s-4) var(--s-4);
+}
+.set-conn .btn {
   align-self: flex-start;
 }
-.settings h3 .icon {
-  color: var(--brand);
-  font-size: var(--i-md);
+/* The month's meter. */
+.meter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-3) var(--s-4);
+}
+.meter__top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-1h);
+}
+.meter__count {
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--heading);
+}
+.meter__unit,
+.meter__limit {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.meter__limit {
+  margin-left: auto;
+}
+.meter__bar {
+  height: 6px;
+  margin-top: 10px;
+  border-radius: var(--r-xs);
+  background: var(--fill-strong);
+  overflow: hidden;
+}
+.meter__fill {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  transition: width var(--t-settle) var(--glide);
+}
+.meter__fill--near {
+  background: var(--straw);
+}
+.meter__note {
+  margin: 10px 0 0;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+}
+.limit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.limit__field {
+  width: 88px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .onboarding {
@@ -2856,14 +3179,6 @@ button.menu__item:hover {
   color: var(--text);
 }
 
-/* ---------- Usage meter ---------- */
-.usage {
-  margin: 0;
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-  color: var(--text);
-}
-
 /* ---------- Try asking: what nobody finds alone ---------- */
 .try {
   display: flex;
@@ -3088,26 +3403,6 @@ html[data-view='viewer'] body {
 }
 .viewer__bar button:disabled {
   opacity: 0.45;
-}
-
-/* The monthly limit, under What Otty has used (D-33). */
-.cap {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  margin-top: var(--s-3);
-}
-.cap__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-2);
-}
-.cap__unit {
-  width: auto;
-}
-.cap__amount {
-  width: 96px;
 }
 
 /* Before Try again or Edit replaces an answer (D-36, Spec 01). */

@@ -52,11 +52,11 @@ The fix is **fewer cards**, not longer ones: more words on a card people already
 **Problem.** It opens on a five-way AI connection picker with an API key field. Toggles look instant but don't apply until Save at the bottom (`Settings.tsx:297`), so changes are lost silently. "Older chats are forgotten when you save" ties deleting chats to an unrelated button. Usage is shown in tokens ("1.8 million tokens, the pieces of text DeepSeek charges for"), and the monthly limit asks the user to pick between *questions* and *tokens*.
 
 **Actions.**
-- [ ] Apply every setting instantly, with a small "Saved · Undo" toast. Remove the Save button. The API key keeps its own explicit "Check and save" because it needs a test.
-- [ ] Reorder: **You & Otty** (otter, notifications, login, memory) → **Shortcuts** → **Privacy** → **Usage & limit** → **Connection** (collapsed, showing "DeepSeek · working ✓") → **Help**.
-- [ ] Changing chat retention never deletes on its own. If the new value would forget chats, show a confirm card: "This forgets 23 chats older than 30 days. Can't be undone."
-- [ ] Usage in questions and look-ups only. Money once the dated price table exists (BRAINSTORM "Money, not tokens"). Drop the tokens unit from the monthly limit, or hide it under Connection for power users.
-- [ ] Move "Forget everything Otty knows" and "Forget all chats" into a "Danger zone" at the bottom of their sections, each behind a confirm that names the count.
+- [x] Apply every setting instantly, with a small "Saved · Undo" toast. Remove the Save button. The API key keeps its own explicit "Check and save" because it needs a test.
+- [x] Reorder: **You & Otty** (otter, notifications, login, memory) → **Shortcuts** → **Privacy** → **Usage & limit** → **Connection** (collapsed, showing "DeepSeek · working ✓") → **Help**.
+- [x] Changing chat retention never deletes on its own. If the new value would forget chats, show a confirm card: "This forgets 23 chats older than 30 days. Can't be undone."
+- [x] Usage in questions and look-ups only. Money once the dated price table exists (BRAINSTORM "Money, not tokens"). Drop the tokens unit from the monthly limit, or hide it under Connection for power users.
+- [x] Move "Forget everything Otty knows" and "Forget all chats" into a "Danger zone" at the bottom of their sections, each behind a confirm that names the count.
 
 ### 3. Health banner covers content, and its buttons are confusing
 

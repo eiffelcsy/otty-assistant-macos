@@ -40,9 +40,9 @@ test.describe('with 繁體中文（香港） as the other language', () => {
   test('English only in Settings takes away every Chinese choice, and Chinese questions get English', { tag: ['@step-19'] }, async ({ otty, world }) => {
     const panel = await otty.openPanel()
     await expect(pill(panel)).toBeVisible()
-    await panel.getByRole('button', { name: 'Settings' }).click()
-    await panel.getByRole('radio', { name: /English only/ }).check()
-    await panel.getByRole('button', { name: 'Save' }).click()
+    await otty.settings(panel, 'You & Otty')
+    await panel.getByRole('combobox', { name: 'Help in my own language' }).selectOption('none')
+    await expect(panel.getByText('Saved')).toBeVisible()
     await panel.getByRole('button', { name: 'Back to chat' }).click()
     await expect(pill(panel)).toHaveCount(0)
 

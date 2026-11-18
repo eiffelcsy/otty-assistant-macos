@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Memory, MemoryKind } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 
@@ -51,7 +51,7 @@ function Row({ memory: m, onChange, onOpenChat }: { memory: Memory; onChange: (l
             maxLength={200}
             aria-label="Edit what Otty knows"
             onChange={(e) => setText(e.target.value)}
-            onBlur={save}
+            onBlur={() => void save()}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void save()
               if (e.key === 'Escape') {
@@ -73,11 +73,11 @@ function Row({ memory: m, onChange, onOpenChat }: { memory: Memory; onChange: (l
         <button
           className="icon-btn icon-btn--sm"
           title={paused ? 'Use this again' : 'Pause: keep it, but don’t use it'}
-          onClick={async () => onChange(await window.otty.updateMemory(m.id, { status: paused ? 'active' : 'paused' }))}
+          onClick={() => void window.otty.updateMemory(m.id, { status: paused ? 'active' : 'paused' }).then(onChange)}
         >
           <Icon name={paused ? 'play' : 'pause'} />
         </button>
-        <button className="icon-btn icon-btn--sm" title="Delete" onClick={async () => onChange(await window.otty.removeMemory(m.id))}>
+        <button className="icon-btn icon-btn--sm" title="Delete" onClick={() => void window.otty.removeMemory(m.id).then(onChange)}>
           <Icon name="trash" />
         </button>
       </div>
@@ -85,21 +85,18 @@ function Row({ memory: m, onChange, onOpenChat }: { memory: Memory; onChange: (l
   )
 }
 
-/** Settings → What Otty knows about you. Changes here apply at once, and the next answer uses them. */
-export function MemorySection({ learn, onLearn, focus, onOpenChat }: { learn: boolean; onLearn: (on: boolean) => void; focus: number; onOpenChat: () => void }) {
+/**
+ * The Notebook: what Otty knows about the user, opened from Settings › Privacy and a Noted line's Edit (D-61). A plain
+ * list until the Otty window gives it a screen of its own. Changes apply at once, and the next answer uses them.
+ */
+export function Notebook({ onOpenChat, onBack }: { onOpenChat: () => void; onBack: () => void }) {
   const [memories, setMemories] = useState<Memory[] | null>(null)
   const [adding, setAdding] = useState('')
   const [refused, setRefused] = useState(false)
-  const [sure, setSure] = useState(false)
-  const ref = useRef<HTMLElement>(null)
 
   useEffect(() => {
     void window.otty.listMemories().then(setMemories)
   }, [])
-
-  useEffect(() => {
-    if (focus) ref.current?.scrollIntoView({ block: 'start' })
-  }, [focus, memories !== null])
 
   const add = async () => {
     const text = adding.trim()
@@ -112,18 +109,14 @@ export function MemorySection({ learn, onLearn, focus, onOpenChat }: { learn: bo
   }
 
   return (
-    <section ref={ref}>
-      <h3>
-        <Icon name="bookmark" /> What Otty knows about you
-      </h3>
-      <label className="toggle">
-        <input type="checkbox" checked={learn} onChange={(e) => onLearn(e.target.checked)} />
-        <span>
-          <b>Let Otty learn about me</b> — it notes useful things as you chat, shows you each one, and uses them to fit its answers. Turned off, nothing is learned
-          or sent, and this list is kept.
-        </span>
-      </label>
-      {memories?.length === 0 && <p className="hint">Nothing yet. What Otty learns stays on this Mac, and only goes to your AI service with your questions.</p>}
+    <div className="settings notebook">
+      <div className="set-bar">
+        <button className="icon-btn icon-btn--sm" title="All settings" aria-label="All settings" onClick={onBack}>
+          <Icon name="angle-small-left" />
+        </button>
+        <h2 className="set-bar__title">What Otty knows about you</h2>
+      </div>
+      {memories?.length === 0 && <p className="hint">Nothing yet. What Otty notes stays on this Mac, and only goes to your AI service with your questions.</p>}
       {GROUPS.map(({ kind, label }) => {
         const group = memories?.filter((m) => m.kind === kind) ?? []
         if (!group.length) return null
@@ -151,33 +144,11 @@ export function MemorySection({ learn, onLearn, focus, onOpenChat }: { learn: bo
           }}
           onKeyDown={(e) => e.key === 'Enter' && void add()}
         />
-        <button className="btn btn--soft btn--small" disabled={!adding.trim()} onClick={add}>
+        <button className="btn btn--soft btn--small" disabled={!adding.trim()} onClick={() => void add()}>
           Add
         </button>
       </div>
       {refused && <p className="hint hint--warn">Otty never keeps passwords, keys or codes.</p>}
-      {Boolean(memories?.length) &&
-        (sure ? (
-          <div className="confirm-card__row">
-            <button
-              className="btn btn--soft btn--small"
-              onClick={async () => {
-                await window.otty.clearMemories()
-                setMemories([])
-                setSure(false)
-              }}
-            >
-              Yes, forget all of it
-            </button>
-            <button className="btn btn--soft btn--small" onClick={() => setSure(false)}>
-              Keep it
-            </button>
-          </div>
-        ) : (
-          <button className="btn btn--soft btn--small" onClick={() => setSure(true)}>
-            Forget everything Otty knows
-          </button>
-        ))}
-    </section>
+    </div>
   )
 }

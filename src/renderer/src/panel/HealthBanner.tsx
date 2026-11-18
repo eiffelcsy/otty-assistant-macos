@@ -38,7 +38,7 @@ function useHealth(): { perms: Permissions | null; cap: CapStatus | null } {
 }
 
 /** One quiet 40px line at the top of the chat when something the user will try won't work yet, with the fix one tap away. A click on the words unfolds them. */
-export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSettings; onOpenSettings: () => void }) {
+export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSettings; onOpenSettings: (section: 'keys' | 'usage') => void }) {
   const { perms, cap } = useHealth()
   const [dismissed, setDismissed] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -64,7 +64,7 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
       </button>
       <span className="health__actions">
         {problem.kind === 'hotkey' || problem.kind === 'cap' ? (
-          <button className="btn btn--primary btn--small" onClick={onOpenSettings}>
+          <button className="btn btn--primary btn--small" onClick={() => onOpenSettings(problem.kind === 'cap' ? 'usage' : 'keys')}>
             {problem.kind === 'cap' ? 'Change the limit' : 'Change it'}
           </button>
         ) : (

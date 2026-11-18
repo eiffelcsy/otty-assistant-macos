@@ -260,6 +260,30 @@ export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey'
   apiKey?: string
 }
 
+/** The counts Settings names before anything is forgotten (D-61), worked out in main. */
+export interface SettingsCounts {
+  chats: number
+  /** How many chats each "Keep chats for" choice would forget now. */
+  olderThan: Record<KeepChats, number>
+  notes: number
+}
+
+/** A setting Settings saves on its own as it changes (`SETTABLE` in main checks each). */
+export type SettableKey =
+  | 'showBubble'
+  | 'notifyDone'
+  | 'openAtLogin'
+  | 'thinking'
+  | 'shareAppContext'
+  | 'rememberChats'
+  | 'learn'
+  | 'keepChats'
+  | 'homeLanguage'
+  | 'askHotkey'
+  | 'snapHotkey'
+  | 'screenHotkey'
+  | 'monthlyCap'
+
 export interface Permissions {
   platform: string
   accessibility: boolean
@@ -538,6 +562,9 @@ export interface PickupPicture {
 export interface OttyApi {
   getSettings(): Promise<PublicSettings>
   saveSettings(update: SettingsUpdate): Promise<PublicSettings>
+  /** Saves one setting as it changes (D-61). Null when main refused it. */
+  setSetting<K extends SettableKey>(key: K, value: PublicSettings[K]): Promise<PublicSettings | null>
+  settingsCounts(): Promise<SettingsCounts>
   testConnection(): Promise<{ ok: boolean; message: string }>
   getPermissions(): Promise<Permissions>
   openPermissionSettings(kind: PermissionKind): Promise<void>

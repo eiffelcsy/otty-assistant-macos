@@ -86,9 +86,10 @@ test('a highlight question, a search and a page each have a row; Open goes to th
   await expect(row(panel, 'Asked DeepSeek: 1 highlight')).toHaveCount(0)
 
   // Remember my chats off: the list empties.
-  await panel.getByTitle('Settings').click()
+  await otty.settings(panel, 'Privacy')
   await panel.getByRole('checkbox', { name: /Remember my chats/ }).uncheck()
-  await panel.getByRole('button', { name: 'Save' }).click()
+  await otty.hold(panel.getByRole('group', { name: /^Turn off and forget/ }).getByRole('button', { name: 'Hold to forget' }))
+  await expect(panel.getByText('Saved')).toBeVisible()
   await panel.getByTitle('Back to chat').click()
   // That forgets the chats and the scheduled look with them, so Activity goes too. Schedule another to reach the list:
   // only that question is left on it.
@@ -109,8 +110,8 @@ test('Settings › Privacy opens What left your Mac even when nothing is in Acti
   await expect(panel.getByText('Mostly fish and shellfish.')).toBeVisible()
   // Nothing is running or waiting, so the header has no Activity button: this is the only way in.
   await expect(panel.getByTitle('Activity', { exact: true })).toHaveCount(0)
-  await panel.getByRole('button', { name: 'Settings' }).click()
-  await panel.getByRole('button', { name: 'See what left your Mac' }).click()
+  await otty.settings(panel, 'Privacy')
+  await panel.getByRole('button', { name: 'See what left my Mac' }).click()
   await expect(panel.getByRole('tab', { name: 'What left your Mac' })).toHaveAttribute('aria-selected', 'true')
   // The question's own row, not the chat-title one beside it.
   await expect(panel.locator('.sent-row__line').getByText('Asked DeepSeek', { exact: true })).toBeVisible()

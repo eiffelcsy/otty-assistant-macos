@@ -1,6 +1,13 @@
 // Choosing Otty's brain (D-47): Claude set up from Settings, and switching services in the middle of a chat.
-import { expect, ONBOARDED, SMOKE_KEY, test } from '../fixtures'
+import type { Page } from '@playwright/test'
+import { expect, ONBOARDED, SMOKE_KEY, test, type Otty } from '../fixtures'
 import type { ModelBody } from '../world/server'
+
+/** Settings › Connection › Change service or key: the one place with an explicit Check and save (D-61). */
+async function changeService(otty: Otty, panel: Page): Promise<void> {
+  await otty.settings(panel, 'Connection')
+  await panel.getByRole('button', { name: 'Change service or key' }).click()
+}
 
 const plain = (key: string) => ({ enc: Buffer.from(key).toString('base64'), plain: true })
 
@@ -10,10 +17,10 @@ const sentBack = (body: ModelBody | undefined) =>
 
 test('Claude, set up from Settings: the test names the model, tools work, and the chat carries on after reopening', { tag: ['@step-59'] }, async ({ otty, world }) => {
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Settings' }).click()
+  await changeService(otty, panel)
   await panel.getByRole('radio', { name: /^Claude/ }).check()
   await panel.getByLabel('API key').fill('sk-ant-smoke-0000')
-  await panel.getByRole('button', { name: 'Save' }).click()
+  await panel.getByRole('button', { name: 'Check and save' }).click()
   await expect(panel.getByText('Connected to claude-sonnet-5-5! Otty is ready to help.')).toBeVisible()
   expect(world.requests.filter((r) => r.url.startsWith('https://api.anthropic.com/')).map((r) => r.authorization)).toContain('Bearer sk-ant-smoke-0000')
 
@@ -59,21 +66,21 @@ test.describe('on OpenAI, with a DeepSeek key saved too', () => {
     await otty.ask(panel, 'Hello from OpenAI')
     await expect(panel.getByText('Hi, OpenAI here.')).toBeVisible()
 
-    await panel.getByRole('button', { name: 'Settings' }).click()
+    await changeService(otty, panel)
     await panel.getByRole('radio', { name: /^DeepSeek/ }).check()
     await expect(panel.getByPlaceholder('Saved (paste to replace)')).toBeVisible()
-    await panel.getByRole('button', { name: 'Save' }).click()
+    await panel.getByRole('button', { name: 'Check and save' }).click()
     await expect(panel.getByText(/Connected to deepseek-flash!/)).toBeVisible()
     world.reply('Still there?', { say: 'Yes, DeepSeek now.' })
     await panel.getByRole('button', { name: 'Back to chat' }).click()
     await otty.ask(panel, 'Still there?')
     await expect(panel.getByText('Yes, DeepSeek now.')).toBeVisible()
 
-    await panel.getByRole('button', { name: 'Settings' }).click()
+    await changeService(otty, panel)
     await panel.getByRole('radio', { name: /^OpenAI/ }).check()
     await expect(panel.getByPlaceholder('Saved (paste to replace)')).toBeVisible()
     await panel.getByLabel('Model').fill('gpt-5')
-    await panel.getByRole('button', { name: 'Save' }).click()
+    await panel.getByRole('button', { name: 'Check and save' }).click()
     await expect(panel.getByText(/Connected to gpt-5!/)).toBeVisible()
     world.reply('And back again?', { say: 'OpenAI again.' })
     await panel.getByRole('button', { name: 'Back to chat' }).click()

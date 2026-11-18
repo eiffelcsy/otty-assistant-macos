@@ -19,7 +19,7 @@ import { draw } from '../../src/renderer/src/draw/render'
 import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -51,7 +51,7 @@ const pickupSample = (() => {
 })()
 
 const settings: PublicSettings = {
-  hasApiKey: true,
+  hasApiKey: scene !== 'settings-broken',
   needsKey: true,
   savedKeys: ['deepseek'],
   keychain: true,
@@ -64,7 +64,7 @@ const settings: PublicSettings = {
   askHotkey: 'Alt+Space',
   snapHotkey: 'Alt+Shift+Space',
   screenHotkey: 'Command+Alt+Shift+Space',
-  takenHotkeys: q.get('taken') ? ['Alt+Space'] : [],
+  takenHotkeys: q.get('taken') || scene === 'settings-keys' ? ['Command+Alt+Shift+Space'] : [],
   onboarded: scene !== 'onboarding',
   shareAppContext: true,
   rememberChats: true,
@@ -76,7 +76,7 @@ const settings: PublicSettings = {
   notifyDone: false,
   openAtLogin: false,
   canOpenAtLogin: true,
-  monthlyCap: scene === 'settings' || scene === 'cap' ? { unit: 'questions', limit: 300 } : null
+  monthlyCap: scene.startsWith('settings') || scene === 'cap' ? { unit: 'questions', limit: 300 } : null
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -402,6 +402,7 @@ const saved = [
 ]
 
 let chatCb: ((e: ChatEvent) => void) | null = null
+const pressed = new Set<string>()
 let openCb: ((p: PanelOpenPayload) => void) | null = null
 const emit = (e: ChatEvent) => chatCb?.(e)
 
@@ -442,6 +443,8 @@ const trayed = { panel: false, quick: false }
 const api: OttyApi = {
   getSettings: async () => settings,
   saveSettings: async (u) => ({ ...Object.assign(settings, u) }),
+  setSetting: async (key, value) => ({ ...Object.assign(settings, { [key]: value }) }),
+  settingsCounts: async () => ({ chats: 142, olderThan: { '30d': 23, '1y': 4, forever: 0 }, notes: 18 }),
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
   openPermissionSettings: noop,
@@ -603,7 +606,36 @@ const api: OttyApi = {
     // Once only: StrictMode subscribes twice, and a second snip would land in the tray.
     if (scene === 'tray' && !trayed.panel) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 160)
     trayed.panel = true
-    if (scene === 'settings' || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    if (scene.startsWith('settings') || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    // D-61: `&section=you|keys|privacy|usage|conn|help` opens a section; the other settings scenes set one up.
+    const titles: Record<string, string> = { you: 'You & Otty', keys: 'Shortcuts', privacy: 'Privacy', usage: 'Usage & limit', conn: 'Connection', help: 'Help' }
+    const setUp: Record<string, string> = { 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn' }
+    const section = setUp[scene] ?? (titles[scene.replace('settings-', '')] ? scene.replace('settings-', '') : null)
+    // React runs this twice in development, so each press happens once.
+    const press = (sel: string, text?: string, tries = 20): void => {
+      if (pressed.has(sel + text)) return
+      const el = [...document.querySelectorAll<HTMLElement>(sel)].find((e) => !text || e.textContent?.includes(text))
+      if (!el) return void (tries && setTimeout(() => press(sel, text, tries - 1), 50))
+      pressed.add(sel + text)
+      el.click()
+    }
+    if (section) setTimeout(() => press('.set-row--section', titles[section]), 160)
+    if (scene === 'provider') setTimeout(() => press('.set-row', 'Change service or key'), 240)
+    if (scene === 'settings-recording') setTimeout(() => press('.keys-btn'), 240)
+    if (scene === 'settings-retention')
+      setTimeout(() => {
+        const keep = document.querySelector<HTMLSelectElement>('select[aria-label="Keep chats for"]')
+        if (!keep) return
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(keep, '30d')
+        keep.dispatchEvent(new Event('change', { bubbles: true }))
+      }, 320)
+    if (scene === 'settings-find')
+      setTimeout(() => {
+        const box = document.querySelector<HTMLInputElement>('input[aria-label="Find a setting"]')
+        if (!box) return
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(box, 'shortcut')
+        box.dispatchEvent(new Event('input', { bubbles: true }))
+      }, 160)
     if (scene === 'memories') setTimeout(() => cb({ context: null, notice: 'open-memory' }), 80)
     if (scene === 'activity') setTimeout(() => cb({ context: null, notice: 'open-activity' }), 80)
     if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)

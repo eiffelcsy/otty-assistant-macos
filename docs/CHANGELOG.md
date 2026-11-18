@@ -4,6 +4,18 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Settings in sections, saved as you go (D-61, 2026-11-18)
+
+Settings opens on six sections, each with a one-line summary: You & Otty, Shortcuts, Privacy, Usage & limit, Connection and Help (Spec 02). There's no Save button.
+- **Every control saves as it changes** through one new channel, `settings:set`, with a check per key (`SETTABLE` in `ipc/check.ts`); the connection isn't one of them. "Saved" shows beside the section's name for a moment. If a save fails, the control goes back and the row says "Couldn't save that. Try again."
+- **Forgetting is held, with the real count.** Turning Remember my chats off, or a shorter Keep chats for that would forget some, opens a prompt under the row ("Forget 23 chats older than 30 days?") with **Hold to forget** (1.2 s, letting go early does nothing) and **Keep them**. Forget all chats and Forget everything in the Notebook sit in a "Can't be undone" group with their counts. The counts come from main (`settings:counts`).
+- **Shortcuts are recorded**, not typed: click the keycaps and press the new chord, Esc to cancel. One another app owns is refused on the spot, the old one stays, and the row says so.
+- **Usage in questions**: this month's count, a bar towards the limit (straw from 80%), and a limit field in questions a month. A saved limit in tokens still works, with **Count questions instead**.
+- **Connection** shows the service and whether its key is saved, with **Change service or key** opening the fields in place and their own **Check and save**.
+- **Find a setting** filters every row by title and a few other words ("hotkey", "memory"); ↵ opens the section with the row glowing once.
+- **The Notebook** is its own view now (the list of what Otty knows), opened from Privacy, a Noted line's Edit or the used marker, with a way back to Privacy.
+- The health line's **Change it** and **Change the limit** open Shortcuts and Usage & limit. Preview scenes: `settings` and `settings-you` to `settings-help`, `settings-find`, `-retention`, `-broken` and `-recording`.
+
 ### Decisions and receipts (D-60, 2026-11-18)
 
 Confirm cards are worth reading and can't be approved by accident, and every decision stays in the chat (Spec 01).

@@ -260,6 +260,10 @@ Language users: **bilingual / multilingual people who work in English** and some
 | A card and its receipt in one place: today the card waits under the answer's words and its receipt joins the tool chips above them, so the spec's fold from card to line can't be drawn. Either the card waits with the chips, or receipts stay where their card was | M | S | idea, found in D-60 |
 | Undo on a reminder that was already deleted by hand says "Couldn't undo that". Reminders' "can't get reminder id" could count as already removed, and say so | L | S | idea, found in D-60 |
 | A card's paused state (Spec 01) never shows in a chat, because Pause everything stops answers and their cards become Skipped receipts. It belongs to a job waiting in the Logbook (D-63) | L | S | note, found in D-60 |
+| Settings at medium and wide widths (Spec 02): a 240 px list column beside the section, then the sidebar. D-61 built the compact pages; the same components need container queries once the Otty window exists | M | S | idea, after D-61 |
+| Connection says "Working, checked 2 minutes ago" (Spec 02): main keeps when the last request or test succeeded, so the status is real without a test call. Today it says whether a key is saved | M | S | idea, after D-61 |
+| ⌘, opens Settings at the last section used, and ↑ ↓ move between sections (Spec 02, Keyboard) | L | S | idea, after D-61 |
+| An Undo on the Saved whisper for the last change, as UX_REVIEW #2 suggested; D-61 shipped the whisper without it | L | S | idea, after D-61 |
 | Recent chats as one ledger of rows: rows on the panel background, an inset hairline between them, and the open chat marked with `--surface` and `--elev-1` (DESIGN.md, Row) once the list sits beside the chat in the roomy window | M | S | idea, after D-59 |
 
 ## Speed: spending a fast, cheap model

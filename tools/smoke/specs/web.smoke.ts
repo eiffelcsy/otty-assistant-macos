@@ -47,14 +47,16 @@ test('DeepSeek searches the web, and the answer cites dated sources that open in
 
 test('another service still searches (Wikipedia), and Privacy says where lookups go', { tag: ['@step-48'] }, async ({ otty, world }) => {
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Settings' }).click()
+  await otty.settings(panel, 'Privacy')
   await expect(panel.getByText('the search words or the page address go to DeepSeek')).toBeVisible()
 
+  await otty.settings(panel, 'Connection')
+  await panel.getByRole('button', { name: 'Change service or key' }).click()
   await panel.getByRole('radio', { name: /Another service/ }).check()
   await panel.getByLabel('Server address').fill('https://models.example.com/v1')
   await panel.getByLabel('Model').fill('smoke-model')
   await expect(panel.getByText('the search words go to Wikipedia and DuckDuckGo')).toBeVisible()
-  await panel.getByRole('button', { name: 'Save' }).click()
+  await panel.getByRole('button', { name: 'Check and save' }).click()
   await expect(panel.getByText(/Connected to smoke-model!/)).toBeVisible()
 
   world.lookup('Ada Lovelace', {

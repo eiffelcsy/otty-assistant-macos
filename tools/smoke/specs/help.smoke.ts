@@ -9,8 +9,8 @@ test('Copy diagnostics shows the whole report first, copies exactly that, and ho
   await otty.ask(panel, 'What is a fjord?')
   await expect(panel.getByText('A long, narrow sea inlet carved by a glacier.')).toBeVisible()
 
-  await panel.getByRole('button', { name: 'Settings' }).click()
-  await panel.getByRole('button', { name: 'Copy diagnostics' }).click()
+  await otty.settings(panel, 'Help')
+  await panel.getByRole('button', { name: /^Copy diagnostics/ }).click()
   const report = panel.getByLabel('Diagnostics')
   await expect(report).toContainText(/^Otty \S+ · macOS /)
   await expect(report).toContainText('Service: DeepSeek · model ')

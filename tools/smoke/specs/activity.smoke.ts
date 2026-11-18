@@ -40,6 +40,16 @@ async function answered(otty: Otty, world: World, panel: Page, question: string,
 
 const notices = async (otty: Otty) => (await otty.snapshot()).calls.filter((c) => c.kind === 'notify').map((c) => c.detail[1])
 
+/** Settings › Usage & limit: a limit in questions, saved as it's typed (D-61). */
+async function setLimit(otty: Otty, panel: Page, limit: number): Promise<void> {
+  await otty.settings(panel, 'Usage & limit')
+  await panel.getByRole('checkbox', { name: /Set a monthly limit/ }).check()
+  await panel.getByRole('textbox', { name: 'Limit' }).fill(String(limit))
+  await panel.getByRole('textbox', { name: 'Limit' }).press('Enter')
+  await expect(panel.locator('.meter__limit')).toHaveText(`of ${limit}`)
+  await panel.getByRole('button', { name: 'Back to chat' }).click()
+}
+
 test('What Otty has used counts questions, look-ups, searches and pages; the next card compares a look with questions; forgetting memories leaves the counts', { tag: ['@step-100', '@step-101'] }, async ({ otty, world }) => {
   const SOURCE = 'https://otters.example/facts'
   world.search('otter', [{ title: 'Otter facts', url: SOURCE, summary: 'Otters hold hands.' }])
@@ -59,23 +69,25 @@ test('What Otty has used counts questions, look-ups, searches and pages; the nex
   await expect(row(panel, first.title)).toContainText('Done')
   await panel.getByRole('button', { name: 'Back to chat' }).click()
 
-  await panel.getByRole('button', { name: 'Settings' }).click()
-  const usage = panel.locator('p.usage')
-  await expect(usage).toContainText('In the last 30 days: 3 questions, 1 look-up in the background, 1 search and 1 page read.')
-  await expect(usage).toContainText(/That came to (about )?[\d,.]+( million)? tokens/)
+  await otty.settings(panel, 'Usage & limit')
+  const usage = panel.locator('.meter')
+  await expect(usage.locator('.meter__count')).toHaveText('3')
+  await expect(usage).toContainText('In the last 30 days, also 1 look-up on its own, 1 search and 1 page.')
   const summary = await usage.innerText()
 
   await panel.getByRole('button', { name: /See what it cost on DeepSeek/ }).click()
   await expect.poll(async () => (await otty.snapshot()).calls.filter((c) => c.kind === 'open-external').map((c) => c.detail[0])).toEqual(['https://platform.deepseek.com/usage'])
 
+  await otty.settings(panel, 'Privacy')
+  await panel.getByRole('button', { name: 'Open the Notebook' }).click()
   await panel.getByLabel('Add something Otty should know').fill('I’m a marine biologist')
   await panel.getByRole('button', { name: 'Add', exact: true }).click()
-  await panel.getByRole('button', { name: 'Forget everything Otty knows' }).click()
-  await panel.getByRole('button', { name: 'Yes, forget all of it' }).click()
-  await expect(panel.getByText('I’m a marine biologist')).toHaveCount(0)
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
-  await panel.getByRole('button', { name: 'Settings' }).click()
-  await expect(panel.locator('p.usage')).toHaveText(summary)
+  await expect(panel.getByText('I’m a marine biologist')).toBeVisible()
+  await otty.settings(panel, 'Privacy')
+  await otty.hold(panel.getByRole('button', { name: 'Hold to forget: Forget everything in the Notebook' }))
+  await expect(panel.getByRole('group', { name: 'Can’t be undone' })).toContainText('Forgotten')
+  await otty.settings(panel, 'Usage & limit')
+  await expect(panel.locator('.meter')).toHaveText(summary)
   await panel.getByRole('button', { name: 'Back to chat' }).click()
 
   // Five questions and a finished look in, the next card says what a look has cost so far.
@@ -134,23 +146,17 @@ test.describe('notifications', () => {
 
 test('Open Otty when I log in is greyed out outside the installed app', { tag: ['@step-104'] }, async ({ otty }) => {
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Settings' }).click()
+  await otty.settings(panel, 'You & Otty')
   const toggle = panel.getByRole('checkbox', { name: /Open Otty when I log in/ })
   await expect(toggle).toBeDisabled()
-  await expect(panel.getByText('(only in the installed app)')).toBeVisible()
+  await expect(panel.getByText('Only in the installed app.')).toBeVisible()
   expect((await otty.snapshot()).calls.filter((c) => c.kind === 'login-item')).toEqual([])
 })
 
 test('a monthly limit of 1 question: questions still go through with a line at the top; a look asks first and Run it anyway runs it; explain cards still open', { tag: ['@step-119', '@gate'] }, async ({ otty, world }) => {
   world.backgroundReply = 'A ticket for unlimited train rides.'
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Settings' }).click()
-  await panel.getByRole('checkbox', { name: 'Set a monthly limit' }).check()
-  await panel.getByRole('spinbutton', { name: 'Limit' }).fill('1')
-  await panel.getByLabel('Counted in').selectOption('questions')
-  await panel.getByRole('button', { name: 'Save' }).click()
-  await expect(panel.getByText(/Connected to/)).toBeVisible()
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await setLimit(otty, panel, 1)
 
   world.reply('What is a JR pass?', { say: 'A [rail pass](#explain) for Japan’s JR trains.' })
   await otty.ask(panel, 'What is a JR pass?')
@@ -183,11 +189,7 @@ test('a monthly limit of 1 question: questions still go through with a line at t
 
 test('the limit line counts one question in the singular', { tag: ['@step-119'] }, async ({ otty, world }) => {
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Settings' }).click()
-  await panel.getByRole('checkbox', { name: 'Set a monthly limit' }).check()
-  await panel.getByRole('spinbutton', { name: 'Limit' }).fill('1')
-  await panel.getByRole('button', { name: 'Save' }).click()
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await setLimit(otty, panel, 1)
   await answered(otty, world, panel, 'Hello?', 'Hi!')
   await expect(panel.locator('.health')).toContainText('limit of 1 question.')
 })

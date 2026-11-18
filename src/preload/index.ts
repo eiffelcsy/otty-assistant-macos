@@ -39,6 +39,8 @@ function listenHeld<T>(channel: string, cb: (v: T) => void): () => void {
 const api: OttyApi = {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (u) => ipcRenderer.invoke('settings:save', u),
+  setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
+  settingsCounts: () => ipcRenderer.invoke('settings:counts'),
   testConnection: () => ipcRenderer.invoke('settings:test'),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   openPermissionSettings: (kind) => ipcRenderer.invoke('permissions:open', kind),

@@ -19,7 +19,8 @@ import { History } from './History'
 import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor } from './Messages'
 import { FindBar } from './FindBar'
 import { Onboarding } from './Onboarding'
-import { Settings } from './Settings'
+import { Settings, type SectionId } from './settings/Settings'
+import { Notebook } from './Notebook'
 
 const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibility' | 'screen' }> = {
   'needs-accessibility': {
@@ -40,9 +41,13 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
   }
 }
 
+const TITLES: Partial<Record<string, string>> = { history: 'Recent chats', activity: 'Activity', settings: 'Settings', notebook: 'Notebook' }
+
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
-  const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history' | 'activity'>('chat')
+  const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history' | 'activity' | 'notebook'>('chat')
+  /** The Settings section on show; null is the list of sections. */
+  const [settingsAt, setSettingsAt] = useState<SectionId | null>(null)
   /** Which Activity list to open on; the header button always opens "What Otty is doing". */
   const [activityTab, setActivityTab] = useState<ActivityTab>('work')
   /** The capture tray: highlights and snips waiting to be asked about, each with its own app. */
@@ -57,7 +62,6 @@ export function Panel() {
   findingRef.current = finding
   const [activity, setActivity] = useState<ActivityItem[]>([])
   /** Bumped to scroll Settings to what Otty knows. */
-  const [memoryFocus, setMemoryFocus] = useState(0)
   const { messages, busy, setBusy, waitingFirstToken, focusId, learn, asking } = useChat(() => {
     setCaptures([])
     setApp(null)
@@ -120,16 +124,15 @@ export function Panel() {
   useEffect(
     () =>
       window.otty.onPanelOpen((p: PanelOpenPayload) => {
-        if (p.notice === 'open-settings') return setView('settings')
+        if (p.notice === 'open-settings') {
+          setSettingsAt(null)
+          return setView('settings')
+        }
         if (p.notice === 'open-activity') {
           setActivityTab('work')
           return setView('activity')
         }
-        if (p.notice === 'open-memory') {
-          setView('settings')
-          setMemoryFocus((n) => n + 1)
-          return
-        }
+        if (p.notice === 'open-memory') return setView('notebook')
         take(p, !!p.add)
         setView((v) => (v === 'history' || v === 'activity' ? 'chat' : v))
         setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50)
@@ -260,6 +263,8 @@ export function Panel() {
 
   if (!settings) return <div className="panel" />
 
+  /** Settings and the Notebook it opens: the header's Settings button takes you back to the chat. */
+  const inSettings = view === 'settings' || view === 'notebook'
   if (view === 'onboarding') {
     return (
       <div className="panel">
@@ -286,7 +291,7 @@ export function Panel() {
           )}
           <header className="panel__header">
             <Otter state={busy ? 'thinking' : 'idle'} size={34} />
-            <div className="panel__title">{view === 'history' ? 'Recent chats' : view === 'activity' ? 'Activity' : 'Otty'}</div>
+            <div className="panel__title">{TITLES[view] ?? 'Otty'}</div>
             <div className="panel__actions">
               {(activity.length > 0 || view === 'activity') && (
                 <button
@@ -336,10 +341,13 @@ export function Panel() {
               )}
               <button
                 className="icon-btn"
-                title={view === 'settings' ? 'Back to chat' : 'Settings'}
-                onClick={() => setView(view === 'settings' ? 'chat' : 'settings')}
+                title={inSettings ? 'Back to chat' : 'Settings'}
+                onClick={() => {
+                  setSettingsAt(null)
+                  setView(inSettings ? 'chat' : 'settings')
+                }}
               >
-                <Icon name={view === 'settings' ? 'comment-alt' : 'settings'} />
+                <Icon name={inSettings ? 'comment-alt' : 'settings'} />
               </button>
               <button className="icon-btn" title="Close (Esc)" onClick={() => window.otty.closePanel()}>
                 <Icon name="cross-small" />
@@ -351,11 +359,20 @@ export function Panel() {
             <Settings
               settings={settings}
               onSaved={setSettings}
-              memoryFocus={memoryFocus}
-              onOpenChat={() => setView('chat')}
+              section={settingsAt}
+              onSection={setSettingsAt}
+              onOpenNotebook={() => setView('notebook')}
               onOpenActivity={(tab) => {
                 setActivityTab(tab)
                 setView('activity')
+              }}
+            />
+          ) : view === 'notebook' ? (
+            <Notebook
+              onOpenChat={() => setView('chat')}
+              onBack={() => {
+                setSettingsAt('privacy')
+                setView('settings')
               }}
             />
           ) : view === 'activity' ? (
@@ -378,7 +395,13 @@ export function Panel() {
               {finding !== null && (
                 <FindBar chat={scrollRef} messages={messages} focus={finding} onClose={() => setFinding(null)} />
               )}
-              <HealthBanner settings={settings} onOpenSettings={() => setView('settings')} />
+              <HealthBanner
+                settings={settings}
+                onOpenSettings={(section) => {
+                  setSettingsAt(section)
+                  setView('settings')
+                }}
+              />
               <div className="chat" ref={scrollRef}>
                 {messages.length === 0 && (
                   <EmptyState
