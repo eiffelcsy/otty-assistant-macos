@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CapStatus, Permissions, PublicSettings } from '../../../shared/types'
 import { healthProblem } from '../../../shared/health'
-import { capPassed } from '../../../shared/cap'
+import { capNear, capPassed, monthKey } from '../../../shared/cap'
 import { Icon } from '../components/Icon'
 import { prettyKey } from '../lib/keys'
 
@@ -45,6 +45,8 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
   const problem = healthProblem(perms, settings, cap)
   if (!problem) return null
   const id = problem.kind === 'hotkey' ? `hotkey:${problem.hotkey}` : problem.kind
+  // Seen: the heads-up doesn't come back this month (D-57). Main saves it, and every window hears the change.
+  const noticed = () => void window.otty.setSetting('capNoticed', monthKey())
   if (dismissed === id) return null
 
   const text =
@@ -54,7 +56,9 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
         ? 'Snips can only see your wallpaper. Allow Screen Recording, then reopen Otty.'
         : problem.kind === 'cap'
           ? capPassed(problem.cap)
-          : `Another app uses ${prettyKey(problem.hotkey)}, so it won’t work for ${problem.what}.`
+          : problem.kind === 'near'
+            ? capNear(problem.cap)
+            : `Another app uses ${prettyKey(problem.hotkey)}, so it won’t work for ${problem.what}.`
 
   return (
     <div className={`health${open ? ' health--open' : ''}`} role="status">
@@ -63,9 +67,15 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
         {text}
       </button>
       <span className="health__actions">
-        {problem.kind === 'hotkey' || problem.kind === 'cap' ? (
-          <button className="btn btn--primary btn--small" onClick={() => onOpenSettings(problem.kind === 'cap' ? 'usage' : 'keys')}>
-            {problem.kind === 'cap' ? 'Change the limit' : 'Change it'}
+        {problem.kind === 'hotkey' || problem.kind === 'cap' || problem.kind === 'near' ? (
+          <button
+            className="btn btn--primary btn--small"
+            onClick={() => {
+              if (problem.kind === 'near') noticed()
+              onOpenSettings(problem.kind === 'hotkey' ? 'keys' : 'usage')
+            }}
+          >
+            {problem.kind === 'hotkey' ? 'Change it' : 'Change the limit'}
           </button>
         ) : (
           <button className="btn btn--primary btn--small" onClick={() => void window.otty.openPermissionSettings(problem.kind as 'accessibility' | 'screen')}>
@@ -77,7 +87,14 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
             Reopen Otty
           </button>
         )}
-        <button className="icon-btn icon-btn--sm" title="Not now" onClick={() => setDismissed(id)}>
+        <button
+          className="icon-btn icon-btn--sm"
+          title="Not now"
+          onClick={() => {
+            if (problem.kind === 'near') noticed()
+            setDismissed(id)
+          }}
+        >
           <Icon name="cross-small" />
         </button>
       </span>

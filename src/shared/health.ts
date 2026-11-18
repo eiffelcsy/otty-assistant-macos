@@ -1,4 +1,5 @@
 import type { CapStatus, MonthlyCap, Permissions, PublicSettings } from './types'
+import { nearCap } from './cap'
 
 // "Is Otty able to do what I'll ask?" A shortcut that silently does nothing is the worst first impression, so the
 // panel says plainly what's missing and offers the fix. Pure, so it's tested without a Mac.
@@ -9,6 +10,8 @@ export type HealthProblem =
   | { kind: 'hotkey'; hotkey: string; what: string }
   /** This month's limit is passed (D-33): the user's questions still go, and they should know why nothing starts by itself. */
   | { kind: 'cap'; cap: MonthlyCap }
+  /** 80% of it is used (D-57): said once a month, until the user has seen it. */
+  | { kind: 'near'; cap: CapStatus }
 
 const WHAT: Record<'askHotkey' | 'snapHotkey' | 'screenHotkey', string> = {
   askHotkey: 'asking about highlighted text',
@@ -19,8 +22,9 @@ const WHAT: Record<'askHotkey' | 'snapHotkey' | 'screenHotkey', string> = {
 /** The most important problem, or null when everything works. Accessibility first: without it, the main shortcut does nothing. */
 export function healthProblem(
   perms: Permissions | null,
-  s: Pick<PublicSettings, 'takenHotkeys' | 'askHotkey' | 'snapHotkey' | 'screenHotkey'>,
-  cap: CapStatus | null = null
+  s: Pick<PublicSettings, 'takenHotkeys' | 'askHotkey' | 'snapHotkey' | 'screenHotkey'> & Partial<Pick<PublicSettings, 'capNoticed'>>,
+  cap: CapStatus | null = null,
+  now = new Date()
 ): HealthProblem | null {
   if (perms?.platform === 'darwin' && !perms.accessibility) return { kind: 'accessibility' }
   for (const key of ['askHotkey', 'snapHotkey', 'screenHotkey'] as const) {
@@ -28,5 +32,6 @@ export function healthProblem(
   }
   if (perms?.platform === 'darwin' && !perms.screen) return { kind: 'screen' }
   if (cap?.over) return { kind: 'cap', cap: { unit: cap.unit, limit: cap.limit } }
+  if (cap && nearCap(cap, s.capNoticed ?? null, now)) return { kind: 'near', cap }
   return null
 }

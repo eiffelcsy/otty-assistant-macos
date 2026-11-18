@@ -4,8 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
-### One message box, and drafts that stay (D-62, core, 2026-11-18)
+### A heads-up at 80% of the monthly limit (D-57, 2026-11-18)
 
+- With a monthly limit set, the health line says "You've used 80% of this month's limit of 300 questions" once the month reaches 80%, with **Change the limit**. Seen (Not now, or the button), it doesn't come back until next month; past the limit, the existing line takes over. Worked out in `shared/cap.ts` (`nearCap`), with the month it was seen saved as `capNoticed`. No notification, no sound.
+
+### One message box, and drafts that stay (2026-11-18)
+
+The core of D-62 (Spec 03); its DEVLOG entry lists what's still to come.
 - **One message box** for the panel and both of the quick view's boxes: Enter sends, Shift-Enter makes a line, nothing goes mid-composition, Send turns into Stop while Otty answers, and Snip and Attach say "After this answer" until then. The panel's box says "Ask a follow-up…" once there's a chat.
 - **Drafts stay with their chat.** What's typed is kept in main's memory per chat, so ↵ **continue in chat** carries the quick view's follow-up into the panel, and switching chats brings each one's words back. Recent chats shows "Draft: …". A restart starts each box empty.
 - **Answers that end early say how.** Stop leaves "You stopped this answer." A failed answer's card offers the one button that helps: **Open Settings** for a key problem, **Start a new chat** for one that's grown too long, **Try again** otherwise.

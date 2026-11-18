@@ -47,7 +47,7 @@ describe('the monthly limit (D-33)', () => {
     const over = { unit: 'questions' as const, limit: 10, used: 11, over: true }
     expect(healthProblem(null, settings, over)).toEqual({ kind: 'cap', cap: { unit: 'questions', limit: 10 } })
     expect(healthProblem({ platform: 'darwin', accessibility: false, screen: true }, settings, over)?.kind).toBe('accessibility')
-    expect(healthProblem(null, settings, { ...over, over: false })).toBeNull()
+    expect(healthProblem(null, settings, { ...over, used: 5, over: false })).toBeNull()
   })
 })
 

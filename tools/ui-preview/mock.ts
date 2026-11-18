@@ -19,7 +19,7 @@ import { draw } from '../../src/renderer/src/draw/render'
 import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -76,7 +76,8 @@ const settings: PublicSettings = {
   notifyDone: false,
   openAtLogin: false,
   canOpenAtLogin: true,
-  monthlyCap: scene.startsWith('settings') || scene === 'cap' ? { unit: 'questions', limit: 300 } : null
+  monthlyCap: scene.startsWith('settings') || scene === 'cap' || scene === 'near' ? { unit: 'questions', limit: 300 } : null,
+  capNoticed: null
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -447,7 +448,7 @@ const api: OttyApi = {
   setSetting: async (key, value) => ({ ...Object.assign(settings, { [key]: value }) }),
   settingsCounts: async () => ({ chats: 142, olderThan: { '30d': 23, '1y': 4, forever: 0 }, notes: 18 }),
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
-  getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
+  getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: scene === 'near' || scene === 'cap' }),
   openPermissionSettings: noop,
   relaunch: noop,
   getDiagnostics: async () =>
@@ -459,10 +460,10 @@ const api: OttyApi = {
     searches: 37,
     pages: 21,
     jobs: 4,
-    month: { questions: scene === 'cap' ? 312 : 96, tokens: 1_200_000 },
+    month: { questions: scene === 'cap' ? 312 : scene === 'near' ? 250 : 96, tokens: 1_200_000 },
     service: 'DeepSeek',
     usageUrl: 'https://platform.deepseek.com/usage',
-    ...(settings.monthlyCap ? { cap: { ...settings.monthlyCap, used: scene === 'cap' ? 312 : 96, over: scene === 'cap' } } : {})
+    ...(settings.monthlyCap ? { cap: { ...settings.monthlyCap, used: scene === 'cap' ? 312 : scene === 'near' ? 250 : 96, over: scene === 'cap' } } : {})
   }),
   sendMessage: async (text, captures, opts) => fakeAnswer(text, captures, opts?.language, opts?.files),
   stop: noop,
@@ -587,7 +588,7 @@ const api: OttyApi = {
     if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
     if (scene === 'code') setTimeout(() => cb({ type: 'load', messages: codeSample }), 50)
     if (scene === 'drawing') setTimeout(() => cb({ type: 'load', messages: drawingSample }), 50)
-    if (scene === 'chart' || scene === 'cap') setTimeout(() => cb({ type: 'load', messages: chartSample }), 50)
+    if (scene === 'chart' || scene === 'cap' || scene === 'near') setTimeout(() => cb({ type: 'load', messages: chartSample }), 50)
     if (scene === 'memory') setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
     if (scene === 'noted') setTimeout(() => cb({ type: 'load', messages: notedSample }), 50)
     if (scene === 'receipts') setTimeout(() => cb({ type: 'load', messages: receiptsSample }), 50)

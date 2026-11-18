@@ -90,7 +90,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
-| D-57 | A heads-up at 80% of the monthly limit | ⏳ planned | — | S |
 | D-58 | Try again with a twist: Shorter, Simpler, In more detail | ⏳ planned | — | S |
 | D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M (1 day) |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M (1–2 days) |
@@ -408,14 +407,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - Edit, reorder and delete in Settings. Built to work wide.
 
 **Done when.** A saved tile shows only for its kinds of capture and sends its prompt as typed (renderer test and `@step-N`); a drafted tile is saved only from the card's button; 12 is the most, and a too-long name or prompt is refused in main (`settings.test.ts`).
-
-## D-57 · A heads-up at 80% of the monthly limit ⏳
-
-**Goal.** With a monthly limit set (D-33), Otty says once, gently, when the month reaches 80%, so the limit is never a surprise.
-
-**Design.** `shared/cap.ts` gains `nearCap(status)`; the health line (`shared/health.ts`) shows "You've used 80% of this month's limit" with **Change the limit**, once per month (the month it was shown is saved), and never again after the limit is passed (that line already exists). No notification, no sound.
-
-**Done when.** `cap.test.ts` and `health.test.ts` cover 79%, 80%, the once-a-month rule and a new month; `@step-N` sees the line once.
 
 ## D-58 · Try again with a twist ⏳
 
@@ -763,3 +754,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 144. Settings → **Find a setting** → "hotkey" → the shortcut rows; ↵ → Shortcuts opens with that row glowing once.
 145. Highlight something, ⌥Space, ↵, then type a follow-up in the quick view and press **↵ continue in chat** → the panel's box has the same words.
 146. Ask something, type a few words in the box, press **New chat** and ask something else → Recent chats shows the first chat with "Draft: …" in straw; open it → the words are back in the box.
+147. With a monthly limit of 5 questions, ask four → the health line says "You've used 80% of this month's limit of 5 questions", with **Change the limit**. **Not now** → it's gone, and stays gone after a relaunch until next month.

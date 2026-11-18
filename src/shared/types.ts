@@ -190,6 +190,8 @@ export interface PublicSettings {
   openAtLogin: boolean
   /** A limit for the month (D-33). Past it, anything Otty would start by itself asks first. Null = no limit. */
   monthlyCap: MonthlyCap | null
+  /** The month ("2026-11") the 80% heads-up was seen in, so it shows once a month (D-57). */
+  capNoticed: string | null
   /** Only the installed app can be a login item; a development build can't. */
   canOpenAtLogin: boolean
 }
@@ -283,6 +285,7 @@ export type SettableKey =
   | 'snapHotkey'
   | 'screenHotkey'
   | 'monthlyCap'
+  | 'capNoticed'
 
 export interface Permissions {
   platform: string

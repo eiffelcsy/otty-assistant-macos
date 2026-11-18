@@ -88,7 +88,8 @@ describe('one setting at a time (D-61)', () => {
     askHotkey: ['', 'Alt+Space; rm -rf ~', 'x'.repeat(61), 42],
     snapHotkey: ['Alt Shift Space', null],
     screenHotkey: ['Command+Alt+⌘'],
-    monthlyCap: []
+    monthlyCap: [],
+    capNoticed: ['2026-1', 'November', null, 202611]
   }
   const GOOD: Record<keyof typeof SETTABLE, unknown> = {
     showBubble: false,
@@ -103,7 +104,8 @@ describe('one setting at a time (D-61)', () => {
     askHotkey: 'Alt+Shift+Space',
     snapHotkey: 'Command+4',
     screenHotkey: 'Control+F5',
-    monthlyCap: { unit: 'questions', limit: 300 }
+    monthlyCap: { unit: 'questions', limit: 300 },
+    capNoticed: '2026-11'
   }
 
   it.each(Object.keys(SETTABLE) as (keyof typeof SETTABLE)[])('%s refuses what isn’t one, and takes what is', (key) => {

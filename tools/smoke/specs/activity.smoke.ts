@@ -193,3 +193,24 @@ test('the limit line counts one question in the singular', { tag: ['@step-119'] 
   await answered(otty, world, panel, 'Hello?', 'Hi!')
   await expect(panel.locator('.health')).toContainText('limit of 1 question.')
 })
+
+test.describe('with a monthly limit of 5 questions', () => {
+  test.use({ seed: { ...ONBOARDED, monthlyCap: { unit: 'questions', limit: 5 } } })
+
+  test('at 80% the health line says so once; Not now keeps it away for the month', { tag: ['@step-147'] }, async ({ otty, world }) => {
+    const panel = await otty.openPanel()
+    const banner = panel.locator('.health')
+    for (const [i, q] of ['One?', 'Two?', 'Three?'].entries()) await answered(otty, world, panel, q, `Answer ${i + 1}.`)
+    await expect(banner).toHaveCount(0)
+    await answered(otty, world, panel, 'Four?', 'Answer 4.')
+    await expect(banner).toContainText('You’ve used 80% of this month’s limit of 5 questions.')
+    await expect(banner.getByRole('button', { name: 'Change the limit' })).toBeVisible()
+    await banner.getByTitle('Not now').click()
+    await expect(banner).toHaveCount(0)
+
+    await otty.relaunch()
+    const again = await otty.openPanel()
+    await expect(again.getByRole('textbox')).toBeVisible()
+    await expect(again.locator('.health')).toHaveCount(0)
+  })
+})

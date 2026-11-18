@@ -59,7 +59,8 @@ export const SETTABLE = {
   askHotkey: hotkey,
   snapHotkey: hotkey,
   screenHotkey: hotkey,
-  monthlyCap: checkedLater
+  monthlyCap: checkedLater,
+  capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x)
 } as const satisfies Record<SettableKey, Guard>
 
 const CHAT: View[] = ['panel', 'quick']
