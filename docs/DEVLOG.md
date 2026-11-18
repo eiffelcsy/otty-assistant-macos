@@ -200,7 +200,7 @@ Checked 2026-11-16. There are 54 test files, the typecheck is `strict` with `noU
 
 ### Phase 1: the loop closes — ✅ built on `feat/smoke-harness` (2026-11-16)
 - **`npm run verify`** is the one answer to "am I done?". Its tiers:
-  - `verify:quick` runs lint, the typecheck and `vitest --changed`;
+  - `verify:quick` runs lint, knip, the typecheck and `vitest --changed`;
   - `verify` adds the full tests, the build and the release-bundle check;
   - `verify:full` adds `npm run smoke`.
   - The routes in `verify.config.mjs` read what changed since `origin/main` and say what else applies: the eval for prompts, hints, tools and providers; the smoke harness for app code; the UI preview for the renderer; the idle check for `styles.css` and `Otter.tsx`; the schema rule for `db.ts`; the docs pass.
