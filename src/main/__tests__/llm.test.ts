@@ -14,7 +14,7 @@ vi.mock('electron', () => ({
   nativeImage: { createFromBitmap: () => ({ toPNG: () => Buffer.from('png') }) },
   app: { isPackaged: true, getPath: () => '' }
 }))
-vi.mock('../settings', () => ({
+vi.mock('../settings', () => ({ isDev: () => false,
   getStored: () => ({ baseUrl, apiFormat, model: 'm', thinking, homeLanguage: home, rememberChats: remember }),
   getApiKey: () => key
 }))

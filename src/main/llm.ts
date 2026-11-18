@@ -32,7 +32,7 @@ import { getStored, type StoredSettings } from './settings'
 import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
 import { createExplainCache, termsToWarm } from './explainCache'
-import { toolDefs, type ToolOutcome } from './tools'
+import { toolDefs, type MacHands, type ToolOutcome } from './tools'
 import { CHAT_TOOLS, LASTING_TOOLS, OUTSIDE_TOOLS, type RunTaint } from './toolSafety'
 import { runLoop } from './loop'
 import { begin, type Ledger } from './ledger'
@@ -249,6 +249,8 @@ export interface SessionDeps {
   ledger(): Ledger | null
   /** Keeps a message's hidden lines in memory, for "Otty hid 1 key" (D-40). */
   keepHidden(id: string, lines: string[]): void
+  /** How this chat's tools reach the Mac: open a page, copy, add a reminder. */
+  mac: MacHands
 }
 
 export class ChatSession {
@@ -710,6 +712,7 @@ export class ChatSession {
           sent: { chatId: thread.id, group: id },
           confirm: (title, detail) => this.askConfirm(live, title, detail),
           knownUrl: (url) => isKnownUrl(url, history),
+          mac: this.deps.mac,
           showSteps: (args) => this.showSteps(thread, answer, args, captures[0]?.app ?? app),
           makeChart: (args) => this.makeChart(thread, answer, args),
           startJob: (args) => this.offerJob(live, answer, args, language),

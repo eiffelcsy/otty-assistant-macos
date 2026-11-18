@@ -44,7 +44,7 @@ The thing the user talks to must never be busy. Work happens elsewhere, in isola
 
 Prompts improve the typical case. Structure bounds the worst case.
 
-**For Otty:** trust is set by the worst case, so this is the idea to hold on to. It extends what's already here: a job's tools are limited inside `runTool`, not just in the list it's offered, because a model can call a tool it wasn't offered (see the comment in `tools.ts`). This doesn't conflict with "Tools before pipelines". **Code owns the boundaries, and the model has free judgement inside them.** Boundaries are Durable. Rules that work around a model's weaknesses are Scaffold, and should shrink.
+**For Otty:** trust is set by the worst case, so this is the idea to hold on to. It extends what's already here: a job's tools are limited inside `runTool`, not just in the list it's offered, because a model can call a tool it wasn't offered (see `runTool` in `tools/index.ts`). This doesn't conflict with "Tools before pipelines". **Code owns the boundaries, and the model has free judgement inside them.** Boundaries are Durable. Rules that work around a model's weaknesses are Scaffold, and should shrink.
 
 ### 3. Everything that happens is an event
 

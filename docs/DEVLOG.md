@@ -40,7 +40,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ store/         ChatStore on SQLite (otty.db): chats,   │
 │                search, retention; schema in db.ts      │
 │ files/         attachments; fileWorker.js reads docs   │
-│ tools.ts       search_web, read_page, calculate, …     │
+│ tools/         one entry per tool: offer, chip, run    │
 │ web.ts         DeepSeek Search & Fetch                 │
 │ pageReader.ts  reads public pages from the Mac         │
 │ knownUrls.ts   which addresses read_page may open      │
@@ -48,7 +48,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ ocr.ts         runs the otty-ocr Swift helper          │
 │ explainCache   explain cards, warmed after an answer   │
 │ language.ts    which language each answer uses         │
-│ settings.ts    JSON + one safeStorage key per service  │
+│ settings.ts    settings over a backend; keys per service│
+│ settingsOnMac  that backend: file, Keychain, login item│
+│ macHands.ts    what tools do on the Mac: open, copy, … │
 │ permissions.ts macOS TCC checks                        │
 │ metrics.ts     OTTY_METRICS=1 idle measurements        │
 └────────────────▲──────────────┬────────────────────────┘
@@ -89,10 +91,11 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-58 | Try again with a twist: Shorter, Simpler, In more detail | ⏳ planned | — | S |
 | D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M (1 day) |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M (1–2 days) |
-| D-45 | Split the composition root: no electron in the loop (steps 1–2 shipped) | ⏳ step 3 | a settings split | S–M (1 day) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S (1 day) |
+
+**Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
 **Where things stand (2026-11-18).** The beta-hardening batch, D-49 to D-53, is built on `main`'s working tree: fuses, logs and Copy diagnostics, keys only from the Keychain, one door out, and a move to Applications. D-54 to D-58 are planned and not started; D-54 waits on the owner's OAuth client. The smoke checklist is 138 steps; 134 has a spec, and 135–138 need the packaged app or a model on the Mac (✋).
 
@@ -140,7 +143,7 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 2. ✅ **D-42 Tool gates from the table only.** Small. It removes a second, already-wrong list and makes tool access opt-in.
 3. ✅ **D-43 Job states and step writes.** Repeating looks made the runner bigger. Pin down its states before goals or Look after me add more.
 4. ✅ **D-44 Check every IPC input.** This is LAUNCH_READINESS 10.5, which a signed beta needs anyway.
-5. ✅ (steps 1–2) **D-45 Split the composition root.** A pure refactor, best done between batches, and now under the smoke harness. `llm.ts` (927 lines) and `index.ts` (571) both grew by a third since 0.5.0.
+5. ✅ **D-45 Split the composition root.** A pure refactor, best done between batches, and now under the smoke harness. `llm.ts` (927 lines) and `index.ts` (571) both grew by a third since 0.5.0.
 6. ✅ **D-46 Action ledger v1.** It's the base for "do, with undo", and D-36's rewind already waits on it. Ship it before any new level of reach.
 
 **Features** (2026-11-15, after D-31 to D-35; the relationship first, and trust as the ceiling). Each was promoted from BRAINSTORM on value per effort. All five scored 2 (H with S–M, or M with S), so the order is by how many people meet it. D-36, Retry and edit, shipped with that batch:
@@ -197,7 +200,7 @@ Checked 2026-11-16. There are 54 test files, the typecheck is `strict` with `noU
 
 ### Phase 1: the loop closes — ✅ built on `feat/smoke-harness` (2026-11-16)
 - **`npm run verify`** is the one answer to "am I done?". Its tiers:
-  - `verify:quick` runs lint, the typecheck and `vitest --changed`;
+  - `verify:quick` runs lint, knip, the typecheck and `vitest --changed`;
   - `verify` adds the full tests, the build and the release-bundle check;
   - `verify:full` adds `npm run smoke`.
   - The routes in `verify.config.mjs` read what changed since `origin/main` and say what else applies: the eval for prompts, hints, tools and providers; the smoke harness for app code; the UI preview for the renderer; the idle check for `styles.css` and `Otter.tsx`; the schema rule for `db.ts`; the docs pass.
@@ -309,8 +312,8 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 **Owner decisions first:** a Google Cloud project with an OAuth client for a desktop app; whether to go through Google's verification for the `calendar.readonly` scope now or stay in testing mode (up to 100 named test users, **verify**) for the beta.
 
 **Design.**
-- `src/main/connections/`: `types.ts` (the `Connection` interface: id, label, privacy line, auth, tools, reversible actions, limits), `store.ts` (which connections are on, and their limits, in `settings.json`; tokens in the Keychain through `safeStorage`, one per connection), `oauth.ts` (OAuth 2 with PKCE on a loopback address on a random port, opened in the browser with `shell.openExternal`; no client secret in the app), `google.ts` (Calendar API v3: `calendarList`, `events.list` with `timeMin`, `timeMax`, `singleEvents`).
-- Tools: `calendar_events` (a date range, at most 14 days, at most 50 events; returns title, start, end, location and calendar, never attendees' emails or descriptions in v1) and `calendar_free` (free and busy blocks in a range). Rows in `toolSafety.ts` first: reads private data, brings in outside text, sends nothing out, changes nothing. In `CHAT_TOOLS` only when the connection is on; never in `JOB_TOOLS` in v1.
+- `src/main/connections/`: `types.ts` (the `Connection` interface: id, label, privacy line, auth, tools, reversible actions, limits), `store.ts` (which connections are on, and their limits, in `settings.json`; tokens through the `Keychain` interface in `settings.ts`, the Mac's being `macKeychain`, one per connection), `oauth.ts` (OAuth 2 with PKCE on a loopback address on a random port, opened in the browser with `shell.openExternal`; no client secret in the app), `google.ts` (Calendar API v3: `calendarList`, `events.list` with `timeMin`, `timeMax`, `singleEvents`).
+- Tools: `calendar_events` (a date range, at most 14 days, at most 50 events; returns title, start, end, location and calendar, never attendees' emails or descriptions in v1) and `calendar_free` (free and busy blocks in a range). Rows in `toolSafety.ts` first: reads private data, brings in outside text, sends nothing out, changes nothing. Each is an entry in `TOOLS` (`tools/index.ts`) whose `offer(setup)` returns null unless the connection is on (`Setup` gains the connections that are on); never in `JOB_TOOLS` in v1.
 - **Taint:** a result marks the run as private and outside at once, so D-41's card covers a search after it.
 - **Requests** go through `net.ts`, and each read is a row in What left your Mac ("Read 6 events from Google Calendar"). The model request after it says what it carried (`SentTag.what`: "6 calendar events").
 - **UI:** Settings › **Connections**: Connect Google Calendar → browser → back to a card that says what Otty can read and that it can't change anything. Per connection: which calendars, and **Disconnect** (revokes at Google, deletes the token). Built to work wide, for the full app later.
@@ -449,17 +452,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 **Design.** Moods are states in `Otter.tsx`, each a few painted frames stepped by CSS (`steps()`), run once or on a slow loop, and paused under `data-asleep`. Main already sends `bubble:state` and `bubble:mood`. Add `sleepy` after idle (a timer reset on any event, not a poll) and `error`. New frames come from `tools/otty-art/source/` through `prepare.py`. Reduce motion turns them into still frames.
 
 **Done when.** Each mood shows on its trigger, and `OTTY_METRICS=1` shows idle under 0.5% of a core with the otter asleep and awake.
-
-## D-45 · Split the composition root ⏳ step 3
-
-Steps 1 and 2 shipped (CHANGELOG): `ChatSession` takes `SessionDeps`, and `index.ts` is the lifecycle only, with `core.ts`, `ipc/`, `captureRoute.ts`, `controls.ts` and `notify.ts` around it.
-
-**Step 3, left: no electron in the loop.** `loop.ts` reaches electron through `tools.ts` and `providers/index.ts`, and both reach it through `settings.ts` (the keychain and the app's folder), not only through the Mac tools. A `MacHands` object alone wouldn't free the loop, so it waits for a settings split:
-1. `settings.ts` becomes a pure store over a small `SettingsBackend` (a file and a keychain), with the electron backend plugged in by `core.ts`, like `setSentLog` and `setUsageSink`.
-2. Tools that touch the Mac (`open_url`, `copy_to_clipboard`, `create_reminder`) reach it through a `MacHands` object in `ToolContext`.
-3. `loop.ts` imports errors and types from `providers/errors` and `providers/types`, not the `providers` index.
-
-**Done when.** A test imports `runLoop` and `JobRunner` with no electron mock, and the eval stops stubbing the tools that only need the network.
 
 ## D-25 · Fast and Best: two model slots ⏸ (much later)
 

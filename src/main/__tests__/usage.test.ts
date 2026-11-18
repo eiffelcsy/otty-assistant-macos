@@ -5,7 +5,7 @@ import { MemoryStore } from '../memory/store'
 import { compareWithQuestions, count, setUsageSink, UsageMeter, type UsageSummary } from '../usage'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {}, app: { isPackaged: true } }))
-vi.mock('../settings', () => ({ getApiKey: () => 'k', getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm', learn: true }) }))
+vi.mock('../settings', () => ({ isDev: () => false, getApiKey: () => 'k', getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm', learn: true }) }))
 
 afterEach(() => setUsageSink(null))
 

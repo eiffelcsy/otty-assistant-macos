@@ -6,7 +6,7 @@ import { expect, it, vi } from 'vitest'
 import type { ChatEvent } from '../../shared/types'
 
 vi.mock('electron', () => ({ clipboard: {}, ClipboardItem: class {}, shell: {}, nativeImage: {}, app: { isPackaged: true, getPath: () => '' } }))
-vi.mock('../settings', () => ({
+vi.mock('../settings', () => ({ isDev: () => false,
   getStored: () => ({ baseUrl: 'https://api.deepseek.com/', apiFormat: 'auto', model: 'm', thinking: false, homeLanguage: null, rememberChats: true, learn: false }),
   getApiKey: () => 'key'
 }))

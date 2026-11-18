@@ -2,6 +2,8 @@
 
 const quick = [
   ['lint', 'node tools/verify/lint.mjs'],
+  // About 2 s. A refactor that leaves an export with no users otherwise passes here and fails only in CI.
+  ['dead code', 'npm run knip --silent'],
   ['typecheck', 'npm run typecheck --silent'],
   ['unit tests (changed)', 'npx vitest run --changed --passWithNoTests']
 ]

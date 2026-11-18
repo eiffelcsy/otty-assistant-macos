@@ -30,7 +30,7 @@ describe('CLAUDE.md "What left the Mac": every request says why it went', () => 
   })
 
   it('records searches and pages where they go out', () => {
-    expect(withoutComments(read('src/main/tools.ts'))).toMatch(/\brecord\(\{/)
+    expect(withoutComments(read('src/main/tools/web.ts'))).toMatch(/\brecord\(\{/)
     expect(withoutComments(read('src/main/loop.ts'))).toMatch(/record\(\{ kind: 'search'/)
   })
 })

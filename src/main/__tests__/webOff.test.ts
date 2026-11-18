@@ -5,7 +5,7 @@ let baseUrl = 'http://localhost:11434/v1'
 let model = 'm'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {} }))
-vi.mock('../settings', () => ({ getApiKey: () => 'key', getStored: () => ({ baseUrl, model }) }))
+vi.mock('../settings', () => ({ isDev: () => true, getApiKey: () => 'key', getStored: () => ({ baseUrl, model }) }))
 const { runTool, toolDefs } = await import('../tools')
 
 const ctx = { allowed: CHAT_TOOLS, confirm: async () => true, knownUrl: () => true }

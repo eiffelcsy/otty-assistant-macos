@@ -5,7 +5,7 @@ import type { Message, Provider, ProviderEvent, ChatRequest } from '../providers
 let baseUrl = 'https://api.deepseek.com'
 
 vi.mock('electron', () => ({ clipboard: { writeText: vi.fn() }, shell: { openExternal: vi.fn() }, ClipboardItem: class {} }))
-vi.mock('../settings', () => ({ getApiKey: () => 'key', getStored: () => ({ baseUrl, model: 'm' }) }))
+vi.mock('../settings', () => ({ isDev: () => true, getApiKey: () => 'key', getStored: () => ({ baseUrl, model: 'm' }) }))
 const { shell } = await import('electron')
 const { runTool, toolDefs } = await import('../tools')
 const { runLoop } = await import('../loop')
