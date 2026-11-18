@@ -176,10 +176,14 @@ export function Panel() {
   // always follows.
   const following = useRef(true)
   const [away, setAway] = useState(false)
+  const askedCount = useRef(0)
   useEffect(() => {
     if (findingRef.current !== null) return
     const found = focusId && scrollRef.current?.querySelector(`[data-msg-id="${CSS.escape(focusId)}"]`)
-    const asked = messages.at(-1)?.role === 'user'
+    // A new question since last time, even if its answer arrived in the same render.
+    const questions = messages.filter((m) => m.role === 'user').length
+    const asked = questions > askedCount.current
+    askedCount.current = questions
     if (!found && !asked && !following.current) return
     following.current = !found
     if (found) found.scrollIntoView({ block: 'center' })
@@ -285,7 +289,12 @@ export function Panel() {
   // The panel's own scissors always add to the tray.
   const snip = async () => take(await window.otty.captureScreenshot(), true)
 
-  const newChat = () => window.otty.resetChat()
+  // The words in the box were saved to the old chat as it lost focus; the new one starts empty.
+  const newChat = () => {
+    keep.drop()
+    setInput('')
+    void window.otty.resetChat()
+  }
   const again = againOffer(messages, settings?.homeLanguage ?? null, busy)
 
   if (!settings) return <div className="panel" />

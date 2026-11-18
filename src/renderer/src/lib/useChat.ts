@@ -48,7 +48,7 @@ export function useChat(onReset?: () => void) {
   const [focusId, setFocusId] = useState<string | null>(null)
   /**
    * The box's words from main: a chat's draft when it opens, or what another window typed (D-62). `n` changes each
-   * time, so the same words twice still arrive. A window that has focus is the one typing, so it ignores the echo.
+   * time, so the same words twice still arrive. The preload drops a window's own echo.
    */
   const [draft, setDraft] = useState({ text: '', n: 0 })
   const resetRef = useRef(onReset)
@@ -64,7 +64,6 @@ export function useChat(onReset?: () => void) {
           setBusy(false)
           setFocusId(null)
           setLearn(true)
-          setDraft((d) => ({ text: '', n: d.n + 1 }))
           currentId.current = null
           resetRef.current?.()
           return
@@ -89,10 +88,7 @@ export function useChat(onReset?: () => void) {
         }
 
         if (e.type === 'learn') return setLearn(e.on)
-        if (e.type === 'draft') {
-          if (!document.hasFocus()) setDraft((d) => ({ text: e.text, n: d.n + 1 }))
-          return
-        }
+        if (e.type === 'draft') return setDraft((d) => ({ text: e.text, n: d.n + 1 }))
 
         const patch = (fn: (m: Assistant) => Assistant) =>
           setMessages((ms) => ms.map((m) => (m.id === e.id && m.role === 'assistant' ? fn(m) : m)))

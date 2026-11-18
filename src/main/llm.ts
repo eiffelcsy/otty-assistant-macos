@@ -415,6 +415,7 @@ export class ChatSession {
       }
     }
     const asked = thread.history[historyAt]
+    if (mode === 'edit' && user.text.trim()) this.drafts.set(thread.id, user.text)
     const keep = mode === 'retry' ? 1 : 0
     thread.messages.length = userAt + keep
     thread.history.length = historyAt + keep
@@ -499,11 +500,11 @@ export class ChatSession {
   }
 
   /** What's typed in the box for the chat on show. Every window hears it, so the other one can pick it up. */
-  setDraft(text: string): void {
+  setDraft(text: string, from?: string): void {
     const id = this.thread.id
     if (text.trim()) this.drafts.set(id, text)
     else this.drafts.delete(id)
-    this.emit({ type: 'draft', text })
+    this.emit({ type: 'draft', text, ...(from ? { from } : {}) })
   }
 
   draftOf(id: string): string | undefined {

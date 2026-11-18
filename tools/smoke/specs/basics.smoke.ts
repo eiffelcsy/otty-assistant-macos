@@ -41,7 +41,7 @@ test('a search chip, then opening the page asks first and opens the browser', { 
   )
   const panel = await otty.openPanel()
   await otty.ask(panel, 'Find me the Wikipedia page for otters and open it')
-  await expect(panel.getByText(/Looking up/)).toBeVisible()
+  await expect(panel.locator('.tool-chips').getByText(/Looking up/)).toBeVisible()
   await expect(card(panel)).toContainText('en.wikipedia.org')
   await card(panel).getByRole('button', { name: 'Open it' }).click()
   await expect(panel.getByText('Opened it for you.')).toBeVisible()

@@ -48,7 +48,7 @@ test.describe('with 繁體中文（香港） as the other language', () => {
 
     world.reply('這是什麼意思', { say: 'It means “what does this mean?”.' })
     await askAndWait(otty, panel, '這是什麼意思？')
-    await expect(lastAnswer(panel).getByRole('button', { name: /^In / })).toHaveCount(0)
+    await expect(lastAnswer(panel).getByRole('button', { name: /^In (中文|English)$/ })).toHaveCount(0)
     const q = lastQuestion(otty)
     expect(q).not.toContain(ASK_CHINESE)
     // English-only users get no language line at all, and no Hong Kong guide.

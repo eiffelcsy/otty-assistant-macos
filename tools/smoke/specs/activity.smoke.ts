@@ -73,7 +73,7 @@ test('What Otty has used counts questions, look-ups, searches and pages; the nex
   const usage = panel.locator('.meter')
   await expect(usage.locator('.meter__count')).toHaveText('3')
   await expect(usage).toContainText('In the last 30 days, also 1 look-up on its own, 1 search and 1 page.')
-  const summary = await usage.innerText()
+  const summary = (await usage.textContent()) ?? ''
 
   await panel.getByRole('button', { name: /See what it cost on DeepSeek/ }).click()
   await expect.poll(async () => (await otty.snapshot()).calls.filter((c) => c.kind === 'open-external').map((c) => c.detail[0])).toEqual(['https://platform.deepseek.com/usage'])

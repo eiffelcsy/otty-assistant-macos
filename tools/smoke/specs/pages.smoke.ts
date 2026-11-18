@@ -54,7 +54,7 @@ test('an address the user gave or a search found is read with no card; any other
   const panel = await otty.openPanel()
   await otty.ask(panel, 'Read https://example.com/otters')
   await expect(panel.getByText('The page says sea otters hold hands.')).toBeVisible()
-  await expect(panel.getByText('Reading example.com')).toBeVisible()
+  await expect(panel.locator('.tool-chips').getByText('Reading example.com')).toBeVisible()
 
   await otty.ask(panel, 'Find otter facts and read the best one')
   await expect(panel.getByText('Otters have the densest fur of any animal.').last()).toBeVisible()
@@ -126,7 +126,7 @@ test('in Safari with nothing highlighted, ↵ summarizes the page with no card; 
   await expect(box).toBeVisible()
   await box.press('Enter')
   await expect(quick.getByText('Otters were seen in the bay this week.')).toBeVisible()
-  await expect(quick.getByText('Reading news.example.com')).toBeVisible()
+  await expect(quick.locator('.tool-chips').getByText('Reading news.example.com')).toBeVisible()
   await expect(readCard(quick)).toHaveCount(0)
   await quick.keyboard.press('Escape')
 

@@ -56,7 +56,7 @@
   "src/renderer/src/panel/Panel.tsx::react(refs)": 4,
   "src/renderer/src/panel/Panel.tsx::react(set-state-in-effect)": 1,
   "src/renderer/src/panel/Panel.tsx::typescript(no-floating-promises)": 5,
-  "src/renderer/src/panel/Panel.tsx::typescript(no-misused-promises)": 3,
+  "src/renderer/src/panel/Panel.tsx::typescript(no-misused-promises)": 2,
   "src/renderer/src/quick/Quick.tsx::react-hooks(exhaustive-deps)": 1,
   "src/renderer/src/quick/Quick.tsx::react(refs)": 2,
   "src/renderer/src/quick/Quick.tsx::typescript(no-floating-promises)": 7,

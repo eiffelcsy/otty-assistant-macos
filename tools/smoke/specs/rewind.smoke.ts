@@ -57,8 +57,8 @@ test('Try again lists what it can undo; unticked the look carries on, ticked it 
   const card = panel.locator('.rewind-card')
   const stop = card.getByRole('checkbox', { name: 'Stop looking into “Budget laptops”' })
   await expect(stop).toBeChecked()
-  await expect(card.getByText('Can’t be undone:')).toBeVisible()
-  await expect(card.locator('.rewind-card__lasting')).toContainText('Copied.')
+  await expect(card.getByText('Can’t be undone')).toBeVisible()
+  await expect(card.locator('.rewind-card__item--lasting')).toContainText('Copied.')
 
   // Unticked: a new answer, and the look carries on.
   await stop.uncheck()
@@ -144,7 +144,7 @@ test('Edit question after a remembered fact offers to forget it', { tag: ['@step
   await lastAnswer(panel).getByRole('button', { name: 'Edit question' }).click()
   const card = panel.locator('.rewind-card')
   await expect(card.getByRole('checkbox', { name: 'Forget “Is learning Spanish”' })).toBeChecked()
-  await card.getByRole('button', { name: 'Edit', exact: true }).click()
+  await card.getByRole('button', { name: 'Edit question' }).click()
   await expect(panel.getByPlaceholder(/Ask/)).toHaveValue('I’m learning Spanish. How do I say hello?')
   await panel.getByPlaceholder(/Ask/).fill('I’m learning Spanish. How do I say good morning?')
   await panel.getByRole('button', { name: 'Send' }).click()

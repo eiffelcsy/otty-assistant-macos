@@ -28,7 +28,7 @@ export function registerChat(): void {
   handle('chat:explain', (_e, term: string, around: string, language?: AnswerLanguage) => explainTerm(term, around, language ?? undefined))
 
   handle('chats:list', async () => (await chatStore().list({ limit: RECENT_CHATS })).map((c) => ({ ...c, ...(chat.draftOf(c.id) ? { draft: chat.draftOf(c.id) } : {}) })))
-  on('chat:draft', (_e, text: string) => chat.setDraft(text))
+  on('chat:draft', (_e, text: string, from: string) => chat.setDraft(text, from))
   handle('chats:open', (_e, id: string, focusMessageId?: string) => chat.open(id, focusMessageId ?? undefined))
   handle('chats:search', (_e, q: string) => chatStore().search(q.slice(0, 200)))
   handle('chats:delete', (_e, id: string) => deleteChat(id))

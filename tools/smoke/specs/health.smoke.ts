@@ -57,6 +57,7 @@ test.describe('a shortcut that can’t be registered', () => {
     await expect(banner(panel)).toContainText(/Another app uses .+, so it won’t work for/)
     await banner(panel).getByRole('button', { name: 'Change it' }).click()
     await expect(panel.getByRole('heading', { name: 'Shortcuts' })).toBeVisible()
-    await expect(panel.getByText('Another app uses this. Pick a different one.')).toBeVisible()
+    // Both rows hold the same shortcut, so both say so.
+    await expect(panel.getByText('Another app uses this. Pick a different one.').first()).toBeVisible()
   })
 })

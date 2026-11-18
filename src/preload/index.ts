@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { OttyApi } from '../shared/types'
+import type { ChatEvent, OttyApi } from '../shared/types'
+
+/** Which window typed a draft, so its own echo is skipped. Random per window, and never leaves the preload. */
+const DRAFTS_FROM = Math.random().toString(36).slice(2)
 
 function listen<T>(channel: string, cb: (v: T) => void): () => void {
   const handler = (_e: Electron.IpcRendererEvent, v: T) => cb(v)
@@ -58,7 +61,7 @@ const api: OttyApi = {
   clearChats: () => ipcRenderer.invoke('chats:clear'),
   respondConfirm: (id, allow) => ipcRenderer.invoke('chat:confirm', id, allow),
   undoReceipt: (answerId, at) => ipcRenderer.invoke('chat:undo-receipt', answerId, at),
-  setDraft: (text) => ipcRenderer.send('chat:draft', text),
+  setDraft: (text) => ipcRenderer.send('chat:draft', text, DRAFTS_FROM),
   runStep: (answerId, index, sure) => ipcRenderer.invoke('steps:run', answerId, index, sure),
   tickStep: (answerId, index, done) => ipcRenderer.invoke('steps:tick', answerId, index, done),
   checkStep: (answerId, index) => ipcRenderer.invoke('steps:check', answerId, index),
@@ -115,7 +118,8 @@ const api: OttyApi = {
   bubbleMenu: () => ipcRenderer.send('bubble:menu'),
   bubbleDrag: (phase) => ipcRenderer.send('bubble:drag', phase),
 
-  onChatEvent: (cb) => listen('chat:event', cb),
+  // A draft this window typed comes back to every window; this one already has it (D-62).
+  onChatEvent: (cb) => listen<ChatEvent>('chat:event', (e) => (e.type === 'draft' && e.from === DRAFTS_FROM ? undefined : cb(e))),
   onPanelOpen: (cb) => listenHeld('panel:open', cb),
   onQuickOpen: (cb) => listenHeld('quick:open', cb),
   onBubbleState: (cb) => listen('bubble:state', cb),

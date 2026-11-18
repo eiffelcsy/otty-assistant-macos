@@ -34,7 +34,7 @@ test('Claude, set up from Settings: the test names the model, tools work, and th
   world.backgroundReply = 'Otters holding hands'
   await panel.getByRole('button', { name: 'Back to chat' }).click()
   await otty.ask(panel, 'Summarise https://example.com/otters')
-  await expect(panel.getByText('Reading example.com')).toBeVisible()
+  await expect(panel.locator('.tool-chips').getByText('Reading example.com')).toBeVisible()
   await expect(panel.getByRole('strong').filter({ hasText: 'hold hands' })).toBeVisible()
 
   world.reply('Why do they do that?', { say: 'So they don’t drift apart.' })

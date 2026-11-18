@@ -294,8 +294,28 @@ function ForgetPrompt({ text, onForget, onKeep }: { text: string; onForget: () =
 
 function Privacy({ shown, settings, row, save, onOpenActivity, onOpenNotebook }: { shown: PublicSettings; settings: PublicSettings; row: Row; save: Save } & Pick<Props, 'onOpenActivity' | 'onOpenNotebook'>) {
   const [counts, setCounts] = useState<SettingsCounts | null>(null)
-  const [asking, setAsking] = useState<{ kind: 'off' } | { kind: 'keep'; keep: KeepChats } | null>(null)
-  const refresh = () => void window.otty.settingsCounts().then(setCounts)
+  /** A change that would forget chats: the control moves at once, and the prompt shows once main's count is in. */
+  const [asking, setAsking] = useState<({ kind: 'off' } | { kind: 'keep'; keep: KeepChats }) & { counted?: boolean } | null>(null)
+  /** Asks first if `forgets` says the change would forget anything now; otherwise just saves it. */
+  const askOr = (ask: { kind: 'off' } | { kind: 'keep'; keep: KeepChats }, forgets: (c: SettingsCounts) => number, go: () => Promise<void>) => {
+    setAsking(ask)
+    void fresh().then((c) => {
+      if (forgets(c)) return setAsking({ ...ask, counted: true })
+      setAsking(null)
+      return go()
+    })
+  }
+  /** Rows held to the end stay, saying Forgotten, after their count drops to nothing. */
+  const [forgot, setForgot] = useState<{ chats?: boolean; notes?: boolean }>({})
+  const chatsRow = Boolean(counts?.chats) || forgot.chats
+  const notesRow = Boolean(counts?.notes) || forgot.notes
+  /** The counts as they are now: the prompt must never be skipped because they hadn't arrived yet. */
+  const fresh = () =>
+    window.otty.settingsCounts().then((c) => {
+      setCounts(c)
+      return c
+    })
+  const refresh = () => void fresh()
   useEffect(refresh, [settings.rememberChats, settings.keepChats])
   const keepLabel = (k: KeepChats) => KEEP.find((x) => x.value === k)!.label.toLowerCase()
   return (
@@ -306,9 +326,9 @@ function Privacy({ shown, settings, row, save, onOpenActivity, onOpenNotebook }:
           title="Remember my chats"
           description="On this Mac only. Keeps the text Otty read from files, never the files or pictures."
           on={shown.rememberChats && asking?.kind !== 'off'}
-          onChange={(on) => (on ? void save('rememberChats', true) : counts?.chats ? setAsking({ kind: 'off' }) : void save('rememberChats', false))}
+          onChange={(on) => (on ? void save('rememberChats', true) : askOr({ kind: 'off' }, (c) => c.chats, () => save('rememberChats', false)))}
         />
-        {asking?.kind === 'off' && (
+        {asking?.kind === 'off' && asking.counted && (
           <ForgetPrompt text={`Turn off and forget ${plural(counts?.chats ?? 0, 'chat')}?`} onKeep={() => setAsking(null)} onForget={() => (setAsking(null), void save('rememberChats', false))} />
         )}
         {shown.rememberChats && (
@@ -318,10 +338,10 @@ function Privacy({ shown, settings, row, save, onOpenActivity, onOpenNotebook }:
             description="Counted from a chat’s last message."
             value={asking?.kind === 'keep' ? asking.keep : shown.keepChats}
             options={KEEP}
-            onChange={(keep) => (counts?.olderThan[keep] ? setAsking({ kind: 'keep', keep }) : void save('keepChats', keep))}
+            onChange={(keep) => askOr({ kind: 'keep', keep }, (c) => c.olderThan[keep], () => save('keepChats', keep))}
           />
         )}
-        {asking?.kind === 'keep' && (
+        {asking?.kind === 'keep' && asking.counted && (
           <ForgetPrompt
             text={`Forget ${plural(counts?.olderThan[asking.keep] ?? 0, 'chat')} older than ${keepLabel(asking.keep)}?`}
             onKeep={() => setAsking(null)}
@@ -345,11 +365,23 @@ function Privacy({ shown, settings, row, save, onOpenActivity, onOpenNotebook }:
         <LinkRow {...row('sent')} title="See what left my Mac" onClick={() => onOpenActivity('sent')} />
         <LinkRow {...row('changed')} title="See what Otty changed" onClick={() => onOpenActivity('changed')} />
       </Group>
-      {Boolean(counts?.chats || counts?.notes) && (
+      {(chatsRow || notesRow) && (
         <Group label="Can’t be undone">
-          {Boolean(counts?.chats) && <HoldRow {...row('forgetChats')} title="Forget all chats" description={`${plural(counts!.chats, 'chat')}.`} onDone={() => void window.otty.clearChats().then(refresh)} />}
-          {Boolean(counts?.notes) && (
-            <HoldRow {...row('forgetNotes')} title="Forget everything in the Notebook" description={`${plural(counts!.notes, 'note')}.`} onDone={() => void window.otty.clearMemories().then(refresh)} />
+          {chatsRow && (
+            <HoldRow
+              {...row('forgetChats')}
+              title="Forget all chats"
+              description={`${plural(counts?.chats ?? 0, 'chat')}.`}
+              onDone={() => (setForgot((f) => ({ ...f, chats: true })), void window.otty.clearChats().then(refresh))}
+            />
+          )}
+          {notesRow && (
+            <HoldRow
+              {...row('forgetNotes')}
+              title="Forget everything in the Notebook"
+              description={`${plural(counts?.notes ?? 0, 'note')}.`}
+              onDone={() => (setForgot((f) => ({ ...f, notes: true })), void window.otty.clearMemories().then(refresh))}
+            />
           )}
         </Group>
       )}

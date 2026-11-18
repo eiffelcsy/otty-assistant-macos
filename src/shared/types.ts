@@ -520,7 +520,7 @@ export type ChatEvent =
   /** A saved chat was reopened: replace everything shown with these messages. */
   | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string; learn?: false; streaming?: string; draft?: string }
   /** The words waiting in the message box for the chat on show, typed in another window (D-62). */
-  | { type: 'draft'; text: string }
+  | { type: 'draft'; text: string; from?: string }
   | ({ type: 'user' } & Omit<Extract<ChatMessage, { role: 'user' }>, 'role'>)
   | { type: 'start'; id: string; language?: AnswerLanguage }
   | { type: 'delta'; id: string; text: string }
