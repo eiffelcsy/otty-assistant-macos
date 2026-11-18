@@ -4,6 +4,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### One message box, and drafts that stay (D-62, core, 2026-11-18)
+
+- **One message box** for the panel and both of the quick view's boxes: Enter sends, Shift-Enter makes a line, nothing goes mid-composition, Send turns into Stop while Otty answers, and Snip and Attach say "After this answer" until then. The panel's box says "Ask a follow-up…" once there's a chat.
+- **Drafts stay with their chat.** What's typed is kept in main's memory per chat, so ↵ **continue in chat** carries the quick view's follow-up into the panel, and switching chats brings each one's words back. Recent chats shows "Draft: …". A restart starts each box empty.
+- **Answers that end early say how.** Stop leaves "You stopped this answer." A failed answer's card offers the one button that helps: **Open Settings** for a key problem, **Start a new chat** for one that's grown too long, **Try again** otherwise.
+- **While Otty works**, the thinking row says what the running tool is doing, and after 6 s "Still with you. DeepSeek is slow right now." Scrolling up while an answer streams stops the chat following it, and **New text** brings you back.
+- Older answers keep their action row for hover and keyboard focus; the latest shows it. The empty chat is the otter, one line with the shortcut, and up to three things to try.
+
 ### Settings in sections, saved as you go (D-61, 2026-11-18)
 
 Settings opens on six sections, each with a one-line summary: You & Otty, Shortcuts, Privacy, Usage & limit, Connection and Help (Spec 02). There's no Save button.

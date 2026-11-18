@@ -844,73 +844,94 @@ html[data-view='bubble'] body {
   color: var(--danger-ink);
   margin-top: 3px;
 }
+/* An answer that failed: one button that helps, never a raw code (D-62). */
+.msg--otty .error-card {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger-ink) 30%, transparent);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+.error-card__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+.msg__stopped {
+  margin-top: calc(var(--s-1) - var(--s-2));
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--text-2);
+}
+/* Older answers keep their actions for hover and keyboard focus; the latest shows them (UX_REVIEW #6). */
+.msg--otty:not(.msg--latest) .msg__actions {
+  opacity: 0;
+  transition: opacity var(--t-quick) var(--glide);
+}
+.msg--otty:not(.msg--latest):hover .msg__actions,
+.msg--otty:not(.msg--latest):focus-within .msg__actions {
+  opacity: 1;
+}
+/* "New text": following stopped because the user scrolled up while Otty was writing. */
+.new-text {
+  position: absolute;
+  bottom: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  height: 28px;
+  padding: 0 var(--s-3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--elev-2);
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--text);
+  animation: surface var(--t-settle) var(--glide) both;
+}
+.thinking__words {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+}
+.thinking__tool {
+  animation: surface var(--t-quick) var(--glide) both;
+}
+.thinking__slow {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+  animation: surface var(--t-settle) var(--glide) both;
+}
 .ok-card {
   background: var(--ok-soft);
 }
 
 /* empty state */
 .empty {
-  margin: auto 0;
+  margin: var(--s-6) 0 auto;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--s-2);
 }
 .empty h2 {
-  margin: var(--s-2) 0 var(--s-1);
+  margin: var(--s-3) 0 0;
   font-size: var(--fs-heading);
   font-weight: 800;
   line-height: var(--lh-heading);
-  letter-spacing: -0.01em;
-  text-wrap: balance;
   color: var(--heading);
 }
 .empty p {
-  margin: 0 0 var(--s-4);
-  font-size: var(--fs-ui);
+  max-width: 32ch;
+  margin: var(--s-1) 0 0;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
   color: var(--text-2);
-}
-.how-to {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  width: 100%;
-  text-align: left;
-}
-.how-to__item {
-  display: flex;
-  gap: var(--s-3);
-  align-items: center;
-  padding: var(--s-2) var(--s-3);
-  border: none;
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
-  font-size: var(--fs-ui);
-  line-height: var(--lh-ui);
-}
-.how-to__item b {
-  font-weight: 700;
-  color: var(--heading);
-}
-.how-to__item--btn {
-  text-align: left;
-  transition: box-shadow var(--t-quick) var(--glide);
-}
-.how-to__item--btn:hover {
-  box-shadow: var(--elev-2);
-}
-.how-to__icon {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: calc(var(--r-sm) - var(--s-0));
-  display: grid;
-  place-items: center;
-  font-size: var(--i-md);
-  background: var(--brand-soft);
-  color: var(--brand);
 }
 
 /* ---------- Composer ---------- */
@@ -921,7 +942,30 @@ html[data-view='bubble'] body {
   flex-direction: column;
   gap: var(--s-2);
 }
-/* One box holds the snip tool, the text and the send button. Its corner is concentric with the window's. */
+/* The message box (D-62): the snip tool, the text and Send in one box, its corner concentric with the window's. A bare
+   box sits inside a card that has its own surface (the quick view's first question). */
+.message-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1h);
+}
+.message-box--bare .composer__row {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.message-box--bare .composer__row:focus-within {
+  box-shadow: none;
+}
+.message-box--bare .composer__input {
+  padding: 0;
+  max-height: 96px;
+}
+.quick .message-box:not(.message-box--bare) .composer__row {
+  background: var(--fill);
+  box-shadow: none;
+}
 .composer__row {
   display: flex;
   align-items: flex-end;
@@ -968,8 +1012,6 @@ html[data-view='bubble'] body {
   user-select: text;
 }
 .composer__input::placeholder,
-.quick__input::placeholder,
-.quick__follow::placeholder,
 .field::placeholder,
 .history__search input::placeholder,
 .find-bar__field input::placeholder {
@@ -2067,20 +2109,6 @@ html[data-view='quick'] body {
 .quick__box .context-text__body {
   -webkit-line-clamp: 2;
 }
-.quick__input {
-  resize: none;
-  border: none;
-  outline: none;
-  padding: 0;
-  background: transparent;
-  font: inherit;
-  font-size: var(--fs-body);
-  line-height: 22px;
-  color: var(--text);
-  max-height: 96px;
-  field-sizing: content;
-  user-select: text;
-}
 .quick__question {
   font-size: var(--fs-body);
   font-weight: 600;
@@ -2199,6 +2227,10 @@ html[data-view='quick'] body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.history__draft {
+  font-weight: 600;
+  color: var(--straw-ink);
 }
 .history__meta {
   font-size: var(--fs-small);
@@ -3096,18 +3128,6 @@ button.menu__item:hover {
 }
 
 /* ---------- Quick view follow-ups ---------- */
-.quick__follow {
-  width: 100%;
-  border: none;
-  border-top: 1px solid var(--hairline);
-  background: none;
-  padding: var(--s-2) var(--s-0) var(--s-0);
-  resize: none;
-  font: inherit;
-  font-size: var(--fs-ui);
-  color: var(--text);
-  outline: none;
-}
 .quick__asked {
   align-self: flex-end;
   max-width: 85%;
@@ -3179,35 +3199,39 @@ button.menu__item:hover {
   color: var(--text);
 }
 
-/* ---------- Try asking: what nobody finds alone ---------- */
+/* ---------- Try asking: what nobody finds alone. Rows, not chips; a click fills the box and never sends ---------- */
 .try {
   display: flex;
   flex-direction: column;
-  gap: var(--s-1);
   width: 100%;
-  margin-top: 4px;
+  margin-top: var(--s-6);
   text-align: left;
 }
-.try__chip {
+.try__label {
+  padding: 0 var(--s-2) var(--s-1);
+}
+.try__row {
   display: flex;
   align-items: center;
-  gap: var(--s-1h);
-  padding: var(--s-2) var(--s-3);
-  border: 1px solid var(--hairline);
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 0 var(--s-2);
+  border: none;
   border-radius: var(--r-sm);
   background: none;
   font-size: var(--fs-small);
+  font-weight: 600;
   color: var(--text);
   text-align: left;
-  transition: background var(--t-quick) var(--glide), border-color var(--t-quick) var(--glide);
+  transition: background var(--t-tap) var(--glide);
 }
-.try__chip > .icon {
+.try__row > .icon {
   flex: none;
-  color: var(--brand);
+  font-size: var(--i-md);
+  color: var(--text-2);
 }
-.try__chip:hover {
-  background: var(--brand-soft);
-  border-color: var(--brand-line);
+.try__row:hover {
+  background: var(--fill);
 }
 
 /* ---------- Drawings (D-30) ---------- */

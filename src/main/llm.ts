@@ -69,6 +69,8 @@ interface LiveTurn {
   asking?: { confirmId: string; card: ConfirmCard }
   /** The receipt of a card just allowed, which gets its Undo once the tool says how (D-60). */
   undoable?: { at: number; kind: 'reminder' | 'job' }
+  /** The user pressed Stop, as opposed to the turn giving way to a new question. */
+  stopped?: boolean
 }
 
 /** What a job needs from the chat that started it. */
@@ -275,6 +277,8 @@ export class ChatSession {
    * files themselves: after a restart, Otty asks for the file again rather than charting from a summary.
    */
   private tables = new Map<string, Table[]>()
+  /** Words left in a chat's message box, by chat (D-62). Memory only: a restart starts each box empty. */
+  private drafts = new Map<string, string>()
 
   constructor(
     private emit: (e: ChatEvent) => void,
@@ -470,20 +474,35 @@ export class ChatSession {
 
   private show(thread: Thread, focusMessageId?: string, turn?: LiveTurn): void {
     this.thread = thread
+    const draft = this.drafts.get(thread.id)
     this.emit({
       type: 'load',
       messages: thread.messages,
       focusMessageId,
+      ...(draft ? { draft } : {}),
       ...(thread.learn === false ? { learn: false as const } : {}),
       ...(turn ? { streaming: turn.answerId } : {})
     })
     if (turn?.asking) this.emit({ type: 'confirm', id: turn.answerId, ...turn.asking })
   }
 
+  /** What's typed in the box for the chat on show. Every window hears it, so the other one can pick it up. */
+  setDraft(text: string): void {
+    const id = this.thread.id
+    if (text.trim()) this.drafts.set(id, text)
+    else this.drafts.delete(id)
+    this.emit({ type: 'draft', text })
+  }
+
+  draftOf(id: string): string | undefined {
+    return this.drafts.get(id)
+  }
+
   /** The user deleted this chat (or all of them): stop and never save it again. */
   forget(id: string): void {
     this.forgotten.add(id)
     this.tables.delete(id)
+    this.drafts.delete(id)
     this.stopChat(id)
     if (this.thread.id === id) this.reset()
   }
@@ -504,6 +523,7 @@ export class ChatSession {
   stopChat(id: string, why?: string): void {
     const turn = this.live.get(id)
     if (!turn) return
+    turn.stopped = !why
     turn.abort.abort()
     for (const resolve of turn.confirms.values()) resolve(false, why)
     turn.confirms.clear()
@@ -536,6 +556,7 @@ export class ChatSession {
     const thread = this.thread
     // A new question in the same chat replaces its answer: one history can't take two turns at once.
     this.stopChat(thread.id, 'you asked something else')
+    this.drafts.delete(thread.id)
     this.makeRoom(thread.id)
     const home = this.deps.settings().homeLanguage
     const prepared = takeFiles(opts.files)
@@ -772,12 +793,15 @@ export class ChatSession {
       // Drop the unfinished turn so a dangling tool call can't break the next request.
       history.length = turnStart
       if ((err as Error).name === 'AbortError') {
-        this.tell(thread, { type: 'done', id })
+        if (live.stopped) answer.stopped = true
+        this.tell(thread, { type: 'done', id, ...(live.stopped ? { stopped: true as const } : {}) })
       } else {
         const message = err instanceof FriendlyError ? err.message : 'Oops — something unexpected happened. Please try again.'
+        const kind = err instanceof FriendlyError ? err.kind : 'other'
         if (!(err instanceof FriendlyError)) console.error(err)
         answer.error = message
-        this.tell(thread, { type: 'error', id, message })
+        if (kind !== 'other') answer.errorKind = kind
+        this.tell(thread, { type: 'error', id, message, kind })
       }
     } finally {
       if (this.live.get(thread.id) === live) this.live.delete(thread.id)

@@ -124,8 +124,16 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
               <button className="history__open" onClick={() => open(c.id)}>
                 <span className="history__title">{c.title}</span>
                 <span className="history__meta">
-                  {c.app && <>{c.app} · </>}
-                  {ago(c.updatedAt)}
+                  {c.draft ? (
+                    <>
+                      <b className="history__draft">Draft:</b> {c.draft}
+                    </>
+                  ) : (
+                    <>
+                      {c.app && <>{c.app} · </>}
+                      {ago(c.updatedAt)}
+                    </>
+                  )}
                 </span>
               </button>
               <button

@@ -19,7 +19,7 @@ import { draw } from '../../src/renderer/src/draw/render'
 import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -443,6 +443,7 @@ const trayed = { panel: false, quick: false }
 const api: OttyApi = {
   getSettings: async () => settings,
   saveSettings: async (u) => ({ ...Object.assign(settings, u) }),
+  setDraft: () => {},
   setSetting: async (key, value) => ({ ...Object.assign(settings, { [key]: value }) }),
   settingsCounts: async () => ({ chats: 142, olderThan: { '30d': 23, '1y': 4, forever: 0 }, notes: 18 }),
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
@@ -466,7 +467,7 @@ const api: OttyApi = {
   sendMessage: async (text, captures, opts) => fakeAnswer(text, captures, opts?.language, opts?.files),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
-  listChats: async () => saved.map(({ id, title, app, updatedAt }) => ({ id, title, app, updatedAt })),
+  listChats: async () => saved.map(({ id, title, app, updatedAt }, i) => ({ id, title, app, updatedAt, ...(i === 1 && scene === 'history' ? { draft: 'and what about the weekend fares?' } : {}) })),
   openChat: async (id, focusMessageId) => {
     const t = saved.find((c) => c.id === id)
     if (t) emit({ type: 'load', messages: t.messages, focusMessageId })
@@ -591,6 +592,20 @@ const api: OttyApi = {
     if (scene === 'noted') setTimeout(() => cb({ type: 'load', messages: notedSample }), 50)
     if (scene === 'receipts') setTimeout(() => cb({ type: 'load', messages: receiptsSample }), 50)
     if (cards[scene]) setTimeout(() => playCard(cb, cards[scene]), 50)
+    // D-62: an answer on its way, stopped, or failed in a way its card can help with.
+    if (scene === 'thinking')
+      setTimeout(() => {
+        cb({ type: 'load', messages: askingSample })
+        cb({ type: 'user', id: 'u2', text: 'And on Sunday?', captures: [], app: null })
+        cb({ type: 'start', id: 'a2', language: 'en' })
+        cb({ type: 'tool', id: 'a2', callId: 't1', label: 'Looking up “Tokyo Sendai last train Sunday”', icon: 'search', status: 'running' })
+      }, 50)
+    const ended: Record<string, Partial<Extract<ChatMessage, { role: 'assistant' }>>> = {
+      stopped: { text: 'The last Hayabusa on a Saturday leaves Tokyo at 21:44 and', stopped: true },
+      'failed-key': { text: '', error: 'Otty’s key doesn’t look right. Please check it in Settings.', errorKind: 'key' },
+      'failed-long': { text: '', error: 'This chat has grown too long. Please start a new one.', errorKind: 'too-long' }
+    }
+    if (ended[scene]) setTimeout(() => cb({ type: 'load', messages: [...askingSample, { id: 'a1', role: 'assistant', language: 'en', tools: [], text: '', ...ended[scene] }] }), 50)
     // The rewind card opens from Try again on the last answer.
     if (scene === 'rewind') {
       setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)

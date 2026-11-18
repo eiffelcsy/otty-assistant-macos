@@ -84,7 +84,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M (2–3 days) |
-| D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | ⏳ planned | D-59 | M–L (3–4 days) |
+| D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | 🔨 core built; typography, the tray inside the box and the rest waiting | D-59 | M–L (3–4 days) |
 | D-63 | The Logbook: Activity, What left your Mac and What Otty changed become one screen of views (Spec 04) | ⏳ planned | D-59 | L (4–5 days) |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
@@ -181,7 +181,7 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Where it stands (2026-11-18).** Built: every token, `--muted` renamed to `--text-2` everywhere and gone (no alias was needed), and the components in `styles.css`: button (primary, soft, quiet-style `copy-btn`, warn; small and large), icon button (32 and `--sm` 28, 25% corners), small × (20 visible in a 28 target), switch (Settings toggles), field, row (Recent chats), group (Settings sections), card, header, composer box and keycap. Measured at 420 × 580: header 44, composer 64 (box 44), health line 40, so chrome is 108 px (19%). Answers have no bubble and use the full width; question to answer 8, turn to turn 20. Both tests are in `rules/renderer.test.ts`, with 5 off-scale entries, and fail on a planted bad value. Dark `--text-2` on `--brand-soft` was 4.35:1, so a selected radio row uses `--text`. Smoke passes (137): the new spacing exposed a race in `FindBar`, where an earlier match's wait for the chat to stop gliding pulled the view back after a quick ↵, so a newer jump now cancels it; and the health specs match Allow and Reopen Otty exactly, because the banner's words are now a button that contains them.
 **Not done yet:** tooltip, toast and menu (nothing uses them yet: tooltips are still native `title`s), the *unusual* and *receipt* cards (D-60), the group label above its box and rows with inset hairlines (Settings' markup, D-61), the header hairline that appears only on scroll, and the reduced-motion fade. **Checks waiting:** `npm run screens` will differ on every scene, so the new baselines are their own PR after CI; idle CPU with `OTTY_METRICS=1` (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8).
 
-## D-62 · Chat and one message box ⏳
+## D-62 · Chat and one message box 🔨 core built
 
 **Goal.** The chat column, answers and the message box built to spec, with one box for the quick view and the panel and drafts that never get lost. The spec is `docs/design/specs/03-chat.md`.
 
@@ -199,6 +199,10 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Done when.** One message box component in the codebase; drafts survive chat and window switches; chrome is 108 px at 420 × 580; the preview scenes in Spec 03 exist; `basics.smoke.ts`, `captures.smoke.ts` and `language.smoke.ts` pass with any selector changes in the same PR.
 
 **Smoke test (add to the checklist when it ships).** Type in the quick view, press ↵ "continue in chat": the text is still in the box. Type in one chat, switch to another and back: the draft is there, and the list says "Draft:". Scroll up while an answer streams: "New text" appears and brings you back. Pull the network during an answer: the card says what happened, with one button.
+
+**Where it stands (2026-11-18).** Built: one `MessageBox` (`components/MessageBox.tsx`) for the panel's composer and both of the quick view's boxes; drafts kept per chat in main's memory (`ChatSession.setDraft`, a `draft` event every window hears and a load event that carries it), saved 300 ms after typing and at once on blur or ↵ continue in chat, with "Draft:" in Recent chats; errors with a `kind` (`FriendlyError.kind`: network, key, too-long) and a card with the one button that helps; "You stopped this answer." (`answer.stopped`, set only by Stop, not by a new question); the thinking row with the running tool's words and the slow line at 6 s; following stops when you scroll up while Otty writes, with a "New text" button; actions shown on the latest answer, others on hover or focus; the empty chat as Spec 03 draws it. Smoke steps 145–146; scenes `thinking`, `stopped`, `failed-key`, `failed-long`.
+**Not done yet:** the tray and files inside the box; the user bubble's shape and the long-text clip; answer typography (headings, the code bar, tables, the tip's "Good to know" label); the explain card's waiting bars; chunks fading in, the caret, and extras surfacing after the end; ↑ to edit the last question and ⌘. to stop; the language button only after Chinese is used; the paused box; captures and file ids in drafts (text only for now); medium and wide widths.
+
 
 ## D-63 · The Logbook ⏳
 
@@ -757,3 +761,5 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 142. "Remind me to feed the otters" → **Add it** → "✓ Added “Feed the otters” · Undo". Undo → the reminder is gone from Reminders and the line says Undone. ✋ also by hand: the real Reminders app.
 143. Settings has no Save button. Settings › You & Otty → turn on **Tell me when something is ready** → "Saved" shows by the title; quit and relaunch → it's still on, and the list's summary says "notifications on".
 144. Settings → **Find a setting** → "hotkey" → the shortcut rows; ↵ → Shortcuts opens with that row glowing once.
+145. Highlight something, ⌥Space, ↵, then type a follow-up in the quick view and press **↵ continue in chat** → the panel's box has the same words.
+146. Ask something, type a few words in the box, press **New chat** and ask something else → Recent chats shows the first chat with "Draft: …" in straw; open it → the words are back in the box.

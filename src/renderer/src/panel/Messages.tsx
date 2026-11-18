@@ -320,7 +320,8 @@ export function AssistantMessage({
   found,
   source = '',
   latest = false,
-  onEdit
+  onEdit,
+  onSettings
 }: {
   m: Assistant
   again?: AgainOffer
@@ -330,6 +331,8 @@ export function AssistantMessage({
   latest?: boolean
   /** Puts an edited question back in the box. Left out, there's no Edit (the quick view). */
   onEdit?: (draft: EditDraft) => void
+  /** Opens Settings at Connection, for an answer that failed on its key. */
+  onSettings?: () => void
 }) {
   const [copied, setCopied] = useState(false)
   const [rewinding, setRewinding] = useState<{ mode: RewindMode; plan: RewindPlan } | null>(null)
@@ -347,7 +350,7 @@ export function AssistantMessage({
   }
   const canRewind = latest && !m.streaming && !m.calc
   return (
-    <div className={`msg msg--otty${found ? ' msg--found' : ''}`} data-msg-id={m.id}>
+    <div className={`msg msg--otty${found ? ' msg--found' : ''}${latest ? ' msg--latest' : ''}`} data-msg-id={m.id}>
       {m.tools.length > 0 && (
         <div className="tool-chips">
           {m.tools.map((t) => (
@@ -375,10 +378,28 @@ export function AssistantMessage({
       ))}
       {m.steps && <StepCard answerId={m.id} card={m.steps} stuck={!m.streaming} />}
       {m.confirm && <ConfirmCard key={m.confirm.confirmId} {...m.confirm} />}
+      {m.stopped && !m.error && <div className="msg__stopped">You stopped this answer.</div>}
       {m.error && (
-        <div className="error-card">
+        <div className="error-card" role="alert">
           <Icon name="sad" />
-          <span>{m.error}</span>
+          <span className="error-card__text">
+            {m.error}
+            {m.errorKind === 'key' && onSettings ? (
+              <button className="btn btn--primary btn--small" onClick={onSettings}>
+                Open Settings
+              </button>
+            ) : m.errorKind === 'too-long' ? (
+              <button className="btn btn--primary btn--small" onClick={() => void window.otty.resetChat()}>
+                Start a new chat
+              </button>
+            ) : (
+              canRewind && (
+                <button className="btn btn--primary btn--small" onClick={() => void rewind('retry')}>
+                  Try again
+                </button>
+              )
+            )}
+          </span>
         </div>
       )}
       {!m.streaming && (m.text || canRewind || m.used?.length) && (
@@ -396,7 +417,7 @@ export function AssistantMessage({
               {copied ? 'Copied' : 'Copy'}
             </button>
           )}
-          {canRewind && (
+          {canRewind && !m.error && (
             <button className="copy-btn" onClick={() => void rewind('retry')} title="Ask the same question again for a new answer">
               <Icon name="refresh" />
               Try again

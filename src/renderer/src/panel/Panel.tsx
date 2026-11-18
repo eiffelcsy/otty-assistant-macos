@@ -7,11 +7,14 @@ import { FileList, FileTray } from '../components/FileChips'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { LanguagePill } from '../components/LanguagePill'
+import { MessageBox } from '../components/MessageBox'
+import { useDraft } from '../lib/useDraft'
 import { actionsForTray, QuickActions, type ActionItem } from '../components/QuickActions'
 import { againOffer } from '../lib/again'
 import { prettyKey } from '../lib/keys'
 import { useAttachments } from '../lib/useAttachments'
-import { useChat } from '../lib/useChat'
+import { useChat, type UiMessage } from '../lib/useChat'
+import { serviceAt, serviceById } from '../../../shared/services'
 import { AskContext, HomeContext } from './Markdown'
 import { pauseEnd } from '../../../shared/pauseUntil'
 import { Activity, type Tab as ActivityTab } from './Activity'
@@ -62,7 +65,7 @@ export function Panel() {
   findingRef.current = finding
   const [activity, setActivity] = useState<ActivityItem[]>([])
   /** Bumped to scroll Settings to what Otty knows. */
-  const { messages, busy, setBusy, waitingFirstToken, focusId, learn, asking } = useChat(() => {
+  const { messages, busy, setBusy, waitingFirstToken, focusId, learn, asking, draft } = useChat(() => {
     setCaptures([])
     setApp(null)
     setNotice(null)
@@ -168,15 +171,25 @@ export function Panel() {
     if (view !== 'chat' || messages.length === 0) setFinding(null)
   }, [view, messages.length])
 
-  // Follow the conversation, unless a search result asked to show one message or the find bar is open.
+  // Follow the conversation, unless a search result asked to show one message or the find bar is open. Scrolling up
+  // while an answer streams stops following until "New text" or a scroll back to the end (D-62); a new question
+  // always follows.
   const following = useRef(true)
+  const [away, setAway] = useState(false)
   useEffect(() => {
     if (findingRef.current !== null) return
     const found = focusId && scrollRef.current?.querySelector(`[data-msg-id="${CSS.escape(focusId)}"]`)
+    const asked = messages.at(-1)?.role === 'user'
+    if (!found && !asked && !following.current) return
     following.current = !found
     if (found) found.scrollIntoView({ block: 'center' })
     else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages, focusId, view])
+  const catchUp = () => {
+    following.current = true
+    setAway(false)
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+  }
 
   // Something that grows after its answer arrived (a drawing renders lazily) mustn't push the end of the chat off
   // screen: keep following until the person scrolls away by hand (Otty's own glides never count), and again once they
@@ -194,6 +207,7 @@ export function Panel() {
     const hand = () => (byHand = true)
     const settled = () => {
       if (byHand) following.current = chat.scrollTop + chat.clientHeight >= chat.scrollHeight - 8
+      if (byHand) setAway(!following.current)
       byHand = false
     }
     const events = ['wheel', 'touchmove', 'pointerdown', 'keydown'] as const
@@ -205,6 +219,18 @@ export function Panel() {
       chat.removeEventListener('scrollend', settled)
     }
   }, [messages, view])
+
+  // The box's words live in main per chat (D-62): typing saves them, and a chat opening or the quick view typing brings them here.
+  const keep = useDraft()
+  const type = (text: string) => {
+    setInput(text)
+    keep.save(text)
+  }
+  const [draftSeen, setDraftSeen] = useState(draft.n)
+  if (draft.n !== draftSeen) {
+    setDraftSeen(draft.n)
+    setInput(draft.text)
+  }
 
   const actions = settings && !att.reading ? actionsForTray(captures, att.ready, settings.homeLanguage, { app, readsPages: settings.readsPages }) : []
 
@@ -220,6 +246,7 @@ export function Panel() {
       setApp(null)
       setNotice(null)
       setInput('')
+      keep.drop()
       setPick(undefined)
       setBusy(true)
       window.otty.sendMessage(text, sent, { app, action: item?.action, language: pick, files })
@@ -406,7 +433,6 @@ export function Panel() {
                 {messages.length === 0 && (
                   <EmptyState
                     settings={settings}
-                    onSnip={snip}
                     app={app?.name ?? captures[0]?.app?.name ?? null}
                     onSuggest={(text) => {
                       setInput(text)
@@ -432,16 +458,20 @@ export function Panel() {
                       source={sourceFor(messages, m.id)}
                       latest={m.id === lastAnswerId}
                       onEdit={editQuestion}
+                      onSettings={() => {
+                        setSettingsAt('conn')
+                        setView('settings')
+                      }}
                     />
                   )
                 )}
-                {waitingFirstToken && (
-                  <div className="thinking">
-                    <Otter state="thinking" size={40} />
-                    <span className="dots">Otty is thinking</span>
-                  </div>
-                )}
+                {waitingFirstToken && <Thinking messages={messages} service={serviceById(serviceAt(settings.baseUrl)).label} />}
               </div>
+              {away && busy && (
+                <button className="new-text" onClick={catchUp}>
+                  <Icon name="arrow-small-down" /> New text
+                </button>
+              )}
 
               <footer className="composer">
                 {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
@@ -468,61 +498,37 @@ export function Panel() {
                     {actions.length > 0 && <QuickActions items={actions} disabled={busy} onPick={(a) => send('', true, a)} />}
                   </div>
                 )}
-                <div className="composer__row">
-                  <button className="composer__tool" title="Snap part of my screen" onClick={snip} disabled={busy}>
-                    <Icon name="scissors" />
-                  </button>
-                  <button className="composer__tool" title="Attach files" onClick={att.pick} disabled={busy}>
-                    <Icon name="clip" />
-                  </button>
-                  <textarea
-                    ref={inputRef}
-                    className="composer__input"
-                    rows={1}
-                    placeholder={
-                      asking
-                        ? 'Or ask something else'
-                        : captures.length > 1
+                <MessageBox
+                  inputRef={inputRef}
+                  value={input}
+                  onChange={type}
+                  onBlur={() => keep.flush(input)}
+                  onSend={() => send(input)}
+                  canSend={Boolean(input.trim() || actions.length) && !att.reading}
+                  busy={busy}
+                  onStop={() => void window.otty.stop()}
+                  tools={{ onSnip: () => void snip(), onAttach: () => void att.pick() }}
+                  placeholder={
+                    asking
+                      ? 'Or ask something else'
+                      : captures.length > 1
                         ? 'Ask about these…'
                         : captures.length
                           ? 'Ask about this…'
                           : att.chips.length
                             ? 'Ask about your files…'
-                            : 'Ask Otty anything…'
-                    }
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onPaste={(e) => {
-                      // A file copied in Finder pastes as a file, not text.
-                      if (!e.clipboardData.files.length) return
-                      e.preventDefault()
-                      att.drop([...e.clipboardData.files])
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                        e.preventDefault()
-                        send(input)
-                      }
-                    }}
-                  />
-                  {settings.homeLanguage && (
-                    <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
-                  )}
-                  {busy ? (
-                    <button className="send-btn send-btn--stop" title="Stop" onClick={() => window.otty.stop()}>
-                      <Icon name="stop" solid />
-                    </button>
-                  ) : (
-                    <button
-                      className="send-btn"
-                      title="Send"
-                      disabled={(!input.trim() && !actions.length) || att.reading}
-                      onClick={() => send(input)}
-                    >
-                      <Icon name="arrow-small-up" />
-                    </button>
-                  )}
-                </div>
+                            : messages.length
+                              ? 'Ask a follow-up…'
+                              : 'Ask Otty anything…'
+                  }
+                  onPaste={(e) => {
+                    // A file copied in Finder pastes as a file, not text.
+                    if (!e.clipboardData.files.length) return
+                    e.preventDefault()
+                    att.drop([...e.clipboardData.files])
+                  }}
+                  extra={settings.homeLanguage && <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />}
+                />
               </footer>
             </>
           )}
@@ -532,52 +538,43 @@ export function Panel() {
   )
 }
 
-function EmptyState({ settings, onSnip, app, onSuggest }: { settings: PublicSettings; onSnip: () => void; app: string | null; onSuggest: (text: string) => void }) {
-  const suggestions = suggestionsFor(app, settings.learn, settings.readsPages)
+/** Before the first word: the otter thinking, the running tool's own words, and after 6 s a line that Otty is still there. */
+function Thinking({ messages, service }: { messages: UiMessage[]; service: string }) {
+  const last = messages.at(-1)
+  const tool = last?.role === 'assistant' ? last.tools.findLast((t) => t.status === 'running') : undefined
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 6_000)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <div className="thinking" role="status">
+      <Otter state="thinking" size={40} />
+      <span className="thinking__words">
+        <span key={tool?.label ?? ''} className={tool ? 'thinking__tool' : 'dots'}>
+          {tool ? `${tool.label}…` : 'Otty is thinking'}
+        </span>
+        {slow && <span className="thinking__slow">Still with you. {service} is slow right now.</span>}
+      </span>
+    </div>
+  )
+}
+
+/** Glanceable, one thing: who Otty is, the one shortcut, and up to three things to try (Spec 03, "The empty chat"). */
+function EmptyState({ settings, app, onSuggest }: { settings: PublicSettings; app: string | null; onSuggest: (text: string) => void }) {
+  const suggestions = suggestionsFor(app, settings.learn, settings.readsPages).slice(0, 3)
   return (
     <div className="empty">
-      <Otter state="happy" size={84} />
-      <h2>Hi, I’m Otty!</h2>
-      <p>I can explain anything on your screen in plain words.</p>
-      <div className="how-to">
-        <div className="how-to__item">
-          <span className="how-to__icon">
-            <Icon name="highlighter" />
-          </span>
-          <span>
-            <b>Highlight text</b> anywhere, then click me or press <kbd>{prettyKey(settings.askHotkey)}</kbd>
-          </span>
-        </div>
-        <button className="how-to__item how-to__item--btn" onClick={onSnip}>
-          <span className="how-to__icon">
-            <Icon name="scissors" />
-          </span>
-          <span>
-            <b>Snap part of your screen</b> — draw a box, or press <kbd>{prettyKey(settings.snapHotkey)}</kbd>
-          </span>
-        </button>
-        <div className="how-to__item">
-          <span className="how-to__icon">
-            <Icon name="expand" />
-          </span>
-          <span>
-            <b>Capture the whole screen</b> with <kbd>{prettyKey(settings.screenHotkey)}</kbd>
-          </span>
-        </div>
-        <div className="how-to__item">
-          <span className="how-to__icon">
-            <Icon name="comment-dots" />
-          </span>
-          <span>
-            Or just <b>type a question</b> below
-          </span>
-        </div>
-      </div>
+      <Otter state="idle" size={88} />
+      <h2>Hi, I’m Otty</h2>
+      <p>
+        Highlight anything and press <kbd>{prettyKey(settings.askHotkey)}</kbd>, or just ask below.
+      </p>
       {suggestions.length > 0 && (
         <div className="try">
           <span className="try__label">Try asking</span>
           {suggestions.map((s) => (
-            <button key={s.text} className="try__chip" onClick={() => onSuggest(s.text)}>
+            <button key={s.text} className="try__row" onClick={() => onSuggest(s.text)}>
               <Icon name={s.icon} />
               <span>{s.text}</span>
             </button>

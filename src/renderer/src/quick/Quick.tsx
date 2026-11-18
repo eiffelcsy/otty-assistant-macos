@@ -1,9 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { AnswerLanguage, AppInfo, Capture, HomeLanguage, PanelOpenPayload } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { LanguagePill } from '../components/LanguagePill'
+import { MessageBox } from '../components/MessageBox'
+import { useDraft } from '../lib/useDraft'
 import { actionsForTray, type ActionItem } from '../components/QuickActions'
 import { prettyKey } from '../lib/keys'
 import { againOffer } from '../lib/again'
@@ -38,6 +40,8 @@ export function Quick() {
   const [pick, setPick] = useState<AnswerLanguage | undefined>()
   const [learning, setLearning] = useState(false)
   const { messages, busy, waitingFirstToken, clear, learn, asking } = useChat()
+  // The follow-up's words go to main as they're typed, so ↵ "continue in chat" finds them in the panel's box (D-62).
+  const keep = useDraft()
   const cardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const answerRef = useRef<HTMLDivElement>(null)
@@ -111,14 +115,19 @@ export function Quick() {
   /** A follow-up in the same chat. An empty box still means "continue in chat". */
   const follow = () => {
     const text = followUp.trim()
-    if (!text) return expand()
+    if (!text) return void expand()
     if (busy) return
     setFollowUp('')
+    keep.drop()
     window.otty.sendMessage(text, [])
   }
 
   const close = () => window.otty.closeQuick()
-  const expand = () => window.otty.expandQuick()
+  const expand = useCallback(() => {
+    // The follow-up's words go with the chat, so the panel's box has them.
+    if (followUp.trim()) keep.flush(followUp)
+    return window.otty.expandQuick()
+  }, [followUp, keep])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -134,7 +143,7 @@ export function Quick() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [asked])
+  }, [asked, expand])
 
   // Grow the window when an explain card pops open, so it has somewhere to go.
   useEffect(() => {
@@ -216,10 +225,14 @@ export function Quick() {
                 {asked ? (
                   <div className="quick__question">{question}</div>
                 ) : (
-                  <textarea
-                    ref={inputRef}
-                    className="quick__input"
-                    rows={1}
+                  <MessageBox
+                    bare
+                    noSend
+                    inputRef={inputRef}
+                    value={input}
+                    onChange={setInput}
+                    onSend={() => ask()}
+                    canSend={Boolean(input.trim() || fallback)}
                     placeholder={
                       fallback?.action === 'read-page'
                         ? 'Ask about this page, or press ↵ to summarize it'
@@ -231,14 +244,6 @@ export function Quick() {
                               ? 'Ask about this, or press ↵ to explain it'
                               : 'Ask Otty anything…'
                     }
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                        e.preventDefault()
-                        ask()
-                      }
-                    }}
                   />
                 )}
               </div>
@@ -273,19 +278,18 @@ export function Quick() {
             )}
 
             {asked && answers.length > 0 && (
-              <textarea
-                className="quick__follow"
-                rows={1}
-                placeholder={asking ? 'Or ask something else' : 'Ask a follow-up…'}
-                aria-label="Ask a follow-up"
+              <MessageBox
                 value={followUp}
-                onChange={(e) => setFollowUp(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                    e.preventDefault()
-                    follow()
-                  }
+                onChange={(text) => {
+                  setFollowUp(text)
+                  keep.save(text)
                 }}
+                onSend={follow}
+                canSend={Boolean(followUp.trim())}
+                busy={busy}
+                onStop={() => void window.otty.stop()}
+                placeholder={asking ? 'Or ask something else' : 'Ask a follow-up…'}
+                label="Ask a follow-up"
               />
             )}
 

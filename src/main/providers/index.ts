@@ -17,7 +17,7 @@ function config() {
   const s = getStored()
   const profile = profileFor(s.baseUrl, s.apiFormat)
   const key = getApiKey() ?? ''
-  if (profile.needsKey && !key) throw new FriendlyError(`Otty needs ${profile.keyLabel} first — open Settings (the gear button) to add one.`)
+  if (profile.needsKey && !key) throw new FriendlyError(`Otty needs ${profile.keyLabel} first — open Settings (the gear button) to add one.`, 'key')
   // The saved key belongs to a service online, so it's never handed to something running on this Mac.
   return { baseUrl: s.baseUrl, model: s.model, thinking: s.thinking, key: profile.id === 'local' ? '' : key, profile, measure: isDev() }
 }

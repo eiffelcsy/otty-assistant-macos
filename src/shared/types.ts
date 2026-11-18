@@ -330,6 +330,10 @@ export type ChatMessage =
       text: string
       tools: ToolChipInfo[]
       error?: string
+      /** What kind of failure, so its card offers the one button that helps (D-62). */
+      errorKind?: ErrorKind
+      /** The user pressed Stop before it finished. */
+      stopped?: boolean
       language?: AnswerLanguage
       /** When the answer started (ms since epoch). Absent in chats saved before 0.4. */
       at?: number
@@ -348,6 +352,9 @@ export type ChatMessage =
       /** What each confirm card was answered with, in order, so the decision stays in the chat (D-60). */
       receipts?: Receipt[]
     }
+
+/** Why an answer failed, as far as its card's button is concerned: try again, fix the key, or start a new chat. */
+export type ErrorKind = 'network' | 'key' | 'too-long' | 'other'
 
 /** Why a card looks different, decided in main from the tool's arguments, never by the model (D-60). */
 export type Unusual = 'alphabet' | 'http' | 'private' | 'cap'
@@ -485,6 +492,8 @@ export interface ChatSummary {
   title: string
   app?: string
   updatedAt: number
+  /** Words left in its message box, kept in main's memory only (D-62). */
+  draft?: string
 }
 
 /** A chat found by a search. Backends return plain text; the renderer marks `ranges` itself. */
@@ -503,7 +512,9 @@ export interface ChatSearchHit {
 export type ChatEvent =
   | { type: 'reset' }
   /** A saved chat was reopened: replace everything shown with these messages. */
-  | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string; learn?: false; streaming?: string }
+  | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string; learn?: false; streaming?: string; draft?: string }
+  /** The words waiting in the message box for the chat on show, typed in another window (D-62). */
+  | { type: 'draft'; text: string }
   | ({ type: 'user' } & Omit<Extract<ChatMessage, { role: 'user' }>, 'role'>)
   | { type: 'start'; id: string; language?: AnswerLanguage }
   | { type: 'delta'; id: string; text: string }
@@ -513,8 +524,8 @@ export type ChatEvent =
   | { type: 'confirm'; id: string; confirmId: string; card: ConfirmCard }
   /** A card was answered, or its Undo pressed: the receipt at `at` in the answer's list. */
   | { type: 'receipt'; id: string; at: number; receipt: Receipt }
-  | { type: 'done'; id: string }
-  | { type: 'error'; id: string; message: string }
+  | { type: 'done'; id: string; stopped?: true }
+  | { type: 'error'; id: string; message: string; kind?: ErrorKind }
   /** Otty saved, changed or forgot a memory, or Undo was pressed on one (`note.undone`). */
   | { type: 'memory'; id: string; note: MemoryNote }
   /** Which memories matched this question. Sent once, as the answer starts. */
@@ -584,6 +595,8 @@ export interface OttyApi {
   deleteChat(id: string): Promise<void>
   clearChats(): Promise<void>
   respondConfirm(confirmId: string, allow: boolean): Promise<void>
+  /** The message box's words for the chat on show, kept in main so another window or chat switch doesn't lose them. */
+  setDraft(text: string): void
   /** Undo on a receipt: takes back the reminder or look it records. False when it couldn't. */
   undoReceipt(answerId: string, at: number): Promise<boolean>
   /** Presses a step's button. `sure` is the second click on a risky step. */
