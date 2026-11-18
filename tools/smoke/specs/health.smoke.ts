@@ -28,7 +28,7 @@ test('without Accessibility the banner offers Allow, and goes once it’s on', {
   await refocusPanel(otty, panel)
   await expect(banner(panel)).toContainText('can’t read highlighted text until Otty is allowed under Accessibility')
 
-  await banner(panel).getByRole('button', { name: 'Allow' }).click()
+  await banner(panel).getByRole('button', { name: 'Allow', exact: true }).click()
   await expect
     .poll(async () => (await otty.snapshot()).calls.filter((c) => c.kind === 'open-external').map((c) => c.detail[0]))
     .toContain('x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility')
@@ -43,9 +43,9 @@ test('without Screen Recording the banner offers Allow and Reopen Otty', { tag: 
   const panel = await otty.openPanel()
   await refocusPanel(otty, panel)
   await expect(banner(panel)).toContainText('Snips can only see your wallpaper')
-  await expect(banner(panel).getByRole('button', { name: 'Allow' })).toBeVisible()
+  await expect(banner(panel).getByRole('button', { name: 'Allow', exact: true })).toBeVisible()
   // Not clicked: it really relaunches the app (✋ by hand).
-  await expect(banner(panel).getByRole('button', { name: 'Reopen Otty' })).toBeVisible()
+  await expect(banner(panel).getByRole('button', { name: 'Reopen Otty', exact: true })).toBeVisible()
 })
 
 test.describe('a shortcut that can’t be registered', () => {

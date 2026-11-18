@@ -67,17 +67,17 @@ function Row({ memory: m, onChange, onOpenChat }: { memory: Memory; onChange: (l
         <Source memory={m} onOpenChat={onOpenChat} />
       </div>
       <div className="memory__actions">
-        <button className="icon-btn" title="Edit" onClick={() => setEditing(true)}>
+        <button className="icon-btn icon-btn--sm" title="Edit" onClick={() => setEditing(true)}>
           <Icon name="pencil" />
         </button>
         <button
-          className="icon-btn"
+          className="icon-btn icon-btn--sm"
           title={paused ? 'Use this again' : 'Pause: keep it, but don’t use it'}
           onClick={async () => onChange(await window.otty.updateMemory(m.id, { status: paused ? 'active' : 'paused' }))}
         >
           <Icon name={paused ? 'play' : 'pause'} />
         </button>
-        <button className="icon-btn" title="Delete" onClick={async () => onChange(await window.otty.removeMemory(m.id))}>
+        <button className="icon-btn icon-btn--sm" title="Delete" onClick={async () => onChange(await window.otty.removeMemory(m.id))}>
           <Icon name="trash" />
         </button>
       </div>

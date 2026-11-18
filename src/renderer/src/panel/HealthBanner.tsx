@@ -37,10 +37,11 @@ function useHealth(): { perms: Permissions | null; cap: CapStatus | null } {
   return { perms, cap }
 }
 
-/** One quiet line at the top of the chat when something the user will try won't work yet, with the fix one tap away. */
+/** One quiet 40px line at the top of the chat when something the user will try won't work yet, with the fix one tap away. A click on the words unfolds them. */
 export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSettings; onOpenSettings: () => void }) {
   const { perms, cap } = useHealth()
   const [dismissed, setDismissed] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
   const problem = healthProblem(perms, settings, cap)
   if (!problem) return null
   const id = problem.kind === 'hotkey' ? `hotkey:${problem.hotkey}` : problem.kind
@@ -56,9 +57,11 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
           : `Another app uses ${prettyKey(problem.hotkey)}, so it won’t work for ${problem.what}.`
 
   return (
-    <div className="health" role="status">
+    <div className={`health${open ? ' health--open' : ''}`} role="status">
       <Icon name="triangle-warning" />
-      <span className="health__text">{text}</span>
+      <button className="health__text" title={open ? undefined : text} aria-expanded={open} onClick={() => setOpen(!open)}>
+        {text}
+      </button>
       <span className="health__actions">
         {problem.kind === 'hotkey' || problem.kind === 'cap' ? (
           <button className="btn btn--primary btn--small" onClick={onOpenSettings}>
@@ -74,7 +77,7 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
             Reopen Otty
           </button>
         )}
-        <button className="health__close" title="Not now" onClick={() => setDismissed(id)}>
+        <button className="icon-btn icon-btn--sm" title="Not now" onClick={() => setDismissed(id)}>
           <Icon name="cross-small" />
         </button>
       </span>

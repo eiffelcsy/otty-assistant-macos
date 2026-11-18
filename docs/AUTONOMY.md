@@ -116,7 +116,7 @@ Long work returns a handle, and the result arrives later as an event. Waiting is
 | Quick view | A short answer |
 | Inbox note | A headline and a few lines |
 | Panel | As long as it needs |
-| Full app (planned) | Everything at once, and the controls |
+| Otty window, roomy (planned) | Everything at once, and the controls |
 
 ### 9. State outlives the process
 
@@ -179,7 +179,7 @@ Chat turn        Jobs         own history, locked tools, budget, saved step by s
    ├───────────────┘
 Attention    quiet mode, daily allowance, confidence
    │
-Surfaces     otter's mood · speech bubble · quick view · inbox · panel · full app
+Surfaces     otter's mood · speech bubble · quick view · inbox · Otty window (compact, roomy)
 ```
 
 A question from the user skips straight to a chat turn, so NFR-1 and NFR-2 are unaffected.
@@ -279,7 +279,7 @@ Each action climbs separately, and only as its record earns it. **Prepare is the
 - **Understanding you, not only remembering.** It can answer "what did I decide about this last spring?" across years of chats, and spot what you can't see, like overcommitting the week before a deadline. That goes beyond D-10's facts, and needs `recall` and long-run memory.
 - **Honest pushback.** "You said this was your priority, but it's slipped three weeks." Few assistants risk disagreeing with you, so this may be Otty's most distinctive trait. It has to come from warmth, stay rare, and be easy to turn down. It's the attention budget's hardest case, because being wrong here hurts more than being quiet.
 - **Tools it builds for you.** Otty notices a repeat and makes a small automation, so over time you have skills nobody else has, learned from how you work. Generated code is the riskiest thing it can run, so these start as sandboxed, read-only recipes you can read in plain words.
-- **A full app view, in the long term.** Beside the quick view and panel, a normal window that's an expanded panel and a control hub. It's a place regular users want to spend time, where connections, limits, goals and the action ledger have room to live. It complements the floating otter and overlays in function and look, and the otter stays the most important thing in it. See [Three sizes of Otty](BRAINSTORM.md#three-sizes-of-otty-quick-view-panel-full-app).
+- **A roomy Otty window, in the long term.** The panel and the full app are one window: compact beside your work, or expanded into a normal window that's a control hub. It's a place regular users want to spend time, where connections, limits, goals and the action ledger have room to live. It complements the floating otter and overlays in function and look, and the otter stays the most important thing in it. See [Quick view and the Otty window](BRAINSTORM.md#quick-view-and-the-otty-window).
 - **Features you make yourself.** Your own tiles first (a saved question, D-56), then recipes: a trigger and a fixed set of tools, checked by code and agreed on a card. The model drafts a feature; code decides what it may touch, and a feature is data, never code that runs in main. See [Build your own feature](BRAINSTORM.md#build-your-own-feature-otty-made-to-measure).
 - **Otty's own calendar, and Otties that meet.** A calendar Otty owns is the safest place for "do, with undo", because every change is its own and reversible. Shared later, then multi-person, then your Otty and a friend's find a time together, exchanging free and busy times only, through typed messages. Another Otty is a stranger's words: nothing it sends can widen what yours may do. See [Otty's own calendar](BRAINSTORM.md#ottys-own-calendar-shared-and-multi-person).
 - **A phone app, in the long term.** Otty goes with you, so one relationship spans your devices. It reopens the cloud decision below, because something has to run and sync while the Mac sleeps, and it can't weaken the privacy promises to do so.

@@ -22,6 +22,8 @@ export function FindBar({
   const [current, setCurrent] = useState(0)
   /** Set when the current match should be scrolled to: a new query or a step, not a streamed token. */
   const jump = useRef<'first' | 'current' | null>(null)
+  /** Cancels the last jump's wait for the chat to stop gliding. */
+  const unglide = useRef<(() => void) | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -56,6 +58,9 @@ export function FindBar({
     const box = chat.current
     if (jump.current === 'current' && r && box) {
       jump.current = null
+      // A newer jump wins: the last match's "bring it back" must not pull the view away from this one.
+      unglide.current?.()
+      unglide.current = null
       const at = r.getBoundingClientRect()
       const view = box.getBoundingClientRect()
       const centre = () => box.scrollBy({ top: r.getBoundingClientRect().top - box.getBoundingClientRect().top - view.height / 2, behavior: 'smooth' })
@@ -69,8 +74,10 @@ export function FindBar({
           const v = box.getBoundingClientRect()
           if (a.top < v.top || a.bottom > v.bottom) centre()
         }
+        const stop = () => box.removeEventListener('scrollend', back)
         box.addEventListener('scrollend', back, { once: true })
-        setTimeout(() => box.removeEventListener('scrollend', back), 1_000)
+        setTimeout(stop, 1_000)
+        unglide.current = stop
       }
     }
   }, [matches, current, chat])

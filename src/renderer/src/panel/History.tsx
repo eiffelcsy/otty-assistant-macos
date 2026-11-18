@@ -129,7 +129,7 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
                 </span>
               </button>
               <button
-                className="icon-btn history__delete"
+                className="icon-btn icon-btn--sm history__delete"
                 title="Forget this chat"
                 onClick={async () => {
                   await window.otty.deleteChat(c.id)

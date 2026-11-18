@@ -251,10 +251,13 @@ Language users: **bilingual / multilingual people who work in English** and some
 | File picker's filter leaves out TIFF, BMP and code files that Otty can read (they only show under All files) | L | S | shipped (D-29) |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
+| Micro-interactions and the "water, not springs" motion system: 186 moments across every view, tagged by when to build and idle cost, with a first twelve (`docs/DESIGN.md`) | H | M | considering; each screen needs a pixel-level spec first (DESIGN, "The polish bar") |
 | Memory suggestions inbox: suggestions the user didn't answer wait in Settings instead of being lost (`memories.status = 'pending'`) | L | S | idea, after D-10 |
 | Unseen-answer dot on the otter | M | S | shipped |
 | Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | shipped (D-8, the quick view part); the full-screen setting is still an idea |
 | UIcons instead of emoji on tool chips | L | S | shipped |
+| A running tool chip's icon was meant to pulse, but `animation: glow` names keyframes that were never written, so it sits still. Either a stepped two-cycle pulse that holds (DESIGN.md, Motion) or drop the rule | L | S | idea, found in D-59 |
+| Recent chats as one ledger of rows: rows on the panel background, an inset hairline between them, and the open chat marked with `--surface` and `--elev-1` (DESIGN.md, Row) once the list sits beside the chat in the roomy window | M | S | idea, after D-59 |
 
 ## Speed: spending a fast, cheap model
 
@@ -435,7 +438,7 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | Tools it builds for you: Otty spots a repeat and makes a small automation, starting as sandboxed, read-only recipes you can read in plain words | H | L | idea, the proactive end of [Build your own feature](#build-your-own-feature-otty-made-to-measure) |
 | A character that grows: Otty's manner and in-jokes change with your history together, so it's clearly yours after a year | H | L | idea, extends Otty's den |
 | Do, with undo: routine changes just happen, with "tap to reverse" | H | L | idea, needs the action ledger |
-| Full app view: an expanded panel and control hub, and the home for goals, connections, the ledger and more. See [Three sizes of Otty](#three-sizes-of-otty-quick-view-panel-full-app) | H | L | considering, long-term |
+| The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | considering, long-term |
 | Phone app: Otty goes with you, one relationship across devices | H | L | long-term; reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
 | **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | idea; step 1 needs no account, sharing needs the hosted service and sign-in |
@@ -597,29 +600,41 @@ Longer sketches for big ideas, so the thinking isn't lost. Not plans: a sketch m
 
 **Depends on:** the D-1 OCR helper (text boxes), a Swift AX helper (also wanted for the selection observer), vision-capable models with decent grounding, and signed builds (so permissions survive updates).
 
-### Three sizes of Otty: quick view, panel, full app
+### Quick view and the Otty window
 
-Otty has two sizes today, and a third is planned for the long term. Each one suits a different kind of moment, and all three show the same conversation from main.
+Otty has two views. The **quick view** is for a few seconds at the cursor. The **Otty window** is today's panel, grown into the planned full app: one window whose layout follows its width, with two states. Both views show the same conversation from main. (Decided 2026-11-18, replacing "three sizes": a separate full-app window would have meant two places for the same screens, a hand-off between them, and a "which window am I in?" question.)
 
 | View | For | Holds |
 | --- | --- | --- |
 | **Quick view** | A few seconds, at the cursor | Quick snips and highlights, one answer, a follow-up |
-| **Panel** | A conversation beside your work | Chat, Recent chats, Activity, Settings, as today |
-| **Full app** | Sitting down with Otty | An expanded panel, and the control hub for everything Otty does |
+| **Otty window, compact** | A conversation beside your work | Home, Chat, Chats, Logbook, Notebook, Settings, one at a time |
+| **Otty window, roomy** | Sitting down with Otty | The same screens side by side, and the control hub for everything Otty does |
 
-**The full app** is a normal window, and a place regular users want to spend time, not a back room for settings. It's where things go that need room or don't belong beside your work:
-- Chats, Activity and what Otty knows, side by side rather than one view at a time.
+**One window, two states.** Layout comes from width alone: narrow shows one screen at a time, medium puts the chat list beside the chat, wide adds a sidebar and a details pane. The state decides only how the window behaves:
+
+| | Compact | Roomy |
+| --- | --- | --- |
+| Opens from | The bubble, and ↵ "continue in chat" | Opening Otty from Applications, the Dock or ⌘-Tab |
+| Window | Floats, near the bubble, small | A normal window, centred, large |
+| Dock icon and menu bar | No | Yes, while it's open |
+
+Each state remembers its own size and position, and an **Expand / Shrink** button switches between them with one resize, keeping the chat, scroll position and draft. Dragging the compact window wider changes its layout but it keeps floating, so a window made wide once never covers your work the next time you click the bubble. Few people resize windows to find features, so the button, not the width, is the way in.
+
+**The roomy state** is a place regular users want to spend time, not a back room for settings. It's where things go that need room:
+- Chats, the Logbook and the Notebook, side by side rather than one view at a time.
+- **Home** as the landing screen: the otter large at the centre, one sentence of state, then only what has something in it: Needs you (the inbox), Today (a timeline of the day), goals, one "Otty noticed" offer, standing chores and a one-line trust summary. Each block is a surface the autonomy stages already need, so Home grows stage by stage. Home is where Otty looks after you; the den is where you look after Otty, and tapping the big otter opens it.
 - Control: connections, limits, the Look after me permission, budgets and the stop control.
 - The trust work, which needs a place to live: the action ledger, what left the Mac, and rewind.
 - Future homes: goals and their progress, tools Otty built for you, chores and their inbox, and Otty's den.
 
 **Rules so it stays Otty:**
-- Otty the otter is still the most important thing, in all three views. The full app is the otter's home, not an admin console, so the pet is at the centre of it.
-- It's for everyone. Regular users should want to open it, so it has to be inviting and in plain words, with a reason to come back.
+- Otty the otter is still the most important thing, in both views. The roomy window is the otter's home, not an admin console, so the pet is at the centre of it.
+- It's for everyone. Regular users should want to expand it, so it has to be inviting and in plain words, with a reason to come back.
 - It complements the floating Otty and the overlays, in function and in look. They're one product: the same painted art, tokens and voice, and what starts in one carries on in the others.
-- Same conversation, same `ChatEvent`s: the ↵ "continue in chat" swap should simply go one size further.
+- Same conversation, same `ChatEvent`s: the ↵ "continue in chat" swap opens the Otty window, and Expand / Shrink is the same window, so nothing is handed over.
+- Safety never needs room: Pause, Undo, confirm cards and "what left my Mac" work in the narrowest compact window.
 
-**What it changes:** Otty hides from the Dock (`LSUIElement`, `app.dock.hide()`), and a full window needs a Dock icon and a menu bar while it's open, then has to go back to hiding. Panel views that assume one narrow column will need to work wider too, so new ones should be built with that in mind.
+**What it changes:** Otty hides from the Dock (`LSUIElement`, `app.dock.hide()`), so the roomy state needs a Dock icon and a menu bar while it's open, then has to go back to hiding when it shrinks or closes. Screens must work at any width (container queries, not one narrow column). The steps to get the panel ready are in `docs/UX_REVIEW.md`, "Getting the panel ready for the roomy window". The first visual draft, the names (Logbook, Notebook), the water motion system and the micro-interaction catalogue are in `docs/DESIGN.md`.
 
 ### Desktops (Spaces) and full-screen apps
 
@@ -774,7 +789,7 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 **Why not just use Google's?** Connections stay the way to see the user's existing calendars (D-54). Otty's own calendar is for what Otty plans: focus blocks, study sessions, "look at this again Friday", and later times agreed with other people. It can overlay the connected calendars, and export as ICS so nothing is locked in.
 
 **Steps, each useful alone:**
-1. **Local calendar** in `otty.db`: events Otty adds ("block two hours for the essay before Thursday") with the ledger and undo, shown in the panel and later the full app. No account, nothing leaves the Mac. M.
+1. **Local calendar** in `otty.db`: events Otty adds ("block two hours for the essay before Thursday") with the ledger and undo, shown in the Otty window. No account, nothing leaves the Mac. M.
 2. **Overlay and export**: show connected calendars beside it (D-54), import and export `.ics`. S–M.
 3. **Share a calendar**: a read-only link for a study group or family. Needs the hosted service and sign-in (decided in LAUNCH_READINESS), with sharing off by default. M.
 4. **Multi-person**: a shared calendar several people edit, each change attributed and undoable. M–L.
@@ -785,4 +800,4 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 - Sharing shows exactly who sees what, and stops in one tap.
 - What leaves for sharing is listed in What left your Mac, like everything else.
 
-**Open questions:** end-to-end encryption for shared calendars from the start, or only once there's demand? And should step 1 wait for the full app view, since a calendar wants room?
+**Open questions:** end-to-end encryption for shared calendars from the start, or only once there's demand? And should step 1 wait for the roomy Otty window, since a calendar wants room?
