@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { friendlyConnection, friendlyStatus } from './errors'
 import { searchesOnServer, type Profile } from './profiles'
 import type { ChatRequest, ContentPart, Message, Provider, ProviderEvent, StopReason, ToolCall, Usage } from './types'
+import { send } from '../net'
 
 type Params = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming
 type AnthropicMessage = Anthropic.Beta.Messages.BetaMessageParam
@@ -150,7 +151,7 @@ function friendly(err: unknown, profile: Profile): Error {
  */
 function client(c: AnthropicConfig): Anthropic {
   const headers = c.key && c.profile.id !== 'claude' ? { 'x-api-key': c.key } : undefined
-  return new Anthropic({ apiKey: c.key, baseURL: c.baseUrl.replace(/\/(v1\/?)?$/, ''), defaultHeaders: headers })
+  return new Anthropic({ apiKey: c.key, baseURL: c.baseUrl.replace(/\/(v1\/?)?$/, ''), defaultHeaders: headers, fetch: send })
 }
 
 /** Anthropic counts cached input apart from the rest, so `input` adds them back together. */

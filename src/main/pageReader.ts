@@ -1,6 +1,7 @@
 import { lookup } from 'dns/promises'
 import { isIP } from 'net'
 import { checkedUrl, formatPage, WebError } from './web'
+import { LocalOnlyError, refused, send } from './net'
 
 // Reads a web page from the Mac, for services with no page reader of their own. A hostile page could try to send
 // Otty to something only this Mac can reach, such as a router, so every address is checked before it's opened.
@@ -123,9 +124,10 @@ export function htmlToText(html: string): { title: string; text: string } {
   return { title, text }
 }
 
-export async function readPageFromMac(address: string, fetchImpl: typeof fetch = fetch, resolve: Resolve = resolveHost): Promise<string> {
+export async function readPageFromMac(address: string, fetchImpl: typeof fetch = send, resolve: Resolve = resolveHost): Promise<string> {
   let url = checkedUrl(address)
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (refused(url.hostname)) throw new LocalOnlyError() // before the lookup, which would ask the network
     await assertPublic(url, resolve)
     let res: Response
     try {

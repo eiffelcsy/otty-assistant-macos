@@ -29,7 +29,8 @@ export function friendlyStatus(status: number, body: string, profile: Profile): 
   if (status === 400 && /image|vision|multimodal/i.test(body)) {
     return new NoVisionError('This model can’t look at pictures. Try a vision-capable model in Settings.')
   }
-  console.error('LLM error', status, body)
+  // The body can quote the question, so only its size is logged (D-50).
+  console.error('LLM error', status, `${body.length} chars`)
   return new FriendlyError(`Something went wrong (error ${status}). Please try again.`)
 }
 

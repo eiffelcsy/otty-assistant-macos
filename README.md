@@ -18,6 +18,7 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 - **Do it with me:** steps become a checklist whose buttons paste, click menus and press shortcuts, only when you press them
 - **Keeps going:** answers carry on while you do something else, and big questions run in the background with a report waiting for you, now or later, once or every Monday
 - **Nothing hidden:** Activity lists everything that left your Mac, and where to, and a monthly limit makes Otty ask before starting anything by itself
+- **Help when something's wrong:** Settings › Help › Copy diagnostics shows what it would share (never your chats or keys) before copying it
 - Copied tables paste as real tables in Word, Pages and spreadsheets
 - Saved chats with search (⇧⌘F) and find in a chat (⌘F)
 - Help in English, or in 繁體中文（香港） when you want it
@@ -78,6 +79,7 @@ src/
   main/providers/      model services: one adapter per API format, and what each service needs
   main/store/          saved chats: ChatStore on SQLite, schema and search
   main/files/          attachments, read in a utility process
+  main/net.ts          the one door out: every request, and "nothing leaves" with a local model
   preload/             window.otty bridge (contextIsolation, sandboxed)
   renderer/src/        React UI: bubble/, quick/ (ask at the cursor), panel/ (chat, onboarding, settings), pickup/
 tools/                 ui-preview (renderer in a browser), otty-art (painted frames), otty-ocr (text reader)

@@ -16,8 +16,12 @@ mac:
   target:
     - target: dmg
       arch: [arm64, x64]
-  # Unsigned MVP build. Set a Developer ID identity + notarize in phase 2.
-  identity: null
+  # Ad-hoc signed until there's a Developer ID (LAUNCH_READINESS 5.2). Not null: flipping the fuses (D-49) edits the
+  # binary, and an arm64 Mac kills an app whose signature no longer matches, so it must be signed after them.
+  identity: '-'
+  # Ad-hoc code has no Team ID, so the hardened runtime's library validation refuses Electron's own framework. Turn it
+  # back on with the Developer ID (LAUNCH_READINESS 5.3); never add disable-library-validation instead.
+  hardenedRuntime: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -25,3 +29,13 @@ mac:
     NSAppleEventsUsageDescription: Otty uses this to copy the text you highlight, to see which app or web page you're asking about, and to add reminders when you ask.
 dmg:
   title: Otty
+# D-49: Otty holds Accessibility, Screen Recording and Automation, so its binary must not run as anything else.
+# Documents are read in a utilityProcess and OCR is its own binary, so nothing needs the switches turned off here.
+# rules/build.test.ts keeps these as they are.
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  enableCookieEncryption: true

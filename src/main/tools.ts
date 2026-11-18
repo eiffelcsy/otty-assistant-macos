@@ -12,6 +12,7 @@ import { record } from './sent'
 import { maskSecrets } from '../shared/secrets'
 import { needsCard, needsOnce, SAFETY, type RunTaint, type Safety } from './toolSafety'
 import { begin, type UndoKind } from './ledger'
+import { send } from './net'
 
 const run = promisify(execFile)
 
@@ -483,7 +484,7 @@ async function runOne(name: string, args: Args, ctx: ToolContext): Promise<ToolO
 }
 
 async function getJson(url: string): Promise<any> {
-  const res = await fetch(url, {
+  const res = await send(url, {
     headers: { 'User-Agent': 'Otty/0.1 (desktop assistant)' },
     signal: AbortSignal.timeout(8000)
   })

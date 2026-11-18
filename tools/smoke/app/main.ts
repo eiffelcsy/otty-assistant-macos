@@ -23,6 +23,7 @@ if (!home || !world) {
 
 app.setName('Otty Smoke')
 app.setPath('userData', home)
+app.setPath('logs', `${home}/logs`) // D-50's log stays in the run's home
 app.commandLine.appendSwitch('use-mock-keychain') // safeStorage never touches the login keychain
 
 /** Processes that may really run: local converters and the OCR helper this repo builds. */

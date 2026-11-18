@@ -98,6 +98,41 @@ function UsageSection({ cap, onCap }: { cap: MonthlyCap | null; onCap: (c: Month
   )
 }
 
+/** D-50: what to send Otty's team when something goes wrong. It's all shown before it's copied. */
+function HelpSection() {
+  const [report, setReport] = useState<string | null>(null)
+  const [copied, setCopied] = useState<boolean | 'failed'>(false)
+  return (
+    <section>
+      <h3>
+        <Icon name="life-ring" /> Help
+      </h3>
+      {report === null ? (
+        <button type="button" className="btn btn--soft btn--small" onClick={() => void window.otty.getDiagnostics().then(setReport)}>
+          <Icon name="clipboard" /> Copy diagnostics
+        </button>
+      ) : (
+        <>
+          <pre className="diagnostics" aria-label="Diagnostics">
+            {report}
+          </pre>
+          <button
+            type="button"
+            className="btn btn--soft btn--small"
+            onClick={() => void window.otty.copyText(report).then(() => setCopied(true), () => setCopied('failed'))}
+          >
+            <Icon name="copy" /> {copied === 'failed' ? 'Couldn’t copy, try again' : copied ? 'Copied' : 'Copy this'}
+          </button>
+        </>
+      )}
+      <p className="hint">
+        If something isn’t working, this tells Otty’s team about your Mac and Otty, never your chats or keys. You see all
+        of it before it’s copied; paste it into a message to them.
+      </p>
+    </section>
+  )
+}
+
 export function Settings({
   settings,
   onSaved,
@@ -123,7 +158,7 @@ export function Settings({
 
   const save = async () => {
     setSaving(true)
-    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, readsPages: _r, takenHotkeys: _t, canOpenAtLogin: _c, ...rest } = form
+    const { hasApiKey: _h, needsKey: _n, savedKeys: _s, readsPages: _r, takenHotkeys: _t, canOpenAtLogin: _c, keychain: _k, ...rest } = form
     const s = await window.otty.saveSettings({ ...rest, ...(key.trim() ? { apiKey: key.trim() } : {}) })
     setKey('')
     onSaved(s)
@@ -138,7 +173,7 @@ export function Settings({
         <h3>
           <Icon name="brain" /> AI connection
         </h3>
-        <ConnectionFields value={form} onChange={(c) => setForm((f) => ({ ...f, ...c }))} apiKey={key} onKey={setKey} savedKeys={form.savedKeys} />
+        <ConnectionFields value={form} onChange={(c) => setForm((f) => ({ ...f, ...c }))} apiKey={key} onKey={setKey} savedKeys={form.savedKeys} keychain={settings.keychain} />
         <label className="toggle">
           <input type="checkbox" checked={form.thinking} onChange={(e) => set('thinking', e.target.checked)} />
           <span>
@@ -255,6 +290,8 @@ export function Settings({
           {serviceById(serviceAt(form.baseUrl)).webPrivacy}
         </p>
       </section>
+
+      <HelpSection />
 
       <button className="btn btn--primary btn--wide" disabled={saving || !connectionReady(form)} onClick={save}>
         {saving ? 'Saving…' : 'Save'}

@@ -241,6 +241,8 @@ It only ever **suggests**. A suggestion can offer a button, but pressing it is s
 
 This doesn't reopen "Watching". Context comes from connections and local signals the user agreed to, never from sending the screen to a model.
 
+**How connections plug in** (planned as D-54; the design is in BRAINSTORM's [Connections](BRAINSTORM.md#connections-apis-and-mcp-behind-one-door) note). Native adapters for the few that matter most (Google Calendar, Canvas, Notion), and an MCP client for the long tail. Either way a connection's tools get rows in `toolSafety.ts`, its tokens stay in the Keychain, its requests go through the one door out (`net.ts`), and its reads appear in What left your Mac. An MCP server's tool descriptions are outside text too, and a tool that changes after it was approved is asked about again.
+
 **First foundations, cheapest first:**
 1. ✅ Move the tool loop out of `ChatSession.run` into a shared function that takes a history, the allowed tools, a `ToolContext` and a signal (`loop.ts`).
 2. ✅ An allowed list enforced in `runTool`, covering Claude's web search too. Tool safety labels are still to come, with jobs.
@@ -278,6 +280,8 @@ Each action climbs separately, and only as its record earns it. **Prepare is the
 - **Honest pushback.** "You said this was your priority, but it's slipped three weeks." Few assistants risk disagreeing with you, so this may be Otty's most distinctive trait. It has to come from warmth, stay rare, and be easy to turn down. It's the attention budget's hardest case, because being wrong here hurts more than being quiet.
 - **Tools it builds for you.** Otty notices a repeat and makes a small automation, so over time you have skills nobody else has, learned from how you work. Generated code is the riskiest thing it can run, so these start as sandboxed, read-only recipes you can read in plain words.
 - **A full app view, in the long term.** Beside the quick view and panel, a normal window that's an expanded panel and a control hub. It's a place regular users want to spend time, where connections, limits, goals and the action ledger have room to live. It complements the floating otter and overlays in function and look, and the otter stays the most important thing in it. See [Three sizes of Otty](BRAINSTORM.md#three-sizes-of-otty-quick-view-panel-full-app).
+- **Features you make yourself.** Your own tiles first (a saved question, D-56), then recipes: a trigger and a fixed set of tools, checked by code and agreed on a card. The model drafts a feature; code decides what it may touch, and a feature is data, never code that runs in main. See [Build your own feature](BRAINSTORM.md#build-your-own-feature-otty-made-to-measure).
+- **Otty's own calendar, and Otties that meet.** A calendar Otty owns is the safest place for "do, with undo", because every change is its own and reversible. Shared later, then multi-person, then your Otty and a friend's find a time together, exchanging free and busy times only, through typed messages. Another Otty is a stranger's words: nothing it sends can widen what yours may do. See [Otty's own calendar](BRAINSTORM.md#ottys-own-calendar-shared-and-multi-person).
 - **A phone app, in the long term.** Otty goes with you, so one relationship spans your devices. It reopens the cloud decision below, because something has to run and sync while the Mac sleeps, and it can't weaken the privacy promises to do so.
 
 ## The trust ceiling
@@ -343,3 +347,5 @@ Not every feature needs all of this now, but none should make the direction hard
 - **How small should the attention budget start?** It should probably begin at one unprompted thing a day, and grow only if people engage.
 - **Where do jobs run?** Most of a job is waiting on the network, so main is fine to start, but a utility process (like `fileWorker.js`) gives stronger isolation. Measure before deciding.
 - **What does "private" cover for cloud models?** Already open in Otty's chores, and it decides how far Stage 4 can go.
+- **Which connections ship first, and who holds their tokens?** Google Calendar first (D-54). Tokens stay on the Mac; a hosted service holding them would be a new promise to users.
+- **How do Otties talk to each other?** A typed protocol with fixed fields (propose, counter, accept, free and busy times), through the hosted service, with both people confirming. Long-term.

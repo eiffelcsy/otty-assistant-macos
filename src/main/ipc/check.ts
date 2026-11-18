@@ -51,6 +51,7 @@ export const CHANNELS = {
   'permissions:open': { views: CHAT, args: [oneOf('accessibility', 'screen')] },
   'app:relaunch': { views: PANEL, args: [] },
   'usage:get': { views: PANEL, args: [] },
+  'diagnostics:get': { views: PANEL, args: [] },
   'chat:send': { views: CHAT, args: [text(200_000), list(record, 50), optional(record)] },
   'chat:stop': { views: CHAT, args: [] },
   'chat:reset': { views: CHAT, args: [] },

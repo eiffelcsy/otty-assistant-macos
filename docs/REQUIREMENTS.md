@@ -112,7 +112,9 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 ### FR-8 Onboarding & settings (P0)
 - FR-8.1 First run shows a 3-step welcome: (1) meet Otty and pick "My other language", (2) choose a service and paste its key, with a link to get one and a **Test** button, (3) grant permissions, with live status ticks.
 - FR-8.2 Settings: a service picker with its key and model (address and API format under Advanced), "Think deeper (slower)" toggle, show/hide the floating otter, shortcuts, "My other language", and Privacy (app awareness, saved chats, how long to keep them).
-- FR-8.3 Each service has its own key, stored encrypted and never sent to the renderer or to another service. The renderer only sees which services have a key.
+- FR-8.3 Each service has its own key, stored encrypted and never sent to the renderer or to another service. The renderer only sees which services have a key. When the Keychain can't be reached, a key isn't saved at all, and Otty says why (D-51).
+- FR-8.4 Settings › Help › **Copy diagnostics** shows, then copies, facts about the Mac and Otty and the log's last lines, for a message to Otty's team. Never a key, a custom address or anything from a chat (D-50).
+- FR-8.5 Run from outside Applications, the installed app offers once to move itself there (D-53).
 
 ### FR-9 App awareness (P0)
 - FR-9.1 Each hotkey, bubble click or snip also notes the frontmost app's name and window title, and for Safari / Chromium browsers (Chrome, Arc, Brave, Edge, Vivaldi, Opera) the current page address with its query and fragment removed. This runs alongside the selection copy, so it adds no delay.
@@ -212,8 +214,17 @@ The model may call these tools through OpenAI-style function calling. The UI sho
 - FR-20.3 How often Otty looks and speaks is limited in code, and local checks come first, so it stays quiet when the user is away, on a call or in Focus mode.
 - FR-20.4 Tasks and calendars come from read-only connections to other apps and services. Their content is treated as data, never as instructions.
 
+### FR-22 Connections (P2, *Planned*, D-54)
+- FR-22.1 The user can connect other apps and services one at a time, starting with Google Calendar, then Canvas and Notion, each opted into separately, read-only first, and disconnected in one tap (which revokes the sign-in).
+- FR-22.2 What a connection returns is treated as data, never instructions. A run that has read it can't search silently or use tools that send or change anything without a card.
+- FR-22.3 What Otty read from a connection, and where it sent it, shows in What left your Mac. Sign-in tokens stay in the Keychain and never reach the panel.
+
+### FR-23 Your own tiles (P2, *Planned*, D-56)
+- FR-23.1 The user can add up to 12 tiles of their own (a name, an icon, a question, and which captures it's for), or ask Otty to draft one, which is saved only from its card.
+- FR-23.2 A tile does exactly what typing its question would: no new tools and no new reach.
+
 ### FR-11 Later (P2)
-See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language (shipped, D-2) · inserting text back into the source app (planned, D-11) · launch at login · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
+See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice input · choosing an answer language (shipped, D-2) · inserting text back into the source app (shipped, D-11) · launch at login (shipped, D-28) · auto-update · signed and notarized builds · a custom app icon · a cursor-following mini otter · local OCR fallback for non-vision models · full computer-use actions.
 
 ## 4. Non-functional requirements
 
@@ -222,11 +233,12 @@ See [BRAINSTORM.md](BRAINSTORM.md) for the living list. Originally listed: voice
 | NFR-1 | Shortcut-to-panel time is under 400 ms for text (excluding model latency) |
 | NFR-2 | First token is under 2 s on a normal connection with thinking off |
 | NFR-3 | Idle: under 0.5% of one core on average, measured with `OTTY_METRICS=1`. On an M4 on battery, with the bubble showing: about 0.25% today, against 1.6% before the otter's float was stepped and hidden windows were paused, and 0.02% with no animation at all. Memory read 150–700 MB, because macOS compresses idle apps, so no memory limit is set until there are more runs. Re-measure when what runs while idle changes |
-| NFR-4 | Security: `contextIsolation` on, `nodeIntegration` off, sandboxed renderer, a narrow typed preload API, all network calls from the main process, and a Content Security Policy on built pages so they can only reach their own files |
+| NFR-4 | Security: `contextIsolation` on, `nodeIntegration` off, sandboxed renderer, a narrow typed preload API, all network calls from the main process through one door (`net.ts`, which refuses anything off the Mac with a local model), a Content Security Policy on built pages so they can only reach their own files, and Electron fuses that stop the app running as Node or taking a debugger |
 | NFR-5 | Privacy: nothing is sent anywhere until the user asks, or has agreed to something that says so, such as a job scheduled for later (FR-19.6). Pause everything stops it at once. Screenshots are deleted from disk right after encoding and are never saved with chats; attached files are only read, never copied, and pictures from them are never saved. App context and chat saving can each be turned off. With DeepSeek, web searches and page reads send only the query or the page address, to the same provider as the model, and never the user's cookies; DeepSeek fetches the page itself. With another provider, or when DeepSeek's search fails, the query goes straight from the Mac to Wikipedia and DuckDuckGo, which see the user's IP address |
 | NFR-6 | Accessibility: keyboard usable, 4.5:1 contrast, works in light and dark mode, respects `prefers-reduced-motion` |
 | NFR-7 | Supports macOS 13+ on Apple Silicon and Intel (Electron 45's minimum) |
 | NFR-8 | Saved chats: saving a turn ≤ 1 ms for a typical chat (and never before the request is sent), opening a chat ≤ 5 ms, searching 2,000 chats ≤ 50 ms |
+| NFR-9 | Logs: warnings and errors only, in ~/Library/Logs/Otty, each line masked for keys, without the home folder's path and cut to 300 characters; at most about 2 MB on disk. Never a chat, a highlight, a file, an answer or a request body |
 
 ## 5. Permissions (macOS)
 

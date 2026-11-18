@@ -2,6 +2,7 @@
 // No Electron imports, so it can be tested on its own. `tools.ts` decides when to use it.
 
 import { serviceAt } from '../shared/services'
+import { send } from './net'
 
 /** Where and how to call DeepSeek. */
 export interface WebConfig {
@@ -77,7 +78,7 @@ interface SearchResult {
 }
 
 /** Searches the web. Returns text for the model: one block per result, with its source to cite. */
-export async function deepseekSearch(cfg: WebConfig, query: string, fetchImpl: typeof fetch = fetch): Promise<string> {
+export async function deepseekSearch(cfg: WebConfig, query: string, fetchImpl: typeof fetch = send): Promise<string> {
   const q = query.trim().slice(0, 128)
   if (!q) return 'No search query was given.'
   const json = await post(cfg, '/v1/tools/search', { query: q, count: SEARCH_COUNT, need_content: false }, fetchImpl)
@@ -130,7 +131,7 @@ export function formatPage(title: string, href: string, content: string): string
   return `${title ? `# ${title}\n` : ''}Source: ${href}\n\n${body}${note}`
 }
 
-export async function deepseekFetch(cfg: WebConfig, url: string, fetchImpl: typeof fetch = fetch): Promise<string> {
+export async function deepseekFetch(cfg: WebConfig, url: string, fetchImpl: typeof fetch = send): Promise<string> {
   const parsed = checkedUrl(url)
   const json = await post(cfg, '/v1/tools/fetch', { url: parsed.href }, fetchImpl)
   const content = String(json?.content ?? '').trim()

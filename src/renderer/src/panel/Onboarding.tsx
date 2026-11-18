@@ -77,7 +77,7 @@ export function Onboarding({ settings, onDone }: { settings: PublicSettings; onD
         <div className="onboarding__page">
           <h2>Choose Otty’s brain</h2>
           <p>Otty needs an AI service to think. Keys stay locked in your Mac’s Keychain.</p>
-          <ConnectionFields value={connection} onChange={setConnection} apiKey={key} onKey={setKey} savedKeys={saved} autoFocus />
+          <ConnectionFields value={connection} onChange={setConnection} apiKey={key} onKey={setKey} savedKeys={saved} keychain={settings.keychain} autoFocus />
           <button className="btn btn--soft btn--wide" disabled={testing || !canTest} onClick={saveAndTest}>
             {testing ? 'Checking…' : 'Save & test'}
           </button>

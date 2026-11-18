@@ -9,18 +9,20 @@ import { cleanCap } from '../shared/cap'
 import { cleanPauseEnd } from '../shared/pauseUntil'
 
 interface SavedKey {
-  /** Base64 of the safeStorage-encrypted key, or of the key itself if encryption wasn't available. */
+  /** Base64 of the safeStorage-encrypted key, or, from an Otty before D-51, of the key itself. */
   enc: string
   plain?: boolean
 }
 
-export interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'openAtLogin' | 'canOpenAtLogin'> {
+export interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'openAtLogin' | 'canOpenAtLogin' | 'keychain'> {
   /** One per service, so a key only ever goes to the service it belongs to. */
   apiKeys?: Partial<Record<ServiceId, SavedKey>>
   /** The single key from before 0.5, moved into `apiKeys` on load. */
   apiKeyEnc?: string
   apiKeyPlain?: boolean
   bubblePosition?: { x: number; y: number }
+  /** "Not now" to moving into Applications (D-53), so it's asked once. */
+  moveDeclined?: boolean
 }
 
 const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
@@ -67,7 +69,19 @@ function load(): StoredSettings {
   const homeLanguage = saved.homeLanguage !== undefined ? saved.homeLanguage : defaultHomeLanguage(app.getPreferredSystemLanguages())
   cache = { ...DEFAULTS, ...saved, homeLanguage }
   moveOldKey(cache)
+  lockPlainKeys(cache)
   return cache
+}
+
+/** A key an older Otty kept in plain text goes into the Keychain as soon as the Keychain works (D-51). */
+function lockPlainKeys(s: StoredSettings): void {
+  const plain = Object.values(s.apiKeys ?? {}).filter((k) => k.plain)
+  if (!plain.length || !safeStorage.isEncryptionAvailable()) return
+  for (const k of plain) {
+    k.enc = safeStorage.encryptString(Buffer.from(k.enc, 'base64').toString('utf8')).toString('base64')
+    delete k.plain
+  }
+  persist()
 }
 
 /** The old key belonged to whichever service the address pointed at. */
@@ -79,7 +93,8 @@ function moveOldKey(s: StoredSettings): void {
   persist()
 }
 
-const envKey = (s: StoredSettings) => (serviceAt(s.baseUrl) === 'deepseek' && process.env.DEEPSEEK_API_KEY) || null
+/** For development only: the installed app takes keys from the Keychain and nowhere else (D-51). */
+const envKey = (s: StoredSettings) => (!app.isPackaged && serviceAt(s.baseUrl) === 'deepseek' && process.env.DEEPSEEK_API_KEY) || null
 
 function persist(): void {
   mkdirSync(app.getPath('userData'), { recursive: true })
@@ -92,13 +107,14 @@ export function getStored(): StoredSettings {
 
 export function getPublic(): PublicSettings {
   const s = load()
-  const { apiKeys, apiKeyEnc: _e, apiKeyPlain: _p, bubblePosition: _b, ...rest } = s
+  const { apiKeys, apiKeyEnc: _e, apiKeyPlain: _p, bubblePosition: _b, moveDeclined: _m, ...rest } = s
   return {
     ...rest,
     hasApiKey: Boolean(apiKeys?.[serviceAt(s.baseUrl)]) || Boolean(envKey(s)),
     needsKey: profileFor(rest.baseUrl, rest.apiFormat).needsKey,
     readsPages: profileFor(rest.baseUrl, rest.apiFormat).web !== 'off',
     takenHotkeys,
+    keychain: safeStorage.isEncryptionAvailable(),
     ...loginItem(),
     savedKeys: Object.keys(apiKeys ?? {}) as ServiceId[]
   }
@@ -125,7 +141,8 @@ function loginItem(): { openAtLogin: boolean; canOpenAtLogin: boolean } {
 
 export function update(u: SettingsUpdate): PublicSettings {
   const s = load()
-  const { apiKey, openAtLogin, monthlyCap, workPausedUntil, ...rest } = u
+  // `keychain` is Otty's to say, never the window's.
+  const { apiKey, openAtLogin, monthlyCap, workPausedUntil, keychain: _k, ...rest } = u as SettingsUpdate & { keychain?: unknown }
   // From the renderer, so it's checked: a cap that isn't one is no cap, and an end that isn't one is "until I say".
   if (monthlyCap !== undefined) s.monthlyCap = cleanCap(monthlyCap)
   if (workPausedUntil !== undefined) s.workPausedUntil = cleanPauseEnd(workPausedUntil)
@@ -136,9 +153,9 @@ export function update(u: SettingsUpdate): PublicSettings {
     const key = apiKey.trim()
     const service = serviceAt(s.baseUrl)
     const keys = (s.apiKeys ??= {})
+    // Without the Keychain a key isn't saved at all, never in plain text; `keychain: false` tells the window why.
     if (!key) delete keys[service]
     else if (safeStorage.isEncryptionAvailable()) keys[service] = { enc: safeStorage.encryptString(key).toString('base64') }
-    else keys[service] = { enc: Buffer.from(key, 'utf8').toString('base64'), plain: true }
   }
   persist()
   return getPublic()
@@ -146,5 +163,10 @@ export function update(u: SettingsUpdate): PublicSettings {
 
 export function saveBubblePosition(pos: { x: number; y: number }): void {
   load().bubblePosition = pos
+  persist()
+}
+
+export function saveMoveDeclined(): void {
+  load().moveDeclined = true
   persist()
 }

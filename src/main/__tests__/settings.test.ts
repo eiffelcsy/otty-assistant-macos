@@ -5,11 +5,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 let dir = ''
 let brokenKeychain = false
+let noKeychain = false
+let packaged = false
 
 vi.mock('electron', () => ({
-  app: { getPath: () => dir, getPreferredSystemLanguages: () => ['en-GB'] },
+  app: {
+    getPath: () => dir,
+    getPreferredSystemLanguages: () => ['en-GB'],
+    getLoginItemSettings: () => ({ openAtLogin: false }),
+    get isPackaged() {
+      return packaged
+    }
+  },
   safeStorage: {
-    isEncryptionAvailable: () => true,
+    isEncryptionAvailable: () => !noKeychain,
     encryptString: (s: string) => Buffer.from(`locked:${s}`),
     decryptString: (b: Buffer) => {
       if (brokenKeychain) throw new Error('Keychain says no')
@@ -31,6 +40,8 @@ async function launch(saved?: object) {
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), 'otty-settings-'))
   brokenKeychain = false
+  noKeychain = false
+  packaged = false
   vi.unstubAllEnvs()
   vi.stubEnv('DEEPSEEK_API_KEY', '')
 })
@@ -103,6 +114,41 @@ describe('one key per service', () => {
     const s = await launch({ apiKeyEnc: locked('old-key') })
     brokenKeychain = true
     expect(s.getApiKey()).toBeNull()
+  })
+})
+
+describe('keys only from the Keychain (D-51)', () => {
+  it('never saves a key in plain text, and says why', async () => {
+    noKeychain = true
+    const s = await launch()
+    expect(s.update({ apiKey: 'sk-new' })).toMatchObject({ hasApiKey: false, keychain: false })
+    expect(s.getApiKey()).toBeNull()
+    expect(readFileSync(file(), 'utf8')).not.toContain(Buffer.from('sk-new').toString('base64'))
+  })
+
+  it('keeps an old plain key working, and locks it away once the Keychain is back', async () => {
+    const old = { apiKeys: { deepseek: { enc: Buffer.from('plain-key').toString('base64'), plain: true } } }
+    noKeychain = true
+    expect((await launch(old)).getApiKey()).toBe('plain-key')
+    noKeychain = false
+    const s = await launch()
+    expect(s.getApiKey()).toBe('plain-key')
+    const saved = JSON.parse(readFileSync(file(), 'utf8'))
+    expect(saved.apiKeys.deepseek).toEqual({ enc: locked('plain-key') })
+  })
+
+  it('never takes keychain from the window', async () => {
+    const s = await launch()
+    s.update({ keychain: false } as never)
+    expect(JSON.parse(readFileSync(file(), 'utf8'))).not.toHaveProperty('keychain')
+  })
+
+  it('ignores the shell’s key in the installed app', async () => {
+    vi.stubEnv('DEEPSEEK_API_KEY', 'dev-key')
+    packaged = true
+    const s = await launch()
+    expect(s.getApiKey()).toBeNull()
+    expect(s.getPublic().hasApiKey).toBe(false)
   })
 })
 

@@ -2687,6 +2687,22 @@ html[data-view='pickup'] #root {
   background: var(--fill-strong);
 }
 
+/* ---------- Copy diagnostics (D-50) ---------- */
+.diagnostics {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  padding: 10px 12px;
+  background: var(--fill);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  font-size: 11.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+
 /* ---------- Usage meter ---------- */
 .usage {
   margin: 0;
