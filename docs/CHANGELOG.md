@@ -4,6 +4,18 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Decisions and receipts (D-60, 2026-11-18)
+
+Confirm cards are worth reading and can't be approved by accident, and every decision stays in the chat (Spec 01).
+- **Cards by kind, worked out in main.** `ToolContext.confirm` takes a typed card built in `cards.ts`: Read this page? and Open this link? show the host on its own line, as the tool will reach it (a user name before `@` gone, another alphabet in its `xn--` form with the readable one beside it), then the rest of the address cut in the middle. Search the web for this? shows the words and where they go; Add this reminder? the title, when and where. The buttons name the action (**Read it**, **Open it**, **Search**, **Add it**, **Start it**, **Schedule it**) and **Skip**; "Yes, go ahead" and "No thanks" are gone.
+- **Unusual cards look different, and only those:** an address in another alphabet, a plain `http:` page, a search after private data met outside words (D-41), or a look past the monthly limit. Each gets a straw edge and one line saying why, decided in code, never by the model.
+- **Arming.** A card's buttons ignore the pointer until the card has been at least half on screen for 400 ms, so a click meant for something else can't approve it. The keyboard is never delayed. Focus moves to the card (never a button) only when you aren't typing, and the box says "Or ask something else" while a card waits. After ten minutes a card says since when; coming back to one that waited over a minute draws one slow ring. If main doesn't hear the answer, the card says so and stays.
+- **Receipts.** An answered card leaves one line in the answer: "✓ Read jreast.co.jp", "– Skipped example.com (you asked something else)", "✓ Added “Essay deadline” · Undo". They're saved with the answer, so they survive reopening the chat (no schema change).
+- **Reminders can be undone.** Otty keeps the id Reminders gives a new reminder, so Undo on its receipt, or Try again's list, removes that reminder and no other (`unremind`, through argv). The ledger calls it undoable only when there's an id.
+- **The Noted line** says Noted, Updated (with "was: …") or Forgot, in full, with Undo and Edit; a straw pen line draws under a new note once, on a live answer; an undone note stays, struck through, as "Forgotten". **Notes an answer only read** fold into one bookmark button in its action row, with a menu listing them.
+- **The Try again card** has the spec's lists: ticked rows to undo, and lock rows for what can't be. Its buttons read Try again or Edit question, and Keep this answer.
+- UI preview scenes: `confirm-read`, `confirm-open`, `confirm-search`, `confirm-reminder`, `confirm-unusual`, `receipts`, `rewind` and `noted`, all in `npm run screens`. The eval records cards by their parts.
+
 ### Ready to extend: tools as entries, no electron in the loop (D-45 step 3, 2026-11-18)
 
 Nothing changes for anyone using Otty: the model is offered the same tools, in the same order, byte for byte, under every service and setting.

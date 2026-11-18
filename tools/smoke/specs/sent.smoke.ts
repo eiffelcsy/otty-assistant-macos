@@ -62,7 +62,7 @@ test('a highlight question, a search and a page each have a row; Open goes to th
 
   // Activity only appears once something is in it (see the report), so schedule something to reach the list.
   await otty.ask(panel, 'Check otter news tomorrow at 9')
-  await panel.locator('.confirm-card').getByRole('button', { name: 'Yes, go ahead' }).click()
+  await panel.locator('.confirm-card').getByRole('button', { name: 'Schedule it' }).click()
   await expect(panel.getByText('I’ll look tomorrow at 9.')).toBeVisible()
 
   await openSent(panel)
@@ -94,7 +94,7 @@ test('a highlight question, a search and a page each have a row; Open goes to th
   // only that question is left on it.
   await expect(panel.getByTitle('Activity', { exact: true })).toHaveCount(0)
   await otty.ask(panel, 'Check otter news tomorrow at 9 please')
-  await panel.locator('.confirm-card').getByRole('button', { name: 'Yes, go ahead' }).click()
+  await panel.locator('.confirm-card').getByRole('button', { name: 'Schedule it' }).click()
   await expect(panel.getByText('I’ll look tomorrow at 9, as asked.')).toBeVisible()
   await openSent(panel)
   await expect(row(panel, 'Asked DeepSeek').first()).toBeVisible()

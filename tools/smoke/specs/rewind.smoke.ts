@@ -14,7 +14,7 @@ const lastAnswer = (page: Page) => page.locator('.msg--otty').last()
 /** The copy-and-look question, its card answered yes, with the look paused on a page it must ask about. */
 async function copyAndLook(otty: Otty, panel: Page, title: string): Promise<void> {
   await otty.ask(panel, 'copy hello and look into laptops')
-  await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+  await panel.getByRole('button', { name: 'Start it' }).click()
   await expect(lastAnswer(panel).getByText(`Copied, and I’m looking into ${title}.`)).toBeVisible()
   await expect(lastAnswer(panel).getByRole('button', { name: 'Try again' })).toBeVisible()
 }

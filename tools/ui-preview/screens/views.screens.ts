@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 // Every view and scene the UI preview has (tools/ui-preview/mock.ts), in both colour schemes.
 const SCENES: Record<string, string[]> = {
-  panel: ['chat', 'compose', 'empty', 'tray', 'settings', 'provider', 'page', 'proofread', 'memory', 'memories', 'math', 'code', 'drawing', 'chart', 'cap', 'steps', 'activity', 'history', 'find', 'onboarding'],
+  panel: ['chat', 'compose', 'empty', 'tray', 'settings', 'provider', 'page', 'proofread', 'memory', 'memories', 'math', 'code', 'drawing', 'chart', 'cap', 'steps', 'activity', 'history', 'find', 'onboarding', 'confirm-read', 'confirm-open', 'confirm-search', 'confirm-reminder', 'confirm-unusual', 'receipts', 'rewind', 'noted'],
   quick: ['chat', 'compose', 'page', 'tray', 'proofread', 'steps'],
   pickup: ['reading', 'nowords', 'failed'],
   viewer: ['picture', 'slides']

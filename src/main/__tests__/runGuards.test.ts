@@ -26,7 +26,7 @@ describe('the Rule of Two in a chat turn (D-41)', () => {
     const out = await runTool('search_web', { query: 'Mei Ling room 4B' }, context({ private: priv, outside }, confirm))
     expect(confirm).toHaveBeenCalledTimes(asks ? 1 : 0)
     if (asks) {
-      expect(confirm).toHaveBeenCalledWith('Look this up?', 'Mei Ling room 4B')
+      expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ kind: 'search', query: 'Mei Ling room 4B', unusual: 'private' }))
       expect(out.status).toBe('denied')
       expect(search).not.toHaveBeenCalled()
     } else expect(search).toHaveBeenCalled()

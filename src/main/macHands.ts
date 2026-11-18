@@ -17,7 +17,8 @@ export async function copyText(source: string): Promise<boolean> {
   return Boolean(html)
 }
 
-async function createReminder(title: string, due: Date | null): Promise<void> {
+/** Adds the reminder and returns the id Reminders gave it, so Undo can remove that one and no other. */
+async function createReminder(title: string, due: Date | null): Promise<string> {
   if (process.platform !== 'darwin') throw new Error('Reminders are only available on macOS.')
   // Values go through argv, never string-interpolated into the script.
   const script = [
@@ -33,21 +34,30 @@ async function createReminder(title: string, due: Date | null): Promise<void> {
     'set hours of d to (item 5 of argv as integer)',
     'set minutes of d to (item 6 of argv as integer)',
     'set seconds of d to 0',
-    'make new reminder with properties {name:t, remind me date:d}',
+    'set r to make new reminder with properties {name:t, remind me date:d}',
     'else',
-    'make new reminder with properties {name:t}',
+    'set r to make new reminder with properties {name:t}',
     'end if',
+    'return id of r',
     'end tell',
     'end run'
   ]
   const argv = due
     ? [title, due.getFullYear(), due.getMonth() + 1, due.getDate(), due.getHours(), due.getMinutes()].map(String)
     : [title]
-  await run('osascript', [...script.flatMap((l) => ['-e', l]), '--', ...argv])
+  const { stdout } = await run('osascript', [...script.flatMap((l) => ['-e', l]), '--', ...argv])
+  return String(stdout).trim()
+}
+
+async function removeReminder(id: string): Promise<void> {
+  if (process.platform !== 'darwin') throw new Error('Reminders are only available on macOS.')
+  const script = ['on run argv', 'tell application "Reminders" to delete (reminder id (item 1 of argv))', 'end run']
+  await run('osascript', [...script.flatMap((l) => ['-e', l]), '--', id])
 }
 
 export const macHands: MacHands = {
   open: (url) => shell.openExternal(url),
   copy: copyText,
-  remind: createReminder
+  remind: createReminder,
+  unremind: removeReminder
 }

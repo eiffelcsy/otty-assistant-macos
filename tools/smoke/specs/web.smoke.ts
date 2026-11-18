@@ -120,7 +120,7 @@ test.describe('on Claude', () => {
     await otty.ask(panel, 'Now read my otter notes')
     await expect(panel.getByText('Read this page?')).toBeVisible()
     await expect(panel.getByText(madeUp)).toBeVisible()
-    await panel.getByRole('button', { name: 'No thanks' }).click()
+    await panel.getByRole('button', { name: 'Skip' }).click()
     await expect(panel.getByText('Okay, I won’t open it.')).toBeVisible()
     expect(world.requests.filter((r) => r.url.startsWith('https://otters.example/'))).toEqual([])
   })

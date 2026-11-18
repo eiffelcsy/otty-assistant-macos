@@ -62,7 +62,7 @@ describe('other services', () => {
     const fetchSpy = vi.fn()
     vi.stubGlobal('fetch', fetchSpy)
     const out = await runTool('read_page', { url: 'https://example.com/?secret=1' }, { allowed: CHAT_TOOLS, confirm, knownUrl: () => false })
-    expect(confirm).toHaveBeenCalledWith('Read this page?', 'https://example.com/?secret=1')
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ kind: 'read', host: 'example.com', rest: '/?secret=1' }), 'https://example.com/?secret=1')
     expect(out.status).toBe('denied')
     expect(fetchSpy).not.toHaveBeenCalled()
   })

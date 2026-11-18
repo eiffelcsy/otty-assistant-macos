@@ -21,6 +21,7 @@ export function registerChat(): void {
   handle('chat:stop', () => chat.stop())
   handle('chat:reset', () => resetChat())
   handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))
+  handle('chat:undo-receipt', (_e, answerId: string, at: number) => chat.undoReceipt(answerId, at))
   handle('chat:rewind-plan', (_e, id: string) => chat.rewindPlan(id))
   handle('chat:rewind', (_e, id: string, undo: string[], mode: 'retry' | 'edit') => chat.rewind(id, undo, mode))
   handle('chat:learn', (_e, on: boolean) => chat.setLearn(on))

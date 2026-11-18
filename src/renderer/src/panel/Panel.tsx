@@ -58,7 +58,7 @@ export function Panel() {
   const [activity, setActivity] = useState<ActivityItem[]>([])
   /** Bumped to scroll Settings to what Otty knows. */
   const [memoryFocus, setMemoryFocus] = useState(0)
-  const { messages, busy, setBusy, waitingFirstToken, focusId, learn } = useChat(() => {
+  const { messages, busy, setBusy, waitingFirstToken, focusId, learn, asking } = useChat(() => {
     setCaptures([])
     setApp(null)
     setNotice(null)
@@ -457,7 +457,9 @@ export function Panel() {
                     className="composer__input"
                     rows={1}
                     placeholder={
-                      captures.length > 1
+                      asking
+                        ? 'Or ask something else'
+                        : captures.length > 1
                         ? 'Ask about these…'
                         : captures.length
                           ? 'Ask about this…'

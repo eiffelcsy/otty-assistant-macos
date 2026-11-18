@@ -22,9 +22,9 @@ test('after a page, a search that could carry a highlight out asks first, and No
   await quick.keyboard.press('Enter')
 
   const card = quick.locator('.confirm-card')
-  await expect(card).toContainText('Look this up?')
+  await expect(card).toContainText('Search the web for this?')
   await expect(card).toContainText('Mei Ling Tan room 4B')
-  await card.getByRole('button', { name: 'No thanks' }).click()
+  await card.getByRole('button', { name: 'Skip' }).click()
   // No search is scripted, so one that went out would fail the test as unscripted.
   await expect(quick.getByText('It’s a short kettle review.')).toBeVisible()
 })

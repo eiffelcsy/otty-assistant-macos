@@ -52,7 +52,6 @@
   "src/renderer/src/panel/MemorySection.tsx::react-hooks(exhaustive-deps)": 1,
   "src/renderer/src/panel/MemorySection.tsx::typescript(no-misused-promises)": 5,
   "src/renderer/src/panel/Messages.tsx::typescript(no-floating-promises)": 1,
-  "src/renderer/src/panel/Messages.tsx::typescript(no-misused-promises)": 2,
   "src/renderer/src/panel/Onboarding.tsx::typescript(no-floating-promises)": 1,
   "src/renderer/src/panel/Onboarding.tsx::typescript(no-misused-promises)": 5,
   "src/renderer/src/panel/Panel.tsx::react-hooks(exhaustive-deps)": 3,

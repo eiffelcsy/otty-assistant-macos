@@ -257,6 +257,9 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | shipped (D-8, the quick view part); the full-screen setting is still an idea |
 | UIcons instead of emoji on tool chips | L | S | shipped |
 | A running tool chip's icon was meant to pulse, but `animation: glow` names keyframes that were never written, so it sits still. Either a stepped two-cycle pulse that holds (DESIGN.md, Motion) or drop the rule | L | S | idea, found in D-59 |
+| A card and its receipt in one place: today the card waits under the answer's words and its receipt joins the tool chips above them, so the spec's fold from card to line can't be drawn. Either the card waits with the chips, or receipts stay where their card was | M | S | idea, found in D-60 |
+| Undo on a reminder that was already deleted by hand says "Couldn't undo that". Reminders' "can't get reminder id" could count as already removed, and say so | L | S | idea, found in D-60 |
+| A card's paused state (Spec 01) never shows in a chat, because Pause everything stops answers and their cards become Skipped receipts. It belongs to a job waiting in the Logbook (D-63) | L | S | note, found in D-60 |
 | Recent chats as one ledger of rows: rows on the panel background, an inset hairline between them, and the open chat marked with `--surface` and `--elev-1` (DESIGN.md, Row) once the list sits beside the chat in the roomy window | M | S | idea, after D-59 |
 
 ## Speed: spending a fast, cheap model

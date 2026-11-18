@@ -321,7 +321,53 @@ export type ChatMessage =
       jobs?: { id: string; title: string }[]
       /** What it did that can't be taken back, in words: a reminder added, a link opened (D-36). */
       lasting?: string[]
+      /** What each confirm card was answered with, in order, so the decision stays in the chat (D-60). */
+      receipts?: Receipt[]
     }
+
+/** Why a card looks different, decided in main from the tool's arguments, never by the model (D-60). */
+export type Unusual = 'alphabet' | 'http' | 'private' | 'cap'
+
+/**
+ * A confirm card, already split into its parts by main, so the renderer never parses an address and the host shown
+ * is the host the tool will use (D-60).
+ */
+export interface ConfirmCard {
+  kind: 'read' | 'open' | 'search' | 'reminder' | 'job'
+  title: string
+  /** The primary button's words; the other is always Skip. */
+  yes: string
+  /** read, open: the host as the tool will reach it (`xn--` form for another alphabet), and the rest of the address, cut short. */
+  host?: string
+  /** The host in letters people read, when it uses another alphabet. */
+  readable?: string
+  rest?: string
+  /** search: the words as the model will send them, and where they go. */
+  query?: string
+  service?: string
+  /** reminder and job: what it's called. */
+  item?: string
+  /** reminder: when, in words, and where it goes. */
+  when?: string
+  list?: string
+  /** job: the card's longer words. */
+  detail?: string
+  unusual?: Unusual
+}
+
+/** A confirm card once answered: one line that stays in the chat (D-60). The words come from main. */
+export interface Receipt {
+  allowed: boolean
+  /** "Read", "Added", "Skipped". */
+  verb: string
+  /** The host, query or title, shown stronger. */
+  what: string
+  /** Why it was skipped, when it wasn't the user's Skip: "you asked something else". */
+  why?: string
+  /** How to take it back, when Otty can (a reminder, a look). The renderer only sends the receipt's place. */
+  undo?: { kind: 'reminder' | 'job'; ref: string; label: string }
+  undone?: boolean
+}
 
 /** What Try again or Edit would take back, shown before the answer goes (D-36). Each undo is ticked by default. */
 export interface RewindPlan {
@@ -440,7 +486,9 @@ export type ChatEvent =
   /** An instant answer, in place of any deltas. */
   | { type: 'calc'; id: string; expression: string; result: string }
   | ({ type: 'tool'; id: string } & ToolChipInfo)
-  | { type: 'confirm'; id: string; confirmId: string; title: string; detail: string }
+  | { type: 'confirm'; id: string; confirmId: string; card: ConfirmCard }
+  /** A card was answered, or its Undo pressed: the receipt at `at` in the answer's list. */
+  | { type: 'receipt'; id: string; at: number; receipt: Receipt }
   | { type: 'done'; id: string }
   | { type: 'error'; id: string; message: string }
   /** Otty saved, changed or forgot a memory, or Undo was pressed on one (`note.undone`). */
@@ -509,6 +557,8 @@ export interface OttyApi {
   deleteChat(id: string): Promise<void>
   clearChats(): Promise<void>
   respondConfirm(confirmId: string, allow: boolean): Promise<void>
+  /** Undo on a receipt: takes back the reminder or look it records. False when it couldn't. */
+  undoReceipt(answerId: string, at: number): Promise<boolean>
   /** Presses a step's button. `sure` is the second click on a risky step. */
   runStep(answerId: string, index: number, sure?: boolean): Promise<void>
   tickStep(answerId: string, index: number, done: boolean): Promise<void>

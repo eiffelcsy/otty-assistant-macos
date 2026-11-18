@@ -83,6 +83,7 @@ export const CHANNELS = {
   'memory:update': { views: PANEL, args: [int(0, Number.MAX_SAFE_INTEGER), record] },
   'memory:remove': { views: PANEL, args: [int(0, Number.MAX_SAFE_INTEGER)] },
   'memory:clear': { views: PANEL, args: [] },
+  'chat:undo-receipt': { views: CHAT, args: [id, int(0, 100)] },
   'memory:undo': { views: CHAT, args: [id, int(0, Number.MAX_SAFE_INTEGER)] },
   'memory:open': { views: CHAT, args: [] },
   'files:pick': { views: CHAT, args: [] },

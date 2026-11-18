@@ -9,7 +9,7 @@ test('a reminder is listed under What Otty changed as done for good, and Forget 
   world.reply(turn('Remind me to feed the otters'), { calls: [{ name: 'create_reminder', args: { title: 'Feed the otters' } }] }, { say: 'It’s in Reminders.' })
   const panel = await otty.openPanel()
   await otty.ask(panel, 'Remind me to feed the otters')
-  await panel.locator('.confirm-card').getByRole('button', { name: 'Yes, go ahead' }).click()
+  await panel.locator('.confirm-card').getByRole('button', { name: 'Add it' }).click()
   await expect(panel.getByText('It’s in Reminders.')).toBeVisible()
 
   await panel.getByRole('button', { name: 'Settings' }).click()

@@ -6,6 +6,7 @@ import type {
   Capture,
   ChatEvent,
   ChatMessage,
+  ConfirmCard,
   FileAttachment,
   Memory,
   OttyApi,
@@ -18,7 +19,7 @@ import { draw } from '../../src/renderer/src/draw/render'
 import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -246,6 +247,53 @@ const memorySample: ChatMessage[] = [
   }
 ]
 
+/** D-60: a card waiting under an answer, one per kind, and one unusual. */
+const cards: Record<string, ConfirmCard> = {
+  'confirm-read': { kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'jreast.co.jp', rest: '/en/timetable/tokyo-sendai?day=sat' },
+  'confirm-open': { kind: 'open', title: 'Open this link?', yes: 'Open it', host: 'acme.cloud', rest: '/pricing#limits' },
+  'confirm-search': { kind: 'search', title: 'Search the web for this?', yes: 'Search', query: 'Mei Ling Tan flat 4B Tai Hang Road rent increase notice', service: 'DeepSeek', unusual: 'private' },
+  'confirm-reminder': { kind: 'reminder', title: 'Add this reminder?', yes: 'Add it', item: 'Essay deadline', when: 'Thu 20 Nov at 6:00 PM', list: 'In Reminders' },
+  'confirm-unusual': { kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'xn--pple-43d.com', readable: 'аpple.com', rest: '/account/verify', unusual: 'alphabet' }
+}
+const askingSample: ChatMessage[] = [{ id: 'u1', role: 'user', text: 'When is the last train from Tokyo to Sendai on Saturday?', captures: [], app: null }]
+function playCard(cb: (e: ChatEvent) => void, card: ConfirmCard) {
+  cb({ type: 'load', messages: askingSample })
+  cb({ type: 'start', id: 'a1', language: 'en' })
+  cb({ type: 'tool', id: 'a1', callId: 't1', label: 'Searching the web', icon: 'search', status: 'done' })
+  cb({ type: 'delta', id: 'a1', text: 'The timetable is on JR East’s site, so I’d like to read it.' })
+  cb({ type: 'confirm', id: 'a1', confirmId: 'k1', card })
+}
+
+const receiptsSample: ChatMessage[] = [
+  { id: 'u1', role: 'user', text: 'Check the last train to Sendai on Saturday and remind me to book on Thursday', captures: [], app: null },
+  {
+    id: 'a1',
+    role: 'assistant',
+    language: 'en',
+    tools: [{ callId: 't1', label: 'Searching the web', icon: 'search', status: 'done' }],
+    text: 'The last Hayabusa leaves Tokyo at **21:44** and reaches Sendai at 23:16. I’ve added the reminder for Thursday.',
+    receipts: [
+      { allowed: true, verb: 'Read', what: 'jreast.co.jp' },
+      { allowed: false, verb: 'Skipped', what: 'eki-net.com' },
+      { allowed: true, verb: 'Added', what: '“Book the Sendai train”', undo: { kind: 'reminder', ref: 'r1', label: 'Remove the reminder “Book the Sendai train”' } }
+    ]
+  },
+  { id: 'u2', role: 'user', text: 'Also open the seat map', captures: [], app: null },
+  { id: 'a2', role: 'assistant', language: 'en', tools: [], text: 'Sure, what would you like instead?', receipts: [{ allowed: false, verb: 'Skipped', what: 'jreast.co.jp', why: 'you asked something else' }] }
+]
+
+const notedSample: ChatMessage[] = [
+  memorySample[0],
+  {
+    ...(memorySample[1] as Extract<ChatMessage, { role: 'assistant' }>),
+    memories: [
+      { memoryId: 1, text: 'Is learning Japanese for a trip to Sendai in the spring, mostly to read menus and train signs', action: 'added' },
+      { memoryId: 2, text: 'Mostly works in Excel and Safari', action: 'updated', before: 'Mostly works in Excel' },
+      { memoryId: 4, text: 'Has a cat called Mochi', action: 'added', undone: true }
+    ]
+  }
+]
+
 const stepsSample: ChatMessage[] = [
   { id: 'u1', role: 'user', text: 'How do I export this as a PDF and add up column B?', captures: [], app: { name: 'Excel', title: 'Budget.xlsx' } },
   {
@@ -446,12 +494,18 @@ const api: OttyApi = {
   listSent: async () => (q.get('sent') === 'none' ? [] : sentSample),
   hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
   listChanges: async () => (q.get('sent') === 'none' ? [] : changeSample),
+  undoReceipt: async (answerId, at) => {
+    const r = (receiptsSample.find((m) => m.id === answerId) as Extract<ChatMessage, { role: 'assistant' }> | undefined)?.receipts?.[at]
+    if (r) emit({ type: 'receipt', id: answerId, at, receipt: { ...r, undone: true } })
+    return Boolean(r)
+  },
   rewindPlan: async () => ({
     undo: [
       { id: 'memory:a1:1', label: 'Forget “Is learning Spanish”' },
+      { id: 'reminder:r1', label: 'Remove the reminder “Call mum”' },
       { id: 'job:j1', label: 'Stop looking into “Cheapest way from Hong Kong to Tokyo”' }
     ],
-    lasting: ['Reminder added: Call mum — 5:00 PM']
+    lasting: ['Opened acme.cloud/pricing']
   }),
   rewind: async (_id, _undo, mode) => (mode === 'edit' ? { text: 'Explain this simply', captures: [{ id: 'c1', context: highlighted, app }], files: [] } : null),
   onActivity: () => () => {},
@@ -531,6 +585,14 @@ const api: OttyApi = {
     if (scene === 'drawing') setTimeout(() => cb({ type: 'load', messages: drawingSample }), 50)
     if (scene === 'chart' || scene === 'cap') setTimeout(() => cb({ type: 'load', messages: chartSample }), 50)
     if (scene === 'memory') setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
+    if (scene === 'noted') setTimeout(() => cb({ type: 'load', messages: notedSample }), 50)
+    if (scene === 'receipts') setTimeout(() => cb({ type: 'load', messages: receiptsSample }), 50)
+    if (cards[scene]) setTimeout(() => playCard(cb, cards[scene]), 50)
+    // The rewind card opens from Try again on the last answer.
+    if (scene === 'rewind') {
+      setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
+      setTimeout(() => document.querySelector<HTMLButtonElement>('button[title^="Ask the same question"]')?.click(), 250)
+    }
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}
   },

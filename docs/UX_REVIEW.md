@@ -41,8 +41,8 @@ The trust foundations are better than anything else out there: a record of what 
 The fix is **fewer cards**, not longer ones: more words on a card people already skim won't be read either.
 
 **Actions.**
-- [ ] Show the address as host first, in bold ("**wikipedia.org** /wiki/HTTP_429"), so the one thing worth checking (and a lookalike domain) is what the eye lands on. Path and query in small text.
-- [ ] Keep the card to one title plus that line. Add a consequence line, written in code, **only when it's unusual**: the request goes somewhere new, or the action can't be undone. No "why" line on every card.
+- [x] Show the address as host first, in bold ("**wikipedia.org** /wiki/HTTP_429"), so the one thing worth checking (and a lookalike domain) is what the eye lands on. Path and query in small text.
+- [x] Keep the card to one title plus that line. Add a consequence line, written in code, **only when it's unusual**: the request goes somewhere new, or the action can't be undone. No "why" line on every card.
 - [ ] Earned trust instead of a third button on every card: after the user allows the same tool and host a second time, the card offers **Always for this site** once. Grants are stored per host and per tool, enforced in `runTool`, findable (and revocable) in Activity and Settings. Never offered for `open_link` to a non-https address, or while `RunTaint` has outside words.
 - [ ] Attack tests: an injected page can't add a grant, and a grant for one host doesn't match a lookalike host.
 - [ ] Eval: count cards per real session before and after, aiming for fewer cards with no loss in the injection set.
@@ -103,8 +103,8 @@ Nobody will browse a log of everything Otty did. People open this place with a q
 **Problem.** In the memory scene, a two-line answer is followed by four actions (Copy, Try again, Edit question, In 中文) and three memory lines (Used / Noted / Updated) with five more links: about 12 tappable things for 2 lines. "Used: Is learning Spanish" reads like a log entry.
 
 **Actions.**
-- [ ] A **new** memory keeps its own line, in full, with Undo: "Noted: you're learning Spanish · Undo". It's the safety control (CLAUDE.md), and a count like "Remembered 1" would never be expanded, so it must not be hidden.
-- [ ] "Used" and "Updated" lines are the usual case, so they fold into one small icon on the answer, with the details on hover/click. An update that *changes* what Otty believed (not just adds to it) keeps its own line, like a new memory.
+- [x] A **new** memory keeps its own line, in full, with Undo: "Noted: you're learning Spanish · Undo". It's the safety control (CLAUDE.md), and a count like "Remembered 1" would never be expanded, so it must not be hidden.
+- [x] "Used" and "Updated" lines are the usual case, so they fold into one small icon on the answer, with the details on hover/click. An update that *changes* what Otty believed (not just adds to it) keeps its own line, like a new memory.
 - [ ] Show the action row on the latest answer, and on hover/focus for older ones (keep it reachable by keyboard).
 
 ### 7. One vocabulary

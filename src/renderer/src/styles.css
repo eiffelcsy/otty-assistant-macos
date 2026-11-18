@@ -813,17 +813,10 @@ html[data-view='bubble'] body {
   flex-direction: column;
   gap: var(--s-2);
 }
-.confirm-card__title,
 .notice-card__title {
   font-size: var(--fs-ui);
   font-weight: 700;
   color: var(--heading);
-}
-.confirm-card__detail {
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-  color: var(--text-2);
-  word-break: break-all;
 }
 .notice-card__body {
   font-size: var(--fs-small);
@@ -2220,69 +2213,120 @@ html[data-view='pickup'] #root {
 }
 
 /* ---------- What Otty learns ---------- */
-/* Quiet on purpose: it's a note in the margin, not a message. */
+/* The Noted line (Spec 01, N1–N3): the safety control for memory, always in full, never folded into a count. */
+.memory-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-top: calc(var(--s-1) - var(--s-2));
+}
 .memory-line {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--s-1h);
-  font-size: var(--fs-meta);
-  line-height: var(--lh-meta);
+  min-height: 24px;
+  padding: var(--s-0) 0;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
   color: var(--text-2);
 }
 .memory-line > .icon {
+  flex: none;
+  width: var(--i-lg);
+  margin-top: var(--s-0);
   font-size: var(--i-sm);
-  color: var(--brand);
+  text-align: center;
+  color: var(--straw-ink);
 }
 .memory-line__text {
   min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.memory-line--undone .memory-line__text {
-  text-decoration: line-through;
+.memory-line__label {
+  font-weight: 600;
+}
+.memory-line__fact {
+  font-weight: 600;
+  color: var(--text);
+  /* The straw pen line: drawn once on a live answer, resting at 40% so it can still be seen scrolling back. */
+  background: linear-gradient(color-mix(in srgb, var(--straw) 40%, transparent), color-mix(in srgb, var(--straw) 40%, transparent)) 0 100% / 100% 2px no-repeat;
+  transition: color var(--t-quick) var(--glide);
+}
+.memory-line--fresh .memory-line__fact {
+  animation: pen var(--t-drift) var(--glide) 700ms both;
+}
+@keyframes pen {
+  from { background-size: 0 2px; background-image: linear-gradient(var(--straw), var(--straw)); }
+  60% { background-size: 100% 2px; background-image: linear-gradient(var(--straw), var(--straw)); }
+}
+.memory-line__was {
+  font-weight: 500;
+}
+.memory-line--undone .memory-line__fact {
+  background: none;
+  color: var(--text-2);
+  text-decoration: line-through 1px;
+}
+.memory-line__actions {
+  white-space: nowrap;
+  margin-left: var(--s-2);
 }
 .memory-line__btn {
-  flex: none;
-  border: none;
-  background: none;
-  padding: 0 var(--s-1);
-  border-radius: var(--r-xs);
-  font-size: var(--fs-meta);
-  color: var(--brand-text);
-}
-.memory-line__btn:hover {
-  background: var(--brand-soft);
-}
-.memory-line__done {
-  flex: none;
-}
-.used-line {
-  display: flex;
-  align-items: center;
-  gap: var(--s-1h);
-  max-width: 100%;
+  min-height: 28px;
+  margin: -5px 0;
   padding: 0;
   border: none;
   background: none;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.memory-line__btn + .memory-line__btn {
+  margin-left: var(--s-3);
+}
+.memory-line__btn:hover {
+  text-decoration: underline;
+}
+
+/* The used marker: notes an answer read, in a menu (UX_REVIEW #6). */
+.used {
+  position: relative;
+}
+.menu {
+  position: absolute;
+  z-index: 5;
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--s-1);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--elev-3);
+  display: flex;
+  flex-direction: column;
+}
+.used__menu {
+  bottom: 32px;
+  left: 0;
+}
+.menu__item {
+  min-height: 30px;
+  padding: var(--s-1h) var(--s-2);
+  border: none;
   border-radius: var(--r-xs);
-  font-size: var(--fs-meta);
-  line-height: var(--lh-meta);
-  color: var(--text-2);
+  background: none;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text);
   text-align: left;
 }
-.used-line > .icon {
-  flex: none;
-  font-size: var(--i-sm);
+.menu__item--text {
+  color: var(--text-2);
 }
-.used-line > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.used-line:hover {
-  color: var(--brand-text);
+button.menu__item:hover {
+  background: var(--fill-strong);
 }
 .memory-group {
   display: flex;
@@ -2749,11 +2793,6 @@ html[data-view='pickup'] #root {
   background: var(--fill);
   font-size: var(--fs-small);
 }
-.confirm-card__detail--long {
-  white-space: pre-wrap;
-  max-height: 180px;
-  overflow-y: auto;
-}
 
 /* ---------- Health: something the user will try won't work yet ---------- */
 /* One 40px line across the window, in the layout; the full words unfold on a click. */
@@ -3071,17 +3110,236 @@ html[data-view='viewer'] body {
   width: 96px;
 }
 
-/* Before Try again or Edit replaces an answer (D-36). */
+/* Before Try again or Edit replaces an answer (D-36, Spec 01). */
+.rewind-card__list {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--s-1);
+}
 .rewind-card__label {
-  margin-top: 4px;
+  margin-bottom: var(--s-1);
 }
 .rewind-card__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 28px;
   font-size: var(--fs-small);
   line-height: var(--lh-small);
 }
-.rewind-card__lasting {
+.rewind-card__item input {
+  width: 16px;
+  height: 16px;
   margin: 0;
-  padding-left: var(--s-5);
-  font-size: var(--fs-small);
+  accent-color: var(--brand-fill);
+}
+.rewind-card__item--lasting {
   color: var(--text-2);
+}
+.rewind-card__item--lasting .icon {
+  width: var(--i-lg);
+  font-size: var(--i-sm);
+  text-align: center;
+}
+
+/* ---------- Confirm cards and receipts (D-60, Spec 01) ---------- */
+/* A glyph column (16 + 10), then the title, detail and buttons all on one edge, 26 in. */
+.ask {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  outline: none;
+  transition: box-shadow var(--t-quick) var(--glide);
+}
+.ask:focus-visible {
+  box-shadow: var(--elev-1), var(--ring);
+}
+.ask__glyph {
+  flex: none;
+  width: var(--i-lg);
+  margin-top: 3px;
+  font-size: var(--i-lg);
+  color: var(--text-2);
+}
+.ask__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ask__title {
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 700;
+  color: var(--heading);
+}
+.ask__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-top: var(--s-2);
+}
+.ask__host {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.ask__readable {
+  font-weight: 500;
+  color: var(--text-2);
+}
+.ask__sub {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.rewind-card .ask__sub {
+  margin-top: calc(var(--s-1) - var(--s-2));
+}
+.ask__meta,
+.ask__since {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--text-2);
+}
+.ask__since {
+  align-self: center;
+}
+.ask__query {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 500;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.ask__query--clip {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.ask__more {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.ask__long {
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+}
+/* Unusual: a straw inner edge and the line that says why. Nothing else changes. */
+.ask--unusual {
+  box-shadow: var(--elev-1), inset 0 0 0 1px var(--straw);
+}
+.ask__unusual {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-1h);
+  margin-top: var(--s-2);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 600;
+  color: var(--straw-ink);
+}
+.ask__unusual .icon {
+  margin-top: var(--s-0);
+  font-size: var(--i-sm);
+}
+.ask .confirm-card__row {
+  margin-top: var(--s-3);
+}
+/* Arming: a stray click can't approve. The pointer passes through until the card has been seen for 400 ms. */
+.ask .btn {
+  transition: opacity var(--t-quick) var(--glide), background var(--t-quick) var(--glide), transform var(--t-tap) var(--glide);
+}
+.ask--arming .btn {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.ask .btn[aria-busy='true'] {
+  opacity: 0.7;
+}
+.ask__failed {
+  margin-top: var(--s-2);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--danger-ink);
+}
+/* Back to a card that has waited: one slow ring. */
+.ask--ring {
+  animation: ask-ring var(--t-drift) var(--glide) 1;
+}
+@keyframes ask-ring {
+  50% { box-shadow: var(--elev-1), 0 0 0 2px var(--brand-line); }
+}
+
+/* A receipt: one line in the answer's flow, like a tool chip. */
+.receipts {
+  display: flex;
+  flex-direction: column;
+}
+.receipt {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1h);
+  min-height: 28px;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--text-2);
+}
+.receipt > .icon {
+  flex: none;
+  width: var(--i-lg);
+  font-size: var(--i-sm);
+  text-align: center;
+  color: var(--brand);
+}
+.receipt--skipped > .icon {
+  color: var(--text-2);
+}
+.receipt__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.receipt__text b {
+  font-weight: 600;
+  color: var(--text);
+}
+.receipt__undo {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.receipt__undo:hover {
+  text-decoration: underline;
+}
+.receipt--fresh {
+  animation: surface var(--t-settle) var(--glide) both;
+}
+@keyframes surface {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

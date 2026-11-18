@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, Capture, ChatEvent, FileAttachment, MemoryNote, StepCard, ToolChipInfo, UsedMemory, ChartCard } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, ChatEvent, ConfirmCard, FileAttachment, MemoryNote, Receipt, StepCard, ToolChipInfo, UsedMemory, ChartCard } from '../../../shared/types'
 
 export type ToolChip = ToolChipInfo
 
@@ -19,9 +19,13 @@ export type UiMessage =
       role: 'assistant'
       text: string
       tools: ToolChip[]
-      confirm?: { confirmId: string; title: string; detail: string }
+      /** The card waiting for an answer, and when it appeared. */
+      confirm?: { confirmId: string; card: ConfirmCard; since: number }
+      receipts?: Receipt[]
       error?: string
       streaming: boolean
+      /** Arrived in this window just now, not reopened: its Noted lines and receipts may move as they appear. */
+      live?: boolean
       language?: AnswerLanguage
       memories?: MemoryNote[]
       used?: UsedMemory[]
@@ -83,7 +87,7 @@ export function useChat(onReset?: () => void) {
         switch (e.type) {
           case 'start':
             currentId.current = e.id
-            setMessages((ms) => [...ms, { id: e.id, role: 'assistant', text: '', tools: [], streaming: true, language: e.language }])
+            setMessages((ms) => [...ms, { id: e.id, role: 'assistant', text: '', tools: [], streaming: true, language: e.language, live: true }])
             break
           case 'delta':
             patch((m) => ({ ...m, text: m.text + e.text }))
@@ -115,7 +119,14 @@ export function useChat(onReset?: () => void) {
             })
             break
           case 'confirm':
-            patch((m) => ({ ...m, confirm: { confirmId: e.confirmId, title: e.title, detail: e.detail } }))
+            patch((m) => ({ ...m, confirm: { confirmId: e.confirmId, card: e.card, since: Date.now() } }))
+            break
+          case 'receipt':
+            patch((m) => {
+              const receipts = [...(m.receipts ?? [])]
+              receipts[e.at] = e.receipt
+              return { ...m, receipts, confirm: undefined }
+            })
             break
           case 'done':
             patch((m) => ({ ...m, streaming: false, confirm: undefined }))
@@ -138,5 +149,8 @@ export function useChat(onReset?: () => void) {
     setBusy(false)
   }
 
-  return { messages, busy, setBusy, waitingFirstToken, clear, focusId, learn }
+  /** A card is waiting: the box stays usable, and says so. */
+  const asking = messages.some((m) => m.role === 'assistant' && Boolean(m.confirm))
+
+  return { messages, busy, setBusy, waitingFirstToken, clear, focusId, learn, asking }
 }

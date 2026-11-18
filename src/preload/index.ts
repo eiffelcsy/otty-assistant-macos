@@ -55,6 +55,7 @@ const api: OttyApi = {
   deleteChat: (id) => ipcRenderer.invoke('chats:delete', id),
   clearChats: () => ipcRenderer.invoke('chats:clear'),
   respondConfirm: (id, allow) => ipcRenderer.invoke('chat:confirm', id, allow),
+  undoReceipt: (answerId, at) => ipcRenderer.invoke('chat:undo-receipt', answerId, at),
   runStep: (answerId, index, sure) => ipcRenderer.invoke('steps:run', answerId, index, sure),
   tickStep: (answerId, index, done) => ipcRenderer.invoke('steps:tick', answerId, index, done),
   checkStep: (answerId, index) => ipcRenderer.invoke('steps:check', answerId, index),

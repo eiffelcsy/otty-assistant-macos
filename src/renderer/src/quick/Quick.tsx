@@ -37,7 +37,7 @@ export function Quick() {
   const [readsPages, setReadsPages] = useState(false)
   const [pick, setPick] = useState<AnswerLanguage | undefined>()
   const [learning, setLearning] = useState(false)
-  const { messages, busy, waitingFirstToken, clear, learn } = useChat()
+  const { messages, busy, waitingFirstToken, clear, learn, asking } = useChat()
   const cardRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const answerRef = useRef<HTMLDivElement>(null)
@@ -276,7 +276,7 @@ export function Quick() {
               <textarea
                 className="quick__follow"
                 rows={1}
-                placeholder="Ask a follow-up…"
+                placeholder={asking ? 'Or ask something else' : 'Ask a follow-up…'}
                 aria-label="Ask a follow-up"
                 value={followUp}
                 onChange={(e) => setFollowUp(e.target.value)}

@@ -6,6 +6,7 @@ import type {
   Capture,
   ChatEvent,
   ChatMessage,
+  ConfirmCard,
   EditDraft,
   HomeLanguage,
   MemoryNote,
@@ -19,6 +20,7 @@ import type {
 import { capturedText } from '../shared/captures'
 import { HIDDEN, maskSecrets } from '../shared/secrets'
 import { questionWhat } from './sent'
+import { jobCard, receiptFor } from './cards'
 import { tablesIn, type Table } from '../shared/table'
 import { buildChart } from './chart'
 import { mathTier } from '../shared/math'
@@ -60,9 +62,13 @@ interface LiveTurn {
   thread: Thread
   answerId: string
   abort: AbortController
-  confirms: Map<string, (ok: boolean) => void>
+  answer: Answer
+  /** Each waiting card's answer. `why` says why it ended, when it wasn't the user's choice. */
+  confirms: Map<string, (ok: boolean, why?: string) => void>
   /** The confirm card on show, so coming back to the chat shows it again. */
-  asking?: { confirmId: string; title: string; detail: string }
+  asking?: { confirmId: string; card: ConfirmCard }
+  /** The receipt of a card just allowed, which gets its Undo once the tool says how (D-60). */
+  undoable?: { at: number; kind: 'reminder' | 'job' }
 }
 
 /** What a job needs from the chat that started it. */
@@ -343,11 +349,12 @@ export class ChatSession {
     // D-46: what the ledger wrote down. A chat answered before it had one keeps the answer's own fields.
     if (rows?.length) {
       const memories = rows.filter((r) => r.undo === 'memory' && r.ref).map((r) => ({ id: `memory:${r.answerId}:${r.ref}`, label: r.undoLabel ?? r.summary }))
+      const reminders = rows.filter((r) => r.undo === 'reminder' && r.ref).map((r) => ({ id: `reminder:${r.ref}`, label: r.undoLabel ?? r.summary }))
       const jobs = []
       for (const r of rows) if (r.undo === 'job' && r.ref && (await live(r.ref))) jobs.push({ id: `job:${r.ref}`, label: r.undoLabel ?? r.summary })
       const steps = rows.some((r) => r.tool.startsWith('step:')) ? ['Steps you ran from the card stay done.'] : []
       const lasting = rows.filter((r) => r.undo === 'none' && !r.tool.startsWith('step:')).map((r) => r.summary)
-      return { undo: [...memories, ...jobs], lasting: [...lasting, ...steps] }
+      return { undo: [...memories, ...reminders, ...jobs], lasting: [...lasting, ...steps] }
     }
     const undo: RewindPlan['undo'] = []
     const lasting: string[] = []
@@ -380,6 +387,16 @@ export class ChatSession {
         if (!wanted.has(`job:${j.id}`)) continue
         await this.hooks.withdrawJob?.(j.id).catch((err) => console.error('Could not stop a look', err))
         this.deps.ledger()?.markUndone(thread.id, 'job', j.id)
+      }
+    }
+    // Only a reminder this turn's ledger rows name: the renderer can't make Otty remove any other.
+    const reminders = (this.deps.ledger()?.forAnswers(thread.id, answers.map((a) => a.id)) ?? []).filter((r) => r.undo === 'reminder' && r.ref && !r.undoneAt)
+    for (const ref of reminders.flatMap((r) => (wanted.has(`reminder:${r.ref}`) ? [r.ref!] : []))) {
+      try {
+        await this.deps.mac.unremind(ref)
+        this.deps.ledger()?.markUndone(thread.id, 'reminder', ref)
+      } catch (err) {
+        console.error('Could not remove a reminder', err)
       }
     }
     const asked = thread.history[historyAt]
@@ -484,11 +501,11 @@ export class ChatSession {
     this.stopChat(this.thread.id)
   }
 
-  stopChat(id: string): void {
+  stopChat(id: string, why?: string): void {
     const turn = this.live.get(id)
     if (!turn) return
     turn.abort.abort()
-    for (const resolve of turn.confirms.values()) resolve(false)
+    for (const resolve of turn.confirms.values()) resolve(false, why)
     turn.confirms.clear()
     turn.asking = undefined
   }
@@ -518,7 +535,7 @@ export class ChatSession {
     const { typed: text, captures, hidden, lines: hiddenAt } = hideKeys(rawText, rawCaptures)
     const thread = this.thread
     // A new question in the same chat replaces its answer: one history can't take two turns at once.
-    this.stopChat(thread.id)
+    this.stopChat(thread.id, 'you asked something else')
     this.makeRoom(thread.id)
     const home = this.deps.settings().homeLanguage
     const prepared = takeFiles(opts.files)
@@ -646,7 +663,7 @@ export class ChatSession {
       at: Date.now()
     }
     const answerAt = thread.messages.push(answer) - 1
-    const live: LiveTurn = { thread, answerId: id, abort, confirms: new Map() }
+    const live: LiveTurn = { thread, answerId: id, answer, abort, confirms: new Map() }
     this.live.set(thread.id, live)
     this.hooks.onTurn?.(false)
     let finished = false
@@ -710,7 +727,7 @@ export class ChatSession {
           taint,
           cause: { chatId: thread.id, answerId: id },
           sent: { chatId: thread.id, group: id },
-          confirm: (title, detail) => this.askConfirm(live, title, detail),
+          confirm: (card) => this.askConfirm(live, card),
           knownUrl: (url) => isKnownUrl(url, history),
           mac: this.deps.mac,
           showSteps: (args) => this.showSteps(thread, answer, args, captures[0]?.app ?? app),
@@ -731,6 +748,7 @@ export class ChatSession {
             this.tell(thread, { type: 'delta', id, text: e.text })
           }
           if (e.type === 'tool-result' && LASTING_TOOLS.has(e.name) && e.outcome.status === 'done') answer.lasting = [...(answer.lasting ?? []), e.outcome.result.slice(0, 160)]
+          if (e.type === 'tool-result' && live.undoable) this.receiptUndo(live, e.outcome)
           if (e.type === 'tool-result' && OUTSIDE_TOOLS.has(e.name)) {
             heard.hadOutside = true
             heard.outside += `\n${e.outcome.result}`
@@ -796,13 +814,52 @@ export class ChatSession {
     }
   }
 
-  private askConfirm(turn: LiveTurn, title: string, detail: string): Promise<boolean> {
+  /** Shows a card and waits. However it ends, it leaves a receipt in the answer, saved with the turn (D-60). */
+  private askConfirm(turn: LiveTurn, card: ConfirmCard): Promise<boolean> {
     const confirmId = randomUUID()
     return new Promise((resolve) => {
-      turn.confirms.set(confirmId, resolve)
-      turn.asking = { confirmId, title, detail }
-      this.tell(turn.thread, { type: 'confirm', id: turn.answerId, confirmId, title, detail })
+      turn.confirms.set(confirmId, (allowed, why) => {
+        const receipt = receiptFor(card, allowed, why)
+        const at = (turn.answer.receipts = [...(turn.answer.receipts ?? []), receipt]).length - 1
+        turn.undoable = allowed && (card.kind === 'reminder' || card.kind === 'job') ? { at, kind: card.kind } : undefined
+        this.tell(turn.thread, { type: 'receipt', id: turn.answerId, at, receipt })
+        resolve(allowed)
+      })
+      turn.asking = { confirmId, card }
+      this.tell(turn.thread, { type: 'confirm', id: turn.answerId, confirmId, card })
     })
+  }
+
+  /** The tool a card allowed has run: its Undo, if it has one, goes on the receipt. */
+  private receiptUndo(turn: LiveTurn, outcome: ToolOutcome): void {
+    const { at, kind } = turn.undoable!
+    turn.undoable = undefined
+    const receipt = turn.answer.receipts?.[at]
+    if (!receipt || !outcome.undo || outcome.status !== 'done') return
+    receipt.undo = { kind, ...outcome.undo }
+    this.tell(turn.thread, { type: 'receipt', id: turn.answerId, at, receipt })
+  }
+
+  /** Undo on a receipt in the chat on show: removes the reminder, or stops the look. */
+  async undoReceipt(answerId: string, at: number): Promise<boolean> {
+    const thread = this.thread
+    const index = thread.messages.findIndex((m) => m.id === answerId)
+    const answer = thread.messages[index]
+    const receipt = answer?.role === 'assistant' ? answer.receipts?.[at] : undefined
+    if (!receipt?.undo || receipt.undone) return false
+    const { kind, ref } = receipt.undo
+    try {
+      if (kind === 'job') await this.hooks.withdrawJob?.(ref)
+      else await this.deps.mac.unremind(ref)
+    } catch (err) {
+      console.error('Could not undo from a receipt', err)
+      return false
+    }
+    this.deps.ledger()?.markUndone(thread.id, kind, ref)
+    receipt.undone = true
+    this.persist(thread, { messages: index, history: thread.history.length })
+    this.emit({ type: 'receipt', id: answerId, at, receipt })
+    return true
   }
 
   /** The model only asks. The card is what starts a job, so a hostile page can't. */
@@ -823,7 +880,7 @@ export class ChatSession {
       ? `${when}, Otty will look this up on public web pages, using your AI key, and leave a note in Activity. It won’t send or change anything.${often} Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.${costLine}`
       : `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.${costLine}`
     const heading = repeat ? 'Check this regularly?' : dueAt ? 'Look into this later?' : 'Look into this in the background?'
-    if (!(await this.askConfirm(turn, heading, detail))) return { result: 'The user declined.', status: 'denied' }
+    if (!(await this.askConfirm(turn, jobCard(heading, title, detail, Boolean(dueAt), Boolean(this.hooks.overCap?.()))))) return { result: 'The user declined.', status: 'denied' }
     const thread = turn.thread
     const seedUrls = urlsIn(brief).filter((url) => isKnownUrl(url, thread.history))
     const jobId = randomUUID()

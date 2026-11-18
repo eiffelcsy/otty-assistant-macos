@@ -112,7 +112,8 @@ describe('DESIGN.md "Foundations": sizes, spaces, radii and weights come from th
     { selector: '.btn', prop: 'padding', why: 'button, 0 14 (Components, Button)' },
     { selector: '.btn--large', prop: 'padding', why: 'large button, 0 18 (Components, Button)' },
     { selector: '.composer__input', prop: 'padding', why: 'centres 22px lines in the 32px row (Components, Composer)' },
-    { selector: '.quick__answer', prop: 'padding', why: 'lines the answer up with the box beside the 34px otter' }
+    { selector: '.quick__answer', prop: 'padding', why: 'lines the answer up with the box beside the 34px otter' },
+    { selector: '.ask', prop: 'gap', why: 'confirm card glyph to title, 10 (Spec 01, Confirm card)' }
   ]
   const RADIUS = /^(0|50%|25%|var\(--(r-\w+|radius)\)|calc\(var\(--(r-\w+|radius)\) [+-] var\(--s-\w+\)\))$/
   const OK: [RegExp, RegExp][] = [

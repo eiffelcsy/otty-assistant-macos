@@ -84,10 +84,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M (2–3 days) |
-| D-60 | Decisions and receipts: confirm cards by kind, arming, receipts that stay, the Noted line (Spec 01) | ⏳ planned | D-59 | M (2–3 days) |
 | D-61 | Settings in sections, applied as you go, no Save button (Spec 02) | ⏳ planned | D-59 | M (2–3 days) |
-| D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | ⏳ planned | D-59, D-60 | M–L (3–4 days) |
-| D-63 | The Logbook: Activity, What left your Mac and What Otty changed become one screen of views (Spec 04) | ⏳ planned | D-59, D-60 | L (4–5 days) |
+| D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | ⏳ planned | D-59 | M–L (3–4 days) |
+| D-63 | The Logbook: Activity, What left your Mac and What Otty changed become one screen of views (Spec 04) | ⏳ planned | D-59 | L (4–5 days) |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
@@ -182,23 +181,6 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 
 **Where it stands (2026-11-18).** Built: every token, `--muted` renamed to `--text-2` everywhere and gone (no alias was needed), and the components in `styles.css`: button (primary, soft, quiet-style `copy-btn`, warn; small and large), icon button (32 and `--sm` 28, 25% corners), small × (20 visible in a 28 target), switch (Settings toggles), field, row (Recent chats), group (Settings sections), card, header, composer box and keycap. Measured at 420 × 580: header 44, composer 64 (box 44), health line 40, so chrome is 108 px (19%). Answers have no bubble and use the full width; question to answer 8, turn to turn 20. Both tests are in `rules/renderer.test.ts`, with 5 off-scale entries, and fail on a planted bad value. Dark `--text-2` on `--brand-soft` was 4.35:1, so a selected radio row uses `--text`. Smoke passes (137): the new spacing exposed a race in `FindBar`, where an earlier match's wait for the chat to stop gliding pulled the view back after a quick ↵, so a newer jump now cancels it; and the health specs match Allow and Reopen Otty exactly, because the banner's words are now a button that contains them.
 **Not done yet:** tooltip, toast and menu (nothing uses them yet: tooltips are still native `title`s), the *unusual* and *receipt* cards (D-60), the group label above its box and rows with inset hairlines (Settings' markup, D-61), the header hairline that appears only on scroll, and the reduced-motion fade. **Checks waiting:** `npm run screens` will differ on every scene, so the new baselines are their own PR after CI; idle CPU with `OTTY_METRICS=1` (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8).
-
-## D-60 · Decisions and receipts ⏳
-
-**Goal.** Confirm cards that are worth reading and can't be approved by accident, a trace of every decision in the chat, and a Noted line that gets the eye once. The spec is `docs/design/specs/01-decisions.md`; this entry is how to build it.
-
-**Design.**
-1. **Cards by kind, worked out in main.** `ToolContext.confirm` takes a typed card (`{ kind: 'read' | 'open' | 'search' | 'reminder', ... }`) instead of a title and a detail. The four callers (`tools/web.ts` twice, `tools/mac.ts` twice) build it: host and path from `new URL`, the query as typed by the model, the service's name from the profile, the reminder's title, time (`describeWhen`) and list. `unusual` is decided in main: punycode or non-ASCII host, `http:`, a search under `needsCard`, or over the cap. The `confirm` event carries the card; `title` and `detail` stay filled so older code and saved chats keep working.
-2. **One `ConfirmCard` component** (`components/ConfirmCard.tsx`) for the chat, the Logbook pane and the quick view, sized by a `size` prop. Arming: buttons ignore pointer input until the card has been at least 50% visible for 400 ms, keyboard never delayed. Focus goes to the card, never a button.
-3. **Receipts.** When a confirm is answered, main records `{ allowed, text, undo? }` on the answer (a new optional `receipts` field on the assistant `ChatMessage`, saved in the message JSON, so no schema change; `store/upgrade.ts` reads old messages without it). The text and Undo come from the ledger row (D-46) where there is one. A new question that stops the turn records "Skipped (you asked something else)".
-4. **Rewind card** restyled as a Card with the spec's lists; behaviour unchanged (D-36).
-5. **Noted line** to spec: label, fact, "was:" for updates, inline Undo and Edit, the pen underline only on live answers, the undone state. "Used" lines become the used marker: a 28 px icon button in the action row with a menu.
-
-**Tests.** `cards.test.tsx`: each kind renders its parts and button words; the unusual line shows only for its four reasons; a click at 300 ms does nothing and at 450 ms answers; Enter on the card doesn't approve. A main test per caller: the card's host is the host the tool then fetches or opens (an address with userinfo, `@`, punycode and a trailing dot). `llm.test.ts`: a receipt is saved and reloads; skipping by asking again records the skip. The Noted line test covers added, updated with "was", undone, and no animation class on a reopened chat.
-
-**Done when.** No card says "Yes, go ahead" or "No thanks"; every answered card leaves a receipt that survives reopening; the preview scenes in Spec 01 exist at 420, 760 and 1200, light and dark; `rewind.smoke.ts`, `sent.smoke.ts`, `web.smoke.ts`, `pages.smoke.ts` and `ruleOfTwo.smoke.ts` use the new button names; `npm run screens` shows only the expected changes.
-
-**Smoke test (add to the checklist when it ships).** A page outside what the user sent asks with **Read it** / **Skip**; Read it leaves "Read <host>" in the chat, still there after reopening. A punycode address shows the other-alphabet line. Clicking a card's button the instant it appears does nothing. Add a reminder, then Undo on its receipt removes it.
 
 ## D-61 · Settings in sections ⏳
 
@@ -657,7 +639,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 6. Click the otter with text highlighted → same flow, in the panel next to the otter.
 7. **⌥⇧Space** → draw a box over a chart → ask "what is this?" → the answer describes the image. ✋ also by hand: the real crosshair and a real model’s description.
 8. Click a dotted term → the explainer card appears → **Ask more** sends a follow-up.
-9. "Remind me to call mum at 5pm" → the confirm card appears → Allow → the reminder shows in the Reminders app. The tool chip shows a clock icon, not an emoji.
+9. "Remind me to call mum at 5pm" → the confirm card appears → **Add it** → the reminder shows in the Reminders app. The tool chip shows a clock icon, not an emoji.
 10. "Find me the Wikipedia page for otters and open it" → a search chip appears, then the open_url confirm.
 11. Wrong key → a friendly error appears. Wi-Fi off → a friendly error appears.
 12. Drag the otter, quit, relaunch → the position is remembered. ✋ a real drag of the floating otter, and its position after a relaunch.
@@ -780,7 +762,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 127. Reopen the chat from Recent chats → only the latest answer has the buttons, and nothing older changed. In the quick view → **Try again** only.
 128. `npm run smoke` → it passes, and `npm run smoke -- --grep @harness` shows every way out of the machine refused. ✋ Run it with your own Otty open and check that it keeps working and its chats are unchanged.
 129. `npm run build:mac`, then `npm run smoke:packaged` → "The packaged app started". ✋ It launches the real built app for a few seconds, so run it on a Mac with the build.
-130. Highlight a line of private notes, ⌥Space, and ask Otty to summarise a page that tells it to search for the highlighted text → after reading the page, a **Look this up?** card shows the exact words before any search; **No thanks** keeps them on the Mac. In a chat with nothing highlighted or attached, a search after a page needs no card.
+130. Highlight a line of private notes, ⌥Space, and ask Otty to summarise a page that tells it to search for the highlighted text → after reading the page, a **Search the web for this?** card shows the exact words before any search; **Skip** keeps them on the Mac. In a chat with nothing highlighted or attached, a search after a page needs no card.
 131. Ask Otty to add a reminder and say yes → Settings › Privacy › **See what Otty changed** lists "Reminder added" as can't be undone. Remember something, then **Try again** → the card offers to forget it, and afterwards the row says undone. **Forget all chats** → the list is empty.
 132. In Activity, **Pause everything** → **For an hour** → the bar and the menu bar say "paused until" a time an hour away. Let the Mac sleep through it, then wake it → Otty carries on by itself, and a scheduled look runs once. **Until tomorrow morning** says tomorrow at 9:00. **Until I say** waits for **Let Otty carry on**.
 133. Paste a key into a question → under it, **Otty hid 1 key before sending**. Tap it → the line, with only the first 3 and last 4 characters of the key, and a note to retype it to send it anyway. Quit and reopen Otty, then tap it again → it says Otty doesn't keep these after a restart. A file with keys → its "N keys hidden" line shows the same.
@@ -789,3 +771,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 136. `npm run build:mac`, then `npx @electron/fuses read --app dist/mac-arm64/Otty.app` → RunAsNode, NodeOptions and NodeCliInspect are off; EmbeddedAsarIntegrityValidation, OnlyLoadAppFromAsar and CookieEncryption are on. `ELECTRON_RUN_AS_NODE=1 dist/mac-arm64/Otty.app/Contents/MacOS/Otty -e "console.log(1)"` opens Otty instead of printing 1. `codesign --verify dist/mac-arm64/Otty.app` passes, and `npm run smoke:packaged` still starts. ✋ needs the packaged app.
 137. Open the DMG and run Otty from it → "Move Otty to your Applications folder?". **Not now** → it carries on, and the next launch doesn't ask. Reset (delete `moveDeclined` from `settings.json`), run from the DMG again, **Move to Applications** → Otty relaunches from `/Applications`. Settings › Help › Copy diagnostics says "in Applications: yes". ✋ needs the packaged app and a DMG.
 138. In the installed app, with `DEEPSEEK_API_KEY` set in the shell that opens it and no key saved → Otty still asks for a key. ✋ needs the installed app; `settings.test.ts` covers it, and the case where the Keychain can't be reached.
+139. Ask Otty to read a page that nobody sent → **Read this page?** with the host on its own line and the rest of the address below, and **Read it** / **Skip**. Read it → the answer has "✓ Read <host>", and it's still there after reopening the chat from Recent chats.
+140. A page in another alphabet (`https://аpple.com/…`) → the card shows the `xn--` host and "This address uses letters from another alphabet." Skip → "Skipped <host>".
+141. Click a card's button the instant it appears → nothing happens; a moment later it works. ✋ also by hand: tab to a button and press Space at once → it answers straight away.
+142. "Remind me to feed the otters" → **Add it** → "✓ Added “Feed the otters” · Undo". Undo → the reminder is gone from Reminders and the line says Undone. ✋ also by hand: the real Reminders app.
