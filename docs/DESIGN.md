@@ -126,7 +126,7 @@ Nothing clickable is smaller than 28 × 28, and adjacent targets never overlap.
 | | Compact (opens at 420 × 580) | Wide (980 and up) |
 | --- | --- | --- |
 | Screen gutter | 16 | 24 |
-| Header | 44 | 52, with 78 px clear for the traffic lights |
+| Header | 44 (floating state, at any width) | 52 in the roomy state, with the traffic lights in the sidebar or rail (Spec 05) |
 | Composer area | 8 above, 12 below and at the sides | Same, centred under the 680 px reading column |
 | Reading column | Full width less gutters (388 px at 420) | Capped at 680 px |
 | Between chat turns | 20 | 20 |
@@ -199,20 +199,20 @@ One window, layout from width alone (container queries, never viewport media que
 | Width | Layout |
 | --- | --- |
 | Under 640 (compact; opens at 420 × 580) | One screen at a time. Header: small otter (or Back off the main screens), title, Pause, Logbook, New chat, Expand. At most four icons |
-| 640–979 (medium) | A 64 px icon rail, then a 240 px list column for screens that have one (Chats, Logbook, Settings), then the main column |
-| 980 and up (wide) | A 216 px sidebar, the 250 px list column, the main column with answers capped at 680 px, and a 300 px details pane that changes with the screen |
+| 640–979 (rail, medium) | A 72 px icon rail, then from 712 a 240 px list column for screens that have one (Chats, Logbook, Notebook, Settings), then the main column |
+| 980 and up (wide) | A 216 px sidebar, the 248 px list column, the main column with answers capped at 680 px, and a 300 px details pane that changes with the screen (from 1248 on screens with a list). Exact bands, the header and the columns: [Spec 05](design/specs/05-frame.md) |
 
-- **Sidebar:** Otty's face and one status line on top, then Home, Chats, Logbook, Notebook, Den. Pause sits at the bottom in the same place at every width (a card, a rail icon, or a header button), then Settings.
+- **Sidebar:** Otty’s face and one status line on top, then Home, Chats, Logbook, Notebook, and Den once the den ships. Pause sits at the bottom in the same place at every width (a card, a rail icon, or a header button), then Settings.
 - **Details pane:** Now & next and goals on Home, "This chat" on Chat (what left the Mac, notes used, words explained), the opened entry in the Logbook. Below 980 the same content opens as a page with Back.
 - Confirm and step cards stay narrow inside the reading column; drawings, charts and slides may use its full width.
 
 ## Screens
 
-Screen specs, written to the polish bar, in build order: [01 Decisions and receipts](design/specs/01-decisions.md) (confirm cards, receipts, the Noted line) · [02 Settings](design/specs/02-settings.md) · [03 Chat and the message box](design/specs/03-chat.md) · [04 Logbook](design/specs/04-logbook.md). Each covers 420, 760 and 1200 px even while only the panel ships, so nothing is redone for the Otty window. The summaries below are the direction; where they differ, the spec wins.
+Screen specs, written to the polish bar, in build order: [01 Decisions and receipts](design/specs/01-decisions.md) (confirm cards, receipts, the Noted line) · [02 Settings](design/specs/02-settings.md) · [03 Chat and the message box](design/specs/03-chat.md) · [04 Logbook](design/specs/04-logbook.md) · [05 The frame and layout from width](design/specs/05-frame.md) · [06 The roomy window and Home](design/specs/06-roomy-and-home.md). Each covers 420, 760 and 1200 px even while only the panel ships, so nothing is redone for the Otty window. The summaries below are the direction; where they differ, the spec wins.
 
 ### Home
 
-The otter large at the centre on a water line, a greeting, one sentence of state, and then only blocks with something in them. Each block is a surface the autonomy stages (AUTONOMY.md) already need, so Home grows stage by stage:
+The otter large at the centre on a water line, a greeting, one sentence of state, and then only blocks with something in them. The first version and its pixels are [Spec 06](design/specs/06-roomy-and-home.md). Each block is a surface the autonomy stages (AUTONOMY.md) already need, so Home grows stage by stage:
 
 | Block | Stage | What it is |
 | --- | --- | --- |
@@ -349,7 +349,7 @@ Widths, screens and Expand / Shrink.
 
 | ID | Interaction | When | Then | Why | Build | Cost |
 | --- | --- | --- | --- | --- | --- | --- |
-| W1 | Expand / Shrink in one move | The Expand button or ⌃⌘F | One animated setBounds over 720 ms. Content dims during the move, reflows, then surfaces back. | Keeps the “same window” promise and hides reflow. | Now | main |
+| W1 | Expand / Shrink in one move | The Expand button or ⇧⌘E (⌃⌘F is the Mac’s full screen) | One animated setBounds over 720 ms. Content dims during the move, reflows, then surfaces back. | Keeps the “same window” promise and hides reflow. | Now | main |
 | W2 | Panes enter by side | Width crosses 640 or 980 | Sidebar slides from the left, details pane from the right, over 480 ms. | Shows where new things came from. | Next | brief |
 | W3 | Scroll anchor on reflow | Any width change | The message at the top of the view stays at the top. | Resizing never loses your place. | Now | on touch |
 | W4 | Push and pop | Moving between screens when narrow | Forward glides in from the right over 480 ms; Back from the left. ⌘[ goes back. | Navigation with a direction (UX #10). | Now | brief |

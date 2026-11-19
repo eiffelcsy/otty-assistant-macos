@@ -19,7 +19,7 @@
 
 | | Compact, 420 wide | Medium, 760 wide | Wide, 1200 wide |
 | --- | --- | --- | --- |
-| Column | 418 (window less its 1 px border) | 456 (760 − 64 rail − 240 list) | 734 (1200 − 216 − 250) less a 300 details pane when open |
+| Column | 418 (window less its 1 px border) | 448 (760 − 72 rail − 240 list) | 736 (1200 − 216 − 248); from 1248 a 300 details pane joins (Spec 05) |
 | Gutters | 16 | 16 | 24, reading column centred |
 | Reading column | 386 | 424 | 680 max |
 | Top padding | 16 | 16 | 24 |
