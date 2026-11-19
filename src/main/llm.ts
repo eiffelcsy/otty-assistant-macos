@@ -38,7 +38,7 @@ import { createExplainCache, termsToWarm } from './explainCache'
 import { toolDefs, type MacHands, type ToolOutcome } from './tools'
 import { CHAT_TOOLS, LASTING_TOOLS, OUTSIDE_TOOLS, type RunTaint } from './toolSafety'
 import { runLoop } from './loop'
-import { begin, type Ledger } from './ledger'
+import { begin, canUndo, type Ledger } from './ledger'
 import { count } from './usage'
 import { instantAnswer } from './math'
 import { act, isRisky } from './act'
@@ -304,6 +304,11 @@ export class ChatSession {
   /** Only the chat on show reaches the windows. */
   private tell(thread: Thread, e: ChatEvent): void {
     if (thread.id === this.thread.id) this.emit(e)
+  }
+
+  /** Cards waiting for an answer, for the Logbook's Needs you (D-63). */
+  asking(): { threadId: string; heading: string }[] {
+    return [...this.live.values()].flatMap((t) => (t.asking ? [{ threadId: t.thread.id, heading: t.asking.card.title }] : []))
   }
 
   /** Answers in progress, for Activity. */
@@ -899,6 +904,47 @@ export class ChatSession {
     return true
   }
 
+  /**
+   * Undo from the Logbook (D-63): the change a ledger row names, taken back the same way its receipt or Noted line
+   * would, and that line marked too, so the chat and the Logbook agree. False when it can't be undone.
+   */
+  async undoChange(rowId: number): Promise<boolean> {
+    const ledger = this.deps.ledger()
+    const row = ledger?.get(rowId)
+    if (!row || !canUndo(row) || !row.chatId || !row.ref) return false
+    const { chatId, ref } = row
+    const thread = this.live.get(chatId)?.thread ?? (this.thread.id === chatId ? this.thread : await this.deps.chats().get(chatId))
+    const index = thread?.messages.findIndex((m) => m.id === row.answerId) ?? -1
+    const answer = thread?.messages[index]
+    if (row.undo === 'memory') {
+      const note = answer?.role === 'assistant' ? answer.memories?.find((n) => String(n.memoryId) === ref && !n.undone) : undefined
+      if (!thread || !note || answer?.role !== 'assistant') return false
+      const undone = safely(note, () => undo(this.deps.memory(), note))
+      if (!undone.undone) return false
+      answer.memories = answer.memories!.map((n) => (n === note ? undone : n))
+      ledger!.markUndone(chatId, 'memory', ref)
+      this.persist(thread, { messages: index, history: thread.history.length })
+      this.tell(thread, { type: 'memory', id: answer.id, note: undone })
+      return true
+    }
+    try {
+      if (row.undo === 'job') await this.hooks.withdrawJob?.(ref)
+      else await this.deps.mac.unremind(ref)
+    } catch (err) {
+      console.error('Could not undo from the Logbook', err)
+      return false
+    }
+    ledger!.markUndone(chatId, row.undo, ref)
+    const at = answer?.role === 'assistant' ? (answer.receipts?.findIndex((r) => r.undo?.ref === ref && !r.undone) ?? -1) : -1
+    if (thread && answer?.role === 'assistant' && at >= 0) {
+      const receipt = { ...answer.receipts![at], undone: true }
+      answer.receipts![at] = receipt
+      this.persist(thread, { messages: index, history: thread.history.length })
+      this.tell(thread, { type: 'receipt', id: answer.id, at, receipt })
+    }
+    return true
+  }
+
   /** The model only asks. The card is what starts a job, so a hostile page can't. */
   private async offerJob(turn: LiveTurn, answer: Answer, args: Record<string, unknown>, language: AnswerLanguage, later = false): Promise<ToolOutcome> {
     const title = String(args.title ?? '').trim().slice(0, 80)
@@ -912,9 +958,9 @@ export class ChatSession {
     const cost = (await this.hooks.jobCost?.().catch(() => '')) ?? ''
     const costLine = cost ? `\n\n${cost}` : ''
     const when = repeat && dueAt ? `${capitalised(repeatWords(repeat, dueAt))}, starting ${describeWhen(dueAt)}` : dueAt ? capitalised(describeWhen(dueAt)) : ''
-    const often = repeat ? ` That’s about ${runsPerMonth(repeat)} looks a month, each with its own note, until you cancel it in Activity.` : ''
+    const often = repeat ? ` That’s about ${runsPerMonth(repeat)} looks a month, each with its own note, until you cancel it in the Logbook.` : ''
     const detail = dueAt
-      ? `${when}, Otty will look this up on public web pages, using your AI key, and leave a note in Activity. It won’t send or change anything.${often} Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.${costLine}`
+      ? `${when}, Otty will look this up on public web pages, using your AI key, and leave a note in the Logbook. It won’t send or change anything.${often} Otty has to be running then; if your Mac is asleep, it looks when it wakes.\n\n${brief}\n\nOnly this text goes with it.${costLine}`
       : `${brief}\n\nOtty will look this up on public web pages using your AI key, and only this text goes with it.${costLine}`
     const heading = repeat ? 'Check this regularly?' : dueAt ? 'Look into this later?' : 'Look into this in the background?'
     if (!(await this.askConfirm(turn, jobCard(heading, title, detail, Boolean(dueAt), Boolean(this.hooks.overCap?.()))))) return { result: 'The user declined.', status: 'denied' }
@@ -925,8 +971,8 @@ export class ChatSession {
     if (problem) return { result: problem, status: 'error' }
     answer.jobs = [...(answer.jobs ?? []), { id: jobId, title }]
     const undo = { ref: jobId, label: `Stop looking into “${title}”` }
-    if (repeat && dueAt) return { result: `Scheduled ${repeatWords(repeat, dueAt)}, starting ${describeWhen(dueAt)}. Each look leaves its own note in Activity.`, status: 'done', undo }
-    return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in Activity.` : 'Started. The user will find the report in Activity.', status: 'done', undo }
+    if (repeat && dueAt) return { result: `Scheduled ${repeatWords(repeat, dueAt)}, starting ${describeWhen(dueAt)}. Each look leaves its own note in the Logbook.`, status: 'done', undo }
+    return { result: dueAt ? `Scheduled for ${describeWhen(dueAt)}. The user will find the note in the Logbook.` : 'Started. The user will find the report in the Logbook.', status: 'done', undo }
   }
 
   /** A chart of the user's own table. Code adds it up; the model only said what to chart (D-35). */

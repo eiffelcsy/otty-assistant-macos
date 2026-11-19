@@ -234,6 +234,10 @@ const MIGRATIONS: string[] = [
   );
   create index actions_at on actions(at);
   create index actions_chat on actions(chat_id, answer_id) where chat_id is not null;
+  `,
+  // v10. D-63: the user's latest steering note on a look-up, in their own typed words. It can only narrow the job.
+  `
+  alter table jobs add column note text;
   `
 ]
 

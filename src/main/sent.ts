@@ -37,14 +37,18 @@ export interface SentLog {
 
 let log: () => SentLog | null = () => null
 
-export function setSentLog(get: () => SentLog | null): void {
+let heard: () => void = () => {}
+
+export function setSentLog(get: () => SentLog | null, onRecord: () => void = () => {}): void {
   log = get
+  heard = onRecord
 }
 
 /** Never throws: the record must never be the reason an answer fails. */
 export function record(row: Omit<SentRow, 'at'> & { at?: number }): void {
   try {
     log()?.add({ ...row, at: row.at ?? Date.now(), what: row.what.slice(0, 300) })
+    heard()
   } catch (err) {
     console.error('Could not note what left the Mac', err)
   }
@@ -86,7 +90,7 @@ export function fold(rows: (SentRow & { id: number })[]): SentItem[] {
       continue
     }
     lastGroup = r.group
-    out.push({ id: r.id, at: r.at, kind: r.kind, service: r.service, host: r.host, local: r.local, ...(r.chatId ? { chatId: r.chatId } : {}), what: r.what, count: 1 })
+    out.push({ id: r.id, at: r.at, kind: r.kind, service: r.service, host: r.host, local: r.local, ...(r.chatId ? { chatId: r.chatId } : {}), ...(r.group ? { group: r.group } : {}), what: r.what, count: 1 })
   }
   return out
 }

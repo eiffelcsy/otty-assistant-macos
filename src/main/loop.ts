@@ -36,6 +36,8 @@ export interface LoopOptions {
   stopTools?: () => boolean
   /** Told to the model when its tools end, so it can write up what it has. */
   wrapUp?: string
+  /** Words the user added while it ran (a job's steering note, D-63), added before the next request if not yet sent. */
+  steer?: () => string | null
   /** A reply that goes quiet this long counts as a lost connection, so a dropped network can't leave it hanging. */
   idleMs?: number
   /** Picks up a history that stopped part way: tool calls with no result yet run first. */
@@ -98,6 +100,8 @@ export async function runLoop(o: LoopOptions): Promise<void> {
       wrapped = true
       add({ role: 'user', content: o.wrapUp })
     }
+    const note = o.steer?.()
+    if (note) add({ role: 'user', content: note })
     const quiet = new AbortController()
     let stalled = false
     let watchdog: ReturnType<typeof setTimeout> | undefined

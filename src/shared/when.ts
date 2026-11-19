@@ -1,4 +1,4 @@
-// "Tomorrow at 9:00 AM": a time in the words people use, for cards and Activity rows.
+// "Tomorrow at 9:00 AM": a time in the words people use, for cards and the Logbook.
 
 const DAY = 86_400_000
 const midnight = (t: number) => new Date(t).setHours(0, 0, 0, 0)

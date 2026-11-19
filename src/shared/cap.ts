@@ -26,7 +26,7 @@ const amount = (cap: MonthlyCap) => `${cap.limit.toLocaleString()} ${cap.unit ==
 
 const REACHED = 'You’ve reached this month’s limit'
 
-/** Why something Otty would start by itself is waiting. Shown on the Activity row, with "Run it anyway". */
+/** Why something Otty would start by itself is waiting. Shown in the Logbook, with "Run it anyway". */
 export const capReached = (cap: MonthlyCap): string => `${REACHED} of ${amount(cap)}. Run it anyway?`
 
 /** True for a note written by `capReached`, so the row's button can say "Run it anyway". */

@@ -4,6 +4,18 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The Logbook (D-63, 2026-11-19)
+
+Activity, What left your Mac and What Otty changed are one screen, the **Logbook** (Spec 04), opened from the header's Logbook button or from Settings › Privacy.
+- **Views, not tabs:** Needs you, Coming up and Everything, then *Looking for…* What left my Mac, What Otty changed and What Otty noted, each with its count. Narrow, they're a menu under the title; from 640 px they're a list beside the ledger, and from 1248 an opened entry sits in a pane.
+- **A ledger by day.** Every entry is one line of what happened, verb first, with the thing acted on in bold and where it went or what it was part of under it, and at most one action: Undo, Decide, Cancel or Stop. Days older than yesterday fold to "Show N entries". Every word comes from main (`main/logbook/`), merged from the job store, what left the Mac and the action ledger.
+- **Details on demand:** why it happened, what it sent, what it changed, the chat it was part of, and the buttons its state allows (Allow, Keep going, Run it anyway, Try again, Open the report, Stop repeating).
+- **Now:** a look-up under way gets a card with real progress ("Page 3 of about 6"), **Stop**, and **Add a note**. A note is saved in the user's own words, keys hidden, and the look-up hears it once at its next step. It can only narrow what it looks into: its addresses never count as known, and its tools and limits are unchanged (`jobs.test.ts`).
+- **Undo from the Logbook** takes a reminder, a look-up or a note back the same way its receipt or Noted line would, and that line says Undone too.
+- **Search** is plain matching over the entries' words and hosts, never a model call, and says plainly when nothing matches.
+- **Pause everything** is a header button with its three lengths; while paused, a line at the top says until when, with **Carry on**. The Logbook button's dot and name count what needs you, from the Logbook's own Needs you view.
+- Cards, tool results and the system prompt now point to the Logbook instead of Activity.
+
 ### Try again with a twist (D-58, 2026-11-18)
 
 - **Shorter**, **Simpler** and **In more detail** sit beside Try again under the latest finished answer. Each is Try again (D-36: the same undo list, the history cut to the question) with one line added after the question, "Answer this again, shorter than last time.", so everything before it is sent as it was and the cache holds (`rewind.test.ts` checks it byte for byte).

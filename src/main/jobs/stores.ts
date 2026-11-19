@@ -23,6 +23,7 @@ interface Row {
   worked_ms: number
   wait_url: string | null
   error: string | null
+  note: string | null
   partial: number
   due_at: number | null
   ran_late: number
@@ -52,6 +53,7 @@ const toJob = (r: Row): Job => {
     ...(r.tokens ? { tokens: r.tokens } : {}),
     ...(r.wait_url ? { waitUrl: r.wait_url } : {}),
     ...(r.error ? { error: r.error } : {}),
+    ...(r.note ? { note: r.note } : {}),
     partial: Boolean(r.partial),
     ...(r.due_at ? { dueAt: r.due_at } : {}),
     ...(r.ran_late ? { ranLate: true } : {}),
@@ -73,6 +75,7 @@ const COLUMNS: Record<string, string> = {
   workedMs: 'worked_ms',
   waitUrl: 'wait_url',
   error: 'error',
+  note: 'note',
   updatedAt: 'updated_at',
   seenAt: 'seen_at',
   dueAt: 'due_at',

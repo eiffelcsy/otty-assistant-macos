@@ -229,17 +229,6 @@ export interface UsageReport {
 export type SentKind = 'question' | 'job' | 'title' | 'explain' | 'check' | 'search' | 'page'
 
 /** One row of "What Otty changed" (D-46): a change Otty made, in plain words. */
-export interface ChangeItem {
-  id: number
-  at: number
-  summary: string
-  status: 'running' | 'done' | 'failed' | 'denied'
-  /** Otty can take it back: a memory or a look. */
-  canUndo: boolean
-  undone?: boolean
-  chatId?: string
-}
-
 /** One row of "What left your Mac". Built in code from what was sent, never the text itself. */
 export interface SentItem {
   id: number
@@ -255,6 +244,8 @@ export interface SentItem {
   what: string
   /** Requests folded into this row: one question's rounds, or a job's. */
   count: number
+  /** The job or answer it was part of. */
+  group?: string
 }
 
 export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey' | 'needsKey' | 'savedKeys' | 'readsPages' | 'takenHotkeys' | 'canOpenAtLogin' | 'keychain'>> {
@@ -465,6 +456,87 @@ export interface MemoryNote {
   undone?: boolean
 }
 
+/** The Logbook's views (D-63, Spec 04). The last three are the "Looking for…" ones. */
+export type LogView = 'wait' | 'next' | 'all' | 'sent' | 'changed' | 'noted'
+
+/** What one press on an entry or in its details does. The renderer maps each to a channel, with the entry's id. */
+export type LogControlKind = 'allow' | 'deny' | 'resume' | 'retry' | 'stop' | 'open' | 'carry-on' | 'undo' | 'decide'
+
+export interface LogControl {
+  kind: LogControlKind
+  label: string
+  primary?: boolean
+}
+
+/** One line of the Logbook, every word chosen by main (`logbook/words.ts`). */
+export interface LogEntry {
+  /** `job:…`, `sent:…`, `act:…` or `card:…`: main looks up what it is. */
+  id: string
+  at: number
+  /** "3:44", or for Coming up "Thu", "in 2 h", "daily". */
+  time: string
+  glyph: string
+  tone?: 'wait' | 'fail'
+  first: string
+  /** The thing acted on, shown in 700 where it appears in `first`. */
+  strong?: string
+  second: string
+  /** At most one: Undo, Decide, Skip, Stop. Done and undone entries have none. */
+  action?: LogControl
+  undone?: boolean
+  /** What a screen reader says for the entry. */
+  label: string
+}
+
+export interface LogDay {
+  /** The local day, "2026-11-19". */
+  date: string
+  title: string
+  count: string
+  entries: LogEntry[]
+  /** Everything folds days older than yesterday to their header and a "Show N entries" row. */
+  folded?: boolean
+}
+
+/** A look-up under way, for the Now card. */
+export interface LogNow {
+  id: string
+  title: string
+  /** "Page 3 of about 6", "Paused", or the runner's note while it tries again. */
+  line: string
+  done: number
+  expected: number
+  paused: boolean
+  /** The user's latest steering note, in their words. */
+  note?: string
+}
+
+export interface LogPage {
+  view: LogView
+  title: string
+  subtitle: string
+  views: { view: LogView; name: string; count: number; description?: string }[]
+  now: LogNow[]
+  days: LogDay[]
+  /** Shown when `days` is empty. */
+  empty: string
+  /** "Otty is paused until 3pm. Nothing runs on its own.", while paused. */
+  paused?: string
+}
+
+export interface LogDetails {
+  id: string
+  title: string
+  time: string
+  why: string
+  sent: string[]
+  changes: { line: string; note: string; action?: LogControl }[]
+  partOf?: { label: string; chatId: string }
+  controls: LogControl[]
+  /** A look-up's waiting question: the address it wants to read. */
+  waitUrl?: string
+}
+
 /** A row in Activity: background work, or an answer still running in another chat. */
 export interface ActivityItem {
   id: string
@@ -613,26 +685,31 @@ export interface OttyApi {
   /** "I'm stuck on this step": looks at the screen and asks. */
   stuckOnStep(answerId: string, index: number): Promise<void>
   listActivity(): Promise<ActivityItem[]>
-  stopActivity(item: ActivityItem): Promise<void>
+  stopActivity(item: Pick<ActivityItem, 'id'>): Promise<void>
   /** Allow or Don't Allow, for an address a job came across. */
   answerActivity(id: string, allow: boolean): Promise<void>
   /** Keep going. */
   resumeActivity(id: string): Promise<void>
   /** Try again, from the last saved step. */
   retryActivity(id: string): Promise<void>
-  openActivity(item: ActivityItem): Promise<void>
+  openActivity(item: Pick<ActivityItem, 'id'>): Promise<void>
   /** Activity is on show, so finished work has been seen. */
   seenActivity(): Promise<void>
   /** What left the Mac, newest first. */
-  listSent(): Promise<SentItem[]>
   /** What Otty changed, newest first (D-46). */
-  listChanges(): Promise<ChangeItem[]>
+  logbook(view: LogView, search: string): Promise<LogPage>
+  logbookEntry(id: string): Promise<LogDetails | null>
+  /** Undo a change from the Logbook, by its entry id. False when it can't be undone. */
+  undoChange(id: string): Promise<boolean>
+  /** A steering note on a look-up that hasn't finished (D-63). */
+  noteJob(id: string, text: string): Promise<boolean>
   /** What Try again or Edit on the latest turn would undo (D-36). Null when it isn't the latest turn. */
   rewindPlan(messageId: string): Promise<RewindPlan | null>
   /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */
   /** `twist` asks for the same answer in another shape: shorter, simpler or in more detail (D-58). */
   rewind(messageId: string, undo: string[], mode: 'retry' | 'edit', twist?: Twist): Promise<EditDraft | null>
   onActivity(cb: (items: ActivityItem[]) => void): () => void
+  onLogbook(cb: () => void): () => void
   /** Settings changed in main (the menu bar, another window), so every view shows the same. */
   onSettings(cb: (settings: PublicSettings) => void): () => void
   /** "Don't learn from this chat", for the open chat. */

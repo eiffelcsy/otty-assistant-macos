@@ -1,9 +1,10 @@
-// Looks for later (D-27), repeating looks (D-34) and Pause everything, through the real runner and Activity (D-47).
+// Looks for later (D-27), repeating looks (D-34) and Pause everything, through the real runner and the Logbook (D-47, D-63).
 // Time moves with shiftClock. A Mac waking is power('resume'), which main acts on after its wake delay; a quit past a
 // due time is a clock moved back before scheduling, because a relaunch starts at the real time again.
 import type { Page } from '@playwright/test'
 import { expect, test, type Otty } from '../fixtures'
 import { textOf, type World } from '../world/server'
+import { lookEntry, openEntry, openLogbook, showView } from '../logbook'
 
 const MIN = 60_000
 const DAY = 24 * 3_600_000
@@ -27,7 +28,7 @@ function localIso(ms: number): string {
 
 /**
  * A time as either clock shows it: "9:00 AM" (with the narrow space newer ICU puts before AM) or "09:00". Main writes
- * the card and the renderer writes Activity rows, and in a smoke run they don't share a locale.
+ * the card and the Logbook, and in a smoke run they may not share the renderer's locale.
  */
 const timeRe = (ms: number) => {
   const d = new Date(ms)
@@ -60,18 +61,8 @@ async function scheduleLater(otty: Otty, world: World, panel: Page, later: Later
   await expect(panel.getByText(later.after)).toBeVisible()
 }
 
-async function openActivity(panel: Page): Promise<void> {
-  if ((await panel.locator('.panel__title').textContent()) === 'Activity') return
-  await panel.getByRole('button', { name: 'Activity' }).click()
-  await expect(panel.locator('.panel__title')).toHaveText('Activity')
-}
-
-async function backToChat(panel: Page): Promise<void> {
-  if ((await panel.locator('.panel__title').textContent()) !== 'Activity') return
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
-}
-
-const rows = (panel: Page, title: string) => panel.locator('li.activity-row').filter({ hasText: title })
+const rows = (panel: Page, title: string) => lookEntry(panel, title)
+const nowCard = (panel: Page, title: string) => panel.locator('.log-now').filter({ hasText: title })
 
 /** Runs of a job, counted by the first request each one sent. */
 const runsOf = (world: World, brief: string) => world.turnRequests().filter((b) => (b.messages ?? []).filter((m) => m.role !== 'system').length === 1 && textOf(b.messages?.find((m) => m.role === 'user')?.content).includes(brief)).length
@@ -83,7 +74,7 @@ const RAIL: Omit<Later, 'at'> = {
   after: 'Done, I’ll check it then.'
 }
 
-test('a look for tomorrow at 9: No schedules nothing; yes shows it in Activity, and Cancel removes it', { tag: ['@step-93', '@gate'] }, async ({ otty, world }) => {
+test('a look for tomorrow at 9: No schedules nothing; yes shows it in Coming up, and Cancel removes it', { tag: ['@step-93', '@gate'] }, async ({ otty, world }) => {
   const at = nineTomorrow()
   const panel = await otty.openPanel()
   await offerLater(otty, world, panel, { ...RAIL, at }, 'Alright, I won’t.')
@@ -94,12 +85,15 @@ test('a look for tomorrow at 9: No schedules nothing; yes shows it in Activity, 
   await expect(card).toContainText(RAIL.brief)
   await panel.getByRole('button', { name: 'Skip' }).click()
   await expect(panel.getByText('Alright, I won’t.')).toBeVisible()
-  await expect(panel.getByRole('button', { name: 'Activity' })).toHaveCount(0)
+  await openLogbook(panel, 'Coming up')
+  await expect(rows(panel, RAIL.title)).toHaveCount(0)
+  await panel.getByRole('button', { name: 'Back to chat' }).click()
 
   await scheduleLater(otty, world, panel, { ...RAIL, at })
-  await openActivity(panel)
+  await openLogbook(panel, 'Coming up')
   const row = rows(panel, RAIL.title)
-  await expect(row).toContainText(new RegExp(`Will look tomorrow at ${timeRe(at)}`))
+  await expect(row).toContainText(`Will look into “${RAIL.title}”`)
+  await expect(row).toContainText(new RegExp(`Tomorrow at ${timeRe(at)}`))
   await row.getByRole('button', { name: 'Cancel' }).click()
   await expect(row).toHaveCount(0)
   expect(runsOf(world, RAIL.brief)).toBe(0)
@@ -128,11 +122,11 @@ test('left running, the runner’s own timer starts a due look; it finishes as a
   await expect(bubble.locator('.bubble__badge')).toBeVisible({ timeout: 15_000 })
   expect((await otty.snapshot()).calls.filter((c) => c.kind === 'notify')).toEqual([])
   const again = await otty.openPanel()
-  await openActivity(again)
+  await openLogbook(again)
   const row = rows(again, soon.title)
-  await expect(row).toContainText('Done')
+  await expect(row).toContainText(`Looked into “${soon.title}”`)
   await expect(row).not.toContainText('late')
-  await row.getByRole('button', { name: 'Open' }).click()
+  await (await openEntry(row)).getByRole('button', { name: 'Open the report' }).click()
   await expect(again.getByText('Note: the ferry leaves at 10:00 and 13:30.')).toBeVisible()
   expect(runsOf(world, soon.brief)).toBe(1)
 })
@@ -142,13 +136,13 @@ test('a Mac asleep past the time runs the look once on waking, and says it was l
   world.reply(look.brief, { say: 'Note: 1,500 yen.' })
   const panel = await otty.openPanel()
   await scheduleLater(otty, world, panel, look)
-  await openActivity(panel)
+  await openLogbook(panel)
   await otty.control((c) => c.power('suspend'))
   await otty.control((c) => c.shiftClock(5 * 60_000))
   await otty.control((c) => c.power('resume'))
-  const row = rows(panel, look.title)
-  await expect(row).toContainText('Done', { timeout: 20_000 })
-  await expect(row).toContainText(new RegExp(`Looked a little late: it was due today at ${timeRe(look.at)}, but Otty wasn’t running then.`))
+  const row = rows(panel, look.title).filter({ hasText: 'Looked into' })
+  await expect(row).toBeVisible({ timeout: 20_000 })
+  await expect(row).toContainText(new RegExp(`a little late, it was due today at ${timeRe(look.at)}`))
   expect(runsOf(world, look.brief)).toBe(1)
 })
 
@@ -161,14 +155,14 @@ test('quit past the time and relaunch: the look runs once, late', { tag: ['@step
   await scheduleLater(otty, world, panel, look)
   await otty.relaunch()
   const again = await otty.openPanel()
-  await openActivity(again)
-  const row = rows(again, look.title)
-  await expect(row).toContainText('Done', { timeout: 20_000 })
-  await expect(row).toContainText('Looked a little late')
+  await openLogbook(again)
+  const row = rows(again, look.title).filter({ hasText: 'Looked into' })
+  await expect(row).toBeVisible({ timeout: 20_000 })
+  await expect(row).toContainText('a little late')
   expect(runsOf(world, look.brief)).toBe(1)
 })
 
-test('Pause everything stops the running look and holds the scheduled one, across a relaunch, until Let Otty carry on', { tag: ['@step-96', '@step-103', '@gate'] }, async ({ otty, world }) => {
+test('Pause everything stops the running look and holds the scheduled one, across a relaunch, until Carry on', { tag: ['@step-96', '@step-103', '@gate'] }, async ({ otty, world }) => {
   await otty.control((c) => c.shiftClock(-10 * 60_000))
   const scheduled: Later = { ...RAIL, question: 'Check the rail pass price in 3 minutes', at: (await appNow(otty)) + 3 * MIN }
   const running = { question: 'Compare hotel prices in Kyoto across several sites', title: 'Kyoto hotels', brief: 'Compare prices of three Kyoto ryokan across booking sites.', after: 'I’ll look into the hotels.' }
@@ -186,14 +180,14 @@ test('Pause everything stops the running look and holds the scheduled one, acros
   await panel.getByRole('button', { name: 'Start it' }).last().click()
   await expect(panel.getByText(running.after)).toBeVisible()
   await expect.poll(() => world.modelRequests().filter((b) => !b.stream).length).toBeGreaterThan(0)
-  await openActivity(panel)
+  await openLogbook(panel)
   await otty.control((c) => c.offline(true))
   await otty.control((c) => c.power('resume'))
-  await expect(rows(panel, running.title)).toContainText('Lost the connection. Trying again…', { timeout: 20_000 })
+  await expect(nowCard(panel, running.title)).toContainText('Lost the connection. Trying again…', { timeout: 20_000 })
 
   expect(await otty.control((c) => c.clickTray('Until I say'))).toBe(true)
-  await expect(rows(panel, running.title)).toContainText('Paused until you let Otty carry on.')
-  await expect(rows(panel, scheduled.title)).toContainText('Paused until you let Otty carry on.')
+  await expect(nowCard(panel, running.title)).toContainText('Paused')
+  await expect(panel.getByRole('status')).toContainText('Otty is paused. Nothing runs on its own until you let it carry on.')
   expect(await otty.control((c) => c.tray())).toContain('Let Otty carry on')
   await expect(bubble.locator('.bubble__paused')).toBeVisible()
   await expect(bubble).toHaveAttribute('title', 'Otty is paused · Right-click to let it carry on')
@@ -202,22 +196,22 @@ test('Pause everything stops the running look and holds the scheduled one, acros
   await otty.relaunch()
   expect(await otty.control((c) => c.tray())).toContain('Let Otty carry on')
   const again = await otty.openPanel()
-  await openActivity(again)
+  await openLogbook(again)
   await expect(again.getByRole('status')).toContainText('Otty is paused.')
-  await expect(rows(again, running.title)).toContainText('Paused until you let Otty carry on.')
-  await expect(rows(again, scheduled.title)).toContainText('Will look today at')
+  await expect(nowCard(again, running.title)).toContainText('Paused')
+  await expect(rows(again, scheduled.title)).toContainText(`Will look into “${scheduled.title}”`)
   expect(runsOf(world, scheduled.brief)).toBe(0)
 
-  await rows(again, running.title).getByRole('button', { name: 'Let Otty carry on' }).click()
-  await expect(rows(again, running.title)).toContainText('Done')
-  await expect(rows(again, scheduled.title)).toContainText('Done')
-  await expect(rows(again, scheduled.title)).toContainText('Looked a little late')
+  await nowCard(again, running.title).getByRole('button', { name: 'Carry on' }).click()
+  await expect(rows(again, running.title)).toContainText(`Looked into “${running.title}”`)
+  await expect(rows(again, scheduled.title)).toContainText(`Looked into “${scheduled.title}”`)
+  await expect(rows(again, scheduled.title)).toContainText('a little late')
   expect(await otty.control((c) => c.tray())).toContain('Pause everything Otty is doing')
   // The running look carried on from its saved steps: its brief went once as the first message, never twice.
   expect(runsOf(world, running.brief)).toBe(1)
 })
 
-test('Activity: Coming up first, soonest at the top, then Recent; Pause everything at the top agrees with the menu bar', { tag: ['@step-106'] }, async ({ otty, world }) => {
+test('Coming up, soonest at the top, and Everything newest first; Pause everything in the header agrees with the menu bar', { tag: ['@step-106'] }, async ({ otty, world }) => {
   const nearer: Later = { ...RAIL, at: nineTomorrow() }
   const farther: Later = { question: 'Check the museum hours the day after tomorrow at 9', title: 'Museum hours', brief: 'Find the opening hours of the Ghibli Museum.', at: nineTomorrow() + DAY, after: 'I’ll check the museum then.' }
   const now = { question: 'Look into the best otter cafés across several sites', title: 'Otter cafés', brief: 'Compare otter cafés in Tokyo across review sites.', after: 'Looking into the cafés.' }
@@ -231,26 +225,26 @@ test('Activity: Coming up first, soonest at the top, then Recent; Pause everythi
   await panel.getByRole('button', { name: 'Start it' }).last().click()
   await expect(panel.getByText(now.after)).toBeVisible()
 
-  await openActivity(panel)
-  await expect(rows(panel, now.title)).toContainText('Done')
-  await expect(panel.locator('.activity__heading')).toHaveText(['Coming up', 'Recent'])
-  const coming = panel.locator('.activity__list').first().locator('li')
+  await openLogbook(panel)
+  await expect(rows(panel, now.title)).toContainText(`Looked into “${now.title}”`)
+  await showView(panel, 'Coming up')
+  const coming = panel.locator('li.log-entry')
   await expect(coming).toHaveCount(2)
   await expect(coming.nth(0)).toContainText(nearer.title)
   await expect(coming.nth(1)).toContainText(farther.title)
-  await expect(panel.locator('.activity__list').nth(1)).toContainText(now.title)
+  await expect(panel.locator('.log-head__subtitle')).toHaveText('2 checks')
 
   await panel.getByRole('button', { name: 'Pause everything' }).click()
-  await panel.getByRole('button', { name: 'Until I say' }).click()
+  await panel.getByRole('menuitem', { name: 'Until I say' }).click()
   await expect(panel.getByRole('status')).toContainText('Otty is paused. Nothing runs on its own until you let it carry on.')
   expect(await otty.control((c) => c.tray())).toContain('Let Otty carry on')
-  await panel.getByRole('status').getByRole('button', { name: 'Let Otty carry on' }).click()
+  await panel.getByRole('status').getByRole('button', { name: 'Carry on' }).click()
   await expect(panel.getByRole('button', { name: 'Pause everything' })).toBeVisible()
   expect(await otty.control((c) => c.tray())).toContain('Pause everything Otty is doing')
-  await backToChat(panel)
+  await panel.getByRole('button', { name: 'Back to chat' }).click()
 })
 
-test('every Monday at 9: the card says so and about 4 looks a month; Coming up shows ↻, next, and Stop repeating', { tag: ['@step-120'] }, async ({ otty, world }) => {
+test('every Monday at 9: the card says so and about 4 looks a month; Coming up shows ↻, next, and its details Stop repeating', { tag: ['@step-120'] }, async ({ otty, world }) => {
   const d = new Date()
   d.setDate(d.getDate() + (((8 - d.getDay()) % 7) || 7))
   d.setHours(9, 0, 0, 0)
@@ -263,12 +257,13 @@ test('every Monday at 9: the card says so and about 4 looks a month; Coming up s
   await panel.getByRole('button', { name: 'Schedule it' }).click()
   await expect(panel.getByText(look.after)).toBeVisible()
 
-  await openActivity(panel)
+  await openLogbook(panel, 'Coming up')
   const row = rows(panel, look.title)
-  await expect(panel.locator('.activity__heading')).toHaveText(['Coming up'])
+  await expect(row).toContainText(`Checks “${look.title}”`)
   await expect(row.locator('.fi-rr-arrows-repeat')).toBeVisible()
+  await expect(row).toContainText('weekly')
   await expect(row).toContainText(new RegExp(`Every Monday at ${timeRe(look.at)} · next`))
-  await expect(row.getByRole('button', { name: 'Stop repeating' })).toBeVisible()
+  await expect((await openEntry(row)).getByRole('button', { name: 'Stop repeating' })).toBeVisible()
 })
 
 test('a daily look runs and moves to tomorrow; asleep across two times it runs once; Stop repeating keeps the notes', { tag: ['@step-121'] }, async ({ otty, world }) => {
@@ -276,13 +271,13 @@ test('a daily look runs and moves to tomorrow; asleep across two times it runs o
   world.reply(look.brief, { say: 'Note: 1,500 yen today.' }, { say: 'Note: 1,600 yen two days on.' })
   const panel = await otty.openPanel()
   await scheduleLater(otty, world, panel, look)
-  await openActivity(panel)
-  const series = panel.locator('.activity__list').first().locator('li').filter({ hasText: look.title })
+  await openLogbook(panel)
+  const series = rows(panel, look.title).filter({ hasText: 'Checks' })
   await expect(series).toContainText(new RegExp(`Every day at ${timeRe(look.at)} · next today`))
 
   await otty.control((c) => c.shiftClock(3 * 60_000))
   await otty.control((c) => c.power('resume'))
-  const done = rows(panel, look.title).filter({ hasText: 'Done' })
+  const done = rows(panel, look.title).filter({ hasText: 'Looked into' })
   await expect(done).toHaveCount(1, { timeout: 20_000 })
   await expect(series).toContainText(new RegExp(`next tomorrow at ${timeRe(look.at)}`))
 
@@ -293,20 +288,24 @@ test('a daily look runs and moves to tomorrow; asleep across two times it runs o
   const late = rows(panel, look.title).filter({ hasText: 'Look into it now?' })
   await expect(late).toHaveCount(1, { timeout: 20_000 })
   await expect(rows(panel, look.title)).toHaveCount(3) // the series, the first note, the late run
-  await late.getByRole('button', { name: 'Keep going' }).click()
+  await (await openEntry(late)).getByRole('button', { name: 'Keep going' }).click()
+  await panel.locator('.log-details__back').click()
   await expect(done).toHaveCount(2)
   expect(runsOf(world, look.brief)).toBe(2)
 
-  await series.getByRole('button', { name: 'Stop repeating' }).click()
-  await expect(panel.locator('.activity__heading').filter({ hasText: 'Coming up' })).toHaveCount(0)
+  await (await openEntry(series)).getByRole('button', { name: 'Stop repeating' }).click()
+  // The series is gone, so its details close by themselves.
+  await expect(panel.locator('.log-details')).toHaveCount(0)
   await expect(rows(panel, look.title)).toHaveCount(2)
   await expect(done).toHaveCount(2)
+  await showView(panel, 'Coming up')
+  await expect(panel.locator('li.log-entry')).toHaveCount(0)
 })
 
-test('Activity’s pause bar follows Pause everything from the menu bar, and Let Otty carry on from a row', { tag: ['@step-96', '@step-106'] }, async ({ otty, world }) => {
+test('the Logbook’s paused line follows Pause everything from the menu bar, and Let Otty carry on from there', { tag: ['@step-96', '@step-106'] }, async ({ otty, world }) => {
   const panel = await otty.openPanel()
   await scheduleLater(otty, world, panel, { ...RAIL, at: nineTomorrow() })
-  await openActivity(panel)
+  await openLogbook(panel)
   await otty.control((c) => c.clickTray('Until I say'))
   await expect(panel.getByRole('status')).toContainText('Otty is paused.')
   await otty.control((c) => c.clickTray('Let Otty carry on'))
@@ -316,10 +315,10 @@ test('Activity’s pause bar follows Pause everything from the menu bar, and Let
 test('Pause for an hour says when Otty carries on, and after the hour, or a sleep through it, it does', { tag: ['@step-132'] }, async ({ otty, world }) => {
   const panel = await otty.openPanel()
   await scheduleLater(otty, world, panel, { ...RAIL, at: nineTomorrow() })
-  await openActivity(panel)
+  await openLogbook(panel)
   await panel.getByRole('button', { name: 'Pause everything' }).click()
-  await panel.getByRole('button', { name: 'For an hour' }).click()
-  await expect(panel.getByRole('status')).toContainText(/Otty is paused until today at .+\. Nothing runs on its own until then\./)
+  await panel.getByRole('menuitem', { name: 'For an hour' }).click()
+  await expect(panel.getByRole('status')).toContainText(/Otty is paused until today at .+\. Nothing runs on its own\./)
   expect((await otty.control((c) => c.tray())).some((l) => l.startsWith('Otty is paused until today at '))).toBe(true)
 
   // The Mac slept through the hour: on waking, the pause has ended by itself, as if Let Otty carry on was pressed.

@@ -1,9 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { ChangeItem } from '../shared/types'
 import { maskSecrets } from '../shared/secrets'
 
 // The action ledger (D-46): every change Otty makes is written down before it runs, with why and how to undo it, and
-// marked once it's done. Try again reads it to say what it can take back, and Activity shows it. Like the sent log,
+// marked once it's done. Try again reads it to say what it can take back, and the Logbook shows it. Like the sent log,
 // it lives and dies with chats, and callers go through `begin`, which does nothing until main plugs a ledger in.
 
 export type UndoKind = 'memory' | 'job' | 'reminder' | 'none'
@@ -37,16 +36,19 @@ export interface Ledger {
   forAnswers(chatId: string, answerIds: string[]): ActionRow[]
   markUndone(chatId: string, kind: UndoKind, ref: string): void
   /** Newest first. */
-  list(limit?: number): ChangeItem[]
+  list(limit?: number): ActionRow[]
+  get(id: number): ActionRow | undefined
   forgetChat(id: string): void
   clear(): void
   prune(cutoff: number): void
 }
 
 let ledger: () => Ledger | null = () => null
+let heard: () => void = () => {}
 
-export function setLedger(get: () => Ledger | null): void {
+export function setLedger(get: () => Ledger | null, onChange: () => void = () => {}): void {
   ledger = get
+  heard = onChange
 }
 
 /** The ledger, if one is plugged in. */
@@ -62,9 +64,11 @@ export function begin(row: NewAction, log: Ledger | null = ledger()): (f: Finish
   try {
     if (!log) return () => {}
     const id = log.start({ ...row, summary: clean(row.summary), at: Date.now() })
+    heard()
     return (f) => {
       try {
         log.finish(id, f.summary === undefined ? f : { ...f, summary: clean(f.summary) })
+        heard()
       } catch (err) {
         console.error('Could not finish a ledger row', err)
       }
@@ -75,16 +79,8 @@ export function begin(row: NewAction, log: Ledger | null = ledger()): (f: Finish
   }
 }
 
-const toItem = (r: ActionRow): ChangeItem => ({
-  id: r.id,
-  at: r.at,
-  summary: r.summary,
-  status: r.status,
-  // A reminder Reminders gave no id for can't be found again.
-  canUndo: r.undo !== 'none' && Boolean(r.ref),
-  ...(r.chatId ? { chatId: r.chatId } : {}),
-  ...(r.undoneAt ? { undone: true } : {})
-})
+/** Otty can take it back: a memory, a look or a reminder Reminders gave an id for. */
+export const canUndo = (r: ActionRow): boolean => r.status === 'done' && r.undo !== 'none' && Boolean(r.ref) && !r.undoneAt
 
 const LIMIT = 200
 
@@ -146,8 +142,13 @@ export class SqliteLedger implements Ledger {
     this.db.prepare('update actions set undone_at = ? where chat_id = ? and undo = ? and ref = ? and undone_at is null').run(Date.now(), chatId, kind, ref)
   }
 
-  list(limit = LIMIT): ChangeItem[] {
-    return (this.db.prepare('select * from actions order by at desc, id desc limit ?').all(limit) as unknown as Row[]).map((r) => toItem(fromRow(r)))
+  list(limit = LIMIT): ActionRow[] {
+    return (this.db.prepare('select * from actions order by at desc, id desc limit ?').all(limit) as unknown as Row[]).map(fromRow)
+  }
+
+  get(id: number): ActionRow | undefined {
+    const row = this.db.prepare('select * from actions where id = ?').get(id) as Row | undefined
+    return row && fromRow(row)
   }
 
   forgetChat(id: string): void {
@@ -187,11 +188,16 @@ export class MemoryLedger implements Ledger {
     for (const r of this.rows) if (r.chatId === chatId && r.undo === kind && r.ref === ref && !r.undoneAt) r.undoneAt = Date.now()
   }
 
-  list(limit = LIMIT): ChangeItem[] {
+  list(limit = LIMIT): ActionRow[] {
     return [...this.rows]
       .sort((a, b) => b.at - a.at || b.id - a.id)
       .slice(0, limit)
-      .map(toItem)
+      .map((r) => ({ ...r }))
+  }
+
+  get(id: number): ActionRow | undefined {
+    const row = this.rows.find((r) => r.id === id)
+    return row && { ...row }
   }
 
   forgetChat(id: string): void {

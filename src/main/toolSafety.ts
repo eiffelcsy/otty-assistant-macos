@@ -33,7 +33,7 @@ export const SAFETY = {
   make_chart: row('none', false, false, 'nothing'),
   // The brief goes out with the job, and the user can cancel it.
   start_job: row('none', false, true, 'undoable'),
-  // The same, later: the brief goes out when it runs, and Cancel in Activity takes it back until then.
+  // The same, later: the brief goes out when it runs, and Cancel in the Logbook takes it back until then.
   schedule_job: row('none', false, true, 'undoable')
 } as const satisfies Record<string, Safety>
 

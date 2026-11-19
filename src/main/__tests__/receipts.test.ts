@@ -73,7 +73,7 @@ describe('receipts (D-60)', () => {
 
     expect(await session.undoReceipt(answerId, 0)).toBe(true)
     expect(removed).toEqual(['x-apple-reminder://R1'])
-    expect(ledger.list()[0].undone).toBe(true)
+    expect(ledger.list()[0].undoneAt).toBeTruthy()
     expect(await session.undoReceipt(answerId, 0)).toBe(false)
 
     const threadId = session.threadId
@@ -83,6 +83,27 @@ describe('receipts (D-60)', () => {
     const load = [...events].reverse().find((e) => e.type === 'load') as Extract<ChatEvent, { type: 'load' }>
     const reopened = load.messages.find((m) => m.id === answerId)
     expect(reopened?.role === 'assistant' && reopened.receipts).toEqual([expect.objectContaining({ verb: 'Added', undone: true })])
+  })
+
+  it('takes a reminder back from the Logbook too, and the chat’s receipt agrees (D-63)', async () => {
+    const { session, events, removed, ledger, receipts } = rig(() => true)
+    replies = [call('c1', 'create_reminder', { title: 'Call mum' }), say('Added.')]
+    await session.send('Remind me to call mum', [], null)
+    const [row] = ledger.list()
+    session.reset()
+    const before = events.length
+    expect(await session.undoChange(row.id)).toBe(true)
+    expect(removed).toEqual(['x-apple-reminder://R1'])
+    expect(ledger.get(row.id)?.undoneAt).toBeTruthy()
+    expect(await session.undoChange(row.id)).toBe(false)
+    // That chat isn't on show, so no window hears about it; it reads as undone when it opens.
+    expect(events.slice(before)).toEqual([])
+    expect(receipts().at(-1)?.undone).toBeUndefined()
+    await session.open(row.chatId!)
+    const load = [...events].reverse().find((e) => e.type === 'load') as Extract<ChatEvent, { type: 'load' }>
+    const answer = load.messages.find((m) => m.id === row.answerId)
+    expect(answer?.role === 'assistant' && answer.receipts?.[0]).toMatchObject({ verb: 'Added', undone: true })
+    expect(await session.undoReceipt(row.answerId!, 0)).toBe(false)
   })
 
   it('says Skipped, and needs no Undo, when the user skips', async () => {

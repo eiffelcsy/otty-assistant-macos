@@ -7,7 +7,7 @@ const TITLES: Record<NonNullable<BubbleMood> | 'badge' | 'idle', string> = {
   idle: 'Click to ask Otty · Right-click for more',
   badge: 'Otty has an answer for you · Click to see it',
   working: 'Otty is looking into something for you · Click to ask Otty',
-  waiting: 'Otty needs your OK on something · Click, then open Activity',
+  waiting: 'Otty needs your OK on something · Click, then open the Logbook',
   paused: 'Otty is paused · Right-click to let it carry on'
 }
 

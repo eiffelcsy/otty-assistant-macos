@@ -65,7 +65,7 @@ interface Props {
   /** The section on show, or null for the list. Kept by the panel so the health line can open one. */
   section: SectionId | null
   onSection: (s: SectionId | null) => void
-  onOpenActivity: (tab: 'sent' | 'changed') => void
+  onOpenLogbook: (tab: 'sent' | 'changed') => void
   onOpenNotebook: () => void
 }
 
@@ -90,7 +90,7 @@ function summary(id: SectionId, s: PublicSettings, usage: UsageReport | null): {
   }
 }
 
-export function Settings({ settings, onSaved, section, onSection, onOpenActivity, onOpenNotebook }: Props) {
+export function Settings({ settings, onSaved, section, onSection, onOpenLogbook, onOpenNotebook }: Props) {
   const [usage, setUsage] = useState<UsageReport | null>(null)
   const [query, setQuery] = useState('')
   const [found, setFound] = useState<string | null>(null)
@@ -237,7 +237,7 @@ export function Settings({ settings, onSaved, section, onSection, onOpenActivity
           ))}
         </Group>
       )}
-      {section === 'privacy' && <Privacy shown={shown} settings={settings} row={row} save={save} onOpenActivity={onOpenActivity} onOpenNotebook={onOpenNotebook} />}
+      {section === 'privacy' && <Privacy shown={shown} settings={settings} row={row} save={save} onOpenLogbook={onOpenLogbook} onOpenNotebook={onOpenNotebook} />}
       {section === 'usage' && <Usage usage={usage} cap={shown.monthlyCap} row={row} save={save} />}
       {section === 'conn' && <Conn settings={settings} shown={shown} row={row} save={save} onSaved={onSaved} />}
       {section === 'help' && <Help />}
@@ -292,7 +292,7 @@ function ForgetPrompt({ text, onForget, onKeep }: { text: string; onForget: () =
   )
 }
 
-function Privacy({ shown, settings, row, save, onOpenActivity, onOpenNotebook }: { shown: PublicSettings; settings: PublicSettings; row: Row; save: Save } & Pick<Props, 'onOpenActivity' | 'onOpenNotebook'>) {
+function Privacy({ shown, settings, row, save, onOpenLogbook, onOpenNotebook }: { shown: PublicSettings; settings: PublicSettings; row: Row; save: Save } & Pick<Props, 'onOpenLogbook' | 'onOpenNotebook'>) {
   const [counts, setCounts] = useState<SettingsCounts | null>(null)
   /** A change that would forget chats: the control moves at once, and the prompt shows once main's count is in. */
   const [asking, setAsking] = useState<({ kind: 'off' } | { kind: 'keep'; keep: KeepChats }) & { counted?: boolean } | null>(null)
@@ -362,8 +362,8 @@ function Privacy({ shown, settings, row, save, onOpenActivity, onOpenNotebook }:
       </Group>
       <Group label="What leaves your Mac">
         <ValueRow title="Web look-ups" description={settings.readsPages ? serviceById(serviceAt(settings.baseUrl)).webPrivacy : 'Nothing leaves this Mac.'} />
-        <LinkRow {...row('sent')} title="See what left my Mac" onClick={() => onOpenActivity('sent')} />
-        <LinkRow {...row('changed')} title="See what Otty changed" onClick={() => onOpenActivity('changed')} />
+        <LinkRow {...row('sent')} title="See what left my Mac" onClick={() => onOpenLogbook('sent')} />
+        <LinkRow {...row('changed')} title="See what Otty changed" onClick={() => onOpenLogbook('changed')} />
       </Group>
       {(chatsRow || notesRow) && (
         <Group label="Can’t be undone">

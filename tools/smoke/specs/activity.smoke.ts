@@ -2,6 +2,7 @@
 import type { Page } from '@playwright/test'
 import { expect, ONBOARDED, test, type Otty } from '../fixtures'
 import { lastUserText, type World } from '../world/server'
+import { lookEntry, openEntry, openLogbook } from '../logbook'
 
 interface Look {
   question: string
@@ -24,13 +25,6 @@ async function offer(otty: Otty, world: World, panel: Page, l: Look): Promise<vo
   await expect(panel.locator('.confirm-card').last()).toContainText('Look into this in the background?')
 }
 
-async function openActivity(panel: Page): Promise<void> {
-  if ((await panel.locator('.panel__title').textContent()) === 'Activity') return
-  await panel.getByRole('button', { name: 'Activity' }).click()
-  await expect(panel.locator('.panel__title')).toHaveText('Activity')
-}
-
-const row = (panel: Page, title: string) => panel.locator('li.activity-row').filter({ hasText: title })
 
 async function answered(otty: Otty, world: World, panel: Page, question: string, say: string): Promise<void> {
   world.reply(question, { say })
@@ -65,8 +59,8 @@ test('What Otty has used counts questions, look-ups, searches and pages; the nex
   world.reply(first.brief, { say: 'Report: sanctuary 1 is lovely.' })
   await offer(otty, world, panel, first)
   await panel.getByRole('button', { name: 'Start it' }).click()
-  await openActivity(panel)
-  await expect(row(panel, first.title)).toContainText('Done')
+  await openLogbook(panel)
+  await expect(lookEntry(panel, first.title)).toContainText(`Looked into “${first.title}”`)
   await panel.getByRole('button', { name: 'Back to chat' }).click()
 
   await otty.settings(panel, 'Usage & limit')
@@ -104,7 +98,7 @@ test('What Otty has used counts questions, look-ups, searches and pages; the nex
 test.describe('notifications', () => {
   test.use({ seed: { ...ONBOARDED, notifyDone: true } })
 
-  test('a finished look with the panel closed notifies, and the click opens Activity; with it open, none; waiting for an OK notifies', { tag: ['@step-102'] }, async ({ otty, world }) => {
+  test('a finished look with the panel closed notifies, and the click opens the Logbook; with it open, none; waiting for an OK notifies', { tag: ['@step-102'] }, async ({ otty, world }) => {
     const panel = await otty.openPanel()
     const first = look(1)
     world.reply(first.brief, { say: 'Report: sanctuary 1.' })
@@ -117,8 +111,8 @@ test.describe('notifications', () => {
     await expect.poll(() => notices(otty), { timeout: 20_000 }).toEqual([`Ready: ${first.title}`])
 
     await otty.control((c) => c.clickNotification(0))
-    await expect(panel.locator('.panel__title')).toHaveText('Activity')
-    await expect(row(panel, first.title)).toContainText('Done')
+    await expect(panel.locator('.panel__title')).toHaveText('Logbook')
+    await expect(lookEntry(panel, first.title)).toContainText(`Looked into “${first.title}”`)
 
     // The panel is open: the next look finishes quietly.
     await panel.getByRole('button', { name: 'Back to chat' }).click()
@@ -126,8 +120,8 @@ test.describe('notifications', () => {
     world.reply(second.brief, { say: 'Report: sanctuary 2.' })
     await offer(otty, world, panel, second)
     await panel.getByRole('button', { name: 'Start it' }).last().click()
-    await openActivity(panel)
-    await expect(row(panel, second.title)).toContainText('Done')
+    await openLogbook(panel)
+    await expect(lookEntry(panel, second.title)).toContainText(`Looked into “${second.title}”`)
     expect(await notices(otty)).toEqual([`Ready: ${first.title}`])
 
     // A look that needs an OK, with the panel closed.
@@ -173,14 +167,15 @@ test('a monthly limit of 1 question: questions still go through with a line at t
   world.reply(l.brief, { say: 'Report: past the limit, on purpose.' })
   await offer(otty, world, panel, l)
   await panel.getByRole('button', { name: 'Start it' }).click()
-  await openActivity(panel)
-  const job = row(panel, l.title)
+  await openLogbook(panel, 'Needs you')
+  const job = lookEntry(panel, l.title)
   await expect(job).toContainText('You’ve reached this month’s limit')
   await expect(job).toContainText('Run it anyway?')
   // The chat's own follow-up carries the start_job call in its history; a job's request is the one asking the brief.
   expect(world.turnRequests().some((b) => lastUserText(b).includes(l.brief)), 'the look waits for Run it anyway').toBe(false)
-  await job.getByRole('button', { name: 'Run it anyway' }).click()
-  await expect(job).toContainText('Done')
+  const details = await openEntry(job)
+  await details.getByRole('button', { name: 'Run it anyway' }).click()
+  await expect(details).toContainText(`Looked into “${l.title}”`)
 
   await panel.getByRole('button', { name: 'Back to chat' }).click()
   await banner.getByRole('button', { name: 'Change the limit' }).click()

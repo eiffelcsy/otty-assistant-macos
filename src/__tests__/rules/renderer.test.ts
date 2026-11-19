@@ -92,7 +92,8 @@ describe('CLAUDE.md "Idle budget (NFR-3)": every infinite animation is reviewed'
     bob: 'thinking only, while an answer runs',
     rise: 'thinking only, while an answer runs',
     glow: 'while working only',
-    dots: 'typing dots, stepped, while an answer runs'
+    dots: 'typing dots, stepped, while an answer runs',
+    'log-step': 'the Logbook’s Now dot: two steps every 2.4 s, only while a look-up runs and the Logbook is open'
   }
 
   it('adds no infinite animation without measuring it', () => {
@@ -113,7 +114,10 @@ describe('DESIGN.md "Foundations": sizes, spaces, radii and weights come from th
     { selector: '.btn--large', prop: 'padding', why: 'large button, 0 18 (Components, Button)' },
     { selector: '.composer__input', prop: 'padding', why: 'centres 22px lines in the 32px row (Components, Composer)' },
     { selector: '.quick__answer', prop: 'padding', why: 'lines the answer up with the box beside the 34px otter' },
-    { selector: '.ask', prop: 'gap', why: 'confirm card glyph to title, 10 (Spec 01, Confirm card)' }
+    { selector: '.ask', prop: 'gap', why: 'confirm card glyph to title, 10 (Spec 01, Confirm card)' },
+    { selector: '.log-entry__open', prop: 'padding', why: 'Logbook entry, 10 0, so one line is 40 and two are 58 (Spec 04, Entry)' },
+    { selector: '.log-entry__open', prop: 'gap', why: 'Logbook entry columns, 10 apart (Spec 04, Entry)' },
+    { selector: '.log-now__progress', prop: 'gap', why: 'progress segments, 3 apart (Spec 04, Now)' }
   ]
   const RADIUS = /^(0|50%|25%|var\(--(r-\w+|radius)\)|calc\(var\(--(r-\w+|radius)\) [+-] var\(--s-\w+\)\))$/
   const OK: [RegExp, RegExp][] = [
