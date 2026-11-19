@@ -4,6 +4,12 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Window invariants, and two bugs they found (2026-11-20)
+
+- **Rules the screenshots can't see** (D-67, step 1): `invariants.screens.ts`, in the `screens` job, checks both window states at four widths for a way out (Close when floating, Shrink when roomy), menus that open inside the window, nothing scrolling sideways, New chat from every screen landing on an empty chat with the box focused, and no back arrow on the Notebook opened as a screen. It catches #81's missing Close and New chat bugs when they're put back.
+- **Esc closes Pause's menu**, and only the menu. Before, it went past the menu to the window.
+- The UI preview's mock now tells every listener about chat events, as the real preload does; before, only the last one heard, so a new chat in the preview kept its old messages.
+
 ### UI fixes from use (2026-11-19)
 
 - **The floating window has a Close button again** (✕, last in the header; Esc still works). It went with the frame, which left no way out but Expand and the red button.
