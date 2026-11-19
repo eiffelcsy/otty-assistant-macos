@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Charts and slides with taste (D-70, 2026-11-20)
+
+- **A chart palette:** six series colours in tokens (`--chart-1` to `--chart-6`: sea, coral, kelp, amber, dusk, meadow), each stepped separately for dark mode and checked for colour-blind separation between neighbours and 3:1 against the card. Pies and bar charts use them in order, with slices apart on a thin line of the card's colour, legends and axis labels in text colours, and quieter axes.
+- **Softer diagrams:** rounded boxes, lighter strokes and curved links in flowcharts, and more room between nodes.
+- **A richer deck:** the title slide on a soft wash of meadow and straw with a straw sun low on the right, green dots for bullets, a large quote mark on quote slides, the page number as a small badge, and a soft shadow under diagrams. Still self-contained, with no scripts and only `data:` pictures.
+- Not in this change: a high-contrast deck theme picked on the card (BRAINSTORM).
+
 ### Feed Otty files (2026-11-20)
 
 - **Drop files on the otter** and a new chat opens beside it with them in the tray, ready for a question or a tile (D-37, step 1). The otter swells a little while files are over it. The bubble hands the files to main the same way the panel does, so it only ever sees ids and names, and main opens only files it registered. The munch animation waits for painted frames (step 2), and dragged text isn't taken yet.

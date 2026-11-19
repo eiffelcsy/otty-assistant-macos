@@ -95,7 +95,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
 | D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 built; step 2 waits for art | step 2: two painted frames (mouth open, munch) | S–M |
-| D-70 | Charts and slides with taste: a palette, softer marks, a richer deck template | 🔨 | — | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
@@ -104,7 +103,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Priority (2026-11-20): Otty, not a chat clone.** The owner's new list (BRAINSTORM: "Otty's look", "Making things", "Together", TOON, the iOS core, and smaller fixes from use) is planned in BRAINSTORM, and every row in BRAINSTORM and this roadmap was re-scored against the updated vision (BRAINSTORM, "Re-score, 2026-11-20"). The best value per effort, among what nothing blocks:
 1. ✅ (step 1) **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
 2. ✅ **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
-3. **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
+3. ✅ **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
 4. ✅ **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
 5. ✅ **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
 
@@ -112,7 +111,7 @@ Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsul
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
-**Where things stand (2026-11-20).** The owner's new feature list is planned (BRAINSTORM, DESIGN "Signature moments"), BRAINSTORM is re-scored, and D-67 step 1, D-37 step 1, D-68, D-69 and D-70 are being built, each on its own branch after `docs/plans-2026-11-20`.
+**Where things stand (2026-11-20).** The owner's new feature list is planned (BRAINSTORM, DESIGN "Signature moments"), BRAINSTORM is re-scored, and D-67 step 1, D-37 step 1, D-68, D-69 and D-70 are built and merged (CHANGELOG). Next by score: D-56 My own tiles, then the liquid capsule and Pebbles step 1; D-67 steps 2–3 and D-37 step 2 when a spec or the art needs them.
 
 **Earlier (2026-11-19).** D-63, the Logbook, is built on `feat/logbook` (CHANGELOG), stacked on the specs for D-64 to D-66 (`docs/frame-roomy-home-specs`) and the UI batch below. Activity, What left your Mac and What Otty changed are one screen of views, worded in main; a look-up's steering note reaches its next step and can only narrow it. The rest of D-62 is built on `feat/chat-polish` (CHANGELOG). D-64, the frame, is built on `feat/frame` (CHANGELOG). D-65, the roomy window, is built on `feat/roomy` (CHANGELOG). D-66, Home, is built on `feat/home` (CHANGELOG). With it, the UI plan from Specs 01–06 is built; next are D-55 and D-56, and D-54 once the owner's OAuth client exists. Each PR's "Left for a person" lists the ✋ checks, and the new screen baselines are their own PRs after CI. The Logbook's wider layouts work by container queries but get their preview widths (`&w=`) with D-64.
 
@@ -419,20 +418,6 @@ Steps 2 and 3 are next when a spec or a bug needs them.
 
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
 
-
-## D-70 · Charts and slides with taste 🔨
-
-**Goal.** Charts and decks look designed, not like a library's defaults: the first impression of what Otty makes.
-
-**Today.** Mermaid's `base` theme with Otty's surface and text colours, but no palette: pies fall back to Mermaid's own hues, and bar charts use one default colour with heavy axes. The deck template is plain: a heading, bullets and a page number on a flat background.
-
-**Design.**
-- **A chart palette** in tokens: `--chart-1` to `--chart-6`, a calm categorical set built around the brand (sea, kelp, sand, coral, dusk, shell), separately tuned for dark, each at least 3:1 against the surface it sits on. `render.ts`'s `theme()` reads them and passes them to Mermaid as `pie1`–`pie6`, the `xyChart` palette and `cScale` for other diagrams.
-- **Softer marks:** pie slices with a hairline in the surface colour between them and the legend in `--text-2`; bars with the brand palette, faint gridlines and quieter axes; flowcharts with rounded nodes, `basis` curves and more padding.
-- **A richer deck** (`shared/slides.ts`): the title slide on a soft wash of the brand with a kicker line (the deck's first paragraph, smaller and in the accent), a short accent rule under every heading, bullets drawn as brand-coloured dots, a large accent quote mark on quote slides, the page as a small number badge, and slightly more air. Two themes from the same tokens: `otty` and `contrast` (high-contrast, for projectors), picked on the card.
-- Everything stays self-contained HTML with no scripts and only `data:` pictures (D-30's safety).
-
-**Done when.** Pie and bar charts use the palette (`render.ts`'s Mermaid config, checked in a test of `theme()`'s output); the palette passes the contrast test in both themes (`rules/renderer.test.ts`); a deck's HTML has the kicker, accent rule and badge, and the contrast theme changes only colours (`slides.test.ts`); ui-preview's `drawing`, `chart` and `viewer slides` scenes show them, with new baselines in their own PR.
 
 ## D-14 · Otty's own snip: a paw cursor and a frozen screen ⏸
 
@@ -799,3 +784,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 163. Ask "why does my Mac fan get loud?" → the answer ends without a **Good to know** card. Reopen an older chat whose answer had one → the card is still there. ✋ needs a real model (whether it still adds tips unasked); `prompts.test.ts` covers the prompt and `Markdown.test.tsx` the old card.
 164. Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **Show all**; press it → the whole text; **Show less** folds it again. ⌘F a word near its end → it unfolds to the match.
 165. Drag a PDF from Finder onto the otter → it swells while over it; drop → the Otty window opens beside it on a new chat, the PDF's chip reads, and ↵ summarises it. With the roomy window open, it comes forward with the new chat. Drop six files → five chips and "Otty can take up to 5 files at a time". Drag text from Safari onto it → nothing happens. ✋ a real drop from Finder needs a file on disk behind it, which Playwright can't make (as step 30); `Bubble.test.tsx` covers the bubble's side.
+166. Ask "make a pie chart: rent 1200, food 400, fun 250" → slices in sea, coral and kelp with a thin gap between them, and the legend in grey text. Ask for a bar chart of a CSV → sea-blue bars with quiet axes. Ask "draw how a bill becomes a law" → rounded boxes and soft lines. Ask for 5 slides → the title slide sits on a soft wash with a straw sun, bullets are green dots, a quote slide has a large quote mark, and the page number is a small badge. Check light and dark. ✋ how it looks; `render.test.ts` and `slides.test.ts` cover the settings and the template, and `drawings.smoke.ts` that they still draw.

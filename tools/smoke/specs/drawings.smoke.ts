@@ -63,7 +63,8 @@ test('a flowchart card opens big, copies as a picture and saves as PNG and PDF',
   const viewer = await otty.view('viewer')
   await expect(viewer.getByRole('img', { name: 'Drawing by Otty' })).toBeVisible()
   // Only the key going down: the window closes on it, so there's no page left for the key coming up.
-  await viewer.keyboard.down('Escape')
+  // It can close before the press even returns, so a closed page here is the result, which the next line checks.
+  await viewer.keyboard.down('Escape').catch(() => {})
   await expect.poll(() => otty.app.windows().some((w) => !w.isClosed() && w.url().includes('view=viewer'))).toBe(false)
 
   // Copy as picture puts a PNG on the clipboard (pasting into Keynote stays by hand).

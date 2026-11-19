@@ -37,6 +37,13 @@
   --brand-soft: rgba(99, 124, 66, 0.1);
   --brand-line: rgba(99, 124, 66, 0.3);
   --accent: var(--straw);
+  /* D-70: chart series, in this order (sea, coral, kelp, amber, dusk, meadow); checked for colour-blind separation and 3:1 on --surface. */
+  --chart-1: #2f7fb5;
+  --chart-2: #d9663b;
+  --chart-3: #2a9d8f;
+  --chart-4: #b8841a;
+  --chart-5: #8a5fb0;
+  --chart-6: #5c8a3a;
   --straw-soft: rgba(199, 181, 139, 0.22);
   --danger-soft: #f6e4de;
   --danger-ink: #a2493b;
@@ -127,6 +134,12 @@
     --straw-ink: #d4c49c;
     --brand: #a3b37f;
     --brand-fill: #a3b37f;
+    --chart-1: #3f8cc4;
+    --chart-2: #d26a40;
+    --chart-3: #2f9f91;
+    --chart-4: #bb8c2c;
+    --chart-5: #9473bd;
+    --chart-6: #73984a;
     --brand-strong: #b6c592;
     --brand-ink: #1f1c1d;
     --brand-soft: rgba(140, 155, 106, 0.16);
