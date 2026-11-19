@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { LogControl, LogDay, LogDetails, LogEntry, LogNow, LogPage, LogView } from '../../../../shared/types'
 import { findRanges, parseQuery } from '../../../../shared/match'
 import { Icon } from '../../components/Icon'
-import { PauseButton } from '../../components/PauseButton'
 
 // The Logbook (D-63, Spec 04): what Otty has been doing, as views beside a ledger. Every word comes from main
 // (`logbook/words.ts`); this file only lays it out and sends ids back. Width alone sets the layout (container queries
@@ -318,9 +317,6 @@ export function Logbook({ startView = 'all', onOpenChat }: { startView?: LogView
             </button>
             <h2 className="log-head__title">{page?.title ?? ''}</h2>
             {page?.subtitle && <span className="log-head__subtitle">{page.subtitle}</span>}
-            <span className="log-head__pause">
-              <PauseButton paused={Boolean(page?.paused)} />
-            </span>
           </div>
           {menu && page && (
             <div className="menu log-head__views" role="menu">

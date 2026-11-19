@@ -20,10 +20,18 @@ import { entryDetails, logbook, type LogSources } from '../../src/main/logbook'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
+
+// D-64: `&w=` and `&h=` size the window, so every band of the frame can be drawn (Spec 05).
+const root = document.getElementById('root')
+/** The frame scenes' own sizes: each band at a test width (Spec 05). */
+const FRAME_SIZES: Record<string, [number, number]> = { 'frame-rail': [680, 600], 'frame-medium': [760, 600], 'frame-wide': [1280, 720], 'frame-min': [360, 420] }
+const size: [number, number] | undefined = FRAME_SIZES[scene]
+if (root && (q.get('w') || size)) root.style.width = `${Number(q.get('w') ?? size?.[0])}px`
+if (root && (q.get('h') || size)) root.style.height = `${Number(q.get('h') ?? size?.[1])}px`
 
 /** A small table and a paragraph, drawn as a picture, with the boxes the helper would report. */
 const pickupSample = (() => {
@@ -678,7 +686,7 @@ const api: OttyApi = {
         chat?.scrollTo({ top: chat.scrollHeight })
       }, 750)
     }
-    if (scene === 'chat' || scene === 'compose' || scene === 'find' || scene === 'paused') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
+    if (scene === 'chat' || scene === 'compose' || scene === 'find' || scene === 'paused' || scene.startsWith('frame-')) setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     if (scene === 'typography') setTimeout(() => cb({ type: 'load', messages: typographySample }), 50)
     return () => {}
   },
@@ -736,6 +744,8 @@ const api: OttyApi = {
           box.dispatchEvent(new Event('input', { bubbles: true }))
         }, 200)
     }
+    if (scene === 'frame-menu') setTimeout(() => press('.screen-menu__btn'), 200)
+    if (scene === 'frame-pushed') setTimeout(() => (press('.screen-menu__btn'), setTimeout(() => press('.screen-menu__item', 'Chats'), 60)), 200)
     if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)
     if (scene === 'history') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 120)
     return () => {}

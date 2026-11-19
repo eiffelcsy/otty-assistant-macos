@@ -63,7 +63,7 @@ test.describe('with a home language', () => {
     // Reopened after a relaunch: the same card, still marked against what was highlighted.
     await otty.relaunch()
     const reopened = await otty.openPanel()
-    await reopened.getByRole('button', { name: 'Recent chats' }).click()
+    await otty.go(reopened, 'Chats')
     await reopened.getByRole('button', { name: /Note to Sam/ }).click()
     const first = reopened.locator('.fixed-card').first()
     await expect(first.locator('del')).toContainText(['has'])

@@ -60,7 +60,7 @@ test('an attached CSV becomes a bar chart by month, with the numbers Otty worked
   await otty.relaunch()
   world.reply(streamed('another chart by region'), { calls: [{ name: 'make_chart', args: { chart: 'pie', x: 'Region', y: 'Sales' } }] }, { say: 'Could you attach the CSV again?' })
   const again = await otty.openPanel()
-  await again.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(again, 'Chats')
   await again.getByRole('button', { name: /Sales chart/ }).click()
   await expect(again.locator('.drawing-card').getByRole('img', { name: 'Diagram drawn by Otty' })).toBeVisible()
   await otty.ask(again, 'another chart by region')

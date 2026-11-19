@@ -130,6 +130,17 @@ export class Otty {
     await box.press('Enter')
   }
 
+  /** Goes to a screen through the compact screen menu (D-64). See `goTo`. */
+  go(page: Page, screen: string): Promise<void> {
+    return goTo(page, screen)
+  }
+
+  /** One of the chat's own actions, from the compact screen menu: "Find in this chat", "Don’t learn from this chat". */
+  async chatAction(page: Page, label: string): Promise<void> {
+    await page.getByRole('button', { name: /, switch screen$/ }).click()
+    await page.getByRole('menuitem', { name: label }).click()
+  }
+
   /**
    * Opens Settings at one of its sections (D-61): "You & Otty", "Shortcuts", "Privacy", "Usage & limit", "Connection"
    * or "Help". Works from the chat or from inside Settings.
@@ -138,7 +149,7 @@ export class Otty {
     const list = page.getByRole('textbox', { name: 'Find a setting' })
     const back = page.getByRole('button', { name: 'All settings' })
     // From a section or the Notebook, back up to the list; from anywhere else, the header's Settings button.
-    if (!(await back.isVisible()) && !(await list.isVisible())) await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    if (!(await back.isVisible()) && !(await list.isVisible())) await this.go(page, 'Settings')
     for (let i = 0; i < 2; i++) {
       await expect(list.or(back).first()).toBeVisible()
       if (await list.isVisible()) break
@@ -194,6 +205,20 @@ const RAW_ERROR = [/\b(?:Type|Reference|Syntax|Range)Error\b/, /\bError: /, /\bu
 const UTF8 = { env: { ...process.env, LANG: 'en_US.UTF-8' } }
 
 /** The real clipboard's text. The user's is put back after each test; formats other than text aren't kept. */
+/**
+ * Goes to a screen through the compact screen menu (D-64): "Chat", "Chats", "Logbook", "Notebook" or "Settings".
+ * From a pushed page, it backs out first, as a person would.
+ */
+export async function goTo(page: Page, screen: string): Promise<void> {
+  const menu = page.getByRole('button', { name: /, switch screen$/ })
+  for (let i = 0; i < 4 && !(await menu.isVisible()); i++) await page.getByRole('button', { name: 'Back', exact: true }).click()
+  await menu.click()
+  await page
+    .locator('.screen-menu__item')
+    .filter({ has: page.locator('.screen-menu__label', { hasText: new RegExp(`^${screen}$`) }) })
+    .click()
+}
+
 export const pbpaste = (): string => execFileSync('pbpaste', { ...UTF8, encoding: 'utf8' })
 export const pbcopy = (text: string): void => void execFileSync('pbcopy', { ...UTF8, input: text })
 

@@ -91,7 +91,7 @@ test('the find bar holds its place while a follow-up streams in, and Esc closes 
   await longChat(otty, panel, world)
 
   // The search button in the header opens the bar too.
-  await panel.getByRole('button', { name: 'Find in this chat (⌘F)' }).click()
+  await otty.chatAction(panel, 'Find in this chat')
   const field = panel.getByPlaceholder('Find in this chat')
   await field.fill('plankton')
   const count = panel.getByText(/^(\d+ of \d+|No matches)$/)

@@ -4,7 +4,7 @@ import { writeFileSync } from 'fs'
 import { join } from 'path'
 import type { Page } from '@playwright/test'
 import { textOf, type ModelBody } from '../world/server'
-import { expect, test, type Otty } from '../fixtures'
+import { expect, test, type Otty, goTo } from '../fixtures'
 import { openLogbook } from '../logbook'
 
 /** Only streamed answers: a background call (the chat's title) quotes the question too, and mustn't use up its reply. */
@@ -24,7 +24,7 @@ async function copyAndLook(otty: Otty, panel: Page, title: string): Promise<void
 async function activityTitles(panel: Page): Promise<string> {
   await openLogbook(panel, 'Needs you')
   const text = await panel.locator('.logbook__main').innerText()
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await goTo(panel, 'Chat')
   return text
 }
 
@@ -166,7 +166,7 @@ test('reopened from Recent chats, only the latest answer can be tried again or e
 
   await otty.relaunch()
   const again = await otty.openPanel()
-  await again.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(again, 'Chats')
   await again.getByRole('button', { name: /Two questions/ }).click()
   await expect(again.getByText('First answer.')).toBeVisible()
   await expect(again.getByRole('button', { name: 'Try again' })).toHaveCount(1)

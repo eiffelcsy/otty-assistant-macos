@@ -39,7 +39,7 @@ test('⇧⌘F and ⌘F open Recent chats ready to search; search finds English a
 
   // ⇧⌘F from a chat with messages.
   await panel.keyboard.press('Meta+Shift+F')
-  await expect(panel.getByText('Recent chats', { exact: true })).toBeVisible()
+  await expect(panel.getByRole('heading', { name: 'Chats', exact: true })).toBeVisible()
   const search = panel.getByPlaceholder('Search your chats')
   await expect(search).toBeFocused()
   await expect(panel.getByRole('button', { name: /Printing a PDF/ })).toBeVisible()
@@ -68,12 +68,12 @@ test('⇧⌘F and ⌘F open Recent chats ready to search; search finds English a
   expect(await panelShown(otty)).toBe(true)
 
   // ⌘F on an empty chat also opens Recent chats with the box focused.
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
-  await expect(panel.getByText('Recent chats', { exact: true })).toHaveCount(0)
+  await otty.go(panel, 'Chat')
+  await expect(panel.getByRole('heading', { name: 'Chats', exact: true })).toHaveCount(0)
   await panel.getByRole('button', { name: 'New chat' }).click()
-  await expect(panel.getByRole('button', { name: 'New chat' })).toHaveCount(0)
+  await expect(panel.locator('.screen-menu__title')).toHaveText('New chat')
   await panel.keyboard.press('Meta+F')
-  await expect(panel.getByText('Recent chats', { exact: true })).toBeVisible()
+  await expect(panel.getByRole('heading', { name: 'Chats', exact: true })).toBeVisible()
   await expect(search).toBeFocused()
 
   // With nothing to clear, Esc closes the panel.

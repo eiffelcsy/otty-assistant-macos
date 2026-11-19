@@ -91,7 +91,7 @@ test.describe('the card', () => {
     expect(jobRequests(world)).toEqual([])
     await openLogbook(panel)
     await expect(look(panel)).toHaveCount(0)
-    await panel.getByRole('button', { name: 'Back to chat' }).click()
+    await otty.go(panel, 'Chat')
 
     quickJob(world)
     await offer(otty, world, panel)
@@ -165,7 +165,7 @@ test.describe('a job that meets trouble', () => {
     await details.getByRole('button', { name: 'Open the report' }).click()
     await expect(panel.getByText('Full report: 50,000 yen for 7 days.')).toBeVisible()
     // One report chat, under the job's title.
-    await panel.getByRole('button', { name: 'Recent chats' }).click()
+    await otty.go(panel, 'Chats')
     await expect(panel.locator('.history__title').filter({ hasText: RAIL.title })).toHaveCount(1)
   })
 })
@@ -220,7 +220,7 @@ test.describe('when it’s done', () => {
     await otty.control((c) => c.power('suspend'))
     await panel.getByRole('button', { name: 'Start it' }).click()
     await chatSettled(world, panel)
-    await panel.getByRole('button', { name: 'Close (Esc)' }).click()
+    await panel.keyboard.press('Escape')
     await otty.control((c) => c.power('resume'))
     await expect(bubble.locator('.bubble__badge')).toBeVisible({ timeout: 20_000 })
     await expect(bubble).toHaveAttribute('title', /has an answer for you/)
@@ -236,7 +236,7 @@ test.describe('when it’s done', () => {
     // The follow-up was asked with the report in the history.
     expect((world.turnRequests().at(-1)?.messages ?? []).map((m) => textOf(m.content)).join('\n')).toContain('Kintetsu otter pass')
 
-    await again.getByRole('button', { name: 'Recent chats' }).click()
+    await otty.go(again, 'Chats')
     await again.getByPlaceholder('Search your chats').fill('Kintetsu')
     await expect(again.locator('.history__title').filter({ hasText: RAIL.title }).first()).toBeVisible()
   })
@@ -298,7 +298,7 @@ test.describe('forgetting', () => {
     await otty.settings(panel, 'Privacy')
     await otty.hold(panel.getByRole('button', { name: 'Hold to forget: Forget all chats' }))
     await expect(panel.getByRole('group', { name: 'Can’t be undone' })).toContainText('Forgotten')
-    await panel.getByRole('button', { name: 'Back to chat' }).click()
+    await otty.go(panel, 'Chat')
     await openLogbook(panel)
     await expect(look(panel)).toHaveCount(0)
     await expect(nowCard(panel)).toHaveCount(0)
@@ -308,7 +308,7 @@ test.describe('forgetting', () => {
     const panel = await otty.openPanel()
     world.reply(RAIL.brief, { say: 'never sent' })
     await stuckOffline(otty, world, panel)
-    await panel.getByRole('button', { name: 'Recent chats' }).click()
+    await otty.go(panel, 'Chats')
     await panel.getByRole('button', { name: 'Forget this chat' }).first().click()
     await expect(panel.locator('.history__title')).toHaveCount(0)
     await openLogbook(panel)

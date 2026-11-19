@@ -163,13 +163,13 @@ test('the panel tray collects from two apps and offers the tiles for several', {
 
   // Reopened from Recent chats: both captures, the snip as not saved.
   await panel.getByRole('button', { name: 'New chat' }).click()
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await panel.getByRole('button', { name: /Otter fur and a terminal/ }).click()
   await expect(panel.locator('.msg--user').getByText('Sea otters have the densest fur')).toBeVisible()
   await expect(panel.locator('.msg--user').getByText('Screen snip (not saved)')).toBeVisible()
 
   // Search finds it by a word from the Safari text.
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await panel.getByPlaceholder('Search your chats').fill('densest')
   await expect(panel.getByRole('button', { name: /Otter fur and a terminal/ })).toBeVisible()
 })

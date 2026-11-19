@@ -41,7 +41,7 @@ async function setLimit(otty: Otty, panel: Page, limit: number): Promise<void> {
   await panel.getByRole('textbox', { name: 'Limit' }).fill(String(limit))
   await panel.getByRole('textbox', { name: 'Limit' }).press('Enter')
   await expect(panel.locator('.meter__limit')).toHaveText(`of ${limit}`)
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
 }
 
 test('What Otty has used counts questions, look-ups, searches and pages; the next card compares a look with questions; forgetting memories leaves the counts', { tag: ['@step-100', '@step-101'] }, async ({ otty, world }) => {
@@ -61,7 +61,7 @@ test('What Otty has used counts questions, look-ups, searches and pages; the nex
   await panel.getByRole('button', { name: 'Start it' }).click()
   await openLogbook(panel)
   await expect(lookEntry(panel, first.title)).toContainText(`Looked into “${first.title}”`)
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
 
   await otty.settings(panel, 'Usage & limit')
   const usage = panel.locator('.meter')
@@ -82,7 +82,7 @@ test('What Otty has used counts questions, look-ups, searches and pages; the nex
   await expect(panel.getByRole('group', { name: 'Can’t be undone' })).toContainText('Forgotten')
   await otty.settings(panel, 'Usage & limit')
   await expect(panel.locator('.meter')).toHaveText(summary)
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
 
   // Five questions and a finished look in, the next card says what a look has cost so far.
   await answered(otty, world, panel, 'Do otters have pockets?', 'Yes, a skin pouch under each arm.')
@@ -106,16 +106,16 @@ test.describe('notifications', () => {
     await otty.control((c) => c.power('suspend'))
     await panel.getByRole('button', { name: 'Start it' }).click()
     await expect(panel.getByText(first.after)).toBeVisible()
-    await panel.getByRole('button', { name: 'Close (Esc)' }).click()
+    await panel.keyboard.press('Escape')
     await otty.control((c) => c.power('resume'))
     await expect.poll(() => notices(otty), { timeout: 20_000 }).toEqual([`Ready: ${first.title}`])
 
     await otty.control((c) => c.clickNotification(0))
-    await expect(panel.locator('.panel__title')).toHaveText('Logbook')
+    await expect(panel.locator('.logbook')).toBeVisible()
     await expect(lookEntry(panel, first.title)).toContainText(`Looked into “${first.title}”`)
 
     // The panel is open: the next look finishes quietly.
-    await panel.getByRole('button', { name: 'Back to chat' }).click()
+    await otty.go(panel, 'Chat')
     const second = look(2)
     world.reply(second.brief, { say: 'Report: sanctuary 2.' })
     await offer(otty, world, panel, second)
@@ -125,14 +125,14 @@ test.describe('notifications', () => {
     expect(await notices(otty)).toEqual([`Ready: ${first.title}`])
 
     // A look that needs an OK, with the panel closed.
-    await panel.getByRole('button', { name: 'Back to chat' }).click()
+    await otty.go(panel, 'Chat')
     const third = look(3)
     world.reply(third.brief, { calls: [{ name: 'read_page', args: { url: 'https://unknown-otters.example/' } }] })
     await offer(otty, world, panel, third)
     await otty.control((c) => c.power('suspend'))
     await panel.getByRole('button', { name: 'Start it' }).last().click()
     await expect(panel.getByText(third.after)).toBeVisible()
-    await panel.getByRole('button', { name: 'Close (Esc)' }).click()
+    await panel.keyboard.press('Escape')
     await otty.control((c) => c.power('resume'))
     await expect.poll(() => notices(otty), { timeout: 20_000 }).toEqual([`Ready: ${first.title}`, `${third.title} needs your OK to read a page.`])
   })
@@ -177,7 +177,7 @@ test('a monthly limit of 1 question: questions still go through with a line at t
   await details.getByRole('button', { name: 'Run it anyway' }).click()
   await expect(details).toContainText(`Looked into “${l.title}”`)
 
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await banner.getByRole('button', { name: 'Change the limit' }).click()
   await expect(panel.getByRole('checkbox', { name: 'Set a monthly limit' })).toBeChecked()
 })

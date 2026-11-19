@@ -84,9 +84,8 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M (2–3 days) |
-| D-64 | The frame: the panel split into a frame plus screens, so width alone sets the layout (rail, medium, wide; Spec 05) | ⏳ planned | D-59, D-62 (built) | M–L (3–4 days) |
-| D-65 | The roomy window: Expand / Shrink, the Dock icon and the menu bar, opening from Applications (Spec 06, part 1) | ⏳ planned | D-64 | M (2–3 days, plus a 1-day corner check) |
-| D-66 | Home: the greeting, Needs you, Today, Looking after and what left your Mac (Spec 06, part 2) | ⏳ planned | D-63 (built), D-64 | M–L (3–4 days) |
+| D-65 | The roomy window: Expand / Shrink, the Dock icon and the menu bar, opening from Applications (Spec 06, part 1) | ⏳ planned | D-64 (built) | M (2–3 days, plus a 1-day corner check) |
+| D-66 | Home: the greeting, Needs you, Today, Looking after and what left your Mac (Spec 06, part 2) | ⏳ planned | D-63 (built), D-64 (built) | M–L (3–4 days) |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
@@ -99,7 +98,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
-**Where things stand (2026-11-19).** D-63, the Logbook, is built on `feat/logbook` (CHANGELOG), stacked on the specs for D-64 to D-66 (`docs/frame-roomy-home-specs`) and the UI batch below. Activity, What left your Mac and What Otty changed are one screen of views, worded in main; a look-up's steering note reaches its next step and can only narrow it. The rest of D-62 is built on `feat/chat-polish` (CHANGELOG). Next: D-64 the frame, D-65 the roomy window and D-66 Home. The Logbook's wider layouts work by container queries but get their preview widths (`&w=`) with D-64.
+**Where things stand (2026-11-19).** D-63, the Logbook, is built on `feat/logbook` (CHANGELOG), stacked on the specs for D-64 to D-66 (`docs/frame-roomy-home-specs`) and the UI batch below. Activity, What left your Mac and What Otty changed are one screen of views, worded in main; a look-up's steering note reaches its next step and can only narrow it. The rest of D-62 is built on `feat/chat-polish` (CHANGELOG). D-64, the frame, is built on `feat/frame` (CHANGELOG). Next: D-65 the roomy window and D-66 Home. The Logbook's wider layouts work by container queries but get their preview widths (`&w=`) with D-64.
 
 **Earlier (2026-11-18, evening).** The UI batch is built on stacked branches from `main`: D-60 decisions and receipts (`feat/decisions-receipts`), D-61 Settings in sections (`feat/settings-sections`), the core of D-62 chat and one message box (`feat/chat-message-box`), D-57 the 80% heads-up (`feat/limit-heads-up`) and D-58 Try again with a twist (`feat/try-again-twist`). The whole smoke suite passes on the last of them (147 tests). Next: D-63 the Logbook (L), the rest of D-62 (its entry lists it), then D-55 and D-56; D-54 still waits on the owner's OAuth client. `npm run screens` will differ on every chat and settings scene, so new baselines are their own PR after CI. The smoke checklist is 148 steps; 135–138 need the packaged app or a model on the Mac (✋).
 
@@ -183,24 +182,6 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 
 **Where it stands (2026-11-18).** Built: every token, `--muted` renamed to `--text-2` everywhere and gone (no alias was needed), and the components in `styles.css`: button (primary, soft, quiet-style `copy-btn`, warn; small and large), icon button (32 and `--sm` 28, 25% corners), small × (20 visible in a 28 target), switch (Settings toggles), field, row (Recent chats), group (Settings sections), card, header, composer box and keycap. Measured at 420 × 580: header 44, composer 64 (box 44), health line 40, so chrome is 108 px (19%). Answers have no bubble and use the full width; question to answer 8, turn to turn 20. Both tests are in `rules/renderer.test.ts`, with 5 off-scale entries, and fail on a planted bad value. Dark `--text-2` on `--brand-soft` was 4.35:1, so a selected radio row uses `--text`. Smoke passes (137): the new spacing exposed a race in `FindBar`, where an earlier match's wait for the chat to stop gliding pulled the view back after a quick ↵, so a newer jump now cancels it; and the health specs match Allow and Reopen Otty exactly, because the banner's words are now a button that contains them.
 **Not done yet:** tooltip and toast (tooltips are still native `title`s), the header hairline that appears only on scroll, and the reduced-motion fade. D-60 built the *unusual* card, the receipt and a first menu (the used marker); D-61 the group label above its box and rows with inset hairlines. **Checks waiting:** idle CPU with `OTTY_METRICS=1` on a Mac (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8). The baselines landed in their own PR (#65), and the smoke harness's idle spec passes.
-
-## D-64 · The frame and layout from width ⏳
-
-**Goal.** Split `Panel.tsx` into a frame (header, navigation, columns, notices) and screens (Home, Chat, Logbook, Notebook, Settings, Onboarding), so the window's width alone decides the layout: one screen at a time under 640, a 72 px rail from 640, a list column from 712, a sidebar from 980, and a details pane from 1248 (980 on Home). The floating panel can then be dragged wider and gets the medium and wide layouts with no new screens. The spec is `docs/design/specs/05-frame.md`.
-
-**Design.**
-1. **Frame and screens.** `renderer/src/frame/` holds `Frame.tsx` (header, rail or sidebar, columns, notices), `bands.ts` (the band boundaries, worked out from the main column's 400 px minimum and exposed to CSS as custom properties) and `useFrame()` (`{ band, listShown, detailsShown, push, back }`). Each screen exports its parts (`list`, `main`, `details`) and whether it's a root. A part that isn't a column becomes a page in the main column. No screen measures the window.
-2. **Navigation state stays in the renderer**: the root screen, the stack of pushed pages, each column's scroll position, the chat on show. It's layout, not data. ⌘1–⌘4, ⌘,, ⌘N, ⌘[ / ⌘], ⌃⌘S, ⌥⌘0 and F6 come from one keymap in the frame.
-3. **The compact header** gets the screen menu (otter + title + chevron) on root screens and Back on pushed ones, and always the same four icons: Pause, Logbook, New chat, Expand. Today's header buttons for Activity, Recent chats and Settings go into the screen menu. Expand does nothing until D-65 except tell main (the channel can land here, unused).
-4. **Container queries** on the frame's body (`container: otty / inline-size`); no viewport media queries. Notices (the health banner, the paused line) move into the frame, at the top of the main column.
-5. **ui-preview** learns `&w=`, `&h=` and `&state=floating|roomy`, and the frame scenes in Spec 05.
-6. **No main changes** beyond letting the panel be dragged wider than today (it's already resizable; check `minWidth` 360 and that nothing clamps the width).
-
-**Tests.** `bands.test.ts`: every boundary keeps the main column at 400 or more, and the bands meet without gaps. Frame tests: a part becomes a page when its column is hidden; Back restores the scroll position; each root screen's keyboard shortcut. `rules/renderer.test.ts` still passes (no off-scale values). The screens baseline at 420 is unchanged for every existing scene, which is the proof the split changed no pixels.
-
-**Done when.** `Panel.tsx` is a frame plus screens; every existing scene at 420 matches its baseline; the frame scenes exist at 380, 420, 640, 760, 980, 1200 and 1280 in light and dark with no horizontal scroll; dragging the panel from 360 to 1440 never loses the scroll position or the draft; F6 reaches every column. `basics.smoke.ts`, `history.smoke.ts`, `activity.smoke.ts` and `settings.smoke.ts` are updated for the screen menu.
-
-**Smoke test (add to the checklist when it ships).** Open the panel, open Chats from the screen menu and come back with ⌘[. Drag the panel wider: at about 700 px the rail appears, at about 1000 the sidebar, and the chat stays where it was. ✋ Check the rail and sidebar glide at 100% and 200% zoom, because the screens baseline can't show motion.
 
 ## D-65 · The roomy window ⏳
 
@@ -773,3 +754,5 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 153. Ask something long and press **⌘.** while it answers → it stops, with "You stopped this answer."
 154. After an answer, click into the empty box and press **↑** → the question is back in the box to edit, and the answer goes (with the card first if something would be undone).
 155. Pause everything from the menu bar → the box says "Otty is paused" and **Paused · Carry on** stands where Send was; ↵ sends nothing. Carry on → ↵ asks.
+156. Open the panel and ask something, type a few words, then open **Chats** from the screen menu (the otter and the screen's name) → Back and "Chats". **⌘[** → the chat, with the words still in the box.
+157. Drag the panel wider: at about 700 px a rail appears with Chats beside the chat, at about 1000 the sidebar, and the chat and the box's words stay where they were. **⌘3** opens the Logbook, selected in the sidebar. ✋ also by hand: the rail and sidebar at 100% and 200% zoom, and that nothing jumps while dragging.

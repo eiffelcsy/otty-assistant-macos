@@ -28,7 +28,7 @@ test('asks, streams an answer, and keeps the chat across a relaunch', { tag: ['@
 
   await otty.relaunch()
   const again = await otty.openPanel()
-  await again.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(again, 'Chats')
   await again.getByRole('button', { name: /Otters and food/ }).click()
   await expect(again.getByText('What do otters eat?')).toBeVisible()
   await expect(again.getByText('Otters mostly eat')).toBeVisible()
@@ -42,7 +42,7 @@ test('a force quit mid-answer keeps the question', { tag: ['@step-44'] }, async 
   await expect(panel.getByText('Once upon a time')).toBeVisible()
   await otty.crash()
   const again = await otty.openPanel()
-  await again.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(again, 'Chats')
   await again.getByRole('button', { name: /A long story|Tell me a long story/ }).first().click()
   await expect(again.getByText('Tell me a long story')).toBeVisible()
 })

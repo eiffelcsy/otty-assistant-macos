@@ -33,20 +33,23 @@ test('turning off "Remember my chats" forgets them and hides Recent chats', { ta
   await panel.getByRole('checkbox', { name: /Remember my chats/ }).uncheck()
   await holdPrompt(otty, panel, /^Turn off and forget/)
   await expect(panel.getByText('Saved')).toBeVisible()
-  await expect(panel.getByRole('button', { name: 'Recent chats' })).toHaveCount(0)
+  // Chats leaves the screen menu.
+  await panel.getByRole('button', { name: /, switch screen$/ }).click()
+  await expect(panel.getByRole('menuitem', { name: /^Chats/ })).toHaveCount(0)
+  await panel.keyboard.press('Escape')
   await expect(panel.getByRole('button', { name: /Forget all chats/ })).toHaveCount(0)
 
   // The open chat went too, and ⇧⌘F has nowhere to go.
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await expect(panel.getByText('Up to about five and a half metres.')).toHaveCount(0)
   await panel.keyboard.press('Meta+Shift+F')
-  await expect(panel.getByText('Recent chats', { exact: true })).toHaveCount(0)
+  await expect(panel.getByRole('heading', { name: 'Chats', exact: true })).toHaveCount(0)
 
   // Turned back on, the list is empty: the chat was forgotten, not hidden.
   await otty.settings(panel, 'Privacy')
   await panel.getByRole('checkbox', { name: /Remember my chats/ }).check()
   await expect(panel.getByText('Saved')).toBeVisible()
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await expect(panel.getByText('No chats yet')).toBeVisible()
 })
 
@@ -58,7 +61,7 @@ test('Keep chats for 30 days asks with the count, then forgets older chats', { t
   await panel.getByRole('button', { name: 'New chat' }).click()
   await chat(otty, panel, world, 'What is a delta?', 'Land built up where a river meets the sea.', 'River deltas')
 
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await expect(panel.getByRole('button', { name: /Fjords explained/ })).toBeVisible()
   await expect(panel.getByRole('button', { name: /River deltas/ })).toBeVisible()
   await expect(panel.getByText('Otty keeps chats for a year on this Mac.', { exact: false })).toBeVisible()
@@ -70,7 +73,7 @@ test('Keep chats for 30 days asks with the count, then forgets older chats', { t
   await holdPrompt(otty, panel, /^Forget 1 chat older than 30 days\?$/)
   await expect(panel.getByText('Saved')).toBeVisible()
 
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await expect(panel.getByRole('button', { name: /River deltas/ })).toBeVisible()
   await expect(panel.getByRole('button', { name: /Fjords explained/ })).toHaveCount(0)
   await expect(panel.getByText('Otty keeps chats for 30 days on this Mac.', { exact: false })).toBeVisible()
@@ -114,7 +117,7 @@ test('chats saved by 0.3.2 move into otty.db, are searchable, and can be forgott
   expect(existsSync(join(otty.home, 'otty.db'))).toBe(true)
 
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await expect(panel.getByRole('button', { name: /Printing both sides/ })).toBeVisible()
   await expect(panel.getByRole('button', { name: /Brewing green tea/ })).toBeVisible()
   await expect(panel.getByText('No chats yet')).toHaveCount(0)
@@ -136,6 +139,6 @@ test('chats saved by 0.3.2 move into otty.db, are searchable, and can be forgott
   await otty.settings(panel, 'Privacy')
   await otty.hold(panel.getByRole('button', { name: 'Hold to forget: Forget all chats' }))
   await expect(panel.getByText('Forgotten', { exact: true })).toBeVisible()
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await expect(panel.getByText('No chats yet')).toBeVisible()
 })

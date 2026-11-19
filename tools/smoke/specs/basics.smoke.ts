@@ -81,7 +81,7 @@ test('highlighted code gets code tiles, and an ordinary paragraph the usual ones
   await (await otty.view('bubble')).locator('body').click()
   const panel = await otty.view('panel')
   for (const tile of ['Explain this code', 'Find problems', 'Add comments']) await expect(panel.getByRole('button', { name: tile })).toBeVisible()
-  await panel.getByRole('button', { name: 'Close (Esc)' }).click()
+  await panel.keyboard.press('Escape')
 
   // An ordinary paragraph in the quick view: ↵ explains it, with nothing about code.
   await otty.mac({ selection: 'Sea otters hold hands while they sleep so they don’t drift apart.', front: { name: 'Notes', bundleId: 'com.apple.Notes' } })

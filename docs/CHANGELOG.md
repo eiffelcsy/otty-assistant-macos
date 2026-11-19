@@ -4,6 +4,16 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The frame: one window, laid out by its width (D-64, 2026-11-19)
+
+The panel is now a frame (`renderer/src/frame/`) with screens in it (Spec 05), so dragging it wider changes the layout with no new screens.
+- **Narrow (under 640):** one screen at a time. The header is the otter and the screen's name in one button, which opens Chat, Chats, Logbook, Notebook and Settings, with their shortcuts; a page pushed on top shows Back instead. Four icons at most: Pause, Logbook (with its needs-you dot), New chat, and the chat's "not learning" marker when it's off.
+- **From 640** a 72 px rail holds the screens, with Pause and Settings at its foot; **from 712** Chats is a column beside the chat, under its own header; **from 980** the rail becomes a 216 px sidebar with Otty's status, the needs-you count and a Pause card, and the chat keeps a reading column of at most 680. ⌃⌘S folds the sidebar back to the rail. The bands come from one file (`frame/bands.ts`) and keep the main column at 400 or more.
+- **Keys:** ⌘1 Chat, ⌘2 Chats, ⌘3 Logbook, ⌘4 Notebook, ⌘, Settings, ⌘N new chat, ⌘[ back, F6 between columns. ⌘F's Find and "Don't learn from this chat" moved into the screen menu when narrow.
+- The chat stays mounted while another screen shows, so its scroll position and the box's words survive a trip to Chats or Settings and a resize.
+- The header's Close button is gone; Esc closes the panel, as before.
+- The UI preview takes `&w=` and `&h=`, with frame scenes at each band.
+
 ### Chat and the message box, finished (D-62, 2026-11-19)
 
 The rest of Spec 03, after the core (one box, drafts) below.

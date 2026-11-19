@@ -78,7 +78,7 @@ test('a noted fact shows with Undo and Edit, is used in a new chat, and Undo tak
   expect(lastQuestion(otty)).toContain(MEMORY_NOTE)
   expect(lastQuestion(otty)).toContain('Is learning Spanish')
 
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   // Every chat gets the same scripted title; Recent chats is newest first, so the first chat is the last row.
   await panel.getByRole('button', { name: /Spanish for a trip/ }).last().click()
   await notedLines(panel).getByRole('button', { name: 'Undo' }).click()
@@ -89,7 +89,7 @@ test('a noted fact shows with Undo and Edit, is used in a new chat, and Undo tak
   await askAndWait(otty, panel, 'how do I say thank you?')
   expect(lastQuestion(otty)).not.toContain('Is learning Spanish')
 
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   // Every chat gets the same scripted title; Recent chats is newest first, so the first chat is the last row.
   await panel.getByRole('button', { name: /Spanish for a trip/ }).last().click()
   await expect(notedLines(panel)).toContainText('Noted: Is learning Spanish')
@@ -149,7 +149,7 @@ test('someone else’s email isn’t noted, and forget shows Forgotten with an U
   await expect(forgotten.getByRole('button', { name: 'Edit' })).toHaveCount(0)
   await openNotebook(otty, panel)
   await expect(memoryRows(panel)).toHaveCount(0)
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await forgotten.getByRole('button', { name: 'Undo' }).click()
   await expect(forgotten).toContainText('Remembered again')
   await openNotebook(otty, panel)
@@ -162,8 +162,7 @@ test('"don’t learn" on a chat stops noting, Otty is told so, and it stays off 
   replyWithTool(otty, 'remember I have a dog', 'remember', { text: 'Has a dog', kind: 'about' }, 'Dogs are lovely.')
   const panel = await otty.openPanel()
   await askAndWait(otty, panel, 'Hello there')
-  const brain = panel.getByRole('button', { name: 'Don’t learn from this chat' })
-  await brain.click()
+  await otty.chatAction(panel, 'Don’t learn from this chat')
   const off = panel.getByRole('button', { name: /Otty isn’t learning from this chat/ })
   await expect(off).toHaveAttribute('aria-pressed', 'true')
 
@@ -172,7 +171,7 @@ test('"don’t learn" on a chat stops noting, Otty is told so, and it stays off 
   expect(lastToolResult(otty)).toContain('Don’t say it was saved')
 
   await newChat(panel)
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await panel.getByRole('button', { name: /About my dog/ }).click()
   await expect(panel.getByRole('button', { name: /Otty isn’t learning from this chat/ })).toHaveAttribute('aria-pressed', 'true')
   await openNotebook(otty, panel)
@@ -192,7 +191,7 @@ test('the Settings list: edit, pause, add, refuse a password, open the source ch
   await panel.getByLabel('Edit what Otty knows').fill('Likes jasmine tea')
   await panel.getByLabel('Edit what Otty knows').press('Enter')
   await expect(memoryRows(panel).filter({ hasText: 'Likes jasmine tea' })).toBeVisible()
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await newChat(panel)
   await askAndWait(otty, panel, 'What should I drink?')
   expect(lastQuestion(otty)).toContain('Likes jasmine tea')
@@ -201,7 +200,7 @@ test('the Settings list: edit, pause, add, refuse a password, open the source ch
   await openNotebook(otty, panel)
   await memoryRows(panel).getByRole('button', { name: 'Pause: keep it, but don’t use it' }).click()
   await expect(memoryRows(panel).getByRole('button', { name: 'Use this again' })).toBeVisible()
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await askAndWait(otty, panel, 'What should I drink?')
   expect(lastQuestion(otty)).not.toContain('jasmine')
 
@@ -234,14 +233,16 @@ test('the Settings list: edit, pause, add, refuse a password, open the source ch
   await otty.settings(panel, 'Privacy')
   await panel.getByRole('checkbox', { name: /Let Otty note things about me/ }).uncheck()
   await expect(panel.getByText('Saved')).toBeVisible()
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   world.reply(asked('remember I like coffee'), { say: 'Coffee is nice.' })
   await newChat(panel)
   await askAndWait(otty, panel, 'remember I like coffee')
   expect(offersRemember(chats(otty).at(-1))).toBe(false)
   expect(lastQuestion(otty)).not.toContain(MEMORY_NOTE)
   await expect(notedLines(panel)).toHaveCount(0)
-  await expect(panel.getByRole('button', { name: 'Don’t learn from this chat' })).toHaveCount(0)
+  await panel.getByRole('button', { name: /, switch screen$/ }).click()
+  await expect(panel.getByRole('menuitem', { name: /learn from this chat/ })).toHaveCount(0)
+  await panel.keyboard.press('Escape')
 })
 
 const EXCEL = { name: 'Microsoft Excel', bundleId: 'com.microsoft.Excel', title: 'Budget' }
@@ -291,7 +292,7 @@ test('days of use mostly in one app become a habit, and a deleted habit doesn’
   await expect(habit).toContainText('Noticed from how you use Otty')
   await habit.getByRole('button', { name: 'Delete' }).click()
   await expect(memoryRows(panel)).toHaveCount(0)
-  await panel.getByRole('button', { name: 'Close (Esc)' }).click()
+  await panel.keyboard.press('Escape')
 
   await otty.control((c, ms) => c.shiftClock(ms), 2 * DAY)
   for (let i = 0; i < 3; i++) {
@@ -314,7 +315,7 @@ test('a memory that matched shows the used marker, kept on reopen, whose menu op
   await panel.getByLabel('Add something Otty should know').fill('Is learning Spanish')
   await panel.getByRole('button', { name: 'Add', exact: true }).click()
   await expect(memoryRows(panel)).toHaveCount(1)
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
 
   await askAndWait(otty, panel, 'how do I say thank you in Spanish?')
   await expect(lastAnswer(panel).getByRole('button', { name: 'Used 1 note from your Notebook' })).toBeVisible()
@@ -324,7 +325,7 @@ test('a memory that matched shows the used marker, kept on reopen, whose menu op
   expect(lastQuestion(otty)).toContain('Is learning Spanish')
 
   await newChat(panel)
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await panel.getByRole('button', { name: /Thank you in Spanish/ }).click()
   const used = panel.locator('.msg--otty').first().getByRole('button', { name: 'Used 1 note from your Notebook' })
   await expect(used).toBeVisible()
@@ -337,7 +338,7 @@ test('a memory that matched shows the used marker, kept on reopen, whose menu op
   await otty.settings(panel, 'Privacy')
   await panel.getByRole('checkbox', { name: /Let Otty note things about me/ }).uncheck()
   await expect(panel.getByText('Saved')).toBeVisible()
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await newChat(panel)
   await askAndWait(otty, panel, 'how do I say thank you in Spanish?')
   await expect(lastAnswer(panel).locator('.used')).toHaveCount(0)

@@ -113,11 +113,11 @@ test('a long highlight gets a short real title that search finds, and a Chinese 
   expect(lastUserText(world.modelRequests().find((b) => isTitle(lastUserText(b), b))!)).toContain('hold paws with another otter')
 
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   // Quotes and the full stop are cleaned off.
   await expect(panel.getByRole('button', { name: /Why sea otters hold paws/ })).toBeVisible()
   await expect(panel.getByText('Why sea otters hold paws.')).toHaveCount(0)
-  await expect(panel.getByText(/Sea otters spend most of their lives/)).toHaveCount(0)
+  await expect(panel.locator('.history').getByText(/Sea otters spend most of their lives/)).toHaveCount(0)
 
   await panel.getByPlaceholder('Search your chats').fill('paws')
   await expect(panel.getByRole('button', { name: /Why sea otters hold paws/ })).toBeVisible()
@@ -126,12 +126,12 @@ test('a long highlight gets a short real title that search finds, and a Chinese 
   // A Chinese question: the title prompt asks for the question's language, and the Chinese title shows.
   world.reply('水獺吃什麼', { say: '水獺主要吃魚和貝類。' })
   world.reply(isTitle, { say: '水獺的食物' })
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await panel.getByRole('button', { name: 'New chat' }).click()
   await otty.ask(panel, '水獺吃什麼？')
   await expect(panel.getByText('水獺主要吃魚和貝類。')).toBeVisible()
   await expect.poll(() => world.modelRequests().filter((b) => isTitle(lastUserText(b), b)).length).toBe(2)
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await expect(panel.getByRole('button', { name: /水獺的食物/ })).toBeVisible()
   expect(textOf(world.modelRequests().filter((b) => isTitle(lastUserText(b), b))[1].messages?.[0]?.content)).toContain('in the same language as the question')
 })
