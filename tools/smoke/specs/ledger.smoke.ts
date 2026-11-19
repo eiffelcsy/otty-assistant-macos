@@ -19,7 +19,7 @@ test('a reminder Reminders gave no id for is listed under What Otty changed as d
   const row = entry(panel, 'Reminder added: Feed the otters')
   await expect(row).toBeVisible()
   await expect(row).toContainText('Can’t be undone')
-  await expect(row.getByRole('button', { name: 'Undo' })).toHaveCount(0)
+  await expect(row.getByRole('button', { name: 'Undo', exact: true })).toHaveCount(0)
 
   await otty.settings(panel, 'Privacy')
   await otty.hold(panel.getByRole('button', { name: 'Hold to forget: Forget all chats' }))
@@ -39,7 +39,7 @@ test('Undo in What Otty changed removes the reminder, and the chat’s receipt s
   await otty.settings(panel, 'Privacy')
   await panel.getByRole('button', { name: 'See what Otty changed' }).click()
   const row = entry(panel, 'Reminder added: Feed the otters')
-  await row.getByRole('button', { name: 'Undo' }).click()
+  await row.getByRole('button', { name: 'Undo', exact: true }).click()
   await expect(row).toContainText('Undone')
   const scripts = (await otty.snapshot()).calls.filter((c) => c.kind === 'osascript')
   expect(scripts).toHaveLength(2)

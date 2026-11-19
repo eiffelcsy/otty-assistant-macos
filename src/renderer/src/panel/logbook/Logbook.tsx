@@ -259,7 +259,12 @@ export function Logbook({ startView = 'all', onOpenChat }: { startView?: LogView
 
   const refresh = useCallback(() => {
     load()
-    if (openId) void window.otty.logbookEntry(openId).then(setDetails)
+    if (openId)
+      void window.otty.logbookEntry(openId).then((d) => {
+        setDetails(d)
+        // The entry is gone (a series stopped, a chat forgotten): back to the ledger.
+        if (!d) setOpenId(null)
+      })
   }, [load, openId])
   useEffect(() => window.otty.onLogbook(refresh), [refresh])
 

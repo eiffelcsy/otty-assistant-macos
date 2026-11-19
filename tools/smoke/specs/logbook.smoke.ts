@@ -30,7 +30,8 @@ async function stuck(otty: Otty, world: World, panel: Page): Promise<void> {
 }
 
 test('a running look-up shows in Now; Add a note shows it under the card and the next step hears it, once', { tag: ['@step-150'] }, async ({ otty, world }) => {
-  world.reply(LOOK.brief, { say: 'Report: JR East passes only.' })
+  // Matched on the brief anywhere in the request: once the note is heard, it's the last thing the user said.
+  world.reply((_text, body) => (body.messages ?? []).some((m) => m.role === 'user' && textOf(m.content).includes(LOOK.brief)), { say: 'Report: JR East passes only.' })
   const panel = await otty.openPanel()
   await stuck(otty, world, panel)
   const now = panel.locator('.log-now').filter({ hasText: LOOK.title })

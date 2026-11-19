@@ -294,7 +294,8 @@ test('a daily look runs and moves to tomorrow; asleep across two times it runs o
   expect(runsOf(world, look.brief)).toBe(2)
 
   await (await openEntry(series)).getByRole('button', { name: 'Stop repeating' }).click()
-  await panel.locator('.log-details__back').click()
+  // The series is gone, so its details close by themselves.
+  await expect(panel.locator('.log-details')).toHaveCount(0)
   await expect(rows(panel, look.title)).toHaveCount(2)
   await expect(done).toHaveCount(2)
   await showView(panel, 'Coming up')
