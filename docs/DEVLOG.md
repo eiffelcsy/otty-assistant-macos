@@ -93,7 +93,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
-| D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 | — | S–M (step 1: S) |
+| D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
 | D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 (no art) | step 2: two painted frames (mouth open, munch) | S–M |
 | D-68 | See more: long highlights in a sent message fold to a few lines | 🔨 | — | S |
 | D-69 | Good to know: retire the always-on tip | 🔨 | — | S |
@@ -104,7 +104,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
 
 **Priority (2026-11-20): Otty, not a chat clone.** The owner's new list (BRAINSTORM: "Otty's look", "Making things", "Together", TOON, the iOS core, and smaller fixes from use) is planned in BRAINSTORM, and every row in BRAINSTORM and this roadmap was re-scored against the updated vision (BRAINSTORM, "Re-score, 2026-11-20"). The best value per effort, among what nothing blocks:
-1. **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
+1. ✅ (step 1) **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
 2. **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
 3. **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
 4. **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
@@ -413,6 +413,11 @@ The pattern: specs are written from the feature's happy path, so they test **one
 1. **Invariants (step 1, S).** `tools/ui-preview/screens/invariants.screens.ts`, in the existing `screens` job, over the real views with the mock: at each band (380, 680, 760, 1280 wide), floating and roomy, (a) the floating window shows Close and every state has a way out; (b) the screen menu and Pause's menu, once open, lie inside the window; (c) nothing scrolls sideways; (d) the nav matrix: from Home, Chats, the Logbook, the Notebook and Settings, ⌘N lands on an empty chat with the box focused, and Back from the Notebook only goes to Settings when it came from there.
 2. **Recorded fake-world cases (step 2, S).** `tools/smoke/world/` gains pages recorded from real sites' shapes (a redirect to a sign-in host, a cookie wall, a page that's all script), each a fixture with where it came from. `pageReader.test.ts` and the web specs read them.
 3. **A probe for agents (step 3, S–M).** `npm run probe` starts the release build in the smoke world and keeps it running, reading one JSON command per line on stdin (`open`, `click` by text, `type`, `key`, `resize`, `shot`, `controls` to list what's visible and clickable) and printing the result. An agent uses it to check a surface it just changed, at any width or state, without writing a spec; anything worth keeping becomes an invariant or a spec. The Browser pane's preview of `tools/ui-preview` stays the quickest look at a view.
+
+**Where it stands (2026-11-20).** Step 1 is built: `tools/ui-preview/screens/invariants.screens.ts`, 17 checks over both states at 380, 680, 760 and 1280 wide, the nav matrix from Home, the Logbook, the Notebook and Settings, and the Notebook's back arrow. Putting back #81's missing Close and New chat staying on its screen fails them, as it should. On its first run it found two more:
+- **Esc didn't close Pause's menu** (the screen menu's did), so in the app it reached the window. Fixed in `PauseButton.tsx`.
+- **The preview's mock kept only the last chat listener**, so the chat never heard its own reset in the preview, unlike the real preload. Fixed in `mock.ts`; it's the "one fake world" row in BRAINSTORM in miniature.
+Steps 2 and 3 are next when a spec or a bug needs them.
 
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
 
@@ -815,3 +820,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 159. Close the roomy window (the red button or ⌘W) → it goes, and the Dock icon after it. Click the bubble → the floating window, beside it. ✋ also by hand: open Otty from Applications while it runs → the roomy window; each state reopens where it was left.
 160. Start a look-up that meets a page it hasn't been given → **⌘1** opens Home: "One thing needs you.", and Needs you shows the page with **Read it** and **Skip**. Read it → the look-up carries on, the item goes, and Today shows it. ✋ also by hand: the item folding into its receipt, and the now dot stepping only while something runs.
 161. On a first open, Home says good morning, afternoon or evening, "Nothing needs you. Ask me anything." and "Nothing has left your Mac today.", with no empty blocks; a Try asking row fills the box and sends nothing.
+162. Open the Pause menu (the pause button in the header or the rail) and press **Esc** → the menu closes and the window stays open. ✋ the window closing on Esc is main's, which the preview can't show; `invariants.screens.ts` checks the menu closes.
