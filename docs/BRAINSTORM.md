@@ -50,7 +50,7 @@ The five promoted on value per effort are in DEVLOG ("Priority, 2026-11-20").
 | Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | M | considering, part of Otty's den; keepsakes need painted art (re-sized 2026-11-20) |
 | Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | → D-38 |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering, Look after me needs it to speak |
-| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | → D-37 (step 1 needs no art) |
+| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | → D-37 (step 1 shipped; the munch waits for art) |
 | More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
 | A simplified small-size head for the 34px header and quick view, where painted fur gets soft | M | S | idea |
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |

@@ -1,7 +1,7 @@
 import { suggestionsFor } from '../../../shared/suggestions'
 import { HealthBanner } from './HealthBanner'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, Memory, PanelOpenPayload, PublicSettings } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, Memory, PanelOpenPayload, PendingFile, PublicSettings } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
 import { Icon } from '../components/Icon'
@@ -142,7 +142,7 @@ export function Panel() {
     push('settings')
     setSettingsAt(section)
   }
-  const navRef = useRef({ go, back, newChat: () => {}, attach: () => {}, help: () => {} })
+  const navRef = useRef({ go, back, newChat: () => {}, attach: () => {}, help: () => {}, feed: (files: PendingFile[]) => void files })
   const roomyRef = useRef(roomy)
   useEffect(() => {
     roomyRef.current = roomy
@@ -223,6 +223,7 @@ export function Panel() {
         if (p.notice === 'open-settings') return navRef.current.go('settings')
         if (p.notice === 'open-activity') return navRef.current.go('logbook')
         if (p.notice === 'open-memory') return navRef.current.go('notebook')
+        if (p.files?.length) return navRef.current.feed(p.files)
         take(p, !!p.add)
         setView((v) => {
           if (v !== 'history' && v !== 'logbook') return v
@@ -472,6 +473,10 @@ export function Panel() {
       go,
       back,
       newChat,
+      feed: (files: PendingFile[]) => {
+        newChat()
+        void att.adopt(files)
+      },
       attach: () => {
         go('chat')
         void att.pick()

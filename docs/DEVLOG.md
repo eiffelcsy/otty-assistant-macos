@@ -94,7 +94,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
-| D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 (no art) | step 2: two painted frames (mouth open, munch) | S–M |
+| D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 built; step 2 waits for art | step 2: two painted frames (mouth open, munch) | S–M |
 | D-70 | Charts and slides with taste: a palette, softer marks, a richer deck template | 🔨 | — | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
@@ -103,7 +103,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Priority (2026-11-20): Otty, not a chat clone.** The owner's new list (BRAINSTORM: "Otty's look", "Making things", "Together", TOON, the iOS core, and smaller fixes from use) is planned in BRAINSTORM, and every row in BRAINSTORM and this roadmap was re-scored against the updated vision (BRAINSTORM, "Re-score, 2026-11-20"). The best value per effort, among what nothing blocks:
 1. ✅ (step 1) **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
-2. **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
+2. ✅ **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
 3. **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
 4. ✅ **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
 5. ✅ **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
@@ -516,6 +516,8 @@ Steps 2 and 3 are next when a spec or a bug needs them.
 - The panel starts a new chat (the same `newChat` as ⌘N), adds the files to the tray (`useAttachments.adopt`), and focuses the box. While the roomy window is open, it comes forward instead.
 - Dragged text is left for step 2: it needs the frontmost app at drop time, which the bubble's drop doesn't know.
 
+**Where it stands (2026-11-20).** Step 1 is built (CHANGELOG, "Feed Otty files"): `Bubble.test.tsx`, `pending.test.ts` and the IPC table cover it, and a real drop from Finder is smoke step 162 (✋).
+
 **Step 2 (needs art).** Two painted frames from `tools/otty-art/` (mouth open while something is over it, one munch on drop), stepped, never looping; dragged text becomes a text capture.
 
 **Done when (step 1).** Dropping a file on the otter calls `dropFiles` then `feedOtty` with the ids (`Bubble.test.tsx`); `bubble:feed` is bubble-only and refuses anything but a short list of ids (`rules/ipc.test.ts` and `check.ts`'s table); unknown ids open nothing (`files.test.ts › pendingFiles`); ✋ a real drop from Finder opens a new chat with the chip, because Playwright can't make a file on disk behind a drop (as step 30).
@@ -796,3 +798,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 162. Open the Pause menu (the pause button in the header or the rail) and press **Esc** → the menu closes and the window stays open. ✋ the window closing on Esc is main's, which the preview can't show; `invariants.screens.ts` checks the menu closes.
 163. Ask "why does my Mac fan get loud?" → the answer ends without a **Good to know** card. Reopen an older chat whose answer had one → the card is still there. ✋ needs a real model (whether it still adds tips unasked); `prompts.test.ts` covers the prompt and `Markdown.test.tsx` the old card.
 164. Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **Show all**; press it → the whole text; **Show less** folds it again. ⌘F a word near its end → it unfolds to the match.
+165. Drag a PDF from Finder onto the otter → it swells while over it; drop → the Otty window opens beside it on a new chat, the PDF's chip reads, and ↵ summarises it. With the roomy window open, it comes forward with the new chat. Drop six files → five chips and "Otty can take up to 5 files at a time". Drag text from Safari onto it → nothing happens. ✋ a real drop from Finder needs a file on disk behind it, which Playwright can't make (as step 30); `Bubble.test.tsx` covers the bubble's side.

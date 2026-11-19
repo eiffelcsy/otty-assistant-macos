@@ -15,6 +15,8 @@ export function Bubble() {
   const [state, setState] = useState<BubbleState>('idle')
   const [badge, setBadge] = useState(false)
   const [mood, setMood] = useState<BubbleMood>(null)
+  /** Files are being dragged over the otter (D-37). */
+  const [feeding, setFeeding] = useState(false)
 
   useEffect(() => window.otty.onBubbleState(setState), [])
   useEffect(() => window.otty.onBubbleBadge(setBadge), [])
@@ -22,8 +24,22 @@ export function Bubble() {
 
   return (
     <div
-      className={`bubble bubble--${state}`}
+      className={`bubble bubble--${state}${feeding ? ' bubble--feeding' : ''}`}
       title={TITLES[mood ?? (badge ? 'badge' : 'idle')]}
+      // D-37: feed Otty files. Only files: dragged text has no app to say where it came from.
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'copy'
+        setFeeding(true)
+      }}
+      onDragLeave={() => setFeeding(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setFeeding(false)
+        const files = [...e.dataTransfer.files]
+        if (files.length) void window.otty.dropFiles(files).then((pending) => (pending.length ? window.otty.feedOtty(pending.map((f) => f.id)) : undefined))
+      }}
       onPointerDown={(e) => {
         if (e.button !== 0) return
         e.currentTarget.setPointerCapture(e.pointerId)

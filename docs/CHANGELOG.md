@@ -4,6 +4,10 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Feed Otty files (2026-11-20)
+
+- **Drop files on the otter** and a new chat opens beside it with them in the tray, ready for a question or a tile (D-37, step 1). The otter swells a little while files are over it. The bubble hands the files to main the same way the panel does, so it only ever sees ids and names, and main opens only files it registered. The munch animation waits for painted frames (step 2), and dragged text isn't taken yet.
+
 ### Long highlights fold (D-68, 2026-11-20)
 
 - **A long highlight in a sent message shows six lines and Show all**, the same as a long question. Before, it was cut at 160 characters with no way to read the rest. **Show less** folds it again, and Find in this chat opens a folded highlight when a match is inside it. The tray keeps its short preview.

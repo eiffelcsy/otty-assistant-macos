@@ -135,7 +135,8 @@ export const CHANNELS = {
   'memory:undo': { views: CHAT, args: [id, int(0, Number.MAX_SAFE_INTEGER)] },
   'memory:open': { views: CHAT, args: [] },
   'files:pick': { views: CHAT, args: [] },
-  'files:register': { views: CHAT, args: [checkedLater] },
+  // The bubble too: files dropped on the otter (D-37).
+  'files:register': { views: [...CHAT, 'bubble'], args: [checkedLater] },
   'files:read': { views: CHAT, args: [id] },
   'files:discard': { views: CHAT, args: [id] },
   'hidden:show': { views: CHAT, args: [id] },
@@ -158,7 +159,8 @@ export const CHANNELS = {
   'quick:resize': { views: ['quick'], args: [num(0, 10_000)] },
   'quick:state': { views: ['quick'], args: [record] },
   'bubble:menu': { views: ['bubble'], args: [] },
-  'bubble:drag': { views: ['bubble'], args: [oneOf('start', 'end')] }
+  'bubble:drag': { views: ['bubble'], args: [oneOf('start', 'end')] },
+  'bubble:feed': { views: ['bubble'], args: [list(id, 5)] }
 } as const satisfies Record<string, { views: readonly View[]; args: readonly Guard[] }>
 
 export type Channel = keyof typeof CHANNELS
