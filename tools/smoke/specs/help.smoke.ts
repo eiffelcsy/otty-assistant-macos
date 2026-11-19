@@ -21,6 +21,6 @@ test('Copy diagnostics shows the whole report first, copies exactly that, and ho
   expect(text).not.toContain('fjord')
 
   await panel.getByRole('button', { name: 'Copy this' }).click()
-  await expect(panel.getByRole('button', { name: 'Copied' })).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Copied', exact: true })).toBeVisible()
   expect(pbpaste().trim()).toBe(text.trim())
 })
