@@ -348,8 +348,8 @@ export function Markdown({ text, language = 'en' }: { text: string; language?: A
     <div className="md">
       <AnswerContext.Provider value={{ text, language }}>
         <ReactMarkdown remarkPlugins={math ? mathRemarkPlugins : remarkPlugins} rehypePlugins={math ? mathRehypePlugins : undefined} components={components}>
-          {/* Tips arrive as `> 💡 …`; the card draws its own icon, so drop the emoji. */}
-          {(math ? closedMath(tidy) : tidy).replace(/^(\s*>\s*)💡\s*/gm, '$1')}
+          {/* Tips arrive as `> 💡 **Good to know:** …` (prompts.ts); the card draws its own label, so drop both. */}
+          {(math ? closedMath(tidy) : tidy).replace(/^(\s*>\s*)💡\s*(\*\*Good to know:?\*\*:?\s*)?/gm, '$1')}
         </ReactMarkdown>
       </AnswerContext.Provider>
     </div>
