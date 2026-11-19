@@ -93,15 +93,30 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
-| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M |
+| D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 | — | S–M (step 1: S) |
+| D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 (no art) | step 2: two painted frames (mouth open, munch) | S–M |
+| D-68 | See more: long highlights in a sent message fold to a few lines | 🔨 | — | S |
+| D-69 | Good to know: retire the always-on tip | 🔨 | — | S |
+| D-70 | Charts and slides with taste: a palette, softer marks, a richer deck template | 🔨 | — | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
-| D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
+| D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
 
+**Priority (2026-11-20): Otty, not a chat clone.** The owner's new list (BRAINSTORM: "Otty's look", "Making things", "Together", TOON, the iOS core, and smaller fixes from use) is planned in BRAINSTORM, and every row in BRAINSTORM and this roadmap was re-scored against the updated vision (BRAINSTORM, "Re-score, 2026-11-20"). The best value per effort, among what nothing blocks:
+1. **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
+2. **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
+3. **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
+4. **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
+5. **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
+
+Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M, wants its composer spec) and Pebbles step 1 (H, M). The living cove needs painted sources first, like D-38. D-54 still waits for the OAuth client, and the eval in CI for the key.
+
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
-**Where things stand (2026-11-19).** D-63, the Logbook, is built on `feat/logbook` (CHANGELOG), stacked on the specs for D-64 to D-66 (`docs/frame-roomy-home-specs`) and the UI batch below. Activity, What left your Mac and What Otty changed are one screen of views, worded in main; a look-up's steering note reaches its next step and can only narrow it. The rest of D-62 is built on `feat/chat-polish` (CHANGELOG). D-64, the frame, is built on `feat/frame` (CHANGELOG). D-65, the roomy window, is built on `feat/roomy` (CHANGELOG). D-66, Home, is built on `feat/home` (CHANGELOG). With it, the UI plan from Specs 01–06 is built; next are D-55 and D-56, and D-54 once the owner's OAuth client exists. Each PR's "Left for a person" lists the ✋ checks, and the new screen baselines are their own PRs after CI. The Logbook's wider layouts work by container queries but get their preview widths (`&w=`) with D-64.
+**Where things stand (2026-11-20).** The owner's new feature list is planned (BRAINSTORM, DESIGN "Signature moments"), BRAINSTORM is re-scored, and D-67 step 1, D-37 step 1, D-68, D-69 and D-70 are being built, each on its own branch after `docs/plans-2026-11-20`.
+
+**Earlier (2026-11-19).** D-63, the Logbook, is built on `feat/logbook` (CHANGELOG), stacked on the specs for D-64 to D-66 (`docs/frame-roomy-home-specs`) and the UI batch below. Activity, What left your Mac and What Otty changed are one screen of views, worded in main; a look-up's steering note reaches its next step and can only narrow it. The rest of D-62 is built on `feat/chat-polish` (CHANGELOG). D-64, the frame, is built on `feat/frame` (CHANGELOG). D-65, the roomy window, is built on `feat/roomy` (CHANGELOG). D-66, Home, is built on `feat/home` (CHANGELOG). With it, the UI plan from Specs 01–06 is built; next are D-55 and D-56, and D-54 once the owner's OAuth client exists. Each PR's "Left for a person" lists the ✋ checks, and the new screen baselines are their own PRs after CI. The Logbook's wider layouts work by container queries but get their preview widths (`&w=`) with D-64.
 
 **Earlier (2026-11-18, evening).** The UI batch is built on stacked branches from `main`: D-60 decisions and receipts (`feat/decisions-receipts`), D-61 Settings in sections (`feat/settings-sections`), the core of D-62 chat and one message box (`feat/chat-message-box`), D-57 the 80% heads-up (`feat/limit-heads-up`) and D-58 Try again with a twist (`feat/try-again-twist`). The whole smoke suite passes on the last of them (147 tests). Next: D-63 the Logbook (L), the rest of D-62 (its entry lists it), then D-55 and D-56; D-54 still waits on the owner's OAuth client. `npm run screens` will differ on every chat and settings scene, so new baselines are their own PR after CI. The smoke checklist is 148 steps; 135–138 need the packaged app or a model on the Mac (✋).
 
@@ -376,6 +391,71 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
+## D-67 · Tests that find what people find 🔨 step 1
+
+**Goal.** The checks catch the kind of bug a person finds in a day of use, without a bigger suite. An agent can also poke at a surface by hand while building, instead of only writing specs.
+
+**Why the 2026-11-19 bugs got through.** Seven non-visual bugs from use (PR #81) passed 1,072 unit tests, 160 smoke tests and 148 screenshots:
+
+| Bug | Why nothing caught it | What would have |
+| --- | --- | --- |
+| The floating window had no Close | Smoke closes windows through the harness, not the button, and the screenshot baselines were taken after the button went, so they blessed its absence | An invariant: every window state has a visible way to close |
+| Pause's menu in the rail opened outside the window | No scene opens that menu at rail width; screenshots only show menus a scene opens | An invariant: an opened menu lies inside the window, at every band |
+| New chat from Home or the Logbook stayed on that screen | Specs test New chat from the chat only: one entry point per feature, not every screen | A nav matrix: each global action from each screen lands where it should |
+| The Notebook's back arrow went to Settings from anywhere | Same: one path in | The nav matrix, with Back |
+| The paperclip opened slowly | The smoke world fakes the native dialog, so its cost is invisible | ✋ only; noted in the checklist |
+| Gmail's redirect to a sign-in page was read as the page | The fake world serves what we expect, not what real sites do | Fake-world cases recorded from real sites (redirect chains, sign-in walls) |
+| The rail's traffic lights overlapped | Native chrome isn't in the browser preview | ✋ only |
+
+The pattern: specs are written from the feature's happy path, so they test **one way in** and **what's there**, never **every way in** or **what must always be there**. Screenshots can't see a missing control, because the baseline is whatever exists. Fakes test our expectations of the world.
+
+**Design.** No new tier and no new tool to install; each step adds to what runs today.
+1. **Invariants (step 1, S).** `tools/ui-preview/screens/invariants.screens.ts`, in the existing `screens` job, over the real views with the mock: at each band (380, 680, 760, 1280 wide), floating and roomy, (a) the floating window shows Close and every state has a way out; (b) the screen menu and Pause's menu, once open, lie inside the window; (c) nothing scrolls sideways; (d) the nav matrix: from Home, Chats, the Logbook, the Notebook and Settings, ⌘N lands on an empty chat with the box focused, and Back from the Notebook only goes to Settings when it came from there.
+2. **Recorded fake-world cases (step 2, S).** `tools/smoke/world/` gains pages recorded from real sites' shapes (a redirect to a sign-in host, a cookie wall, a page that's all script), each a fixture with where it came from. `pageReader.test.ts` and the web specs read them.
+3. **A probe for agents (step 3, S–M).** `npm run probe` starts the release build in the smoke world and keeps it running, reading one JSON command per line on stdin (`open`, `click` by text, `type`, `key`, `resize`, `shot`, `controls` to list what's visible and clickable) and printing the result. An agent uses it to check a surface it just changed, at any width or state, without writing a spec; anything worth keeping becomes an invariant or a spec. The Browser pane's preview of `tools/ui-preview` stays the quickest look at a view.
+
+**Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
+
+## D-68 · See more: long highlights fold 🔨
+
+**Goal.** A long highlight or pasted page in a sent message takes a few lines, not the whole window, so the answer stays in view. The full text is one tap away.
+
+**Design.** In a sent message (not the tray, which is already compact), a text capture longer than about six lines is clipped to six lines with a soft fade at the bottom and a **See more** button under it; pressing it shows the rest and the button becomes **See less**. Clipping is CSS (`max-height` from `--lh-*` tokens and a mask), measured once after render, so a short highlight gets no button. Find in chat (D-7) opens a folded capture when a match is inside it. Copy and search still use the full text.
+
+**Done when.** A long capture in a sent message shows **See more** and six lines, and a short one shows no button (`Messages.test.tsx`); pressing it shows the rest; a find match inside a folded capture unfolds it (`findInChat`'s scroll path); ui-preview's `chat` scene shows a folded capture.
+
+**Smoke test (add when it ships).** Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **See more**; press it → the whole text; **See less** folds it again. ⌘F a word near its end → it unfolds to the match.
+
+## D-69 · Good to know: retire the always-on tip 🔨
+
+**Goal.** Decide whether the 💡 tip earns its place.
+
+**What it is.** The system prompt asks for one `> 💡 **Good to know:**` blockquote "when an extra bit of background would really help", and `Markdown.tsx` holds it back until the answer ends, then draws it as a card labelled Good to know.
+
+**Decision: retire it from the prompt, keep drawing old ones.**
+- Models treat an optional flourish as a habit: most answers get a tip, so every answer is longer, against the prompt's own "under ~150 words", and the tip is the part people skip.
+- Teaching already happens on demand, and better: explain links mark the tricky terms, and **In more detail** (D-58) gives more when someone wants it.
+- The card's late arrival moves the end of every answer after it finishes, which the polish bar counts against it.
+- Saved chats keep their tips: the renderer still draws a `💡` blockquote as a quiet card, so nothing old breaks.
+
+**What changes.** The tip lines go from `systemPrompt` (`prompts.ts`); the system prompt depends only on settings, so DeepSeek's cache misses once per chat on upgrade and then holds. The eval baseline is compared after the change (no case scores tips). The `Markdown.tsx` card stays for history.
+
+**Done when.** `systemPrompt` has no tip instruction (`llm.test.ts` or a prompt test); an old answer with a tip still renders its card (`Markdown.test.tsx`); ✋ the eval baseline holds against a real model (needs `OTTY_EVAL_KEY`).
+
+## D-70 · Charts and slides with taste 🔨
+
+**Goal.** Charts and decks look designed, not like a library's defaults: the first impression of what Otty makes.
+
+**Today.** Mermaid's `base` theme with Otty's surface and text colours, but no palette: pies fall back to Mermaid's own hues, and bar charts use one default colour with heavy axes. The deck template is plain: a heading, bullets and a page number on a flat background.
+
+**Design.**
+- **A chart palette** in tokens: `--chart-1` to `--chart-6`, a calm categorical set built around the brand (sea, kelp, sand, coral, dusk, shell), separately tuned for dark, each at least 3:1 against the surface it sits on. `render.ts`'s `theme()` reads them and passes them to Mermaid as `pie1`–`pie6`, the `xyChart` palette and `cScale` for other diagrams.
+- **Softer marks:** pie slices with a hairline in the surface colour between them and the legend in `--text-2`; bars with the brand palette, faint gridlines and quieter axes; flowcharts with rounded nodes, `basis` curves and more padding.
+- **A richer deck** (`shared/slides.ts`): the title slide on a soft wash of the brand with a kicker line (the deck's first paragraph, smaller and in the accent), a short accent rule under every heading, bullets drawn as brand-coloured dots, a large accent quote mark on quote slides, the page as a small number badge, and slightly more air. Two themes from the same tokens: `otty` and `contrast` (high-contrast, for projectors), picked on the card.
+- Everything stays self-contained HTML with no scripts and only `data:` pictures (D-30's safety).
+
+**Done when.** Pie and bar charts use the palette (`render.ts`'s Mermaid config, checked in a test of `theme()`'s output); the palette passes the contrast test in both themes (`rules/renderer.test.ts`); a deck's HTML has the kicker, accent rule and badge, and the contrast theme changes only colours (`slides.test.ts`); ui-preview's `drawing`, `chart` and `viewer slides` scenes show them, with new baselines in their own PR.
+
 ## D-14 · Otty's own snip: a paw cursor and a frozen screen ⏸
 
 **Goal.** Snipping should feel like Otty, not like a system tool, and be faster too. The whole-screen shortcut shipped ahead of this in 0.5.0.
@@ -448,13 +528,21 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
-## D-37 · Feed Otty ⏳
+## D-37 · Feed Otty 🔨 step 1
 
-**Goal.** Drop a file, a picture or dragged text on the otter to ask about it. The otter opens its mouth while something is over it and munches once, then the quick view opens with the file or text in the tray, ready for a question or a tile.
+**Goal.** Drop files on the otter to ask about them. A new chat opens in the Otty window with the files in its tray, ready for a question or a tile. (Revised 2026-11-20, the owner's version: a new chat in the window, not the quick view, so it no longer waits for files in the quick view.)
 
-**Design.** The bubble window accepts drops (`dragover`, `drop`) and passes paths through the same `files:register` path as the panel. Dragged text becomes a text capture with the frontmost app. Two frames come from `tools/otty-art/` (mouth open, munch), stepped, not animated forever. The renderer still gets ids and names only.
+**Design, step 1 (no new art).**
+- The bubble accepts drops: while files are over it, it swells a little (`bubble--feeding`, a transform over `--t-quick`, on touch only). On drop, it hands the files to main through the same `files:register` path the panel uses (the preload turns each `File` into a path on its way to main; the bubble gets ids and names only), then sends the ids on `bubble:feed`.
+- `bubble:feed` (bubble view only, a list of at most 5 ids) looks the ids up in main's file registry (`pendingFiles`) and opens the panel beside the bubble with `PanelOpenPayload.files`. Unknown ids are dropped, so the bubble can't name a file it didn't register.
+- The panel starts a new chat (the same `newChat` as ⌘N), adds the files to the tray (`useAttachments.adopt`), and focuses the box. While the roomy window is open, it comes forward instead.
+- Dragged text is left for step 2: it needs the frontmost app at drop time, which the bubble's drop doesn't know.
 
-**Done when.** Dropping a PDF from Finder on the otter opens the quick view with the chip, dropping text from Safari adds a highlight with the Safari tag, and idle CPU stays under NFR-3.
+**Step 2 (needs art).** Two painted frames from `tools/otty-art/` (mouth open while something is over it, one munch on drop), stepped, never looping; dragged text becomes a text capture.
+
+**Done when (step 1).** Dropping a file on the otter calls `dropFiles` then `feedOtty` with the ids (`Bubble.test.tsx`); `bubble:feed` is bubble-only and refuses anything but a short list of ids (`rules/ipc.test.ts` and `check.ts`'s table); unknown ids open nothing (`files.test.ts › pendingFiles`); ✋ a real drop from Finder opens a new chat with the chip, because Playwright can't make a file on disk behind a drop (as step 30).
+
+**Smoke test (add to the checklist when it ships).** ✋ Drag a PDF from Finder onto the otter → it swells while over it; drop → the Otty window opens beside it on a new chat, the PDF's chip reads, and ↵ summarises it. With the roomy window open, it comes forward with the new chat. A drop of six files → five chips and "Otty can take up to 5 files at a time".
 
 ## D-38 · Otter moods ⏳
 
