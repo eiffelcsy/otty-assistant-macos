@@ -1,7 +1,7 @@
 import { suggestionsFor } from '../../../shared/suggestions'
 import { HealthBanner } from './HealthBanner'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, PanelOpenPayload, PublicSettings } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, Memory, PanelOpenPayload, PublicSettings } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
 import { Icon } from '../components/Icon'
@@ -185,6 +185,14 @@ export function Panel() {
       }),
     []
   )
+
+  /** What Otty knows, for Try asking: read again each time a screen opens, so a new note shows up next time. */
+  const [known, setKnown] = useState<Memory[]>([])
+  const learning = settings?.learn ?? false
+  useEffect(() => {
+    // With learning off, suggestionsFor uses none of it, so there's nothing to clear.
+    if (learning) void window.otty.listMemories().then(setKnown)
+  }, [learning, view])
 
   useEffect(() => {
     const count = () => void window.otty.logbook('wait', '').then((p) => setNeedsYou(p.views.find((v) => v.view === 'wait')?.count ?? 0))
@@ -442,6 +450,9 @@ export function Panel() {
     keep.drop()
     setInput('')
     void window.otty.resetChat()
+    // From any screen, New chat shows the new chat, ready to type in.
+    go('chat')
+    setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0)
   }
   /** A question from Home starts a new chat and shows it, as from an empty chat. */
   const askFromHome = async () => {
@@ -502,8 +513,10 @@ export function Panel() {
   /** The chat's own actions: in the compact screen menu, or as header buttons once there's room. */
   const menuExtras = onChat
     ? [
-        { label: 'Find in this chat', keys: '⌘F', onClick: findInChat },
-        ...(settings.learn ? [{ label: learn ? 'Don’t learn from this chat' : 'Let Otty learn from this chat', onClick: toggleLearn }] : [])
+        { label: 'Find in this chat', icon: 'search', keys: '⌘F', onClick: findInChat },
+        ...(settings.learn
+          ? [{ label: learn ? 'Don’t learn from this chat' : 'Let Otty learn from this chat', icon: learn ? 'eye-crossed' : 'brain', onClick: toggleLearn }]
+          : [])
       ]
     : []
   const compact = columns(width, false).nav === 'none'
@@ -569,6 +582,7 @@ export function Panel() {
               {messages.length === 0 && (
                 <EmptyState
                   settings={settings}
+                  known={known}
                   app={app?.name ?? captures[0]?.app?.name ?? null}
                   onSuggest={(text) => {
                     setInput(text)
@@ -698,11 +712,14 @@ export function Panel() {
             {shown === 'notebook' && (
               <Notebook
                 onOpenChat={() => go('chat')}
-                onBack={() => {
-                  setSettingsAt('privacy')
-                  if (stack.length) back()
-                  else go('settings')
-                }}
+                onBack={
+                  stack.at(-1) === 'settings'
+                    ? () => {
+                        setSettingsAt('privacy')
+                        back()
+                      }
+                    : undefined
+                }
               />
             )}
             {shown === 'logbook' && (
@@ -724,7 +741,7 @@ export function Panel() {
                     push('logbook')
                   }}
                   onSuggest={(text) => setHomeInput(text)}
-                  suggestions={suggestionsFor(null, settings.learn, settings.readsPages).map((s) => s.text)}
+                  suggestions={suggestionsFor(null, settings.learn, settings.readsPages, known).map((s) => s.text)}
                 />
                 <footer className="composer">
                   <MessageBox
@@ -769,8 +786,8 @@ function Thinking({ messages, service }: { messages: UiMessage[]; service: strin
 }
 
 /** Glanceable, one thing: who Otty is, the one shortcut, and up to three things to try (Spec 03, "The empty chat"). */
-function EmptyState({ settings, app, onSuggest }: { settings: PublicSettings; app: string | null; onSuggest: (text: string) => void }) {
-  const suggestions = suggestionsFor(app, settings.learn, settings.readsPages).slice(0, 3)
+function EmptyState({ settings, known, app, onSuggest }: { settings: PublicSettings; known: Memory[]; app: string | null; onSuggest: (text: string) => void }) {
+  const suggestions = suggestionsFor(app, settings.learn, settings.readsPages, known).slice(0, 3)
   return (
     <div className="empty">
       <Otter state="idle" size={88} />

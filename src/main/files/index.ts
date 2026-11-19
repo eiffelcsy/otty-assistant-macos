@@ -7,9 +7,8 @@ import { basename, isAbsolute, join } from 'path'
 import { promisify } from 'util'
 import type { AttachResult, FileAttachment, PendingFile } from '../../shared/types'
 import { encodeImage } from '../capture'
-import { kindOf, PICKER_EXTENSIONS, type Extracted } from './extract'
+import { kindOf, type Extracted } from './extract'
 import { keepHidden } from '../hiddenLines'
-import { CODE_EXTENSIONS } from './languages'
 import type { ReadReply, ReadRequest } from './worker'
 
 // Files the user attached: picked, dropped or pasted. Main keeps the path and what's inside;
@@ -56,14 +55,9 @@ export async function pickFiles(win: BrowserWindow | null): Promise<PendingFile[
   const options: Electron.OpenDialogOptions = {
     title: 'Attach files',
     buttonLabel: 'Attach',
-    properties: ['openFile', 'multiSelections'],
-    filters: [
-      {
-        name: 'Documents, pictures, text and code',
-        extensions: [...PICKER_EXTENSIONS, ...CODE_EXTENSIONS]
-      },
-      { name: 'All files', extensions: ['*'] }
-    ]
+    // No filters: macOS turns each of ~70 extensions into a file type before the panel shows, which made the paperclip
+    // feel slow. A file Otty can't read gets a friendly line on its chip (`readFile`) instead of being greyed out.
+    properties: ['openFile', 'multiSelections']
   }
   const { canceled, filePaths } = await (win ? dialog.showOpenDialog(win, options) : dialog.showOpenDialog(options))
   return canceled ? [] : filePaths.map(remember)

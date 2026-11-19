@@ -66,14 +66,14 @@
   --lh-heading: 26px;
   --fs-title: 16px;
   --lh-title: 22px;
-  --fs-body: 15px;
-  --lh-body: 23px;
-  --fs-ui: 14px;
-  --lh-ui: 20px;
-  --fs-small: 13px;
-  --lh-small: 18px;
-  --fs-meta: 12px;
-  --lh-meta: 16px;
+  --fs-body: 14px;
+  --lh-body: 22px;
+  --fs-ui: 13px;
+  --lh-ui: 19px;
+  --fs-small: 12px;
+  --lh-small: 17px;
+  --fs-meta: 11px;
+  --lh-meta: 15px;
   --fs-label: 11px;
   --lh-label: 14px;
 
@@ -145,8 +145,8 @@
 
 /* Chinese keeps the same sizes, one more step of leading, and no letter-spacing. */
 :lang(zh) {
-  --lh-body: 25px;
-  --lh-small: 20px;
+  --lh-body: 24px;
+  --lh-small: 19px;
   letter-spacing: 0;
 }
 
@@ -509,6 +509,11 @@ html[data-view='bubble'] body {
   flex: none;
   height: 44px;
 }
+/* The traffic lights sit 16 in and span about 60 (wider on recent macOS), so the 72 rail would let them spill over its
+   edge: the roomy rail is wide enough to hold them with the same 16 either side. */
+.frame--roomy .frame__nav--rail {
+  width: 92px;
+}
 .frame__otty {
   flex: none;
   margin-top: var(--s-3);
@@ -723,9 +728,6 @@ html[data-view='bubble'] body {
 }
 .screen-menu__label {
   flex: 1;
-}
-.screen-menu__label--plain {
-  padding-left: var(--s-5);
 }
 .screen-menu__count {
   font-size: var(--fs-meta);
@@ -2471,14 +2473,14 @@ html[data-view='bubble'] body {
   display: flex;
   align-items: center;
   gap: var(--s-1);
-  margin: calc(var(--s-1) - var(--s-3)) 0 calc(var(--s-2) - var(--s-6)) calc(-1 * var(--s-2));
+  margin: 0 0 calc(var(--s-3) - var(--s-6)) calc(-1 * var(--s-2));
 }
 .set-bar__title {
   flex: 1;
   margin: 0;
-  font-size: var(--fs-title);
-  line-height: var(--lh-title);
-  font-weight: 700;
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  font-weight: 800;
   color: var(--heading);
 }
 /* The Saved whisper: one per section, restarted by each change. */
@@ -3480,7 +3482,7 @@ html[data-view='pickup'] #root {
 }
 .menu__item {
   min-height: 30px;
-  padding: var(--s-1h) var(--s-2);
+  padding: var(--s-1) var(--s-2);
   border: none;
   border-radius: var(--r-xs);
   background: none;
@@ -3713,6 +3715,13 @@ button.menu__item:hover {
 .pause-btn__menu {
   top: 36px;
   right: 0;
+}
+/* At the foot of the rail there's nothing below and nothing to the left: open up and out, beside the button. */
+.frame__nav .pause-btn__menu {
+  top: auto;
+  right: auto;
+  bottom: 0;
+  left: calc(100% + var(--s-2));
 }
 /* Width alone sets the layout: one column under 640; the views as a 240 list from 640; the opened entry in a 300 pane
    from 1248, and as a page in the main column below that. */
@@ -3975,6 +3984,10 @@ button.menu__item:hover {
   font-size: var(--fs-meta);
   font-weight: 500;
   color: var(--text-2);
+}
+/* Days need air between them, or one day's last entry reads as the next day's first. */
+.log-day + .log-day {
+  margin-top: var(--s-6);
 }
 .log-day__list {
   list-style: none;
@@ -4362,6 +4375,7 @@ button.menu__item:hover {
 .try {
   display: flex;
   flex-direction: column;
+  gap: var(--s-1);
   width: 100%;
   margin-top: var(--s-6);
   text-align: left;
@@ -4374,7 +4388,7 @@ button.menu__item:hover {
   align-items: center;
   gap: var(--s-2);
   min-height: 36px;
-  padding: 0 var(--s-2);
+  padding: var(--s-1) var(--s-2);
   border: none;
   border-radius: var(--r-sm);
   background: none;

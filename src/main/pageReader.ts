@@ -177,6 +177,13 @@ export async function readPageFromMac(address: string, fetchImpl: typeof fetch =
   }
 }
 
+/**
+ * A redirect to a sign-in screen: the page is behind the user's account (Gmail, a bank), which Otty never has, since it
+ * reads with no cookies. Saying so beats handing the model a login form to make sense of.
+ */
+const SIGN_IN = /^(accounts?|login|signin|auth|sso|id)\.|\/(login|log-in|signin|sign-in|sign_in|servicelogin|auth\/|oauth)/i
+const signInPage = (url: URL): boolean => SIGN_IN.test(url.hostname) || SIGN_IN.test(url.pathname)
+
 async function readThrough(start: URL, dispatcher: ReturnType<typeof connectingVia>, fetchImpl: typeof fetch, resolve: Resolve): Promise<string> {
   let url = start
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -202,6 +209,7 @@ async function readThrough(start: URL, dispatcher: ReturnType<typeof connectingV
       } catch {
         throw new WebError('That page sent Otty somewhere it can’t read.', false)
       }
+      if (signInPage(url)) throw new WebError('That page needs the user to be signed in, so Otty can’t see it. Highlight or snip the part you mean.', false)
       continue
     }
     if (!res.ok) throw new WebError('That page couldn’t be opened. It may need a sign-in.', false)

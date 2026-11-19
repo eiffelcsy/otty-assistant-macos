@@ -4,6 +4,19 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### UI fixes from use (2026-11-19)
+
+- **The floating window has a Close button again** (✕, last in the header; Esc still works). It went with the frame, which left no way out but Expand and the red button.
+- **The roomy rail holds the traffic lights.** At medium widths the 72 px rail let them spill over its edge; in the roomy window it's 92 wide.
+- **Pause works from the rail.** Its menu opened downward off the window and over Settings, so nothing could be picked; at the foot of the rail it now opens up and beside the button, and the button turns to Play once paused.
+- **New chat shows the new chat** from any screen, with the box focused.
+- **The Notebook only has a back arrow when it was opened from Settings**; from the nav or ⌘4 there's nothing to go back to.
+- **Find in this chat and Don't learn from this chat** have icons and their own group in the screen menu.
+- **Type and spacing:** every role below Title is a step smaller (body 14, UI 13, small 12, meta 11), Settings section titles are Heading size with room under them, and the Logbook leaves space between days.
+- **Try asking** rows have room between them, start with a goal Otty knows about ("What's one small step for learning Spanish today?"), and drop "Remember that I like short answers" once Otty knows anything.
+- **The paperclip opens faster:** the file picker has no type filter, which macOS worked through before showing it. A file Otty can't read says so on its chip.
+- **Signed-in pages say so.** A page that sends Otty to a sign-in screen (Gmail, a bank) now fails as "needs the user to be signed in" instead of handing the model a login form, so the answer suggests highlighting or snipping the part you mean.
+
 ### Web safety fixes (2026-11-19)
 
 - **Read this page? asks for every unknown address.** An address the reader accepts, such as `https:example.com` or one with a leading space, used to skip the card. The tool now parses the address first and checks that. Step cards' `open` uses the same parser.

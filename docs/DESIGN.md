@@ -55,15 +55,15 @@ SF Pro Rounded (`ui-rounded`), with PingFang HK for Chinese. Seven roles and fou
 | Display | `--fs-display` | 24 / 30 | 800 | Home greeting, onboarding titles |
 | Heading | `--fs-heading` | 20 / 26 | 800 | Settings section titles, empty states |
 | Title | `--fs-title` | 16 / 22 | 700 | Window header, card titles that are questions |
-| Body | `--fs-body` | 15 / 23 | 500 | Answers, user bubbles, the composer. The content |
-| UI | `--fs-ui` | 14 / 20 | 600 | Row titles, buttons, setting names, fields |
-| Small | `--fs-small` | 13 / 18 | 500 | Row sub-lines, card details, setting descriptions |
-| Meta | `--fs-meta` | 12 / 16 | 500 | Times, counts, hints, tool chips, tooltips |
+| Body | `--fs-body` | 14 / 22 | 500 | Answers, user bubbles, the composer. The content |
+| UI | `--fs-ui` | 13 / 19 | 600 | Row titles, buttons, setting names, fields |
+| Small | `--fs-small` | 12 / 17 | 500 | Row sub-lines, card details, setting descriptions |
+| Meta | `--fs-meta` | 11 / 15 | 500 | Times, counts, hints, tool chips, tooltips |
 | Label | `--fs-label` | 11 / 14 | 700 | Group labels, uppercase, letter-spacing 0.05em. Never for sentences |
 
 **Rules.**
 - Answers are always the largest running text on screen; chrome never matches them.
-- Chinese text keeps the same size and gets one extra line-height step (body 15 / 25, small 13 / 20), with no letter-spacing (`:lang(zh)`).
+- Chinese text keeps the same size and gets one extra line-height step (body 14 / 24, small 12 / 19), with no letter-spacing (`:lang(zh)`).
 - Times, counts and anything that lines up use `font-variant-numeric: tabular-nums`.
 - Headings use `text-wrap: balance`; nothing in a row wraps: titles and sub-lines truncate to one line with an ellipsis, sub-lines first.
 - Today's mapping: 13.5 → UI 14; 14.5 → Body 15; 12.5 and 11.5 → Small 13 or Meta 12 by role; 10, 10.5 and 9 → Label 11 or gone; 650 → 700; 18, 19, 21, 26 → Heading or Display.

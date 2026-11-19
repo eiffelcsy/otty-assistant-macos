@@ -57,6 +57,8 @@ The long-run direction, from something you ask to something that looks after thi
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
+| Try asking from more of what Otty knows: people ("Draft a birthday note to Mum"), habits, the apps used most; today only a goal shapes it | M | S | idea, from use |
+| Read the page as the user sees it, signed in (Gmail, a bank): the browser's own text through Accessibility (`AXWebArea`), never cookies, behind a card like `read_page`'s. Today a signed-in page only gives its address and title, so Gmail works only with a highlight or a snip | H | M | idea, from use |
 | Hidden keys in highlighted text and snips too: run `maskSecrets` on a highlight before sending, and OCR'd snips once D-1 reads them | H | S | shipped (D-32): highlights, typed words and pages; snips once D-1 reads them |
 | Show what was hidden: tap "2 keys hidden" to see which lines (on the Mac only), and "send this one" for a false alarm | M | S | shipped (D-40): the lines, with a hint of each key; "send this one" stays retyping it |
 | Code from a GitHub or Gist page in the app note: offer **Explain this code** on the page, read through `read_page`'s raw view | M | S | idea, from D-29 |
@@ -216,7 +218,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | An agent "owner's summary" on each PR: what changed for users in plain words, the evidence, what still needs a person, so merging takes minutes | H | S | shipped (D-48's PR template: "What changes for people using Otty" and "Left for a person") |
 | Write "Done when" lines as checkable statements from the start (each names its test or smoke tag), so the intent check has something to match | M | S | → D-55 (part of the feature kit) |
 | Extract the verify kit into its own repo (Claude Code plugin + npm package) once a second project uses it | M | M | idea, from D-48 |
-| Pick a Dockerfile (or any file with no extension) from the paperclip's first filter: macOS greys out files a filter can't match by extension | M | S | idea, from D-47 (step 107, check on a Mac first) |
+| Pick a Dockerfile (or any file with no extension) from the paperclip's first filter: macOS greys out files a filter can't match by extension | M | S | shipped: the picker has no filter now (it also opened slowly) |
 | Smoke harness extras the spec agents asked for: a results folder per run, a shared `plain(key)` seed helper, `world.hold()`/`release()`, a fake desktop switch, a recorded `app.relaunch()`, a "shortcut taken by another app" list | M | S | idea, from D-47 |
 | Run parallel coding agents in small waves (two or three) on a smaller model for mechanical work: eight at once spent two 5-hour usage windows mostly re-reading the same code | M | S | idea, from D-47 |
 | Only run the `dmg` workflow on PRs that change packaging, and allow auto-merge, because Mac runner queues held up a release | M | S | idea |

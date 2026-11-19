@@ -44,9 +44,6 @@ export function kindOf(name: string): FileKind | null {
   return null
 }
 
-/** The extensions the file picker's first filter shows. */
-export const PICKER_EXTENSIONS = ['pdf', 'docx', 'ipynb', ...DOC_EXT, ...IMAGE_EXT, ...TEXT_EXT]
-
 /** A .docx is a zip; refuse one that would unpack to something enormous. */
 const MAX_UNZIPPED = 200 * 1024 * 1024
 /** Below this many characters per page on average, a PDF is treated as a scan. */
