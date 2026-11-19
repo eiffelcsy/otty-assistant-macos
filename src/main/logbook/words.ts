@@ -16,6 +16,15 @@ export const plural = (n: number, one: string, many = `${one}s`): string => `${n
 
 export const clock = (at: number): string => new Date(at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 
+/** "3:44", without AM or PM, for the ledger's 44 px time column (Spec 04); sentences keep `clock`. */
+export const shortClock = (at: number): string =>
+  new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' })
+    .formatToParts(at)
+    .filter((p) => p.type !== 'dayPeriod')
+    .map((p) => p.value)
+    .join('')
+    .trim()
+
 /** "Today", "Yesterday", "Tomorrow", "Monday" within a week, then "Tue 11 Nov". */
 export function dayTitle(at: number, now: number): string {
   const days = daysFrom(at, now)
