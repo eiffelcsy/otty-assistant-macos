@@ -3228,6 +3228,7 @@ button.menu__item:hover {
   background: linear-gradient(90deg, transparent, var(--brand-soft) 8%, var(--brand-soft) 92%, transparent);
 }
 .log-entry__time {
+  white-space: nowrap;
   font-size: var(--fs-meta);
   line-height: var(--lh-ui);
   font-variant-numeric: tabular-nums;
