@@ -4,6 +4,11 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Good to know, retired (D-69, 2026-11-20)
+
+- **Answers no longer end with a 💡 Good to know card.** The model added one to most answers, which made each longer and moved the end of the answer after it finished. Explain links and **In more detail** already teach on demand. Older chats keep their cards.
+- In the eval (60 cases on deepseek-flash, 2026-11-20): without the change, 26 answers had a tip and answers averaged 92 words; with it, none and 81–83 words. The score held (56 / 60 without; 56 and 59 with), and none of the misses was about tips.
+
 ### Window invariants, and two bugs they found (2026-11-20)
 
 - **Rules the screenshots can't see** (D-67, step 1): `invariants.screens.ts`, in the `screens` job, checks both window states at four widths for a way out (Close when floating, Shrink when roomy), menus that open inside the window, nothing scrolling sideways, New chat from every screen landing on an empty chat with the box focused, and no back arrow on the Notebook opened as a screen. It catches #81's missing Close and New chat bugs when they're put back.
