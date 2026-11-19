@@ -80,7 +80,8 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   workPausedUntil: null,
   notifyDone: false,
   monthlyCap: null,
-  capNoticed: null
+  capNoticed: null,
+  homeUsed: false
 }
 
 let cache: StoredSettings | null = null

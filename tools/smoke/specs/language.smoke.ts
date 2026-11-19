@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test'
 import { expect, ONBOARDED, test, type Otty } from '../fixtures'
 import { textOf, type ModelBody } from '../world/server'
 
-const HOME = { ...ONBOARDED, homeLanguage: 'zh-HK' }
+const HOME = { ...ONBOARDED, homeLanguage: 'zh-HK', homeUsed: true }
 const SAFARI = { name: 'Safari', bundleId: 'com.apple.Safari', title: 'News', url: 'https://example.com/news' }
 
 const ASK_ENGLISH = '(Please reply in English'
@@ -200,4 +200,23 @@ test('the prefix holds after a tool call and with memories in the note', { tag: 
   // The memory rides in the note at the end of the later questions.
   expect(textOf(sent[2].messages!.at(-1)!.content)).toContain('Keeps sea otters')
   expect(textOf(sent[4].messages!.at(-1)!.content)).toMatch(/^And in a week\?\n\n\[Current local time/)
+})
+
+test.describe('with 繁體中文（香港） chosen but never used', () => {
+  test.use({ seed: { ...ONBOARDED, homeLanguage: 'zh-HK' } })
+
+  test('the language button waits for the first Chinese question, then stays', { tag: ['@step-152'] }, async ({ otty, world }) => {
+    const panel = await otty.openPanel()
+    await expect(panel.getByRole('textbox')).toBeVisible()
+    await expect(pill(panel)).toHaveCount(0)
+    world.reply('Hello', { say: 'Hi!' })
+    await askAndWait(otty, panel, 'Hello')
+    await expect(pill(panel)).toHaveCount(0)
+    world.reply('這是什麼意思', { say: '意思是「這是什麼？」' })
+    await askAndWait(otty, panel, '這是什麼意思？')
+    await expect(pill(panel)).toBeVisible()
+    await otty.relaunch()
+    const again = await otty.openPanel()
+    await expect(pill(again)).toBeVisible()
+  })
 })

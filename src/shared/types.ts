@@ -192,6 +192,8 @@ export interface PublicSettings {
   monthlyCap: MonthlyCap | null
   /** The month ("2026-11") the 80% heads-up was seen in, so it shows once a month (D-57). */
   capNoticed: string | null
+  /** An answer has been asked for in the home language once, so the message box offers the language button (UX_REVIEW #7). */
+  homeUsed: boolean
   /** Only the installed app can be a login item; a development build can't. */
   canOpenAtLogin: boolean
 }

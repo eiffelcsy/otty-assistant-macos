@@ -84,8 +84,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M (2–3 days) |
-| D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | 🔨 core built; typography, the tray inside the box and the rest waiting | D-59 | M–L (3–4 days) |
-| D-64 | The frame: the panel split into a frame plus screens, so width alone sets the layout (rail, medium, wide; Spec 05) | ⏳ planned | D-59, D-62 | M–L (3–4 days) |
+| D-64 | The frame: the panel split into a frame plus screens, so width alone sets the layout (rail, medium, wide; Spec 05) | ⏳ planned | D-59, D-62 (built) | M–L (3–4 days) |
 | D-65 | The roomy window: Expand / Shrink, the Dock icon and the menu bar, opening from Applications (Spec 06, part 1) | ⏳ planned | D-64 | M (2–3 days, plus a 1-day corner check) |
 | D-66 | Home: the greeting, Needs you, Today, Looking after and what left your Mac (Spec 06, part 2) | ⏳ planned | D-63 (built), D-64 | M–L (3–4 days) |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
@@ -100,7 +99,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
-**Where things stand (2026-11-19).** D-63, the Logbook, is built on `feat/logbook` (CHANGELOG), stacked on the specs for D-64 to D-66 (`docs/frame-roomy-home-specs`) and the UI batch below. Activity, What left your Mac and What Otty changed are one screen of views, worded in main; a look-up's steering note reaches its next step and can only narrow it. Next: the rest of D-62, then D-64 the frame, D-65 the roomy window and D-66 Home. The Logbook's wider layouts work by container queries but get their preview widths (`&w=`) with D-64.
+**Where things stand (2026-11-19).** D-63, the Logbook, is built on `feat/logbook` (CHANGELOG), stacked on the specs for D-64 to D-66 (`docs/frame-roomy-home-specs`) and the UI batch below. Activity, What left your Mac and What Otty changed are one screen of views, worded in main; a look-up's steering note reaches its next step and can only narrow it. The rest of D-62 is built on `feat/chat-polish` (CHANGELOG). Next: D-64 the frame, D-65 the roomy window and D-66 Home. The Logbook's wider layouts work by container queries but get their preview widths (`&w=`) with D-64.
 
 **Earlier (2026-11-18, evening).** The UI batch is built on stacked branches from `main`: D-60 decisions and receipts (`feat/decisions-receipts`), D-61 Settings in sections (`feat/settings-sections`), the core of D-62 chat and one message box (`feat/chat-message-box`), D-57 the 80% heads-up (`feat/limit-heads-up`) and D-58 Try again with a twist (`feat/try-again-twist`). The whole smoke suite passes on the last of them (147 tests). Next: D-63 the Logbook (L), the rest of D-62 (its entry lists it), then D-55 and D-56; D-54 still waits on the owner's OAuth client. `npm run screens` will differ on every chat and settings scene, so new baselines are their own PR after CI. The smoke checklist is 148 steps; 135–138 need the packaged app or a model on the Mac (✋).
 
@@ -184,29 +183,6 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 
 **Where it stands (2026-11-18).** Built: every token, `--muted` renamed to `--text-2` everywhere and gone (no alias was needed), and the components in `styles.css`: button (primary, soft, quiet-style `copy-btn`, warn; small and large), icon button (32 and `--sm` 28, 25% corners), small × (20 visible in a 28 target), switch (Settings toggles), field, row (Recent chats), group (Settings sections), card, header, composer box and keycap. Measured at 420 × 580: header 44, composer 64 (box 44), health line 40, so chrome is 108 px (19%). Answers have no bubble and use the full width; question to answer 8, turn to turn 20. Both tests are in `rules/renderer.test.ts`, with 5 off-scale entries, and fail on a planted bad value. Dark `--text-2` on `--brand-soft` was 4.35:1, so a selected radio row uses `--text`. Smoke passes (137): the new spacing exposed a race in `FindBar`, where an earlier match's wait for the chat to stop gliding pulled the view back after a quick ↵, so a newer jump now cancels it; and the health specs match Allow and Reopen Otty exactly, because the banner's words are now a button that contains them.
 **Not done yet:** tooltip and toast (tooltips are still native `title`s), the header hairline that appears only on scroll, and the reduced-motion fade. D-60 built the *unusual* card, the receipt and a first menu (the used marker); D-61 the group label above its box and rows with inset hairlines. **Checks waiting:** idle CPU with `OTTY_METRICS=1` on a Mac (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8). The baselines landed in their own PR (#65), and the smoke harness's idle spec passes.
-
-## D-62 · Chat and one message box 🔨 core built
-
-**Goal.** The chat column, answers and the message box built to spec, with one box for the quick view and the panel and drafts that never get lost. The spec is `docs/design/specs/03-chat.md`.
-
-**Design.**
-1. **One `MessageBox` component** (`components/MessageBox.tsx`) with the tray, files, input row, language button and Send / Stop, used by `Panel.tsx` and `Quick.tsx`, replacing their three text boxes. Props say which tools show (the quick view keeps its own Explain ↵ button around it).
-2. **Drafts in main.** `getDraft(threadId)` and `setDraft(threadId, draft)` in `CHANNELS`; a draft is text plus capture and file ids, kept in main's memory per chat (not in `otty.db`: a draft that survives a restart is a later choice and would need a migration). The chat list shows "Draft:".
-3. **Answers:** full reading width, the action row on the latest answer (others on hover or focus), the typography table in `Markdown.tsx` and `styles.css`, the explain card's waiting bars, the tip card, tables and code that scroll inside themselves.
-4. **Thinking and streaming:** the thinking row with the tool's words (from existing tool events), the slow line at 6 s, chunks that fade in, the caret, extras that wait for the end, the "↓ New text" button when following has stopped.
-5. **Errors by kind:** main adds `kind` to error events (`network`, `key`, `too-long`, `other`), and the error card offers the matching button.
-6. **The empty chat** with one shortcut line and suggestion rows.
-7. **Language button** shown only after Chinese has been used once (a habit count main already keeps).
-
-**Tests.** `MessageBox` tests: Enter sends, Shift-Enter doesn't, Send is disabled when empty, Stop shows while answering, a fifth capture is refused with the tooltip. Draft tests: switching chats and quick view to panel keep text and ids; the renderer never receives a path. Markdown tests for the heading level, tables and the tip card. `noElectron` and the IPC rules test cover the new channels. Idle CPU re-measured with `OTTY_METRICS=1`, because streaming adds animation.
-
-**Done when.** One message box component in the codebase; drafts survive chat and window switches; chrome is 108 px at 420 × 580; the preview scenes in Spec 03 exist; `basics.smoke.ts`, `captures.smoke.ts` and `language.smoke.ts` pass with any selector changes in the same PR.
-
-**Smoke test (add to the checklist when it ships).** Type in the quick view, press ↵ "continue in chat": the text is still in the box. Type in one chat, switch to another and back: the draft is there, and the list says "Draft:". Scroll up while an answer streams: "New text" appears and brings you back. Pull the network during an answer: the card says what happened, with one button.
-
-**Where it stands (2026-11-18).** Built: one `MessageBox` (`components/MessageBox.tsx`) for the panel's composer and both of the quick view's boxes; drafts kept per chat in main's memory (`ChatSession.setDraft`, a `draft` event every window hears and a load event that carries it), saved 300 ms after typing and at once on blur or ↵ continue in chat, with "Draft:" in Recent chats; errors with a `kind` (`FriendlyError.kind`: network, key, too-long) and a card with the one button that helps; "You stopped this answer." (`answer.stopped`, set only by Stop, not by a new question); the thinking row with the running tool's words and the slow line at 6 s; following stops when you scroll up while Otty writes, with a "New text" button; actions shown on the latest answer, others on hover or focus; the empty chat as Spec 03 draws it. Smoke steps 145–146; scenes `thinking`, `stopped`, `failed-key`, `failed-long`.
-**Not done yet:** the tray and files inside the box; the user bubble's shape and the long-text clip; answer typography (headings, the code bar, tables, the tip's "Good to know" label); the explain card's waiting bars; chunks fading in, the caret, and extras surfacing after the end; ↑ to edit the last question and ⌘. to stop; the language button only after Chinese is used; the paused box; captures and file ids in drafts (text only for now); medium and wide widths.
-
 
 ## D-64 · The frame and layout from width ⏳
 
@@ -793,3 +769,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 149. "Remind me to feed the otters" → **Add it** → Settings › Privacy › **See what Otty changed** opens the Logbook on that view; **Undo** on "Reminder added" → the entry says Undone, the reminder is gone, and the chat's receipt says Undone too.
 150. Start a look-up → the Logbook's **Now** card shows its title, progress segments and **Add a note**. Add "only check JR East" → "Your note: only check JR East" shows under the card, and the look-up's next step hears it once. **Stop** says "Stopping…" until it stops. ✋ also by hand: the dot steps, and the segments fill as pages are read.
 151. In the Logbook, search for a host Otty read → its entry shows, with the title in quotes and the count. Search for something that never happened → "Nothing in the Logbook mentions “…”." Nothing is sent.
+152. With a home language chosen in Settings but never used, the message box has no language button. Ask something in English → still none. Ask in Chinese → the button appears, and stays after a relaunch.
+153. Ask something long and press **⌘.** while it answers → it stops, with "You stopped this answer."
+154. After an answer, click into the empty box and press **↑** → the question is back in the box to edit, and the answer goes (with the card first if something would be undone).
+155. Pause everything from the menu bar → the box says "Otty is paused" and **Paused · Carry on** stands where Send was; ↵ sends nothing. Carry on → ↵ asks.

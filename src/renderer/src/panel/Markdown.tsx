@@ -158,8 +158,9 @@ function ExplainTerm({
             )}
           </div>
           {text === null ? (
-            <div className="explain-card__body">
-              <span className="dots">Otty is thinking</span>
+            <div className="explain-card__waiting" role="status" aria-label="Otty is thinking">
+              <span />
+              <span />
             </div>
           ) : (
             (() => {
@@ -218,10 +219,13 @@ function MarkdownLink({ href, children }: { href?: string; children?: ReactNode 
   )
 }
 
+/** A 💡 tip: "Good to know", surfacing once the answer has finished (Spec 03, V13). */
 function TipCard({ children }: { children?: ReactNode }) {
+  const { done } = useContext(ProofreadContext)
+  if (!done) return null
   return (
     <aside className="tip-card">
-      <Icon name="bulb" solid />
+      <div className="tip-card__label">Good to know</div>
       <div className="tip-card__body">{children}</div>
     </aside>
   )
@@ -229,8 +233,26 @@ function TipCard({ children }: { children?: ReactNode }) {
 
 /** Answers never load remote pictures: the request alone would send whatever the address holds, with no click. */
 function NoRemoteImage({ alt }: { alt?: string }) {
-  return <>{alt}</>
+  return (
+    <span className="md-picture">
+      <Icon name="picture" /> Picture not shown, to keep you safe{alt ? `: ${alt}` : ''}
+    </span>
+  )
 }
+
+/** Answers never get a display-size heading: `#` is treated as `##`, and every level reads as one title size. */
+const Heading = ({ children }: { children?: ReactNode }) => <h3>{children}</h3>
+
+/** Tables scroll sideways inside their own box, never the column. */
+const Table = ({ children }: { children?: ReactNode }) => (
+  <div className="md-table">
+    <table>{children}</table>
+  </div>
+)
+
+/** A number reads right-aligned in tabular figures. */
+const NUMBER = /^[\s$€£¥+\-−]*[\d.,]+\s*[%kKmM]?$/
+const Cell = ({ children }: { children?: ReactNode }) => <td className={NUMBER.test(textOf(children)) ? 'md-num' : undefined}>{children}</td>
 
 /** What the proofread card compares against: the text the user highlighted, and whether the answer has finished (drawings wait for that too). */
 export const ProofreadContext = createContext<{ source: string; done: boolean }>({ source: '', done: true })
@@ -278,15 +300,16 @@ function CopyableCode({ label, children }: { label: string | null; children?: Re
       <div className="code-block__bar">
         <span className="code-block__lang">{label ?? 'Code'}</span>
         <button
-          className="copy-btn"
+          className="icon-btn icon-btn--sm"
+          title={copied ? 'Copied' : 'Copy code'}
+          aria-label={copied ? 'Copied' : 'Copy code'}
           onClick={() => {
             void window.otty.copyText(stripLineNumbers(textOf(children).replace(/\n$/, '')))
             setCopied(true)
-            setTimeout(() => setCopied(false), 1500)
+            setTimeout(() => setCopied(false), 1800)
           }}
         >
           <Icon name={copied ? 'check' : 'copy-alt'} />
-          {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
       <pre>{children}</pre>
@@ -311,7 +334,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
 
 // Module-level, so a re-render doesn't hand react-markdown new component types and remount
 // every explain term (which closed an open card whenever the quick view re-rendered).
-const components = { a: MarkdownLink, blockquote: TipCard, img: NoRemoteImage, pre: CodeBlock }
+const components = { a: MarkdownLink, blockquote: TipCard, img: NoRemoteImage, pre: CodeBlock, h1: Heading, h2: Heading, h3: Heading, h4: Heading, h5: Heading, h6: Heading, table: Table, td: Cell }
 const remarkPlugins = [remarkGfm]
 // Only $$…$$ is math, so "$5 and $10" stays text.
 const mathRemarkPlugins = [remarkGfm, [remarkMath, { singleDollarTextMath: false }] as never]
@@ -325,8 +348,8 @@ export function Markdown({ text, language = 'en' }: { text: string; language?: A
     <div className="md">
       <AnswerContext.Provider value={{ text, language }}>
         <ReactMarkdown remarkPlugins={math ? mathRemarkPlugins : remarkPlugins} rehypePlugins={math ? mathRehypePlugins : undefined} components={components}>
-          {/* Tips arrive as `> 💡 …`; the card draws its own icon, so drop the emoji. */}
-          {(math ? closedMath(tidy) : tidy).replace(/^(\s*>\s*)💡\s*/gm, '$1')}
+          {/* Tips arrive as `> 💡 **Good to know:** …` (prompts.ts); the card draws its own label, so drop both. */}
+          {(math ? closedMath(tidy) : tidy).replace(/^(\s*>\s*)💡\s*(\*\*Good to know:?\*\*:?\s*)?/gm, '$1')}
         </ReactMarkdown>
       </AnswerContext.Provider>
     </div>

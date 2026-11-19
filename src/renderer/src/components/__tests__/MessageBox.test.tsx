@@ -41,4 +41,35 @@ describe('the message box', () => {
     box({ noSend: true })
     expect(screen.queryByRole('button', { name: 'Send' })).toBeNull()
   })
+
+  it('while paused, says so, sends nothing on Enter, and offers Carry on in Send’s place (Spec 03)', () => {
+    const saveSettings = vi.fn(async () => ({}))
+    ;(window as unknown as { otty: object }).otty = { saveSettings }
+    const onSend = vi.fn()
+    render(<MessageBox value="Hello" onChange={() => {}} onSend={onSend} placeholder="Ask a follow-up…" canSend paused />)
+    const input = screen.getByPlaceholderText('Otty is paused')
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onSend).not.toHaveBeenCalled()
+    expect(screen.queryByRole('button', { name: 'Send' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Paused · Carry on' }))
+    expect(saveSettings).toHaveBeenCalledWith({ workPaused: false })
+  })
+
+  it('edits the last question on ↑ only when the box is empty', () => {
+    const onArrowUp = vi.fn()
+    const { input } = box({ onArrowUp })
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(onArrowUp).not.toHaveBeenCalled()
+    cleanup()
+    const empty = box({ onArrowUp, value: '' })
+    fireEvent.keyDown(empty.input, { key: 'ArrowUp' })
+    expect(onArrowUp).toHaveBeenCalledTimes(1)
+  })
+
+  it('holds the tray inside the box, over the text', () => {
+    box({ tray: <div className="context-card">A snip</div> })
+    const tray = screen.getByText('A snip')
+    expect(tray.parentElement?.className).toContain('message-box')
+    expect(tray.nextElementSibling?.className).toBe('composer__row')
+  })
 })

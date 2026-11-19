@@ -18,7 +18,7 @@ import { serviceAt, serviceById } from '../../../shared/services'
 import { AskContext, HomeContext } from './Markdown'
 import { Logbook } from './logbook/Logbook'
 import { History } from './History'
-import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor } from './Messages'
+import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor, UserText } from './Messages'
 import { FindBar } from './FindBar'
 import { Onboarding } from './Onboarding'
 import { Settings, type SectionId } from './settings/Settings'
@@ -35,15 +35,26 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
     body: 'To see other apps in your snip, allow Otty under “Screen Recording”, then restart Otty.',
     kind: 'screen'
   },
-  'snip-mac-only': { title: 'Snipping works on macOS', body: 'Screen snips use the Mac’s built-in snipping tool.' },
-  reattach: { title: 'Attach your files again', body: 'Files aren’t kept with a question, so add them again with the paperclip if this one needs them.' },
+  'snip-mac-only': {
+    title: 'Snipping works on macOS',
+    body: 'Screen snips use the Mac’s built-in snipping tool.'
+  },
+  reattach: {
+    title: 'Attach your files again',
+    body: 'Files aren’t kept with a question, so add them again with the paperclip if this one needs them.'
+  },
   'tray-full': {
     title: `Otty can look at ${MAX_CAPTURES} things at once`,
     body: 'Remove one with its ✕ to add another, or ask about these first.'
   }
 }
 
-const TITLES: Partial<Record<string, string>> = { history: 'Recent chats', logbook: 'Logbook', settings: 'Settings', notebook: 'Notebook' }
+const TITLES: Partial<Record<string, string>> = {
+  history: 'Recent chats',
+  logbook: 'Logbook',
+  settings: 'Settings',
+  notebook: 'Notebook'
+}
 
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
@@ -146,6 +157,12 @@ export function Panel() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // ⌘. stops the answer, wherever the focus is (Spec 03, Keyboard); with none running, main has nothing to stop.
+      if (e.key === '.' && e.metaKey) {
+        e.preventDefault()
+        void window.otty.stop()
+        return
+      }
       if (e.key === 'Escape' && !document.querySelector('.explain-card')) {
         // The first Esc only closes the find bar.
         if (findingRef.current !== null) setFinding(null)
@@ -188,12 +205,19 @@ export function Panel() {
     if (!found && !asked && !following.current) return
     following.current = !found
     if (found) found.scrollIntoView({ block: 'center' })
-    else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+    else
+      scrollRef.current?.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      })
   }, [messages, focusId, view])
   const catchUp = () => {
     following.current = true
     setAway(false)
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: 'smooth'
+    })
   }
 
   // Something that grows after its answer arrived (a drawing renders lazily) mustn't push the end of the chat off
@@ -243,7 +267,13 @@ export function Panel() {
     setInput(draft.text)
   }
 
-  const actions = settings && !att.reading ? actionsForTray(captures, att.ready, settings.homeLanguage, { app, readsPages: settings.readsPages }) : []
+  const actions =
+    settings && !att.reading
+      ? actionsForTray(captures, att.ready, settings.homeLanguage, {
+          app,
+          readsPages: settings.readsPages
+        })
+      : []
 
   /** An empty box with captures or attached files runs the first quick action. `tray` false sends the text alone. */
   const send = useCallback(
@@ -260,7 +290,12 @@ export function Panel() {
       keep.drop()
       setPick(undefined)
       setBusy(true)
-      window.otty.sendMessage(text, sent, { app, action: item?.action, language: pick, files })
+      window.otty.sendMessage(text, sent, {
+        app,
+        action: item?.action,
+        language: pick,
+        files
+      })
     },
     [busy, captures, app, pick, att, actions]
   )
@@ -323,7 +358,7 @@ export function Panel() {
   }
 
   return (
-    <AskContext.Provider value={(t, action) => send(t, false, action ? { label: t, action } as ActionItem : undefined)}>
+    <AskContext.Provider value={(t, action) => send(t, false, action ? ({ label: t, action } as ActionItem) : undefined)}>
       <HomeContext.Provider value={settings.homeLanguage}>
         <div className="panel" {...drop}>
           {dragging && (
@@ -358,11 +393,7 @@ export function Panel() {
                 </button>
               )}
               {view === 'chat' && messages.length > 0 && (
-                <button
-                  className="icon-btn"
-                  title="Find in this chat (⌘F)"
-                  onClick={() => setFinding((n) => (n === null ? 1 : null))}
-                >
+                <button className="icon-btn" title="Find in this chat (⌘F)" onClick={() => setFinding((n) => (n === null ? 1 : null))}>
                   <Icon name="search" />
                 </button>
               )}
@@ -418,14 +449,16 @@ export function Panel() {
               }}
             />
           ) : view === 'logbook' ? (
-            <Logbook key={logView} startView={logView} onOpenChat={(id) => void (id ? window.otty.openChat(id) : Promise.resolve()).then(() => setView('chat'))} />
+            <Logbook
+              key={logView}
+              startView={logView}
+              onOpenChat={(id) => void (id ? window.otty.openChat(id) : Promise.resolve()).then(() => setView('chat'))}
+            />
           ) : view === 'history' ? (
             <History onOpen={() => setView('chat')} focusSearch={searchFocus} keep={settings.keepChats} />
           ) : (
             <>
-              {finding !== null && (
-                <FindBar chat={scrollRef} messages={messages} focus={finding} onClose={() => setFinding(null)} />
-              )}
+              {finding !== null && <FindBar chat={scrollRef} messages={messages} focus={finding} onClose={() => setFinding(null)} />}
               <HealthBanner
                 settings={settings}
                 onOpenSettings={(section) => {
@@ -450,7 +483,7 @@ export function Panel() {
                       {m.app && <AppTag app={m.app} />}
                       {m.captures.length > 0 && <CaptureList captures={m.captures} />}
                       {m.files && <FileList files={m.files} />}
-                      <div className="msg__bubble">{m.text}</div>
+                      <UserText text={m.text} />
                       <HiddenLine id={m.id} hidden={m.hidden} />
                     </div>
                   ) : (
@@ -480,29 +513,39 @@ export function Panel() {
               <footer className="composer">
                 {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
                 {app && <AppTag app={app} onRemove={() => setApp(null)} />}
-                {(captures.length > 0 || att.chips.length > 0 || actions.length > 0) && (
-                  <div className="context-card">
-                    {captures.length > 0 && (
-                      <CaptureList
-                        captures={captures}
-                        onRemove={(id) => {
-                          setCaptures((cs) => cs.filter((c) => c.id !== id))
-                          setNotice((n) => (n === 'tray-full' ? null : n))
-                        }}
-                        onForgetApp={(id) => setCaptures((cs) => cs.map((c) => (c.id === id ? { ...c, app: null } : c)))}
-                      />
-                    )}
-                    {att.chips.length > 0 && <FileTray chips={att.chips} onRemove={att.remove} />}
-                    {captures.length > 0 && captures.length < MAX_CAPTURES && (
-                      <div className="tray-hint">
-                        <Icon name="plus" /> To add more, highlight or snip, then press{' '}
-                        <kbd>{prettyKey(settings.askHotkey)}</kbd>
-                      </div>
-                    )}
-                    {actions.length > 0 && <QuickActions items={actions} disabled={busy} onPick={(a) => send('', true, a)} />}
-                  </div>
-                )}
                 <MessageBox
+                  tray={
+                    (captures.length > 0 || att.chips.length > 0 || actions.length > 0) && (
+                      <div className="context-card">
+                        {captures.length > 0 && (
+                          <CaptureList
+                            captures={captures}
+                            onRemove={(id) => {
+                              setCaptures((cs) => cs.filter((c) => c.id !== id))
+                              setNotice((n) => (n === 'tray-full' ? null : n))
+                            }}
+                            onForgetApp={(id) => setCaptures((cs) => cs.map((c) => (c.id === id ? { ...c, app: null } : c)))}
+                          />
+                        )}
+                        {att.chips.length > 0 && <FileTray chips={att.chips} onRemove={att.remove} />}
+                        {captures.length > 0 && (
+                          <div className="tray-hint">
+                            {captures.length < MAX_CAPTURES && (
+                              <>
+                                <Icon name="plus" /> To add more, highlight or snip, then press <kbd>{prettyKey(settings.askHotkey)}</kbd>
+                              </>
+                            )}
+                            {captures.length > 1 && (
+                              <span className="tray-count">
+                                {captures.length} of {MAX_CAPTURES}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {actions.length > 0 && <QuickActions items={actions} disabled={busy} onPick={(a) => send('', true, a)} />}
+                      </div>
+                    )
+                  }
                   inputRef={inputRef}
                   value={input}
                   onChange={type}
@@ -511,7 +554,13 @@ export function Panel() {
                   canSend={Boolean(input.trim() || actions.length) && !att.reading}
                   busy={busy}
                   onStop={() => void window.otty.stop()}
-                  tools={{ onSnip: () => void snip(), onAttach: () => void att.pick() }}
+                  paused={settings.workPaused}
+                  // ↑ in an empty box edits the last question, through the same card as Edit question (M13).
+                  onArrowUp={() => document.querySelector<HTMLButtonElement>('.msg--latest .edit-question')?.click()}
+                  tools={{
+                    onSnip: () => void snip(),
+                    onAttach: () => void att.pick()
+                  }}
                   placeholder={
                     asking
                       ? 'Or ask something else'
@@ -531,7 +580,9 @@ export function Panel() {
                     e.preventDefault()
                     att.drop([...e.clipboardData.files])
                   }}
-                  extra={settings.homeLanguage && <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />}
+                  extra={
+                    settings.homeLanguage && settings.homeUsed && <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
+                  }
                 />
               </footer>
             </>

@@ -33,6 +33,7 @@ const base: PublicSettings = {
   openAtLogin: false,
   monthlyCap: null,
   capNoticed: null,
+  homeUsed: true,
   canOpenAtLogin: true
 }
 const counts: SettingsCounts = { chats: 142, olderThan: { '30d': 23, '1y': 0, forever: 0 }, notes: 18 }

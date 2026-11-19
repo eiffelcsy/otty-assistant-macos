@@ -10,6 +10,34 @@ import { withoutFixedFence } from '../../../shared/diff'
 import type { Assistant, UiMessage } from '../lib/useChat'
 import { AskContext, Markdown, ProofreadContext } from './Markdown'
 
+/** Lines a question shows before it clips with a fade and "Show all" (Spec 03). */
+const CLIP_LINES = 12
+
+/** A question's words: past twelve lines they clip, and Show all opens the rest. */
+export function UserText({ text }: { text: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [long, setLong] = useState(false)
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const line = parseFloat(getComputedStyle(el).lineHeight) || 23
+    setLong(el.scrollHeight > line * CLIP_LINES + 24)
+  }, [text])
+  return (
+    <>
+      <div ref={ref} className={`msg__bubble${long && !open ? ' msg__bubble--clip' : ''}`}>
+        {text}
+      </div>
+      {long && (
+        <button className="msg__more" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+          {open ? 'Show less' : 'Show all'}
+        </button>
+      )}
+    </>
+  )
+}
+
 export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; compact?: boolean }) {
   if (ctx.kind === 'image' && !ctx.dataUrl) {
     // Saved chats never keep pictures.
@@ -357,7 +385,7 @@ export function AssistantMessage({
   }
   const canRewind = latest && !m.streaming && !m.calc
   return (
-    <div className={`msg msg--otty${found ? ' msg--found' : ''}${latest ? ' msg--latest' : ''}`} data-msg-id={m.id}>
+    <div className={`msg msg--otty${found ? ' msg--found' : ''}${latest ? ' msg--latest' : ''}${m.streaming ? ' msg--streaming' : ''}`} data-msg-id={m.id}>
       {m.tools.length > 0 && (
         <div className="tool-chips">
           {m.tools.map((t) => (
@@ -438,7 +466,7 @@ export function AssistantMessage({
               </button>
             ))}
           {canRewind && onEdit && (
-            <button className="copy-btn" onClick={() => void rewind('edit')} title="Change your question and ask it again">
+            <button className="copy-btn edit-question" onClick={() => void rewind('edit')} title="Change your question and ask it again">
               <Icon name="edit" />
               Edit question
             </button>

@@ -17,7 +17,7 @@ import { MemoryLedger, setLedger, SqliteLedger } from './ledger'
 import { forgetHidden } from './hiddenLines'
 import { capStatus } from '../shared/cap'
 import { retentionCutoff } from './store/retention'
-import { forward, tellActivity, tellLogbook } from './notify'
+import { forward, tellActivity, tellLogbook, tellSettings } from './notify'
 import type { LogSources } from './logbook'
 import { shownWindows } from './windows'
 
@@ -121,7 +121,11 @@ export const chat = new ChatSession(forward, {
   jobCost: () => jobCost(jobs, () => meter?.summary() ?? null),
   overCap: () => overCap() !== null,
   jobLive: (id) => jobs.isLive(id),
-  withdrawJob: (id) => jobs.withdraw(id)
+  withdrawJob: (id) => jobs.withdraw(id),
+  onHomeUsed: () => {
+    settings.update({ homeUsed: true })
+    tellSettings(settings.getPublic())
+  }
 })
 export const jobs = createRunner((news) => void activityChanged(news), overCap)
 

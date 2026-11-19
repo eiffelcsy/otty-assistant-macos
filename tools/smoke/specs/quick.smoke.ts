@@ -1,9 +1,8 @@
 // The quick view (D-47): collecting captures from other apps, an answer finishing while nobody looks, and a long
 // answer with an explain card that still fits.
 import type { Page } from '@playwright/test'
-import type { ServerResponse } from 'http'
 import { expect, test, type Otty } from '../fixtures'
-import type { ModelBody, World } from '../world/server'
+import { holdAnswers } from '../hold'
 
 const SAFARI = { name: 'Safari', bundleId: 'com.apple.Safari', title: 'Otters', url: 'https://example.com/otters' }
 const NOTES = { name: 'Notes', bundleId: 'com.apple.Notes', title: 'Weasels' }
@@ -46,26 +45,6 @@ async function highlight(otty: Otty, text: string, front: typeof SAFARI | typeof
   await expect.poll(shown(otty, 'quick')).toBe(true)
   await expect(quick.getByText(text)).toBeVisible()
   return quick
-}
-
-/**
- * Holds every streamed answer until the returned function is called, so a spec can act while one is under way.
- * The world is shared by the worker, so the hold is always lifted (call it in `finally`).
- */
-function holdAnswers(world: World): () => void {
-  type Model = (res: ServerResponse, body: ModelBody) => void
-  const w = world as unknown as { model: Model }
-  const real = w.model
-  let release = () => {}
-  const gate = new Promise<void>((r) => (release = r))
-  w.model = (res, body) => {
-    if (body.stream) void gate.then(() => real.call(world, res, body))
-    else real.call(world, res, body)
-  }
-  return () => {
-    release()
-    delete (w as Partial<typeof w>).model // back to the class's own
-  }
 }
 
 test('an answer that finishes after a click elsewhere puts a dot on the otter; clicking it shows the answer', { tag: ['@step-18'] }, async ({ otty, world }) => {
