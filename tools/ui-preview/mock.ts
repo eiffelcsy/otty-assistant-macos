@@ -610,7 +610,13 @@ const api: OttyApi = {
     // The rewind card opens from Try again on the last answer.
     if (scene === 'rewind') {
       setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
-      setTimeout(() => document.querySelector<HTMLButtonElement>('button[title^="Ask the same question"]')?.click(), 250)
+      // Once the chat has finished gliding to its end, so where the card settles never depends on timing, then pinned
+      // to the end, as a person would see it after pressing Try again on the latest answer.
+      setTimeout(() => document.querySelector<HTMLButtonElement>('button[title^="Ask the same question"]')?.click(), 900)
+      setTimeout(() => {
+        const chat = document.querySelector('.chat')
+        chat?.scrollTo({ top: chat.scrollHeight })
+      }, 1100)
     }
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}
