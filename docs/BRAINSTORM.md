@@ -4,13 +4,15 @@ A living list of ideas, so every iteration can ask: *what would make Otty more o
 
 ## The vision, in one breath
 
-> A small otter that lives on your screen, notices what you're looking at, and helps with whatever it is (explaining, fixing, writing, remembering, doing) in plain words and in your language, without ever making you feel stupid or watched.
+> A small otter that lives on your screen, notices what you're looking at, and helps with whatever it is (explaining, fixing, writing, remembering, doing), and makes things with you that you keep: pages, decks, sheets and the little cards it gathers. In plain words and in your language, on your Mac first and later wherever you are, without ever making you feel stupid or watched.
 
 Three pillars. An idea should push at least one of them without hurting the others:
 
-1. **Alive**: it feels like a pet, not a window.
+1. **Alive**: it feels like a pet in a place of its own, not a window. The cove it lives in, its water-like motion and its painted art are part of the product, not a skin on a chat app.
 2. **Aware**: it understands what's on screen and what you're trying to do.
-3. **Able**: it can actually help you get the thing done, safely.
+3. **Able**: it can actually help you get the thing done, safely, and what it makes are **things you keep** (Pebbles, in the Pouch), not scrollback.
+
+**Not a chat clone (2026-11-20).** A chat window with a cute avatar is what every assistant ships, and Otty loses that fight on model quality alone. Otty wins on what a chat app doesn't have: a living place (the cove), objects you can hold and keep (Pebbles and the Pouch), a pet that grows with you, and trust you can inspect. Later, the same objects become what people and their otters share (Raft). Each new screen asks: does this look and feel like Otty's place, or like a chat log?
 
 Under all three: **trust**. Non-technical users first, privacy by default, confirm cards before anything with side effects. Trust is also Otty's ceiling, so it gets real engineering of its own: see [Trust: the ceiling](#trust-the-ceiling).
 
@@ -27,16 +29,28 @@ The long-run direction, from something you ask to something that looks after thi
 - Ask of every idea: **does this get better on its own when the model does?** See "Scaling with better models" below.
 - Signals to watch: what users type after the clarify card ("other" intents), errors they hit, and features they ask for.
 
+### Re-score, 2026-11-20
+
+Every row was read again against the updated vision above: Otty as a place and a pet rather than a chat clone, things you make and keep, collaboration later, and a phone after the Mac. What moved, and why:
+
+- **Up:** what people see and keep. Charts and slides with taste (→ D-70), editable `.pptx` (M → H), free-form HTML pages (M → H, the base of Pebbles), model-built cards (M → H, they *are* Pebbles), syntax colours (L → M, cheap and looks expensive), typed IPC from one table (M → H, the iOS split needs a transport-neutral API), one fake world for both test tools (M → H, it's half of why the UI bugs of 2026-11-19 got through; D-67).
+- **Down:** scaffolds a better model replaces. The local intent classifier, D-1 (H → M: tiles, try-asking chips and today's models already guess well, and it's L with a large bundle), learning from intent corrections and growing the intent list (M → L), two-column pick up text (M → L).
+- **Re-sized:** the feature-teaching collection is M, not S: keepsakes need painted art and the den to show them.
+- **Folded in:** more slide themes into D-70; pin a chat into the Pouch; Otties that talk to each other into Raft; Feed Otty (D-37) no longer waits for art or for files in the quick view, because a drop now opens a new chat in the Otty window.
+- **Blocked, still high:** the eval's safety sets in CI (H, S) wait on the owner's key and cap; connections in What left your Mac (H, S) ship with D-54.
+
+The five promoted on value per effort are in DEVLOG ("Priority, 2026-11-20").
+
 ---
 
 ## Alive: pet and personality
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | S | considering, part of Otty's den |
+| Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | M | considering, part of Otty's den; keepsakes need painted art (re-sized 2026-11-20) |
 | Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | → D-38 |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering, Look after me needs it to speak |
-| Feed Otty: drop a file or dragged text on the otter to ask about it, with a munching animation | H | S–M | → D-37 |
+| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | → D-37 (step 1 needs no art) |
 | More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
 | A simplified small-size head for the 34px header and quick view, where painted fur gets soft | M | S | idea |
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
@@ -66,14 +80,14 @@ The long-run direction, from something you ask to something that looks after thi
 | Attach a folder or a small repo: a file list plus the files the question needs, picked by the model from names, inside the file budget | M | M | idea, after D-29 |
 | Notebook chart outputs for vision models: send a notebook's plots as pictures when the model can see | M | S | idea, after D-29 |
 | Code files and notebooks: a `code` kind with line numbers, `.ipynb` read by cell with outputs, secrets masked before sending | H | S–M | shipped (D-29) |
-| Pick up text reads two-column pages properly: spot the columns from the line boxes, so a drag stays in one column | M | M | idea |
+| Pick up text reads two-column pages properly: spot the columns from the line boxes, so a drag stays in one column | L | M | idea |
 | Pick up text on the screen itself: a hotkey that freezes the whole screen with its words selectable, with no snip first | H | M | idea, after D-14 |
 | More one-tap page actions next to Summarize: key points, and "what should I do here?" | M | S | idea |
 | A soft shutter flash for the whole-screen shortcut, so it feels like taking a picture (needs a brief overlay window; none with reduced motion) | L | S | idea |
 | Capture every display at once for people with two screens, offered from the Whole screen label | M | S | idea |
 | Pick up text: a snip in a floating window with its words selectable, for ⌘C with no model | H | M | shipped |
 | Frontmost app, window title and page URL as context | H | S | shipped |
-| Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | H | L | → D-1 |
+| Intent classifier for no-prompt captures (fix error, summarize, …) with a clarify card | M | L | → D-1 (re-scored 2026-11-20: a scaffold better models shrink) |
 | A **Read this page** tile when the app tag has a web address and nothing is highlighted (one tap to `read_page` + summarize) | H | S | shipped: **Summarize this page** |
 | Captures in the tray: drag to reorder, or a "replace" mode on ⌥Space for people who want one capture at a time | L | S | idea, after D-8 |
 | Copy a pictured table with no model, using Apple's document reader (macOS 26) and `copyFormats` | M | S–M | idea |
@@ -81,8 +95,8 @@ The long-run direction, from something you ask to something that looks after thi
 | Pick up text on attached pictures, and click a detected address, date or phone number to act on it | M | S–M | idea |
 | Warm `otty-ocr` after launch, if the idle budget allows, so the first read isn't slow | M | S | idea, after D-16 |
 | Local OCR (Apple Vision) for snips: classifier input and text for non-vision models | H | M | → D-1 (part) |
-| Learn from intent corrections on-device (retrain the head from `intent_feedback`, which keeps embeddings, not text) | M | M | idea |
-| Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | M | S each | idea |
+| Learn from intent corrections on-device (retrain the head from `intent_feedback`, which keeps embeddings, not text) | L | M | idea |
+| Grow the intent list from "other" requests (e.g. `fill_form`, `compare`, `schedule`) | L | S each | idea |
 | Attach the file selected in Finder with ⌥Space | M | S | idea (left out of D-6 v1) |
 | Attach files in the quick view: it hides on blur, so a drag from Finder closes it. Needs "don't hide while dragging" or a paperclip there | M | S | idea |
 | File quick actions answer in the document's language (a Chinese PDF → a Chinese summary when 繁體中文 is the other language); today actions default to English | M | S | shipped (with D-29) |
@@ -108,17 +122,17 @@ The long-run direction, from something you ask to something that looks after thi
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Edit a drawing by hand: tap a box in a diagram to rename it, or drag slides to reorder, and the card's text updates (the next answer sees it) | M | M | idea, from D-30 |
-| More slide themes, picked on the card (Otty, plain, high contrast), and the user's own accent colour | L | S | idea, from D-30 |
+| More slide themes, picked on the card (Otty, plain, high contrast), and the user's own accent colour | M | S | → D-70 (the themes) |
 | Eval: check drawings really parse by running Mermaid in jsdom in the harness, not just their shape | M | S | idea, from D-30 |
 | Eval: grow the sets towards 40 / 30 / 20 / 15 / 20 / 15 / 15, and report cache hits once `Provider` returns usage | M | S–M | idea, left from D-23b |
 | A drawing in the quick view opens the panel at that card, rather than the panel's bottom | L | S | idea, from D-30 |
 | Drawings as a job's output: a background look that ends in a deck or diagram, not just a report | M | S | idea, after D-30 |
-| Editable `.pptx` export of a slides card (pptxgenjs), so Keynote and PowerPoint can change it | M | S–M | idea, after D-30 |
+| Editable `.pptx` export of a slides card (pptxgenjs), so Keynote and PowerPoint can change it | H | S–M | idea, after D-70; a step towards Otty slides |
 | Charts from an attached CSV or a highlighted table: Vega-Lite with its loader off, or numbers worked out by the code runner | H | M | shipped (D-35): Mermaid charts, numbers by code |
 | Keep a chat's tables across restarts (masked, in `otty.db` with the chat) so "now by region" works tomorrow | M | S | idea, from D-35 |
 | Charts with two series (sales by month, a line per region) and by week, still worked out by code | M | M | idea, from D-35 |
 | A **Chart this** tile when a highlight or attachment is a table, so charts are found without knowing to ask | M | S | idea, from D-35 |
-| Free-form HTML pages from the model (posters, one-page explainers) in a script-less sandboxed frame; scales best with better models, biggest attack surface | M | M | considering, after D-30's attack tests |
+| Free-form HTML pages from the model (posters, one-page explainers) in a script-less sandboxed frame; scales best with better models, biggest attack surface | H | M | considering, after D-30's attack tests; the base of Pebbles |
 | Slides with the user's own pictures and snips, once there's a picture store that saved chats can use | M | M | idea, after D-30 |
 | Drawings: Mermaid diagrams, SVG pictures and a typed slides format, drawn on the Mac, with Copy as picture, Save as PNG / PDF and a present view | H | L | shipped (D-30) |
 | Show what Claude's web searches cost in the usage meter, since each one is billed | M | S | idea |
@@ -179,7 +193,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | --- | --- | --- | --- |
 | Back up and restore chats and memories (export `otty.db` or a JSON bundle; restore on a new Mac) | M | S | idea |
 | Search filters: by app ("chats from Excel"), by date, with/without files | M | S | idea |
-| Pin a chat (`chats.pinned` is in the schema, and retention already skips pinned chats) / pin the panel open | M | S | idea |
+| Pin a chat (`chats.pinned` is in the schema, and retention already skips pinned chats) / pin the panel open | M | S | idea; folds into [the Pouch](#pebbles-and-the-pouch), where a pinned chat is a Pebble |
 | `recall` tool: the model searches saved chats and follows links when it needs them, so old context isn't carried in every request. Results append, so the cache rule holds; counts as private data | H | M | idea, overlaps "Tools before pipelines" |
 | Recent chats past the newest 500: load more as you scroll, or group by month | L | S | idea |
 | Find in the quick view too, and in an open explain card | L | S | idea |
@@ -211,9 +225,10 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Auto-update (electron-updater) | M | M | idea |
 | Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | shipped (counts and tokens; money needs a price table, see below) |
 | An Otty test harness: drive the real overlay and windows in Electron with real input, as a repeatable `npm` script rather than one-off scripts | M | M | shipped (D-47) |
-| One fake world for both test tools: `ui-preview` scenes fed by D-47's scripted model and pages instead of a hand-written mock `window.otty`, so the two can't drift | M | M | idea, from D-47 |
+| One fake world for both test tools: `ui-preview` scenes fed by D-47's scripted model and pages instead of a hand-written mock `window.otty`, so the two can't drift | H | M | idea, from D-47; after D-67, which found the mock's drift was half of why the 2026-11-19 bugs got through |
 | Smoke on a CI matrix: the oldest supported macOS and an Intel runner, for the release gate (LAUNCH_READINESS 6.8) | M | S | idea, from D-47 |
 | `net.ts` as the one door out: enforce `web: 'off'` there in code, and feed What left your Mac from it instead of tagging each call site | H | S | shipped (D-52: the door and `web: 'off'`; the sent log stays tagged, because only the caller knows why) |
+| Tests that find what people find: invariants over every window state and width (a way to close, menus inside the window, New chat from every screen), a nav matrix, fake-world cases recorded from real sites, and a `probe` an agent can drive by hand during development | H | S–M | → D-67 (step 1); the probe is step 2 |
 | Agents check their own work: one `verify` command, a Stop hook, lint, CLAUDE.md rules as tests, a PR template with evidence for each "Done when" line | H | M | phases 1–2 shipped (D-48); phase 3 near the beta |
 | An agent "owner's summary" on each PR: what changed for users in plain words, the evidence, what still needs a person, so merging takes minutes | H | S | shipped (D-48's PR template: "What changes for people using Otty" and "Left for a person") |
 | Write "Done when" lines as checkable statements from the start (each names its test or smoke tag), so the intent check has something to match | M | S | → D-55 (part of the feature kit) |
@@ -226,7 +241,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Fully local mode (local LLM via an Ollama-compatible endpoint) for privacy-first users | M | S | stretch goal: built, labelled experimental, not fully supported |
 | CI: typecheck and build on every PR, then tests, then an unsigned `.dmg` artifact | H | S | shipped (D-4) |
 | Test names the model and warns about no vision | M | S | shipped |
-| Native Swift shell if Electron size or feel becomes a problem | M | L | parked until there's a reason |
+| Native Swift shell if Electron size or feel becomes a problem | M | L | parked for the Mac; the iOS app is a native shell over the shared core ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)) |
 | Electron fuses (no `RunAsNode`, no `--inspect`, asar integrity), because Otty holds Accessibility and Screen Recording and another process could borrow them | H | S | shipped (D-49) |
 | Log files with no content, and a "Copy diagnostics" button that shows exactly what it would send | H | S | shipped (D-50) |
 | Opt-in crash reports and a counts-only daily summary, listed in Activity like everything else that leaves | M | M | idea, from LAUNCH_READINESS §14 |
@@ -242,7 +257,9 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Syntax colours in answers' code blocks, with a small lazily loaded highlighter and token colours from `styles.css` | L | S | idea, after D-29 |
+| Long highlights in a sent message fold to a few lines with **See more**, so a pasted page doesn't push the answer off screen | M | S | → D-68 |
+| "Good to know" tips: decide whether they earn their place. The model adds one to most answers, each makes the answer longer, and "In more detail" (D-58) and explain links already teach on demand | M | S | → D-69 |
+| Syntax colours in answers' code blocks, with a small lazily loaded highlighter and token colours from `styles.css` | M | S | idea, after D-29 |
 | Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | shipped (D-36) |
 | Try again with a twist: **Shorter**, **Simpler** or **In more detail** beside Try again, as the same rewind plus one line in the turn's note | M | S | → D-58 |
 | Branch from an older question: edit any earlier turn as a new chat that copies the history up to there, so nothing later is lost | M | M | idea, from D-36 |
@@ -253,7 +270,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | File picker's filter leaves out TIFF, BMP and code files that Otty can read (they only show under All files) | L | S | shipped (D-29) |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
-| Micro-interactions and the "water, not springs" motion system: 186 moments across every view, tagged by when to build and idle cost, with a first twelve (`docs/DESIGN.md`) | H | M | considering; each screen needs a pixel-level spec first (DESIGN, "The polish bar") |
+| Micro-interactions and the "water, not springs" motion system: 186 moments across every view, tagged by when to build and idle cost, with a first twelve (`docs/DESIGN.md`) | H | M | considering; each screen needs a pixel-level spec first (DESIGN, "The polish bar"); the signature moments are in [Otty's look](#ottys-look-a-place-not-a-chat-clone) |
 | Memory suggestions inbox: suggestions the user didn't answer wait in Settings instead of being lost (`memories.status = 'pending'`) | L | S | idea, after D-10 |
 | Unseen-answer dot on the otter | M | S | shipped |
 | Otty follows you across desktops (Spaces): the quick view stops closing on a switch, plus a "show over full-screen apps" setting; see the concept note below | M | S | shipped (D-8, the quick view part); the full-screen setting is still an idea |
@@ -338,7 +355,7 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Tools before pipelines: let the model pull context when it needs it (read the window, find a file, check the calendar) rather than deciding in code what it sees | H | M | idea |
 | Trust ladder: give every tool a risk level and undo, so autonomy widens per action as evals prove reliability (show, then suggest, then do with a confirm) | H | M | idea, the path back to parked computer use |
 | Re-read history: after a model upgrade, offer to refresh memories, titles and summaries from saved chats, so old data improves too | M | S–M | idea, after D-10; opt-in, shows the cost first |
-| Model-built cards: answers can use a small typed set of tables, checklists and choices, so better models compose better UI with no new code | M | M | idea, D-11 step cards are the first card and D-30's drawings and slides the second |
+| Model-built cards: answers can use a small typed set of tables, checklists and choices, so better models compose better UI with no new code | H | M | considering: this is [Pebbles](#pebbles-and-the-pouch); D-11 step cards are the first and D-30's drawings the second |
 | Goal mode, "Get this done": plan, act, check and report for a stated goal, built on D-11 step cards | H | L | idea, after D-11 |
 | Proactive help, gated by measured precision: stays off until evals show it's rarely wrong, and always opt-in | H | L | idea, extends the paw-raise idea |
 | Re-test D-1 before building it: compare a plain model call with the local classifier on the same captures, for accuracy, speed and privacy | H | S | → D-1 step 0 |
@@ -464,10 +481,10 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | A character that grows: Otty's manner and in-jokes change with your history together, so it's clearly yours after a year | H | L | idea, extends Otty's den |
 | Do, with undo: routine changes just happen, with "tap to reverse" | H | L | idea, needs the action ledger |
 | The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | shipped as D-64 (frame), D-65 (roomy window) and D-66 (Home); goals, Otty noticed and the den later |
-| Phone app: Otty goes with you, one relationship across devices | H | L | long-term; reopens the cloud decision |
+| Phone app: Otty goes with you, one relationship across devices | H | L | considering, after the core split ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)); reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
 | **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | idea; step 1 needs no account, sharing needs the hosted service and sign-in |
-| Otties that talk to each other: yours finds a meeting time with a colleague's | M | L | idea, now the last step of [Otty's own calendar](#ottys-own-calendar-shared-and-multi-person) |
+| Otties that talk to each other: yours finds a meeting time with a colleague's | M | L | idea, the last step of [Otty's own calendar](#ottys-own-calendar-shared-and-multi-person), and an otter-to-otter part of [Raft](#raft-otty-together) |
 
 ## The far horizon: the dream, unconstrained
 
@@ -572,10 +589,56 @@ The plumbing that AUTONOMY.md's "shape to build towards" needs. The pillar for e
 | SQLite off the main thread for long searches: a worker with its own connection (WAL), and a latency budget for `chat_search` before `recall` and long-run memory search years of chats | M | M | idea, before `recall` |
 | Memory matching at scale: `forPrompt` scans every memory in JS (on purpose, for Chinese and short names). Time it at 5,000 memories, and add a prefilter if it passes a few milliseconds | L | S | idea |
 | One long-lived Swift helper instead of many one-off ones: OCR today, then Accessibility, EventKit, ScreenCaptureKit and app-switch events, behind one typed message channel. Electron keeps the UI and the runtime. `osascript` stays only where argv is enough. It settles the "go native?" question by going native only where it pays | H | L | idea, before Stage 3's AX helper |
-| Typed IPC from one table: channel names, input guards and `window.otty`'s types come from a single schema, so `index.ts`, the preload and `api.d.ts` can't drift | M | M | idea, after D-44 |
+| Typed IPC from one table: channel names, input guards and `window.otty`'s types come from a single schema, so `index.ts`, the preload and `api.d.ts` can't drift | H | M | idea, after D-44; step 1 of [Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells) |
 | Jobs in a utility process, like `fileWorker.js`, for isolation and so a stuck job can't slow the UI. Measure first, as AUTONOMY.md asks | M | M | idea, unblocked: the loop and `JobRunner` import no electron (D-45) |
 | The eval's Mac tools through a recording `MacHands` instead of stubbing `runTool`, so their confirm cards and argument checks run as in the app. Compare against the baseline when changing it, since the stub never asked | M | S | idea, possible since tools reach the Mac through `ToolContext.mac` |
 | Settings checked per field: `settings.update` cleans `monthlyCap` and `workPausedUntil` by hand. When tiles (D-56) add a third field from the renderer that needs checking, move them to one table of cleaners, so a new field can't skip its check | M | S | idea, with D-56 |
+| TOON for structured data sent to the model: tool results that are lists of like rows (search results, a table's rows, Logbook entries, calendar events) written as Token-Oriented Object Notation instead of JSON, which repeats every key on every row. Measure first: tokens saved on real tool results, and the eval's score on the same cases in both formats, on each service's model. Never the system prompt or anything already sent (the cache rule), and the model still writes JSON for tool calls | M | S–M | considering; step 0 is the measurement ([concept note](#toon-fewer-tokens-for-tables-of-things)) |
+| One core, two shells: everything that isn't the Mac (the loop, tools, jobs, stores, providers, memory, the ledger, `shared/`) as a package with no electron import, behind interfaces the Mac shell and later an iOS shell each implement | H | L (step 1: M) | considering ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)); D-45 did the loop and jobs |
+| Agent-to-agent hand-offs as typed data: a run's result is a Pebble-shaped record with its source attached, so another run, another Otty or an outside agent reads fields, never instructions | H | M | considering, with sub-runs and Pebbles ([Agentic collaboration](#agentic-collaboration-runs-that-work-together)) |
+
+## Otty's look: a place, not a chat clone
+
+What makes Otty feel expensive and unlike a chat app with an avatar. The design is in DESIGN.md ("Signature moments") and the concept note [The living cove](#the-living-cove). Every row keeps the motion rules: touch is instant, Otty's motion is water, nothing smooth runs while idle (NFR-3), and reduced motion gets a fade.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| Charts and slides with taste: a categorical palette from the tokens for pies and bars, soft gridlines and rounded bars, a title slide with a wash of the cove, a kicker line, brand-coloured bullets and quote marks, number badges, and two themes (Otty, high contrast) | H | S–M | → D-70 |
+| **The liquid capsule:** the message box as a drop of water. Its outline is an SVG path whose control points ease towards a resting shape; each key press nudges them (a few px, on touch only), and it settles in `--t-settle`. On send, a drop separates and travels up to the chat. Nothing moves while idle | M | S–M | considering; measure with `OTTY_METRICS=1` |
+| **The living cove, step 1:** a painted cove behind Home and the empty chat, one picture per time of day (dawn, day, golden hour, night), cross-faded on the hour, with the otter floating in an unobstructed hero header above the headline. Painted through `tools/otty-art/`, never generated in CSS | H | M | considering; needs painted sources |
+| **The living cove, step 2:** scroll-driven parallax (the far shore moves slower than the near water) and frosted-glass cards (`backdrop-filter`) that refract the cove as content scrolls over it. On touch only | H | M | idea, after step 1 |
+| **The living cove, step 3:** the cove follows the weather and season, from the Mac's own time and, if allowed, a coarse location, never sent anywhere | M | M | idea, after step 2 |
+| Answer surfacing through the water line: a new answer rises from just under a soft horizon at the bottom of the chat, rather than appearing (one `--t-settle`, then still) | M | S | idea, pairs with the capsule |
+| Ripples where you touch: a press on the cove or a Pebble sends one ring outwards (`--t-drift`, brief) | L | S | idea |
+| Light that follows the otter: the hero's highlight sits where the otter floats, so cards near it catch a little more light | L | S | idea, after step 1 |
+| The window's edge as a water meniscus: a 1 px inner highlight that thickens slightly at the top, so the floating window reads as a drop of the cove | L | S | idea |
+| Trackpad haptics on armed buttons and a Pebble landing in the Pouch, through the Swift helper (`NSHapticFeedbackManager`) | M | M | idea, after the long-lived Swift helper |
+
+## Making things: Pebbles, the Pouch, and Otty docs, slides and sheets
+
+Otty already makes drawings, decks and charts, but they live inside a chat and scroll away. The concept notes [Pebbles and the Pouch](#pebbles-and-the-pouch) and [Otty docs, slides and sheets](#otty-docs-slides-and-sheets) have the design. Two rules: what the model makes is **data in a typed format that Otty draws** (never code that runs), and anything that reaches outside goes through the same tools, cards and ledger as a chat.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| **Pebbles:** compact, tactile cards for what Otty gathered or built (a chart, a deck, a comparison, a checklist, a page it read, a plan, a word list), each a typed record with a kind, a title, its data and its sources. The answer refers to them; they sit in a strip under it, open big, and can be copied, exported and kept | H | L (step 1: M) | considering; step 1 wraps today's drawing, chart and step cards as Pebbles |
+| **Otty's Pouch:** kept Pebbles as a visual collection (stones of different shapes and colours by kind, on the cove's sand), with search, a few shelves the user names, and "where did this come from?" back to its chat | H | M | considering, after Pebbles step 1 |
+| A Pebble that stays fresh: a kept Pebble from a look-up can be refreshed by a job (a read-only look, behind its card), and says when it was last checked | H | M | idea, after the Pouch; uses repeating looks (D-34) |
+| **Otty slides:** a deck as a document you edit, not only a card: reorder, retitle, change a slide's layout, pick a theme, present, export `.pptx` and PDF. The model edits by proposing a new version that the user accepts | H | M–L | idea, grows from D-30 and D-70 |
+| **Otty docs:** a page Otty and you write together (headings, lists, tables, Pebbles inline), saved in `otty.db`, with versions and Markdown and `.docx` export. Otty proposes edits as marked changes, as the proofread card does | H | L | idea, after Pebbles |
+| **Otty sheets:** a small grid with formulas worked out by the mathjs allowlist (never the model), charts from its columns, and CSV and `.xlsx` in and out. The model fills and explains; code calculates | H | L | idea, after Otty docs; reuses `shared/table.ts`, `chart.ts` and `math.ts` |
+| Drag a Pebble out of Otty into another app: a chart as a picture, a table as rich text, a deck as a PDF, through the same `copyFormats` rules | M | S–M | idea, after Pebbles step 1 |
+
+## Together: Raft and agentic collaboration
+
+Otty is one person's otter first. These rows are about otters and agents working together, and later people. The concept notes [Raft](#raft-otty-together) and [Agentic collaboration](#agentic-collaboration-runs-that-work-together) have the design. The rule from AUTONOMY.md holds everywhere: another person's otter, or another agent, is a stranger's words. Typed messages, fixed fields, and nothing they say widens what yours may do.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| **Raft:** a shared, real-time group chat where each person brings their own Otty. People talk; otters answer only when called by name; Pebbles, docs, slides and sheets are shared in the raft and edited together | H | L | stretch goal; needs the hosted service, sign-in and end-to-end encryption (LAUNCH_READINESS §8–9) |
+| Raft, step 0, on one Mac: share a Pebble or a doc as a read-only link or a file, so the format is settled before anything is live | M | M | idea, after the Pouch |
+| Runs that work together: a goal splits into sub-runs that hand typed results to each other (the researcher hands sources to the writer, which never sees the web), shown as one item in the Logbook | H | M–L | considering; the sub-runs row in Runtime, after one kind of run and the policy decision |
+| Otty and outside agents: Otty can call an agent the user connects (another assistant, a coding agent) as a tool behind a card, and be called by one through a narrow, typed API that only reads what the user shares | M | L | idea, after the MCP client (connections) |
+| A shared scratchpad per goal: the Pebbles a goal's runs made, visible to all of them and to the user, so work isn't repeated | M | M | idea, with goals |
 
 ## Parked / rejected (with reasons)
 
@@ -826,3 +889,128 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 - What leaves for sharing is listed in What left your Mac, like everything else.
 
 **Open questions:** end-to-end encryption for shared calendars from the start, or only once there's demand? And should step 1 wait for the roomy Otty window, since a calendar wants room?
+
+### The living cove
+
+**Idea.** The Otty window isn't a white page with a chat in it; it's the otter's cove. A full-bleed painted canvas sits behind Home and the empty chat, the otter floats in an unobstructed hero header with the day's headline beside it, and the content above it is frosted glass that the cove shows through. Like a good weather app, the place itself says what time it is.
+
+**Layers, back to front:**
+1. **The sky and far shore**: one painted picture per time of day (dawn, day, golden hour, night), from `tools/otty-art/source/cove-*` through `prepare.py`, exported at 1× and 2× as WebP, cross-faded over `--t-drift` when the hour changes (one timer for the next change, no polling).
+2. **The water**: a second painted layer, so scrolling can move it at a different speed from the shore (parallax).
+3. **The hero**: the otter floating, the greeting ("Good afternoon") and one line of state (Home's headline). Nothing overlaps it; it's the sanctuary.
+4. **The content**: Needs you, Today and the chat, on frosted-glass cards (`backdrop-filter: blur() saturate()`) with the window's own hairline. As they scroll up over the hero, the hero eases back and dims a little.
+
+**Motion, inside the rules.** Scroll-driven parallax uses `animation-timeline: scroll()` on transforms only, so it costs nothing until the user scrolls. The cove never moves on its own: no drifting clouds or lapping water while idle (NFR-3: the idle float alone once cost 1.6%). With `data-asleep` or reduced motion, the cove is a still picture.
+
+**Where it shows.** Home and the empty chat in the Otty window, the empty quick view as a thin strip, and onboarding. In a chat with content, the cove fades to a quiet wash at the top so answers keep their contrast; the text-contrast test (`rules/renderer.test.ts`) runs over the wash in both themes, and dark mode is the night picture, not an inverted day.
+
+**Rules.**
+- Painted, never generated: the cove comes from the same art pipeline as the otter, so it looks like one hand made both.
+- The content wins. Glass cards keep text at 4.5:1 or better over the brightest part of every time of day.
+- Size: the four pictures together stay under 1.5 MB, and only the current one and the next are decoded.
+- It follows the Mac's clock and appearance only. Weather and season (step 3) use a coarse location only if allowed, and nothing is sent anywhere for it.
+
+**The capsule** (the message box as a drop) belongs to the same family: water that answers your touch and settles, never water that moves by itself. See DESIGN.md, "Signature moments".
+
+**Steps:** 1) painted cove and hero on Home (M, needs art); 2) parallax and glass (M); 3) weather and season (M).
+
+### Pebbles and the Pouch
+
+**Idea.** What Otty makes or gathers becomes a **Pebble**: a small, tactile card you can hold. A chart, a deck, a table compared across three shops, a checklist, a page it read with the three lines that mattered, a word list, a plan. Pebbles sit in a strip under the answer that made them, open big on a tap, and can be copied, exported, dragged into another app and **kept**. Kept Pebbles go into **Otty's Pouch**: a collection that looks like a handful of stones on the cove's sand, not a folder of files.
+
+**Why.** It's the clearest difference from a chat clone. In a chat, the useful thing scrolls away; in Otty, it becomes an object. It also gives better models somewhere to go: a better model makes better Pebbles with no new UI (Model-built cards, "Scaling with better models").
+
+**The shape** (`src/shared/pebbles.ts`, pure):
+
+| Field | What it holds |
+| --- | --- |
+| `id`, `kind` | `chart`, `deck`, `diagram`, `table`, `checklist`, `page`, `words`, `plan`, `doc`, `sheet` |
+| `title`, `summary` | A short name and one line, written by the model, shown as plain text |
+| `data` | The kind's typed data: a chart's spec and numbers, a deck's slides, a table's rows. Never HTML or code |
+| `sources` | Where it came from: the chat and message, the files, the pages read (addresses), and when |
+| `made`, `kept`, `checked` | Timestamps; `checked` for a Pebble a job refreshes |
+
+**Drawing.** Each kind has one renderer in `renderer/src/pebbles/`, reusing what exists: `draw/` for decks and diagrams, the chart card, `StepCard`, the table copy rules. A Pebble is always drawn by Otty from data, so D-30's safety holds: no model HTML, no remote pictures, every string escaped.
+
+**The model's side.** One tool, `make_pebble(kind, title, data)`, whose row in `toolSafety.ts` reads nothing and changes only the chat; its arguments are checked by kind in code, so a malformed Pebble is refused with a friendly line. The drawing and chart cards become Pebbles by wrapping, not rewriting, so old chats keep loading (`store/upgrade.ts`).
+
+**The Pouch.** A screen in the frame (`frame/`, with Home, Chats and the Logbook). Stones have a shape and tint per kind from the tokens; they settle with `--buoy` when kept (and a haptic tick later). Search uses `shared/match.ts`. Shelves are names the user gives, nothing more. Each Pebble has "From a chat on…" back to where it came from. Kept Pebbles are rows in `otty.db` (a new migration), text only and masked like chats, and "Forget all chats" asks whether to keep the Pouch.
+
+**Steps.** 1) The type, drawing and charts as Pebbles under answers, keep and open big (M). 2) The Pouch screen (M). 3) `make_pebble` for tables, checklists, pages and word lists (M). 4) Refreshing Pebbles through jobs (M). 5) Drag out and export (S–M).
+
+**Open questions.** Is a Pebble kept by default when it's made, or only on a tap? (Start with a tap: a Pouch that fills itself is a junk drawer.) Should a kept Pebble survive deleting its chat? (Yes, with its sources kept as names.)
+
+### Otty docs, slides and sheets
+
+**Idea.** The three things people make at work, made with Otty: a page, a deck and a grid, each a Pebble that has grown into a document you open, edit and export. They're not an office suite; each does the 80% people need, with Otty as the co-author.
+
+**Shared rules.**
+- **The model proposes, the user accepts.** Otty edits by proposing a new version, shown as marked changes (the proofread card's `shared/diff.ts` for text; per-slide and per-cell for the others). Accept, reject or ask again. The document never changes under the user's hands.
+- **Versions** are rows, so Undo and "show me yesterday's" work, and the ledger lists what Otty changed.
+- **Numbers by code.** In sheets, formulas are worked out by `math.ts`'s allowlist, never by the model, as with `make_chart` (D-35).
+- **Export, not lock-in:** docs to Markdown, PDF and `.docx`; slides to PDF and `.pptx`; sheets to CSV and `.xlsx`. Imports are files through `files/`, with `maskSecrets`.
+- **Built wide-first** for the roomy window, and usable at compact width as a read-only Pebble.
+
+**Order.** Slides first (D-30 and D-70 already draw them, and `.pptx` export is S–M), then docs, then sheets. Each is L.
+
+**Later: Raft.** Shared docs, slides and sheets are what a raft works on together; the version rows are designed so a second author's change is just another proposed version.
+
+### Raft: Otty together
+
+**Idea.** A **raft** is what otters make when they hold paws so they don't drift apart. Raft is a shared, real-time group chat where each person brings their own Otty. People talk to each other; an otter answers only when someone calls it by name; and what's made in the raft (Pebbles, docs, slides, sheets) belongs to the raft and is edited together.
+
+**What makes it hard, and the answers:**
+
+| Concern | Answer |
+| --- | --- |
+| **Whose otter sees what** | Each Otty sees only what its own person shares into the raft, and its memories never enter it unless that person taps to share one. "Otty, what did Mei's otter say?" reads the raft, never Mei's Mac |
+| **Injection between people** | Everything in a raft is outside text to every otter (AUTONOMY.md): a raft message can never pick tools, sites or recipients. An otter in a raft gets only read tools and Pebble-making, unless its own person confirms on their own Mac |
+| **Privacy** | End-to-end encrypted rafts from the start: the hosted service relays and stores ciphertext only, and What left your Mac lists each send |
+| **Cost** | Each otter runs on its own person's plan; calling someone else's otter is never possible |
+| **Realtime edits** | Docs, slides and sheets merge as proposed versions (above), not live character-by-character editing, at least at first |
+
+**Steps.** 0) Share a Pebble or doc as a file or a read-only link (one Mac, no live service). 1) A raft of people with no otters (the hosted service, sign-in, E2E). 2) Otters in the raft, called by name. 3) Shared docs, slides and sheets. 4) Otters that talk to each other (the free/busy protocol from Otty's own calendar).
+
+**Depends on:** the hosted service and sign-in (LAUNCH_READINESS §8–9), Pebbles, and the iOS core split (a raft is most useful on a phone). It's a stretch goal, after Stage 2.
+
+### Agentic collaboration: runs that work together
+
+**Idea.** Features that let agents (Otty's own runs, other Otties and outside agents) work together without any of them gaining power on the way. It's the Runtime section's sub-runs made concrete, plus a door to the outside.
+
+**The pieces.**
+1. **One kind of run, one policy decision** (Runtime). Prerequisites, already considering.
+2. **Typed hand-offs.** A run's result is a record shaped like a Pebble (kind, data, sources), so the next run reads fields. A writer run gets the researcher's sources as data, and never sees the web itself.
+3. **A shared scratchpad per goal**: the Pebbles its runs made, visible to the user as the goal's progress.
+4. **One status.** The Logbook shows a tree of runs as one item that stops, pauses and undoes as one (the far horizon's "a small team behind one otter").
+5. **Outside agents**, both ways and both narrow: Otty calls a connected agent as a tool behind a card (its reply is outside text), and an outside agent can call a small, typed, read-only Otty API that serves only Pebbles the user shared with it.
+
+**Rules (from "Parked / rejected"):** authority only narrows on the way down; hand-offs carry their source; agents never check agents as the safety net; workers never speak to the user.
+
+### TOON: fewer tokens for tables of things
+
+**Idea.** Token-Oriented Object Notation writes a list of like objects as a header of keys and then one line of values per row, instead of JSON's keys on every row. For results like search hits, a table's rows, Logbook entries or calendar events, that can cut a tool result's tokens a lot, which matters on every turn that carries it in the history.
+
+**What would change.** Only what Otty sends *into* the model as data: tool results and attached tables. Tool calls stay JSON (the APIs need it), and the system prompt and anything already sent never change (the cache rule).
+
+**Step 0, measure, before migrating anything:**
+- Tokens: take recorded tool results from the eval's cases and count both formats with each service's tokenizer.
+- Accuracy: run the eval's search, chart and job sets with results in both formats. A smaller request that reads a column wrong is a loss.
+- Decide per tool: only those that save at least a quarter and lose nothing in the eval move.
+
+**If it pays:** a `toToon(rows)` in `shared/` (pure, property-tested to round-trip), used in each chosen tool's `run`, one tool per PR, each with its eval compare. S–M overall.
+
+### Getting ready for iOS: one core, two shells
+
+**Idea.** A phone app later (Beyond Look after me) is one relationship across devices, not a second product. Get ready by making the parts that aren't the Mac a core with no electron in it, so an iOS shell (native Swift UI) can host it.
+
+**Where things stand.** D-45 already keeps electron out of the loop, `tools/` and `JobRunner` (`noElectron.test.ts`); settings sit on a `SettingsBackend`, and Mac hands on `ToolContext.mac`. The renderer talks to main through `window.otty` and `CHANNELS`. What's left is everything else in main that imports electron or `node:` modules directly.
+
+**How the core runs on iOS.** Two candidates, to settle in step 2: (a) the core in a JavaScript engine inside the app (JavaScriptCore), with storage, network and keychain as native bridges; or (b) the core on the hosted service for phones, with the phone a thin client and the Mac staying local. (a) keeps "it's mine" and works offline; (b) is less work and reopens the cloud decision. The core's interfaces are the same either way, which is why step 1 is worth doing first.
+
+**Steps.**
+1. **Typed API from one table (M).** `CHANNELS`, the preload and `api.d.ts` generated from one schema, so the same API can be served over IPC today and over a bridge or a socket later.
+2. **The core boundary (M).** Move the pure parts to `src/core/` with a lint rule against electron and `node:` imports; `ChatStore`, `JobStore`, `Keychain`, `send` (net) and the clock become interfaces the shell provides. SQLite stays behind `ChatStore`.
+3. **A second shell to prove it (M).** A headless Node shell (no electron) that runs the core in tests and the eval, which also replaces the eval's stubs.
+4. **Decide (a) or (b)** with the owner, then the iOS shell (L).
+
+**What the phone does first:** read and continue chats, the Pouch, the Logbook's Needs you, and asking with a photo. Not captures, step cards or anything that needs the Mac.

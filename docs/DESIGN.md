@@ -268,6 +268,19 @@ Sections, changes as you go, no Save button (UX_REVIEW #2):
 - Safety moments are calm: no shakes, no red flashes.
 - Re-measure with `OTTY_METRICS=1` after changing what runs while idle (NFR-3).
 
+## Signature moments
+
+What makes Otty look like Otty and not a chat app with an avatar (BRAINSTORM, "Otty's look"). Each one is still water, not springs, and still pays nothing while idle.
+
+| Moment | What the user sees | Rules | Status |
+| --- | --- | --- | --- |
+| **The living cove** | A painted cove behind Home and the empty chat, one picture per time of day, the otter floating in a clear hero header with the greeting, content on frosted glass that the cove shows through, and parallax when scrolling | Painted through `tools/otty-art/`; parallax on `animation-timeline: scroll()` (transforms only, so nothing runs until a scroll); still under `data-asleep` and reduced motion; text 4.5:1 over the brightest picture; a quiet wash, not the full picture, behind a chat with content | Concept note in BRAINSTORM; needs painted sources |
+| **The liquid capsule** | The message box is a drop: typing nudges its outline a few pixels, which settles back over `--t-settle`; sending lets a small drop rise towards the chat and the box settles | An SVG path over the box, eased by one `requestAnimationFrame` loop that runs only while it's settling and stops at rest; no change to the box's layout or hit area; reduced motion keeps a still outline | Idea |
+| **Pebbles landing** | A kept Pebble sinks into the Pouch with `--buoy` and settles among the others | One brief motion per keep; the Pouch never animates on its own | Concept note in BRAINSTORM |
+| **Charts and slides with taste** | Pies and bars in a calm categorical palette, soft gridlines, rounded bars, a title slide washed with the brand, a kicker line, coloured bullets and big quote marks, number badges | Colours from the tokens (`--chart-1` to `--chart-6`, checked for contrast in both themes); the deck stays self-contained HTML with no scripts and `img-src data:` | D-70 |
+
+The cove and the capsule are the two the owner named first; build the capsule's spec alongside the composer's (M row) and the cove's alongside Home's (L row), so each gets its pixel-level spec first.
+
 ## Not doing
 
 - **Filter pills and badge soup.** Views are text rows with counts; state is a word or a colour.
