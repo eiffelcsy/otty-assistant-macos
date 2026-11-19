@@ -603,7 +603,8 @@ What makes Otty feel expensive and unlike a chat app with an avatar. The design 
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Charts and slides with taste: a categorical palette from the tokens for pies and bars, soft gridlines and rounded bars, a title slide with a wash of the cove, a kicker line, brand-coloured bullets and quote marks, number badges, and two themes (Otty, high contrast) | H | S–M | → D-70 |
+| Charts and slides with taste: a categorical palette from the tokens for pies and bars, soft gridlines and rounded bars, a title slide with a wash of the cove, a kicker line, brand-coloured bullets and quote marks, number badges, and two themes (Otty, high contrast) | H | S–M | shipped (D-70), but for the high-contrast theme (next row) |
+| A high-contrast deck theme, picked on the slides card, for projectors and low vision: the same template with `--text` on white and the series at their darkest steps | M | S | idea, from D-70 |
 | **The liquid capsule:** the message box as a drop of water. Its outline is an SVG path whose control points ease towards a resting shape; each key press nudges them (a few px, on touch only), and it settles in `--t-settle`. On send, a drop separates and travels up to the chat. Nothing moves while idle | M | S–M | considering; measure with `OTTY_METRICS=1` |
 | **The living cove, step 1:** a painted cove behind Home and the empty chat, one picture per time of day (dawn, day, golden hour, night), cross-faded on the hour, with the otter floating in an unobstructed hero header above the headline. Painted through `tools/otty-art/`, never generated in CSS | H | M | considering; needs painted sources |
 | **The living cove, step 2:** scroll-driven parallax (the far shore moves slower than the near water) and frosted-glass cards (`backdrop-filter`) that refract the cove as content scrolls over it. On touch only | H | M | idea, after step 1 |

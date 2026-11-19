@@ -24,11 +24,19 @@ export interface Slides {
 
 export type Drawn = Picture | Slides | { kind: 'error'; error: string }
 
+/** A deck's colours, plus the chart series and the ink that sits on them (D-70). */
+export interface DrawTheme extends SlideTheme {
+  series: string[]
+  ink: string
+}
+
 /** The app's own colours, read from its tokens, so drawings look like Otty in light and dark. */
-export function theme(): SlideTheme {
+export function theme(): DrawTheme {
   const css = getComputedStyle(document.documentElement)
   const v = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback
   return {
+    series: [1, 2, 3, 4, 5, 6].map((i) => v(`--chart-${i}`, 'CanvasText')),
+    ink: v('--brand-ink', 'Canvas'),
     bg: v('--bg', 'Canvas'),
     surface: v('--surface', 'Canvas'),
     text: v('--text', 'CanvasText'),
@@ -49,40 +57,73 @@ const loadMermaid = () => (loading ??= import('mermaid').then((m) => m.default))
 let queue: Promise<unknown> = Promise.resolve()
 let nextId = 0
 
-async function mermaidSvg(code: string, t: SlideTheme): Promise<string> {
+async function mermaidSvg(code: string, t: DrawTheme): Promise<string> {
   const mermaid = await loadMermaid()
   const run = queue.then(async () => {
-    mermaid.initialize({
-      startOnLoad: false,
-      securityLevel: 'strict',
-      htmlLabels: false,
-      flowchart: { htmlLabels: false },
-      suppressErrorRendering: true,
-      maxTextSize: 40_000,
-      theme: 'base',
-      fontFamily: t.font,
-      themeVariables: {
-        background: t.bg,
-        primaryColor: t.surface,
-        primaryTextColor: t.text,
-        primaryBorderColor: t.brand,
-        secondaryColor: t.surface,
-        tertiaryColor: t.surface,
-        lineColor: t.muted,
-        textColor: t.text,
-        mainBkg: t.surface,
-        nodeBorder: t.brand,
-        clusterBkg: t.bg,
-        titleColor: t.heading,
-        edgeLabelBackground: t.bg,
-        fontFamily: t.font
-      }
-    })
+    mermaid.initialize(mermaidConfig(t))
     const { svg } = await mermaid.render(`otty-drawing-${nextId++}`, cleanMermaid(code))
     return svg
   })
   queue = run.catch(() => {})
   return run
+}
+
+/** Mermaid's settings: strict, no HTML labels, and Otty's palette for charts and diagrams (D-70). */
+export function mermaidConfig(t: DrawTheme) {
+  const [c1, c2, c3, c4, c5, c6] = t.series
+  const series = { pie1: c1, pie2: c2, pie3: c3, pie4: c4, pie5: c5, pie6: c6, cScale0: c1, cScale1: c2, cScale2: c3, cScale3: c4, cScale4: c5, cScale5: c6 }
+  return {
+    startOnLoad: false,
+    securityLevel: 'strict' as const,
+    htmlLabels: false,
+    flowchart: { htmlLabels: false, curve: 'basis' as const, padding: 16, nodeSpacing: 40, rankSpacing: 48 },
+    xyChart: { titleFontSize: 18, xAxis: { tickLength: 0, labelPadding: 8 }, yAxis: { tickLength: 0, labelPadding: 8 } },
+    pie: { textPosition: 0.72 },
+    suppressErrorRendering: true,
+    maxTextSize: 40_000,
+    theme: 'base' as const,
+    fontFamily: t.font,
+    // Rounded boxes and lighter strokes; Mermaid has no variable for either. Bars get the same soft corner.
+    themeCSS: '.node rect,.cluster rect{rx:10px;ry:10px;stroke-width:1.25px}.node polygon,.node circle{stroke-width:1.25px}.flowchart-link{stroke-width:1.5px}.bar-plot-0 rect{rx:4px;ry:4px}',
+    themeVariables: {
+      ...series,
+      // Slices and bars sit apart on a hairline of the page's own colour; labels wear text colours, never a series'.
+      pieStrokeColor: t.surface,
+      pieStrokeWidth: '2px',
+      pieOuterStrokeWidth: '0px',
+      pieTitleTextColor: t.heading,
+      pieLegendTextColor: t.muted,
+      pieSectionTextColor: t.ink,
+      pieOpacity: '1',
+      xyChart: {
+        backgroundColor: t.surface,
+        titleColor: t.heading,
+        plotColorPalette: t.series.join(','),
+        xAxisLabelColor: t.muted,
+        yAxisLabelColor: t.muted,
+        xAxisTitleColor: t.muted,
+        yAxisTitleColor: t.muted,
+        xAxisLineColor: t.hairline,
+        yAxisLineColor: t.hairline,
+        xAxisTickColor: t.hairline,
+        yAxisTickColor: t.hairline
+      },
+      background: t.bg,
+      primaryColor: t.surface,
+      primaryTextColor: t.text,
+      primaryBorderColor: t.brand,
+      secondaryColor: t.surface,
+      tertiaryColor: t.surface,
+      lineColor: t.muted,
+      textColor: t.text,
+      mainBkg: t.surface,
+      nodeBorder: t.brand,
+      clusterBkg: t.bg,
+      titleColor: t.heading,
+      edgeLabelBackground: t.bg,
+      fontFamily: t.font
+    }
+  }
 }
 
 function picture(svg: string): Picture | { kind: 'error'; error: string } {
@@ -91,7 +132,7 @@ function picture(svg: string): Picture | { kind: 'error'; error: string } {
   return { kind: 'picture', dataUrl: svgDataUrl(clean), ...svgSize(clean) }
 }
 
-async function slides(code: string, t: SlideTheme): Promise<Slides | { kind: 'error'; error: string }> {
+async function slides(code: string, t: DrawTheme): Promise<Slides | { kind: 'error'; error: string }> {
   const deck = parseSlides(code)
   if (!deck.slides.length) return { kind: 'error', error: 'there were no slides in it' }
   const drawn = new Map<string, string | null>()

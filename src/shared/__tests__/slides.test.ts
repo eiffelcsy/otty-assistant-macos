@@ -92,4 +92,14 @@ describe('deckHtml', () => {
   it('formats bold, italic and code, and leaves links as text', () => {
     expect(inline('**a** *b* `c` [x](https://e.example)')).toBe('<strong>a</strong> <em>b</em> <code>c</code> [x](https://e.example)')
   })
+
+  it('draws the title slide on a wash, dots for bullets, a quote mark and a page badge (D-70)', () => {
+    const deck = parseSlides('# Otters\nA short talk\n---\n# Facts\n- Fur\n- Kelp\n---\n# Said\n> Hold hands while you sleep.')
+    const html = deckHtml(deck, theme, () => null)
+    expect(html).toMatch(/\.slide--title\{[^}]*radial-gradient/)
+    expect(html).toMatch(/ul>li::before\{[^}]*background:#637c42/)
+    expect(html).toMatch(/\.slide--quote blockquote::before\{content:"\\201C"/)
+    expect(html).toMatch(/footer\{[^}]*border-radius:18px/)
+    expect(html).toContain('2 / 3')
+  })
 })

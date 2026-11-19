@@ -97,7 +97,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 (no art) | step 2: two painted frames (mouth open, munch) | S–M |
 | D-68 | See more: long highlights in a sent message fold to a few lines | 🔨 | — | S |
 | D-69 | Good to know: retire the always-on tip | 🔨 | — | S |
-| D-70 | Charts and slides with taste: a palette, softer marks, a richer deck template | 🔨 | — | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
@@ -106,7 +105,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 **Priority (2026-11-20): Otty, not a chat clone.** The owner's new list (BRAINSTORM: "Otty's look", "Making things", "Together", TOON, the iOS core, and smaller fixes from use) is planned in BRAINSTORM, and every row in BRAINSTORM and this roadmap was re-scored against the updated vision (BRAINSTORM, "Re-score, 2026-11-20"). The best value per effort, among what nothing blocks:
 1. **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
 2. **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
-3. **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
+3. ✅ **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
 4. **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
 5. **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
 
@@ -441,20 +440,6 @@ The pattern: specs are written from the feature's happy path, so they test **one
 **What changes.** The tip lines go from `systemPrompt` (`prompts.ts`); the system prompt depends only on settings, so DeepSeek's cache misses once per chat on upgrade and then holds. The eval baseline is compared after the change (no case scores tips). The `Markdown.tsx` card stays for history.
 
 **Done when.** `systemPrompt` has no tip instruction (`llm.test.ts` or a prompt test); an old answer with a tip still renders its card (`Markdown.test.tsx`); ✋ the eval baseline holds against a real model (needs `OTTY_EVAL_KEY`).
-
-## D-70 · Charts and slides with taste 🔨
-
-**Goal.** Charts and decks look designed, not like a library's defaults: the first impression of what Otty makes.
-
-**Today.** Mermaid's `base` theme with Otty's surface and text colours, but no palette: pies fall back to Mermaid's own hues, and bar charts use one default colour with heavy axes. The deck template is plain: a heading, bullets and a page number on a flat background.
-
-**Design.**
-- **A chart palette** in tokens: `--chart-1` to `--chart-6`, a calm categorical set built around the brand (sea, kelp, sand, coral, dusk, shell), separately tuned for dark, each at least 3:1 against the surface it sits on. `render.ts`'s `theme()` reads them and passes them to Mermaid as `pie1`–`pie6`, the `xyChart` palette and `cScale` for other diagrams.
-- **Softer marks:** pie slices with a hairline in the surface colour between them and the legend in `--text-2`; bars with the brand palette, faint gridlines and quieter axes; flowcharts with rounded nodes, `basis` curves and more padding.
-- **A richer deck** (`shared/slides.ts`): the title slide on a soft wash of the brand with a kicker line (the deck's first paragraph, smaller and in the accent), a short accent rule under every heading, bullets drawn as brand-coloured dots, a large accent quote mark on quote slides, the page as a small number badge, and slightly more air. Two themes from the same tokens: `otty` and `contrast` (high-contrast, for projectors), picked on the card.
-- Everything stays self-contained HTML with no scripts and only `data:` pictures (D-30's safety).
-
-**Done when.** Pie and bar charts use the palette (`render.ts`'s Mermaid config, checked in a test of `theme()`'s output); the palette passes the contrast test in both themes (`rules/renderer.test.ts`); a deck's HTML has the kicker, accent rule and badge, and the contrast theme changes only colours (`slides.test.ts`); ui-preview's `drawing`, `chart` and `viewer slides` scenes show them, with new baselines in their own PR.
 
 ## D-14 · Otty's own snip: a paw cursor and a frozen screen ⏸
 
@@ -815,3 +800,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 159. Close the roomy window (the red button or ⌘W) → it goes, and the Dock icon after it. Click the bubble → the floating window, beside it. ✋ also by hand: open Otty from Applications while it runs → the roomy window; each state reopens where it was left.
 160. Start a look-up that meets a page it hasn't been given → **⌘1** opens Home: "One thing needs you.", and Needs you shows the page with **Read it** and **Skip**. Read it → the look-up carries on, the item goes, and Today shows it. ✋ also by hand: the item folding into its receipt, and the now dot stepping only while something runs.
 161. On a first open, Home says good morning, afternoon or evening, "Nothing needs you. Ask me anything." and "Nothing has left your Mac today.", with no empty blocks; a Try asking row fills the box and sends nothing.
+162. Ask "make a pie chart: rent 1200, food 400, fun 250" → slices in sea, coral and kelp with a thin gap between them, and the legend in grey text. Ask for a bar chart of a CSV → sea-blue bars with quiet axes. Ask "draw how a bill becomes a law" → rounded boxes and soft lines. Ask for 5 slides → the title slide sits on a soft wash with a straw sun, bullets are green dots, a quote slide has a large quote mark, and the page number is a small badge. Check light and dark. ✋ how it looks; `render.test.ts` and `slides.test.ts` cover the settings and the template, and `drawings.smoke.ts` that they still draw.

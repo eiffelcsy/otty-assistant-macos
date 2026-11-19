@@ -232,22 +232,30 @@ html,body{background:${theme.bg};color:${theme.text};font-family:${theme.font};-
 h1{font-size:54px;line-height:1.12;font-weight:700;color:${theme.heading};letter-spacing:-0.01em}
 .body{flex:1;min-height:0;display:flex;flex-direction:column;gap:20px;font-size:30px;line-height:1.4}
 ul,ol{display:flex;flex-direction:column;gap:14px;padding-left:1.1em}
-li::marker{color:${theme.brand}}
+ul{list-style:none;padding-left:0}
+ul>li{position:relative;padding-left:1.1em}
+ul>li::before{content:"";position:absolute;left:0.1em;top:0.55em;width:0.36em;height:0.36em;border-radius:50%;background:${theme.brand}}
+ol>li::marker{color:${theme.brand};font-weight:700}
 strong{color:${theme.heading}}
 code{font-family:ui-monospace,Menlo,monospace;font-size:0.85em;background:${theme.surface};border:1px solid ${theme.hairline};padding:2px 8px;border-radius:8px}
 blockquote{font-size:40px;line-height:1.3;color:${theme.heading};border-left:6px solid ${theme.accent};padding-left:32px}
-footer{position:absolute;right:96px;bottom:36px;font-size:18px;color:${theme.muted}}
+footer{position:absolute;right:88px;bottom:32px;height:36px;padding:0 14px;border-radius:18px;display:flex;align-items:center;font-size:16px;font-variant-numeric:tabular-nums;color:${theme.muted};background:${theme.surface};border:1px solid ${theme.hairline}}
 .columns{display:grid;grid-template-columns:1fr 1fr;gap:56px;flex:1}
 .columns>div{display:flex;flex-direction:column;gap:20px}
-.diagram{flex:1;min-height:0;width:100%;object-fit:contain;background:${theme.surface};border:1px solid ${theme.hairline};border-radius:18px;padding:20px}
+.diagram{flex:1;min-height:0;width:100%;object-fit:contain;background:${theme.surface};border:1px solid ${theme.hairline};border-radius:18px;padding:20px;box-shadow:0 12px 32px -20px ${theme.heading}}
 .diagram--missing{display:flex;align-items:center;justify-content:center;color:${theme.muted}}
-.slide--title{justify-content:center}
-.slide--title h1{font-size:76px}
-.slide--title .body{flex:0;font-size:34px;color:${theme.muted}}
+/* D-70: the title slide sits on a soft wash of the brand and straw, with a sun of straw low on the right. */
+.slide--title{justify-content:center;background:radial-gradient(90% 120% at 100% 100%,color-mix(in srgb,${theme.brand} 22%,transparent),transparent 62%),linear-gradient(160deg,${theme.bg},color-mix(in srgb,${theme.accent} 20%,${theme.bg}))}
+.slide--title::after{content:"";position:absolute;right:-120px;bottom:-160px;width:520px;height:520px;border-radius:50%;background:color-mix(in srgb,${theme.accent} 28%,transparent)}
+.slide--title h1{position:relative;z-index:1;font-size:76px;max-width:82%}
+.slide--title .body{position:relative;z-index:1;flex:0;font-size:34px;color:${theme.muted};max-width:70%}
+.slide--title footer{display:none}
 .slide--big{justify-content:center}
 .slide--big h1{font-size:180px;line-height:1;color:${theme.brand}}
 .slide--big .body{flex:0;font-size:38px}
 .slide--quote{justify-content:center}
+.slide--quote blockquote{position:relative;border-left:none;padding-left:0;font-size:46px}
+.slide--quote blockquote::before{content:"\\201C";position:absolute;left:-12px;top:-120px;font-size:200px;line-height:1;font-family:Georgia,serif;color:color-mix(in srgb,${theme.accent} 70%,transparent)}
 `
 }
 
