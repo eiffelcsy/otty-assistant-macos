@@ -8,6 +8,21 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 - **Drop files on the otter** and a new chat opens beside it with them in the tray, ready for a question or a tile (D-37, step 1). The otter swells a little while files are over it. The bubble hands the files to main the same way the panel does, so it only ever sees ids and names, and main opens only files it registered. The munch animation waits for painted frames (step 2), and dragged text isn't taken yet.
 
+### Long highlights fold (D-68, 2026-11-20)
+
+- **A long highlight in a sent message shows six lines and Show all**, the same as a long question. Before, it was cut at 160 characters with no way to read the rest. **Show less** folds it again, and Find in this chat opens a folded highlight when a match is inside it. The tray keeps its short preview.
+
+### Good to know, retired (D-69, 2026-11-20)
+
+- **Answers no longer end with a 💡 Good to know card.** The model added one to most answers, which made each longer and moved the end of the answer after it finished. Explain links and **In more detail** already teach on demand. Older chats keep their cards.
+- In the eval (60 cases on deepseek-flash, 2026-11-20): without the change, 26 answers had a tip and answers averaged 92 words; with it, none and 81–83 words. The score held (56 / 60 without; 56 and 59 with), and none of the misses was about tips.
+
+### Window invariants, and two bugs they found (2026-11-20)
+
+- **Rules the screenshots can't see** (D-67, step 1): `invariants.screens.ts`, in the `screens` job, checks both window states at four widths for a way out (Close when floating, Shrink when roomy), menus that open inside the window, nothing scrolling sideways, New chat from every screen landing on an empty chat with the box focused, and no back arrow on the Notebook opened as a screen. It catches #81's missing Close and New chat bugs when they're put back.
+- **Esc closes Pause's menu**, and only the menu. Before, it went past the menu to the window.
+- The UI preview's mock now tells every listener about chat events, as the real preload does; before, only the last one heard, so a new chat in the preview kept its old messages.
+
 ### UI fixes from use (2026-11-19)
 
 - **The floating window has a Close button again** (✕, last in the header; Esc still works). It went with the frame, which left no way out but Expand and the red button.

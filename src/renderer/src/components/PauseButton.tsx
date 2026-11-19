@@ -17,8 +17,18 @@ export function PauseButton({ paused }: { paused: boolean }) {
   useEffect(() => {
     if (!open) return
     const away = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false)
+    // Esc closes the menu, and only the menu: without this it reached the window and closed it (found by D-67).
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      setOpen(false)
+    }
     window.addEventListener('mousedown', away)
-    return () => window.removeEventListener('mousedown', away)
+    window.addEventListener('keydown', esc, true)
+    return () => {
+      window.removeEventListener('mousedown', away)
+      window.removeEventListener('keydown', esc, true)
+    }
   }, [open])
 
   if (paused) {
