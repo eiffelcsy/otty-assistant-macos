@@ -4,6 +4,10 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Good to know, retired (D-69, 2026-11-20)
+
+- **Answers no longer end with a 💡 Good to know card.** The model added one to most answers, which made each longer and moved the end of the answer after it finished. Explain links and **In more detail** already teach on demand. Older chats keep their cards.
+
 ### UI fixes from use (2026-11-19)
 
 - **The floating window has a Close button again** (✕, last in the header; Esc still works). It went with the frame, which left no way out but Expand and the red button.
