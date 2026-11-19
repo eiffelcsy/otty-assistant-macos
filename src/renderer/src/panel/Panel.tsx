@@ -227,11 +227,17 @@ export function Panel() {
     const chat = scrollRef.current
     if (!chat || typeof ResizeObserver === 'undefined') return
     let height = chat.scrollHeight
+    let view = chat.clientHeight
+    // The chat grew, or got shorter because the box below it grew (a capture in the tray): either way, a chat that's
+    // following stays at its end, so the latest words never hide behind the box.
     const grew = new ResizeObserver(() => {
-      if (chat.scrollHeight > height && following.current && findingRef.current === null) chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' })
+      const moved = chat.scrollHeight > height || chat.clientHeight !== view
+      if (moved && following.current && findingRef.current === null) chat.scrollTo({ top: chat.scrollHeight, behavior: 'smooth' })
       height = chat.scrollHeight
+      view = chat.clientHeight
     })
     for (const el of chat.children) grew.observe(el)
+    grew.observe(chat)
     let byHand = false
     const hand = () => (byHand = true)
     const settled = () => {
