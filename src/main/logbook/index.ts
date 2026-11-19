@@ -40,7 +40,7 @@ function jobEntry(j: Job, s: LogSources, soon = false): LogEntry {
   const { first, strong, tone } = w.jobFirst(j, s.held)
   const second = w.jobSecond(j, s.now)
   const at = j.status === 'scheduled' ? (soon ? (j.dueAt ?? j.createdAt) : j.createdAt) : j.updatedAt
-  const time = soon ? w.soonTime(j, s.now) : w.clock(at)
+  const time = soon ? w.soonTime(j, s.now) : w.shortClock(at)
   const action = w.jobAction(j, s.held)
   return { id: `job:${j.id}`, at, time, glyph: j.repeat ? 'arrows-repeat' : tone === 'wait' ? 'hourglass-end' : tone === 'fail' ? 'exclamation' : 'binoculars', ...(tone ? { tone } : {}), first, strong, second, ...(action ? { action } : {}), label: `${time}, ${first}, ${second}` }
 }
@@ -50,14 +50,14 @@ function sentEntry(item: SentItem, s: LogSources): LogEntry {
   const job = item.group ? s.jobs.find((j) => j.id === item.group) : undefined
   const partOf = job?.title ?? (item.chatId ? s.chats.get(item.chatId) : undefined)
   const second = w.sentWhere(item, partOf)
-  const time = w.clock(item.at)
+  const time = w.shortClock(item.at)
   return { id: `sent:${item.id}`, at: item.at, time, glyph: item.local ? 'laptop' : w.SENT_GLYPHS[item.kind], first, ...(strong ? { strong } : {}), second, label: `${time}, ${first}, ${second}` }
 }
 
 function changeEntry(r: ActionRow, s: LogSources): LogEntry {
   const chat = r.chatId ? s.chats.get(r.chatId) : undefined
   const second = [w.changeState(r), chat].filter(Boolean).join(' · ') || 'Done'
-  const time = w.clock(r.at)
+  const time = w.shortClock(r.at)
   return {
     id: `act:${r.id}`,
     at: r.at,
