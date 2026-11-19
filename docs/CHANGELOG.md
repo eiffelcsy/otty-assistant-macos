@@ -4,6 +4,10 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Feed Otty files (2026-11-20)
+
+- **Drop files on the otter** and a new chat opens beside it with them in the tray, ready for a question or a tile (D-37, step 1). The otter swells a little while files are over it. The bubble hands the files to main the same way the panel does, so it only ever sees ids and names, and main opens only files it registered. The munch animation waits for painted frames (step 2), and dragged text isn't taken yet.
+
 ### UI fixes from use (2026-11-19)
 
 - **The floating window has a Close button again** (✕, last in the header; Esc still works). It went with the frame, which left no way out but Expand and the red button.

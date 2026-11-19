@@ -51,6 +51,14 @@ export function registerFiles(paths: unknown): PendingFile[] {
   return paths.filter((p): p is string => typeof p === 'string' && isAbsolute(p)).map(remember)
 }
 
+/** Files main registered, by id, for a drop on the otter (D-37). An id main doesn't know is left out. */
+export function pendingFiles(ids: string[]): PendingFile[] {
+  return ids.flatMap((id) => {
+    const e = entries.get(id)
+    return e ? [{ id, name: e.name }] : []
+  })
+}
+
 export async function pickFiles(win: BrowserWindow | null): Promise<PendingFile[]> {
   const options: Electron.OpenDialogOptions = {
     title: 'Attach files',

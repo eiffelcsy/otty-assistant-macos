@@ -4,6 +4,7 @@ import { captureScreenshot, captureSelection, frontmostApp } from '../capture'
 import { askAboutSelection } from '../captureRoute'
 import { menuTemplate } from '../controls'
 import { closeViewer, exportDrawing, showDrawing, viewerContent } from '../draw'
+import { pendingFiles } from '../files'
 import { copyText } from '../macHands'
 import {
   endBubbleDrag,
@@ -14,6 +15,7 @@ import {
   getPickup,
   getQuick,
   load,
+  openPanel,
   pickupPicture,
   readPickup,
   resizeQuick,
@@ -74,6 +76,11 @@ export function registerWindows(): void {
   on('bubble:drag', (_e, phase: 'start' | 'end') => {
     if (phase === 'start') return startBubbleDrag()
     if (!endBubbleDrag()) void askAboutSelection('bubble') // a click, not a drag
+  })
+  // D-37: files dropped on the otter start a new chat with them in the tray, in the window beside it.
+  handle('bubble:feed', (_e, ids: string[]) => {
+    const files = pendingFiles(ids)
+    if (files.length) openPanel({ context: null, files }, 'bubble')
   })
   on('bubble:menu', () => {
     const b = getBubble()

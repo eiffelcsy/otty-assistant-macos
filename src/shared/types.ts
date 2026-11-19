@@ -677,6 +677,8 @@ export interface PanelOpenPayload {
   notice?: string
   /** Add this capture to the tray instead of starting a new one: the window was already open. */
   add?: boolean
+  /** Files dropped on the otter (D-37): start a new chat with them in the tray. */
+  files?: PendingFile[]
 }
 
 /** What the quick view tells main, so main knows whether a hotkey should add to it and whether a blur hides it. */
@@ -826,6 +828,8 @@ export interface OttyApi {
   bubbleMenu(): void
   /** mousedown → 'start', mouseup → 'end'. Main treats an 'end' with no movement as a click. */
   bubbleDrag(phase: 'start' | 'end'): void
+  /** Files the bubble registered with `dropFiles`, by id: opens a new chat with them (D-37). */
+  feedOtty(ids: string[]): Promise<void>
 
   onChatEvent(cb: (e: ChatEvent) => void): () => void
   onPanelOpen(cb: (p: PanelOpenPayload) => void): () => void

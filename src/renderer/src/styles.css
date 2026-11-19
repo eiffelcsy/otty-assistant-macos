@@ -340,6 +340,10 @@ html[data-view='bubble'] body {
 .bubble:hover {
   transform: scale(1.06);
 }
+/* D-37: something to eat is over the otter. */
+.bubble--feeding {
+  transform: scale(1.12);
+}
 .bubble:active {
   cursor: grabbing;
   transform: scale(0.97);

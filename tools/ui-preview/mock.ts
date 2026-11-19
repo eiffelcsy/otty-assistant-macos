@@ -658,6 +658,7 @@ const api: OttyApi = {
   quickState: () => {},
   bubbleMenu: () => {},
   bubbleDrag: () => {},
+  feedOtty: async () => {},
   onChatEvent: (cb) => {
     chatCb = cb
     if (scene === 'proofread') setTimeout(() => cb({ type: 'load', messages: proofreadSample }), 50)
