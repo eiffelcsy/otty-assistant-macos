@@ -57,7 +57,7 @@ export interface FrameProps {
   busy: boolean
   paused: boolean
   /** Extra items for the compact screen menu, for the screen on show (Find in this chat…). */
-  menuExtras?: { label: string; keys?: string; onClick: () => void }[]
+  menuExtras?: { label: string; icon: string; keys?: string; onClick: () => void }[]
   /** The screen's own actions in the header, at most three 32 px icon buttons. */
   actions?: ReactNode
   onNewChat: () => void
@@ -148,6 +148,12 @@ function Header(p: FrameProps & { compact: boolean }) {
               <Icon name="expand" />
             </button>
           ))}
+        {/* The floating window has no traffic lights, so it needs its own way out (Esc does the same). */}
+        {!p.roomy && (
+          <button className="icon-btn" title="Close (Esc)" aria-label="Close" onClick={() => void window.otty.closePanel()}>
+            <Icon name="cross-small" />
+          </button>
+        )}
       </div>
     </header>
   )
@@ -205,9 +211,12 @@ function ScreenMenu(p: FrameProps) {
               <span className="screen-menu__keys">{n.keys}</span>
             </button>
           ))}
+          {/* The chat's own actions are a group of their own, under the screens. */}
+          {p.menuExtras?.length ? <div className="menu__sep" role="separator" /> : null}
           {p.menuExtras?.map((x) => (
             <button key={x.label} role="menuitem" className="menu__item screen-menu__item" onClick={() => (setOpen(false), x.onClick())}>
-              <span className="screen-menu__label screen-menu__label--plain">{x.label}</span>
+              <Icon name={x.icon} />
+              <span className="screen-menu__label">{x.label}</span>
               {x.keys && <span className="screen-menu__keys">{x.keys}</span>}
             </button>
           ))}

@@ -23,8 +23,25 @@ const ABILITIES: Suggestion[] = [
   { text: 'Remember that I like short answers', icon: 'bookmark' }
 ]
 
-export function suggestionsFor(app: string | null | undefined, learn: boolean, web: boolean): Suggestion[] {
+/** What Otty knows that can shape the list: only the kind, the words and whether it's in use. */
+type Known = { text: string; kind: string; status: string }
+
+/** "Is learning Spanish" → "learning Spanish": a goal as Otty notes it, ready to go in a sentence. */
+const goalWords = (text: string) =>
+  text
+    .trim()
+    .replace(/^(is|wants to|wants|would like to|plans to|hopes to|trying to)\s+/i, '')
+    .replace(/[.!]+$/, '')
+
+/**
+ * Up to four, most personal first: the app, then a goal Otty knows about, then the abilities. Once Otty knows anything,
+ * "Remember…" has done its job and makes room. Learning off means nothing known is used here either.
+ */
+export function suggestionsFor(app: string | null | undefined, learn: boolean, web: boolean, known: Known[] = []): Suggestion[] {
   const fromApp = (app && FOR_APP.find((a) => a.match.test(app))?.items) || []
-  const abilities = ABILITIES.filter((s) => (s.icon === 'bookmark' ? learn : web))
-  return [...fromApp, ...abilities].slice(0, 4)
+  const using = learn ? known.filter((m) => m.status === 'active') : []
+  const goal = using.find((m) => m.kind === 'goal' && goalWords(m.text).length <= 60)
+  const fromMemory: Suggestion[] = goal ? [{ text: `What’s one small step for ${goalWords(goal.text)} today?`, icon: 'bullseye' }] : []
+  const abilities = ABILITIES.filter((s) => (s.icon === 'bookmark' ? learn && using.length === 0 : web))
+  return [...fromApp, ...fromMemory, ...abilities].slice(0, 4)
 }

@@ -507,9 +507,15 @@ function fakeAnswer(text: string, captures: Capture[], language: AnswerLanguage 
 
 const noop = async () => {}
 const trayed = { panel: false, quick: false }
+// Main tells every window when settings change (`tellSettings`); the mock does the same so Pause shows its new state.
+const settingsSeen = new Set<(s: typeof settings) => void>()
 const api: OttyApi = {
   getSettings: async () => settings,
-  saveSettings: async (u) => ({ ...Object.assign(settings, u) }),
+  saveSettings: async (u) => {
+    const now = { ...Object.assign(settings, u) }
+    for (const cb of settingsSeen) cb(now)
+    return now
+  },
   setDraft: () => {},
   setSetting: async (key, value) => ({ ...Object.assign(settings, { [key]: value }) }),
   settingsCounts: async () => ({ chats: 142, olderThan: { '30d': 23, '1y': 4, forever: 0 }, notes: 18 }),
@@ -585,7 +591,7 @@ const api: OttyApi = {
   rewind: async (_id, _undo, mode) => (mode === 'edit' ? { text: 'Explain this simply', captures: [{ id: 'c1', context: highlighted, app }], files: [] } : null),
   onActivity: () => () => {},
   onLogbook: () => () => {},
-  onSettings: () => () => {},
+  onSettings: (cb) => (settingsSeen.add(cb), () => void settingsSeen.delete(cb)),
   setChatLearn: async (on) => emit({ type: 'learn', on }),
   listMemories: async () => memories,
   addMemory: async (text) => {

@@ -89,7 +89,8 @@ function Row({ memory: m, onChange, onOpenChat }: { memory: Memory; onChange: (l
  * The Notebook: what Otty knows about the user, opened from Settings › Privacy and a Noted line's Edit (D-61). A plain
  * list until the Otty window gives it a screen of its own. Changes apply at once, and the next answer uses them.
  */
-export function Notebook({ onOpenChat, onBack }: { onOpenChat: () => void; onBack: () => void }) {
+/** `onBack` only when it was opened from Settings: as a screen of its own (⌘4, the nav) there's nothing to go back to. */
+export function Notebook({ onOpenChat, onBack }: { onOpenChat: () => void; onBack?: () => void }) {
   const [memories, setMemories] = useState<Memory[] | null>(null)
   const [adding, setAdding] = useState('')
   const [refused, setRefused] = useState(false)
@@ -111,9 +112,11 @@ export function Notebook({ onOpenChat, onBack }: { onOpenChat: () => void; onBac
   return (
     <div className="settings notebook">
       <div className="set-bar">
-        <button className="icon-btn icon-btn--sm" title="All settings" aria-label="All settings" onClick={onBack}>
-          <Icon name="angle-small-left" />
-        </button>
+        {onBack && (
+          <button className="icon-btn icon-btn--sm" title="All settings" aria-label="All settings" onClick={onBack}>
+            <Icon name="angle-small-left" />
+          </button>
+        )}
         <h2 className="set-bar__title">What Otty knows about you</h2>
       </div>
       {memories?.length === 0 && <p className="hint">Nothing yet. What Otty notes stays on this Mac, and only goes to your AI service with your questions.</p>}

@@ -37,6 +37,3 @@ export function codeLanguage(name: string): string | null {
   if (/^(docker|container)file\./.test(base)) return 'Dockerfile'
   return BY_EXT[extname(base).slice(1)] ?? null
 }
-
-/** The extensions for the file picker's filter. */
-export const CODE_EXTENSIONS = Object.keys(BY_EXT)

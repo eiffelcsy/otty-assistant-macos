@@ -80,6 +80,14 @@ describe('readPageFromMac', () => {
     expect(out).toContain('Source: https://example.com/new')
   })
 
+  it('says a page needs a sign-in when it bounces Otty to one, and never reads the login form', async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(null, { status: 302, headers: { location: 'https://accounts.google.com/ServiceLogin?service=mail' } })
+    ) as unknown as typeof fetch
+    await expect(readPageFromMac('https://mail.google.com/mail/u/0/', fetcher, publicDns)).rejects.toThrow(/signed in/)
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
   it('gives up on endless redirects', async () => {
     const fetcher = vi.fn(async () => new Response(null, { status: 302, headers: { location: '/again' } })) as unknown as typeof fetch
     await expect(readPageFromMac('https://example.com/', fetcher, publicDns)).rejects.toThrow('too many times')
