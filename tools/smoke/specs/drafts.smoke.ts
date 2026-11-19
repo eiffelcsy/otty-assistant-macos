@@ -36,7 +36,7 @@ test('a draft stays with its chat across a switch, and Recent chats says so', { 
   await otty.ask(panel, 'What do otters eat?')
   await expect(panel.getByText('Mostly fish and shellfish.')).toBeVisible()
 
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   // Both chats get the same scripted title, so the draft is what tells them apart.
   const row = panel.getByRole('button', { name: /Draft: And in the winter\?/ })
   await expect(row).toHaveCount(1)

@@ -32,7 +32,7 @@ test('Claude, set up from Settings: the test names the model, tools work, and th
     { say: 'Sea otters **hold hands** as they sleep.' }
   )
   world.backgroundReply = 'Otters holding hands'
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await otty.ask(panel, 'Summarise https://example.com/otters')
   await expect(panel.locator('.tool-chips').getByText('Reading example.com')).toBeVisible()
   await expect(panel.getByRole('strong').filter({ hasText: 'hold hands' })).toBeVisible()
@@ -44,7 +44,7 @@ test('Claude, set up from Settings: the test names the model, tools work, and th
   expect(sentBack(world.turnRequests('anthropic').at(-1))).toContainEqual(expect.objectContaining({ type: 'thinking', thinking: 'The user gave the address, so read it.' }))
 
   await panel.getByRole('button', { name: 'New chat' }).click()
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await panel.getByRole('button', { name: /Otters holding hands/ }).click()
   await expect(panel.getByText('So they don’t drift apart.')).toBeVisible()
   world.reply('Do river otters too?', { say: 'River otters rarely do.' })
@@ -72,7 +72,7 @@ test.describe('on OpenAI, with a DeepSeek key saved too', () => {
     await panel.getByRole('button', { name: 'Check and save' }).click()
     await expect(panel.getByText(/Connected to deepseek-flash!/)).toBeVisible()
     world.reply('Still there?', { say: 'Yes, DeepSeek now.' })
-    await panel.getByRole('button', { name: 'Back to chat' }).click()
+    await otty.go(panel, 'Chat')
     await otty.ask(panel, 'Still there?')
     await expect(panel.getByText('Yes, DeepSeek now.')).toBeVisible()
 
@@ -83,7 +83,7 @@ test.describe('on OpenAI, with a DeepSeek key saved too', () => {
     await panel.getByRole('button', { name: 'Check and save' }).click()
     await expect(panel.getByText(/Connected to gpt-5!/)).toBeVisible()
     world.reply('And back again?', { say: 'OpenAI again.' })
-    await panel.getByRole('button', { name: 'Back to chat' }).click()
+    await otty.go(panel, 'Chat')
     await otty.ask(panel, 'And back again?')
     await expect(panel.getByText('OpenAI again.')).toBeVisible()
 

@@ -4,9 +4,9 @@ import { expect } from './fixtures'
 
 /** Opens the Logbook from the header, on a view if one is named ("Needs you", "Coming up", "What left my Mac"…). */
 export async function openLogbook(panel: Page, view?: string): Promise<void> {
-  if ((await panel.locator('.panel__title').textContent()) !== 'Logbook') {
+  if (!(await panel.locator('.logbook').isVisible())) {
     await panel.getByRole('button', { name: /^Logbook/ }).click()
-    await expect(panel.locator('.panel__title')).toHaveText('Logbook')
+    await expect(panel.locator('.logbook')).toBeVisible()
   }
   if (view) await showView(panel, view)
 }

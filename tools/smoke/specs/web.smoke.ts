@@ -66,7 +66,7 @@ test('another service still searches (Wikipedia), and Privacy says where lookups
   })
   world.reply('Who was Ada Lovelace?', { calls: [{ name: 'search_web', args: { query: 'Ada Lovelace' } }] }, { say: 'She wrote the first published computer program.' })
   world.backgroundReply = 'Ada Lovelace'
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
   await otty.ask(panel, 'Who was Ada Lovelace?')
   await expect(panel.locator('.tool-chips').getByText('Looking up “Ada Lovelace”')).toBeVisible()
   await expect(panel.getByText('She wrote the first published computer program.')).toBeVisible()

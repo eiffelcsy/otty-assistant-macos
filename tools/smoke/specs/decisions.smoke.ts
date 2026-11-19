@@ -24,7 +24,7 @@ test('a page Otty doesn’t know asks with Read it and Skip, and leaves “Read 
   await expect(receipts(panel)).toHaveText('Read kelp.example.net')
 
   await panel.getByRole('button', { name: 'New chat' }).click()
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await panel.getByRole('button', { name: /Kelp forests/ }).click()
   await expect(receipts(panel)).toHaveText('Read kelp.example.net')
 })

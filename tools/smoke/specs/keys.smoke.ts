@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import type { Page } from '@playwright/test'
-import { expect, test, type Otty } from '../fixtures'
+import { expect, test, type Otty, goTo } from '../fixtures'
 import type { ModelBody, World } from '../world/server'
 
 const ENV_KEY = 'sk-test1234567890abcdef'
@@ -24,10 +24,10 @@ function dbText(otty: Otty): string {
 
 /** Searches Recent chats and expects nothing found. */
 async function expectNotFound(panel: Page, value: string): Promise<void> {
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await goTo(panel, 'Chats')
   await panel.getByPlaceholder('Search your chats').fill(value)
   await expect(panel.getByText(`No chats mention “${value}”`)).toBeVisible()
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await goTo(panel, 'Chat')
 }
 
 test('a .env file’s keys are hidden on the chip, from the model, from search and from otty.db', { tag: ['@step-109', '@gate'] }, async ({ otty, world }) => {
@@ -104,7 +104,7 @@ test('tapping “Otty hid 1 key” shows the line with a hint of the key, and af
 
   await otty.relaunch()
   const again = await otty.openPanel()
-  await again.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(again, 'Chats')
   await again.getByRole('button', { name: /A token/ }).click()
   await again.getByRole('button', { name: 'Otty hid 1 key before sending' }).click()
   await expect(again.locator('.hidden-sheet')).toContainText('Otty doesn’t keep these once it restarts')

@@ -43,7 +43,7 @@ test.describe('with 繁體中文（香港） as the other language', () => {
     await otty.settings(panel, 'You & Otty')
     await panel.getByRole('combobox', { name: 'Help in my own language' }).selectOption('none')
     await expect(panel.getByText('Saved')).toBeVisible()
-    await panel.getByRole('button', { name: 'Back to chat' }).click()
+    await otty.go(panel, 'Chat')
     await expect(pill(panel)).toHaveCount(0)
 
     world.reply('這是什麼意思', { say: 'It means “what does this mean?”.' })
@@ -56,7 +56,7 @@ test.describe('with 繁體中文（香港） as the other language', () => {
     expect(systemOf(chats(otty).at(-1))).not.toContain('Hong Kong')
 
     // No EN / 中 pill on a highlight either.
-    await panel.getByRole('button', { name: 'Close (Esc)' }).click()
+    await panel.keyboard.press('Escape')
     await otty.mac({ selection: 'Sea otters hold hands while they sleep.', front: SAFARI })
     await otty.press('Alt+Space')
     const quick = await otty.view('quick')
@@ -116,7 +116,7 @@ test.describe('with 繁體中文（香港） as the other language', () => {
     await expect(lastAnswer(panel).getByRole('button', { name: 'In English' })).toBeVisible()
 
     await panel.getByRole('button', { name: 'New chat' }).click()
-    await panel.getByRole('button', { name: 'Recent chats' }).click()
+    await otty.go(panel, 'Chats')
     await panel.getByRole('button', { name: /Otter facts/ }).click()
     await expect(lastAnswer(panel)).toContainText('這樣睡覺時就不會漂散')
     await lastAnswer(panel).getByRole('button', { name: 'In English' }).click()

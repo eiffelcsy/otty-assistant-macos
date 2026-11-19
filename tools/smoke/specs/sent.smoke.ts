@@ -67,7 +67,7 @@ test('a highlight question, a search and a page each have an entry; Part of goes
   await expect(panel.getByText('so they don’t drift apart')).toBeVisible()
 
   // Forget that chat: its rows go, the others stay.
-  await panel.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(panel, 'Chats')
   await panel.locator('.history__item', { hasText: 'Holding hands' }).getByTitle('Forget this chat').click()
   await expect(panel.locator('.history__item', { hasText: 'Holding hands' })).toHaveCount(0)
   await openSent(panel)
@@ -79,7 +79,7 @@ test('a highlight question, a search and a page each have an entry; Part of goes
   await panel.getByRole('checkbox', { name: /Remember my chats/ }).uncheck()
   await otty.hold(panel.getByRole('group', { name: /^Turn off and forget/ }).getByRole('button', { name: 'Hold to forget' }))
   await expect(panel.getByText('Saved')).toBeVisible()
-  await panel.getByTitle('Back to chat').click()
+  await otty.go(panel, 'Chat')
   // That forgets the chats with their entries. Ask again: only that question is on the list.
   await otty.ask(panel, 'Check otter news tomorrow at 9 please')
   await panel.locator('.confirm-card').getByRole('button', { name: 'Schedule it' }).click()

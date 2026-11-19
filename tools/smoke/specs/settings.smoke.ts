@@ -21,7 +21,7 @@ test('a switch saves as it’s flipped, says Saved, and is still on after a rest
 
 test('Find a setting finds a row by another word, and Enter opens its section', { tag: ['@step-144'] }, async ({ otty }) => {
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Settings', exact: true }).click()
+  await otty.go(panel, 'Settings')
   const find = panel.getByRole('textbox', { name: 'Find a setting' })
   await find.fill('hotkey')
   await expect(panel.getByRole('button', { name: /Ask about highlighted text/ })).toBeVisible()

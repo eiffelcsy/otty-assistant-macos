@@ -87,7 +87,7 @@ test('a look for tomorrow at 9: No schedules nothing; yes shows it in Coming up,
   await expect(panel.getByText('Alright, I won’t.')).toBeVisible()
   await openLogbook(panel, 'Coming up')
   await expect(rows(panel, RAIL.title)).toHaveCount(0)
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
 
   await scheduleLater(otty, world, panel, { ...RAIL, at })
   await openLogbook(panel, 'Coming up')
@@ -107,7 +107,7 @@ test('left running, the runner’s own timer starts a due look; it finishes as a
   const bubble = (await otty.view('bubble')).locator('.bubble')
   await scheduleLater(otty, world, panel, soon)
   await scheduleLater(otty, world, panel, later)
-  await panel.getByRole('button', { name: 'Close (Esc)' }).click()
+  await panel.keyboard.press('Escape')
 
   // Time passes with Otty running. The runner sets one timer for the soonest look and re-sets it whenever the list
   // changes; cancelling the other look re-sets it, and with the time already past it goes off straight away.
@@ -241,7 +241,7 @@ test('Coming up, soonest at the top, and Everything newest first; Pause everythi
   await panel.getByRole('status').getByRole('button', { name: 'Carry on' }).click()
   await expect(panel.getByRole('button', { name: 'Pause everything' })).toBeVisible()
   expect(await otty.control((c) => c.tray())).toContain('Pause everything Otty is doing')
-  await panel.getByRole('button', { name: 'Back to chat' }).click()
+  await otty.go(panel, 'Chat')
 })
 
 test('every Monday at 9: the card says so and about 4 looks a month; Coming up shows ↻, next, and its details Stop repeating', { tag: ['@step-120'] }, async ({ otty, world }) => {

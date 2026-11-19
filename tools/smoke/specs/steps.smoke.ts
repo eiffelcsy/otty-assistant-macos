@@ -104,7 +104,7 @@ test('a paste step replaces in Excel through the clipboard, gives the clipboard 
   await expect(panel.locator('.step-card').getByText('3 of 3')).toBeVisible()
   await otty.relaunch()
   const again = await otty.openPanel()
-  await again.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(again, 'Chats')
   await again.getByRole('button', { name: /Adding up column B/ }).click()
   await expect(again.locator('.step-card').getByRole('checkbox', { name: 'Step 1: done' })).toBeVisible()
   await expect(again.locator('.step-card').getByText('3 of 3')).toBeVisible()

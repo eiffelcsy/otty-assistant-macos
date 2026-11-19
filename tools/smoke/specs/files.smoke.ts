@@ -134,7 +134,7 @@ test('a reopened chat keeps its file chips, answers follow-ups about the file, a
 
   await otty.relaunch()
   const again = await otty.openPanel()
-  await again.getByRole('button', { name: 'Recent chats' }).click()
+  await otty.go(again, 'Chats')
   await again.getByPlaceholder('Search your chats').fill('enclosure.docx')
   await again.getByRole('button', { name: /Enclosure letter/ }).click()
   await expect(sentChip(again, 'enclosure.docx')).toBeVisible()
