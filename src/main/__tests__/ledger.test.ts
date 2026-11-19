@@ -10,7 +10,7 @@ describe.each([
   it('writes a row before the change, finishes it, and lists it newest first', () => {
     const log = make()
     const a = begin({ tool: 'create_reminder', chatId: 'c1', answerId: 'a1', summary: 'Adding a reminder', undo: 'none' }, log)
-    expect(log.list()).toMatchObject([{ summary: 'Adding a reminder', status: 'running', canUndo: false }])
+    expect(log.list()).toMatchObject([{ summary: 'Adding a reminder', status: 'running' }])
     a({ status: 'done', summary: 'Reminder added: Call mum' })
     begin({ tool: 'remember', chatId: 'c1', answerId: 'a2', summary: 'Noting', undo: 'memory' }, log)({ status: 'done', ref: '7', undoLabel: 'Forget “tea”' })
     expect(log.list().map((r) => r.summary)).toEqual(['Noting', 'Reminder added: Call mum'])
@@ -28,7 +28,8 @@ describe.each([
     begin({ tool: 'remember', chatId: 'c1', answerId: 'a1', summary: 'x', undo: 'memory' }, log)({ status: 'done', ref: '7' })
     begin({ tool: 'start_job', chatId: 'c2', answerId: 'a2', summary: 'y', undo: 'job' }, log)({ status: 'done', ref: 'j1' })
     log.markUndone('c1', 'memory', '7')
-    expect(log.list().find((r) => r.chatId === 'c1')?.undone).toBe(true)
+    expect(log.list().find((r) => r.chatId === 'c1')?.undoneAt).toBeTruthy()
+    expect(log.get(log.list()[0].id)?.summary).toBe(log.list()[0].summary)
     log.forgetChat('c1')
     expect(log.list().map((r) => r.chatId)).toEqual(['c2'])
     log.prune(0)

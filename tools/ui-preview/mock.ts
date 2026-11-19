@@ -1,6 +1,4 @@
 import type {
-  ActivityItem,
-  ChangeItem,
   AnswerLanguage,
   AttachResult,
   Capture,
@@ -18,8 +16,11 @@ import { searchThreads } from '../../src/main/store/search'
 import { draw } from '../../src/renderer/src/draw/render'
 import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
+import { entryDetails, logbook, type LogSources } from '../../src/main/logbook'
+import type { Job } from '../../src/main/jobs/types'
+import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -317,25 +318,26 @@ const stepsSample: ChatMessage[] = [
   }
 ]
 
-const activitySample: ActivityItem[] = [
-  { id: 'j1', kind: 'job', title: 'Cheapest way from Hong Kong to Tokyo', state: 'done', pages: 12, chatId: '1', partial: true, unseen: true },
-  { id: 'j2', kind: 'job', title: 'Compare three laptops', state: 'waiting', pages: 4, waitUrl: 'https://reviews.example/laptops?id=42', unseen: true },
-  { id: 'j3', kind: 'job', title: 'Best rail passes', state: 'paused', pages: 7, note: 'This has been sitting a while. Keep going?', unseen: false },
-  { id: 'j4', kind: 'job', title: 'Visa rules for Japan', state: 'working', pages: 3, unseen: false },
-  { id: 'j5', kind: 'job', title: 'Hotels near Ueno', state: 'queued', pages: 0, unseen: false },
-  { id: 'j6', kind: 'job', title: 'Tokyo rail pass price', state: 'scheduled', pages: 0, dueAt: Date.now() + 14 * 3.6e6, unseen: false },
-  { id: 'j8', kind: 'job', title: 'Rail pass price', state: 'scheduled', pages: 0, dueAt: Date.now() + 3 * 864e5, repeat: 'every Monday at 9:00 AM', unseen: false },
-  { id: 'j9', kind: 'job', title: 'Ferry times to Lantau', state: 'paused', pages: 0, note: 'You’ve reached this month’s limit of 300 questions. Run it anyway?', overCap: true, unseen: false },
-  { id: 'j7', kind: 'job', title: 'Flight prices to Osaka', state: 'done', pages: 6, chatId: '1', note: 'Looked a little late: it was due today at 9:00 AM, but Otty wasn’t running then.', unseen: false },
-  { id: 'a1', kind: 'answer', title: 'Explain this simply “Requests beyond…”', state: 'working', pages: 0, chatId: '1', unseen: false }
-]
-
 const ago = (m: number) => Date.now() - m * 60_000
-const changeSample: ChangeItem[] = [
-  { id: 4, at: ago(3), summary: 'Reminder added: Call mum — 17 Nov 2026, 5:00 PM', status: 'done', canUndo: false, chatId: '1' },
-  { id: 3, at: ago(20), summary: 'Noted: Is learning Spanish', status: 'done', canUndo: true, undone: true, chatId: '2' },
-  { id: 2, at: ago(55), summary: 'Step: Click Table › Freeze Header Rows', status: 'done', canUndo: false, chatId: '1' },
-  { id: 1, at: ago(90), summary: 'Opened https://en.wikipedia.org/wiki/Otter', status: 'denied', canUndo: false, chatId: '3' }
+const job = (id: string, title: string, over: Partial<Job>): Job => ({ id, title, brief: '', status: 'done', seedUrls: [], denied: [], language: 'en', rounds: 3, lookups: 6, workedMs: 0, partial: false, createdAt: ago(240), updatedAt: ago(120), sourceThread: '1', ...over })
+const jobSample: Job[] = [
+  job('j1', 'Cheapest way from Hong Kong to Tokyo', { lookups: 12, partial: true, resultThread: '1', updatedAt: ago(95) }),
+  job('j2', 'Compare three laptops', { status: 'waiting', lookups: 4, waitUrl: 'https://reviews.example/laptops?id=42', updatedAt: ago(6) }),
+  job('j3', 'Best rail passes', { status: 'paused', lookups: 7, error: 'This has been sitting a while. Keep going?', updatedAt: ago(1500) }),
+  job('j5', 'Hotels near Ueno', { status: 'queued', lookups: 0, updatedAt: ago(1) }),
+  job('j6', 'Tokyo rail pass price', { status: 'scheduled', lookups: 0, dueAt: Date.now() + 14 * 3.6e6, createdAt: ago(300) }),
+  job('j8', 'Rail pass price', { status: 'scheduled', lookups: 0, dueAt: Date.now() + 3 * 864e5, repeat: { every: 'week', day: 1 }, createdAt: ago(2900) }),
+  job('j9', 'Ferry times to Lantau', { status: 'failed', lookups: 2, error: 'Otty lost its connection. Try again to carry on from the last saved step.', updatedAt: ago(40) }),
+  job('j7', 'Flight prices to Osaka', { ranLate: true, dueAt: ago(240), resultThread: '1', updatedAt: ago(4000) })
+]
+const running = job('j4', 'Visa rules for Japan', { status: 'working', lookups: 2, note: 'only official government sites' })
+
+const changeSample: ActionRow[] = [
+  { id: 4, at: ago(3), tool: 'create_reminder', summary: 'Reminder added: Call mum — 17 Nov 2026, 5:00 PM', status: 'done', undo: 'reminder', ref: 'R1', chatId: '1' },
+  { id: 3, at: ago(20), tool: 'remember', summary: 'Noted: Is learning Spanish', status: 'done', undo: 'memory', ref: '1', undoneAt: ago(10), chatId: '2' },
+  { id: 5, at: ago(25), tool: 'remember', summary: 'Noted: Prefers trains to planes', status: 'done', undo: 'memory', ref: '6', chatId: '2' },
+  { id: 2, at: ago(55), tool: 'step:click', summary: 'Step: Click Table › Freeze Header Rows', status: 'done', undo: 'none', chatId: '1' },
+  { id: 1, at: ago(90), tool: 'open_url', summary: 'Opened https://en.wikipedia.org/wiki/Otter', status: 'denied', undo: 'none', chatId: '3' }
 ]
 
 const sentSample: SentItem[] = [
@@ -344,11 +346,28 @@ const sentSample: SentItem[] = [
   { id: 7, at: ago(3), kind: 'page', service: 'jrailpass.com', host: 'jrailpass.com', local: false, chatId: '1', what: 'https://jrailpass.com/prices', count: 1 },
   { id: 6, at: ago(4), kind: 'title', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '1', what: '', count: 1 },
   { id: 5, at: ago(30), kind: 'explain', service: 'DeepSeek', host: 'api.deepseek.com', local: false, what: 'rate limiting', count: 1 },
-  { id: 4, at: ago(90), kind: 'job', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '2', what: 'Cheapest way from Hong Kong to Tokyo', count: 9 },
+  { id: 4, at: ago(90), kind: 'job', service: 'DeepSeek', host: 'api.deepseek.com', local: false, chatId: '2', group: 'j1', what: 'Cheapest way from Hong Kong to Tokyo', count: 9 },
   { id: 3, at: ago(200), kind: 'search', service: 'Wikipedia and DuckDuckGo', host: 'wikipedia.org', local: false, chatId: '2', what: 'sea otter', count: 1 },
   { id: 2, at: ago(1500), kind: 'question', service: 'the model on this Mac', host: 'localhost:11434', local: true, chatId: '3', what: '1 highlight', count: 1 },
   { id: 1, at: ago(3000), kind: 'check', service: 'DeepSeek', host: 'api.deepseek.com', local: false, what: 'a test message', count: 1 }
 ]
+
+/** What main would read for the Logbook (D-63); the real `logbook()` words it, so the preview shows main's own words. */
+function logSources(): LogSources {
+  const empty = scene === 'logbook-empty'
+  const live = scene === 'logbook-running' || scene === 'logbook-paused'
+  return {
+    now: Date.now(),
+    jobs: empty ? [] : live ? [...jobSample, running, { ...running, id: 'j10', title: 'Ryokan near Kyoto station', lookups: 5, note: undefined }] : jobSample,
+    held: scene === 'logbook-paused',
+    pausedUntil: scene === 'logbook-paused' ? Date.now() + 3 * 3.6e6 : null,
+    overCap: false,
+    sent: empty ? [] : sentSample,
+    changes: empty ? [] : changeSample,
+    chats: new Map(saved.map((t) => [t.id, t.title])),
+    cards: empty ? [] : [{ threadId: '1', heading: 'Add this to Reminders?' }]
+  }
+}
 
 let memories: Memory[] = [
   { id: 1, text: 'Is learning Spanish', kind: 'goal', origin: 'inferred', status: 'active', confidence: 0.8, sourceChatId: '1', createdAt: Date.now() - 3e8, updatedAt: Date.now() - 3e8 },
@@ -489,16 +508,18 @@ const api: OttyApi = {
   },
   checkStep: noop,
   stuckOnStep: noop,
-  listActivity: async () => (scene === 'activity' ? activitySample : []),
+  listActivity: async () => [],
   stopActivity: noop,
   answerActivity: noop,
   resumeActivity: noop,
   retryActivity: noop,
   openActivity: noop,
   seenActivity: noop,
-  listSent: async () => (q.get('sent') === 'none' ? [] : sentSample),
+  logbook: async (v, search) => logbook(logSources(), v, search),
+  logbookEntry: async (id) => entryDetails(logSources(), id),
+  undoChange: async () => true,
+  noteJob: async () => true,
   hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
-  listChanges: async () => (q.get('sent') === 'none' ? [] : changeSample),
   undoReceipt: async (answerId, at) => {
     const r = (receiptsSample.find((m) => m.id === answerId) as Extract<ChatMessage, { role: 'assistant' }> | undefined)?.receipts?.[at]
     if (r) emit({ type: 'receipt', id: answerId, at, receipt: { ...r, undone: true } })
@@ -514,6 +535,7 @@ const api: OttyApi = {
   }),
   rewind: async (_id, _undo, mode) => (mode === 'edit' ? { text: 'Explain this simply', captures: [{ id: 'c1', context: highlighted, app }], files: [] } : null),
   onActivity: () => () => {},
+  onLogbook: () => () => {},
   onSettings: () => () => {},
   setChatLearn: async (on) => emit({ type: 'learn', on }),
   listMemories: async () => memories,
@@ -653,7 +675,22 @@ const api: OttyApi = {
         box.dispatchEvent(new Event('input', { bubbles: true }))
       }, 160)
     if (scene === 'memories') setTimeout(() => cb({ context: null, notice: 'open-memory' }), 80)
-    if (scene === 'activity') setTimeout(() => cb({ context: null, notice: 'open-activity' }), 80)
+    // D-63: the Logbook, on a view (`logbook-wait`…), with an entry open, or searched.
+    if (scene.startsWith('logbook')) {
+      setTimeout(() => cb({ context: null, notice: 'open-activity' }), 80)
+      const names: Record<string, string> = { wait: 'Needs you', next: 'Coming up', sent: 'What left my Mac', changed: 'What Otty changed', noted: 'What Otty noted' }
+      const v = names[scene.replace('logbook-', '')]
+      if (v) setTimeout(() => (press('.log-head__menu'), setTimeout(() => press('.log-head__item', v), 60)), 200)
+      if (scene === 'logbook-entry') setTimeout(() => press('.log-entry__open', 'Compare three laptops'), 260)
+      const word = scene === 'logbook-search' ? 'rail' : scene === 'logbook-none' ? 'passport' : ''
+      if (word)
+        setTimeout(() => {
+          const box = document.querySelector<HTMLInputElement>('input[aria-label="Search the Logbook"]')
+          if (!box) return
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(box, word)
+          box.dispatchEvent(new Event('input', { bubbles: true }))
+        }, 200)
+    }
     if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)
     if (scene === 'history') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 120)
     return () => {}

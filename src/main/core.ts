@@ -17,7 +17,8 @@ import { MemoryLedger, setLedger, SqliteLedger } from './ledger'
 import { forgetHidden } from './hiddenLines'
 import { capStatus } from '../shared/cap'
 import { retentionCutoff } from './store/retention'
-import { forward, tellActivity } from './notify'
+import { forward, tellActivity, tellLogbook } from './notify'
+import type { LogSources } from './logbook'
 import { shownWindows } from './windows'
 
 // D-45: the chat, the jobs and the stores around them, made once. Windows, menus and IPC reach them from here.
@@ -54,7 +55,7 @@ export function sentLog() {
     return unsavedSent
   }
 }
-setSentLog(sentLog)
+setSentLog(sentLog, () => logged())
 
 /** D-52: with a model on this Mac, the one door out refuses everything else. */
 setLocalOnly(() => activeProfile().web === 'off')
@@ -71,7 +72,16 @@ export function ledger() {
     return unsavedLedger
   }
 }
-setLedger(ledger)
+setLedger(ledger, () => logged())
+
+/** A sent-log or ledger row was written: the Logbook hears once a second at most, never by polling (D-63). */
+let loggedTimer: ReturnType<typeof setTimeout> | null = null
+function logged(): void {
+  loggedTimer ??= setTimeout(() => {
+    loggedTimer = null
+    tellLogbook()
+  }, 1_000)
+}
 
 /** Background work and answers in other chats. */
 export async function activity(): Promise<ActivityItem[]> {
@@ -80,6 +90,24 @@ export async function activity(): Promise<ActivityItem[]> {
     .filter((t) => !t.shown)
     .map((t): ActivityItem => ({ id: t.threadId, kind: 'answer', title: t.title, state: 'working', pages: 0, chatId: t.threadId, unseen: false }))
   return [...answers, ...(await jobs.list())]
+}
+
+/** What the Logbook reads (D-63): everything worded in main, nothing sent to a window but the words. */
+export async function logbookSources(): Promise<LogSources> {
+  const { workPaused, workPausedUntil } = settings.getStored()
+  const chats = new Map((await chatStore().list({ limit: 500 }).catch(() => [])).map((c) => [c.id, c.title]))
+  for (const t of chat.running()) chats.set(t.threadId, t.title)
+  return {
+    now: Date.now(),
+    jobs: await jobs.all(),
+    held: workPaused,
+    pausedUntil: workPausedUntil ?? null,
+    overCap: overCap() !== null,
+    sent: sentLog().list(),
+    changes: ledger().list(),
+    chats,
+    cards: chat.asking()
+  }
 }
 
 /** Something Otty is doing changed. `news` means there's something for the user to see. */

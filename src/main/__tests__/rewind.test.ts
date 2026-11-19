@@ -18,7 +18,7 @@ vi.mock('../store', () => ({ chatStore: () => ({ write: async () => {}, delete: 
 vi.mock('../files', () => ({ takeFiles: () => [] }))
 
 const { ChatSession } = await import('../llm')
-const { MemoryLedger, setLedger } = await import('../ledger')
+const { MemoryLedger, canUndo, setLedger } = await import('../ledger')
 
 let requests: { messages: unknown[] }[] = []
 let replies: object[][] = []
@@ -154,15 +154,15 @@ describe('try again and edit (D-36)', () => {
       ]
       await session.send('Copy hello and look into laptops', [], null)
       const [id] = answers()
-      expect(log.list().map((r) => [r.summary, r.status, r.canUndo])).toEqual([
-        ['Started. The user will find the report in Activity.', 'done', true],
+      expect(log.list().map((r) => [r.summary, r.status, canUndo(r)])).toEqual([
+        ['Started. The user will find the report in the Logbook.', 'done', true],
         ['Copied.', 'done', false]
       ])
       const plan = await session.rewindPlan(id)
       expect(plan).toEqual({ undo: [{ id: `job:${started[0]}`, label: 'Stop looking into “Laptops”' }], lasting: ['Copied.'] })
       replies = [answer('Again.')]
       await session.rewind(id, [`job:${started[0]}`], 'retry')
-      expect(log.list().find((r) => r.canUndo)?.undone).toBe(true)
+      expect(log.list().find((r) => r.undo === 'job')?.undoneAt).toBeTruthy()
     } finally {
       setLedger(() => null)
     }

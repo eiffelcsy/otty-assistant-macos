@@ -1,9 +1,10 @@
-// Background looks (D-22, D-47): the card, Activity, the otter's marks, and a job that outlives a lost connection,
+// Background looks (D-22, D-47): the card, the Logbook (D-63), the otter's marks, and a job that outlives a lost connection,
 // sleep, a quit and a forgotten chat. A job's own model rounds are scripted replies matched on its brief.
 import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import type { Page } from '@playwright/test'
 import { expect, ONBOARDED, test, type Otty } from '../fixtures'
+import { lookEntry, openEntry, openLogbook } from '../logbook'
 import { textOf, toolNames, type World } from '../world/server'
 
 interface Look {
@@ -37,12 +38,9 @@ async function chatSettled(world: World, panel: Page, look: Look = RAIL): Promis
   await expect.poll(() => world.modelRequests().some((b) => !b.stream)).toBe(true)
 }
 
-async function openActivity(panel: Page): Promise<void> {
-  await panel.getByRole('button', { name: 'Activity' }).click()
-  await expect(panel.locator('.panel__title')).toHaveText('Activity')
-}
-
-const row = (panel: Page, title: string) => panel.locator('li.activity-row').filter({ hasText: title })
+/** A look-up under way, in the Logbook's Now card. */
+const nowCard = (panel: Page, title: string = RAIL.title) => panel.locator('.log-now').filter({ hasText: title })
+const look = (panel: Page, title: string = RAIL.title) => lookEntry(panel, title)
 
 /** The model requests a job sent, by its brief. */
 const jobRequests = (world: World, look: Look = RAIL) => world.turnRequests().filter((b) => (b.messages ?? []).some((m) => m.role === 'user' && textOf(m.content).includes(look.brief)))
@@ -63,13 +61,12 @@ async function stuckOffline(otty: Otty, world: World, panel: Page): Promise<void
   await otty.control((c) => c.power('suspend'))
   await panel.getByRole('button', { name: 'Start it' }).click()
   await chatSettled(world, panel)
-  await openActivity(panel)
-  await expect(row(panel, RAIL.title)).toContainText('Waiting its turn')
+  await openLogbook(panel)
+  await expect(look(panel)).toContainText(`Waiting its turn: “${RAIL.title}”`)
   await otty.control((c) => c.offline(true))
   await otty.control((c) => c.power('resume'))
   // Main waits a moment after waking for the network (WAKE_DELAY), then the first round fails.
-  await expect(row(panel, RAIL.title)).toContainText('Lost the connection. Trying again…', { timeout: 20_000 })
-  await expect(row(panel, RAIL.title)).toContainText('Working')
+  await expect(nowCard(panel)).toContainText('Lost the connection. Trying again…', { timeout: 20_000 })
 }
 
 /** One round that searches and writes the report from it. */
@@ -79,7 +76,7 @@ function quickJob(world: World, report = 'Report: the 7-day pass is 50,000 yen e
 }
 
 test.describe('the card', () => {
-  test('shows the whole brief; No runs nothing, Yes starts a look with a chip, Activity row and pages counted', { tag: ['@step-83', '@gate'] }, async ({ otty, world }) => {
+  test('shows the whole brief; No runs nothing, Yes starts a look with a chip, a Logbook entry and pages counted', { tag: ['@step-83', '@gate'] }, async ({ otty, world }) => {
     const panel = await otty.openPanel()
 
     world.reply(RAIL.question, { calls: [{ name: 'start_job', args: { title: RAIL.title, brief: RAIL.brief } }] }, { say: 'Alright, I won’t look into it.' })
@@ -92,15 +89,18 @@ test.describe('the card', () => {
     await panel.getByRole('button', { name: 'Skip' }).click()
     await expect(panel.getByText('Alright, I won’t look into it.')).toBeVisible()
     expect(jobRequests(world)).toEqual([])
-    await expect(panel.getByRole('button', { name: 'Activity' })).toHaveCount(0)
+    await openLogbook(panel)
+    await expect(look(panel)).toHaveCount(0)
+    await panel.getByRole('button', { name: 'Back to chat' }).click()
 
     quickJob(world)
     await offer(otty, world, panel)
     await panel.getByRole('button', { name: 'Start it' }).click()
     await expect(panel.getByText(`Looking into “${RAIL.title}”`, { exact: true })).toBeVisible()
     await expect(panel.getByText(RAIL.after)).toBeVisible()
-    await openActivity(panel)
-    await expect(row(panel, RAIL.title)).toContainText(/Done · \d+ pages? read/)
+    await openLogbook(panel)
+    await expect(look(panel)).toContainText(`Looked into “${RAIL.title}”`)
+    await expect(look(panel)).toContainText(/\d+ pages? read/)
     // The job was only given its brief and the read-only tools.
     const first = jobRequests(world)[0]
     expect(toolNames(first).sort()).toEqual(['read_page', 'search_web'])
@@ -121,27 +121,29 @@ test.describe('a job that meets trouble', () => {
     await offer(otty, world, panel)
     await panel.getByRole('button', { name: 'Start it' }).click()
     await chatSettled(world, panel)
-    await openActivity(panel)
+    await openLogbook(panel, 'Needs you')
 
-    const job = row(panel, RAIL.title)
-    await expect(job).toContainText(/Waiting for you · \d+ pages? read/)
-    await expect(job).toContainText('Read this page?')
-    await expect(job.locator('code')).toHaveText(BLOG)
+    const waiting = panel.locator('li.log-entry').filter({ hasText: 'Waiting: read travel-blog.example?' })
+    await expect(waiting).toContainText(`Part of “${RAIL.title}”`)
+    const details = await openEntry(waiting)
+    await expect(details.locator('code')).toHaveText(BLOG)
     await expect(bubble.locator('.bubble__working--waiting')).toBeVisible()
     await expect(bubble).toHaveAttribute('title', /needs your OK/)
 
-    // Allowed with the Wi-Fi off: the page can't be read, the next round can't be sent, and the row says so.
+    // Allowed with the Wi-Fi off: the page can't be read, the next round can't be sent, and the Now card says so.
     await otty.control((c) => c.offline(true))
-    await job.getByRole('button', { name: 'Allow', exact: true }).click()
-    await expect(job).toContainText('Lost the connection. Trying again…', { timeout: 15_000 })
-    await expect(job).toContainText(/Working · \d+ pages? read/)
+    await details.getByRole('button', { name: 'Allow', exact: true }).click()
+    await panel.locator('.log-details__back').click()
+    await expect(nowCard(panel)).toContainText('Lost the connection. Trying again…', { timeout: 15_000 })
     await expect(bubble.locator('.bubble__working:not(.bubble__working--waiting)')).toBeVisible()
     await expect(bubble).toHaveAttribute('title', /looking into something/)
 
     // Back online, the retry carries on from the saved steps: the search isn't run again.
     await otty.control((c) => c.offline(false))
-    await expect(job).toContainText('Done', { timeout: 30_000 })
-    await expect(job).not.toContainText('Lost the connection')
+    await expect(nowCard(panel)).toHaveCount(0, { timeout: 30_000 })
+    await openLogbook(panel, 'Everything')
+    await expect(look(panel)).toContainText(`Looked into “${RAIL.title}”`)
+    await expect(look(panel)).not.toContainText('Lost the connection')
     expect(world.requests.filter((r) => r.url.endsWith('/v1/tools/search'))).toHaveLength(1)
     expect(toolText(world)).toContain(PRICES)
     await expect(bubble.locator('.bubble__working')).toHaveCount(0)
@@ -151,15 +153,16 @@ test.describe('a job that meets trouble', () => {
     const panel = await otty.openPanel()
     world.reply(RAIL.brief, { say: 'Full report: 50,000 yen for 7 days.' })
     await stuckOffline(otty, world, panel)
-    const job = row(panel, RAIL.title)
-    await job.getByRole('button', { name: 'Stop' }).click()
-    await expect(job).toContainText('Couldn’t finish')
+    await nowCard(panel).getByRole('button', { name: 'Stop' }).click()
+    const job = look(panel)
+    await expect(job).toContainText(`Couldn’t finish “${RAIL.title}”`)
     await expect(job).toContainText('You stopped this.')
 
     await otty.control((c) => c.offline(false))
-    await job.getByRole('button', { name: 'Try again' }).click()
-    await expect(job).toContainText('Done')
-    await job.getByRole('button', { name: 'Open' }).click()
+    const details = await openEntry(job)
+    await details.getByRole('button', { name: 'Try again' }).click()
+    await expect(details).toContainText(`Looked into “${RAIL.title}”`)
+    await details.getByRole('button', { name: 'Open the report' }).click()
     await expect(panel.getByText('Full report: 50,000 yen for 7 days.')).toBeVisible()
     // One report chat, under the job's title.
     await panel.getByRole('button', { name: 'Recent chats' }).click()
@@ -175,7 +178,7 @@ test.describe('a job outlives', () => {
     await otty.control((c) => c.power('suspend'))
     await otty.control((c) => c.offline(false))
     await otty.control((c) => c.power('resume'))
-    await expect(row(panel, RAIL.title)).toContainText('Done', { timeout: 20_000 })
+    await expect(look(panel)).toContainText(`Looked into “${RAIL.title}”`, { timeout: 20_000 })
   })
 
   test('a day asleep: it asks first, and Keep going carries on', { tag: ['@step-84'] }, async ({ otty, world }) => {
@@ -186,11 +189,12 @@ test.describe('a job outlives', () => {
     await otty.control((c) => c.shiftClock(25 * 3_600_000))
     await otty.control((c) => c.offline(false))
     await otty.control((c) => c.power('resume'))
-    const job = row(panel, RAIL.title)
+    const job = look(panel)
     await expect(job).toContainText('This has been sitting a while. Keep going?', { timeout: 20_000 })
-    await expect(job).toContainText('Paused')
-    await job.getByRole('button', { name: 'Keep going' }).click()
-    await expect(job).toContainText('Done')
+    await expect(job).toContainText(`Waiting for you: “${RAIL.title}”`)
+    const details = await openEntry(job)
+    await details.getByRole('button', { name: 'Keep going' }).click()
+    await expect(details).toContainText(`Looked into “${RAIL.title}”`)
   })
 
   test('a quit: it carries on after relaunching', { tag: ['@step-84'] }, async ({ otty, world }) => {
@@ -199,15 +203,15 @@ test.describe('a job outlives', () => {
     await stuckOffline(otty, world, panel)
     await otty.relaunch()
     const again = await otty.openPanel()
-    await openActivity(again)
-    await expect(row(again, RAIL.title)).toContainText('Done', { timeout: 20_000 })
-    await row(again, RAIL.title).getByRole('button', { name: 'Open' }).click()
+    await openLogbook(again)
+    await expect(look(again)).toContainText(`Looked into “${RAIL.title}”`, { timeout: 20_000 })
+    await (await openEntry(look(again))).getByRole('button', { name: 'Open the report' }).click()
     await expect(again.getByText('Report after the restart.')).toBeVisible()
   })
 })
 
 test.describe('when it’s done', () => {
-  test('a dot on the otter and in Activity; Open is a normal chat to follow up and find in Recent chats', { tag: ['@step-85', '@step-103'] }, async ({ otty, world }) => {
+  test('a dot on the otter and on the Logbook; Open the report is a normal chat to follow up and find in Recent chats', { tag: ['@step-85', '@step-103'] }, async ({ otty, world }) => {
     const panel = await otty.openPanel()
     const bubble = (await otty.view('bubble')).locator('.bubble')
     quickJob(world, 'Report: the Kintetsu otter pass is the best value.')
@@ -222,9 +226,8 @@ test.describe('when it’s done', () => {
     await expect(bubble).toHaveAttribute('title', /has an answer for you/)
 
     const again = await otty.openPanel()
-    await expect(again.getByRole('button', { name: 'Activity' }).locator('.icon-btn__dot')).toBeVisible()
-    await openActivity(again)
-    await row(again, RAIL.title).getByRole('button', { name: 'Open' }).click()
+    await openLogbook(again)
+    await (await openEntry(look(again))).getByRole('button', { name: 'Open the report' }).click()
     await expect(again.getByText('Report: the Kintetsu otter pass is the best value.')).toBeVisible()
 
     world.reply('Is that pass good for Nara too?', { say: 'Yes, the Kintetsu pass covers Nara.' })
@@ -245,16 +248,19 @@ test.describe('when it’s done', () => {
     await offer(otty, world, panel)
     await panel.getByRole('button', { name: 'Start it' }).click()
     await chatSettled(world, panel)
-    await openActivity(panel)
-    await expect(row(panel, RAIL.title)).toContainText('Waiting for you')
+    const button = panel.getByRole('button', { name: /^Logbook/ })
+    await expect(button.locator('.icon-btn__dot')).toBeVisible()
+    await expect(button).toHaveAccessibleName('Logbook, 1 needs you')
+    await openLogbook(panel, 'Needs you')
+    await expect(panel.locator('li.log-entry')).toContainText(['Waiting: read travel-blog.example?'])
 
     await otty.relaunch()
     const again = await otty.openPanel()
-    await openActivity(again)
-    const job = row(again, RAIL.title)
-    await expect(job.locator('code')).toHaveText(BLOG)
-    await job.getByRole('button', { name: 'Allow', exact: true }).click()
-    await expect(job).toContainText('Done')
+    await openLogbook(again, 'Needs you')
+    const details = await openEntry(again.locator('li.log-entry').filter({ hasText: 'Waiting: read travel-blog.example?' }))
+    await expect(details.locator('code')).toHaveText(BLOG)
+    await details.getByRole('button', { name: 'Allow', exact: true }).click()
+    await expect(details).toContainText(`Looked into “${RAIL.title}”`)
     expect(toolText(world)).toContain('The 7-day pass is 50,000 yen.')
   })
 })
@@ -268,9 +274,9 @@ test.describe('forgetting', () => {
       quickJob(world, 'Report: nothing of this is kept.')
       await offer(otty, world, panel)
       await panel.getByRole('button', { name: 'Start it' }).click()
-      await openActivity(panel)
-      await expect(row(panel, RAIL.title)).toContainText('Done')
-      await row(panel, RAIL.title).getByRole('button', { name: 'Open' }).click()
+      await openLogbook(panel)
+      await expect(look(panel)).toContainText(`Looked into “${RAIL.title}”`)
+      await (await openEntry(look(panel))).getByRole('button', { name: 'Open the report' }).click()
       await expect(panel.getByText('Report: nothing of this is kept.')).toBeVisible()
 
       await otty.relaunch()
@@ -280,7 +286,8 @@ test.describe('forgetting', () => {
         for (const words of ['Japan Rail Pass', 'Japan rail passes', 'nothing of this is kept', 'Compare the Japan']) expect(bytes, `${f} holds “${words}”`).not.toContain(words)
       }
       const again = await otty.openPanel()
-      await expect(again.getByRole('button', { name: 'Activity' })).toHaveCount(0)
+      await openLogbook(again)
+      await expect(look(again)).toHaveCount(0)
     })
   })
 
@@ -292,7 +299,9 @@ test.describe('forgetting', () => {
     await otty.hold(panel.getByRole('button', { name: 'Hold to forget: Forget all chats' }))
     await expect(panel.getByRole('group', { name: 'Can’t be undone' })).toContainText('Forgotten')
     await panel.getByRole('button', { name: 'Back to chat' }).click()
-    await expect(panel.getByRole('button', { name: 'Activity' })).toHaveCount(0)
+    await openLogbook(panel)
+    await expect(look(panel)).toHaveCount(0)
+    await expect(nowCard(panel)).toHaveCount(0)
   })
 
   test('deleting the chat that started a job stops it', { tag: ['@step-86'] }, async ({ otty, world }) => {
@@ -302,7 +311,9 @@ test.describe('forgetting', () => {
     await panel.getByRole('button', { name: 'Recent chats' }).click()
     await panel.getByRole('button', { name: 'Forget this chat' }).first().click()
     await expect(panel.locator('.history__title')).toHaveCount(0)
-    await expect(panel.getByRole('button', { name: 'Activity' })).toHaveCount(0)
+    await openLogbook(panel)
+    await expect(look(panel)).toHaveCount(0)
+    await expect(nowCard(panel)).toHaveCount(0)
   })
 })
 
@@ -319,6 +330,7 @@ test.describe('on a model on this Mac', () => {
     for (const body of sent) expect(toolNames(body)).not.toEqual(expect.arrayContaining(['start_job']))
     for (const body of sent) expect(toolNames(body)).not.toContain('schedule_job')
     await expect(panel.locator('.confirm-card')).toHaveCount(0)
-    await expect(panel.getByRole('button', { name: 'Activity' })).toHaveCount(0)
+    await openLogbook(panel, 'Coming up')
+    await expect(panel.locator('li.log-entry')).toHaveCount(0)
   })
 })

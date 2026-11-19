@@ -1,7 +1,7 @@
 import { suggestionsFor } from '../../../shared/suggestions'
 import { HealthBanner } from './HealthBanner'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { ActivityItem, AnswerLanguage, AppInfo, Capture, EditDraft, PanelOpenPayload, PublicSettings } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, PanelOpenPayload, PublicSettings } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
 import { Icon } from '../components/Icon'
@@ -16,8 +16,7 @@ import { useAttachments } from '../lib/useAttachments'
 import { useChat, type UiMessage } from '../lib/useChat'
 import { serviceAt, serviceById } from '../../../shared/services'
 import { AskContext, HomeContext } from './Markdown'
-import { pauseEnd } from '../../../shared/pauseUntil'
-import { Activity, type Tab as ActivityTab } from './Activity'
+import { Logbook } from './logbook/Logbook'
 import { History } from './History'
 import { AppTag, AssistantMessage, CaptureList, HiddenLine, sourceFor } from './Messages'
 import { FindBar } from './FindBar'
@@ -44,15 +43,17 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
   }
 }
 
-const TITLES: Partial<Record<string, string>> = { history: 'Recent chats', activity: 'Activity', settings: 'Settings', notebook: 'Notebook' }
+const TITLES: Partial<Record<string, string>> = { history: 'Recent chats', logbook: 'Logbook', settings: 'Settings', notebook: 'Notebook' }
 
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
-  const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history' | 'activity' | 'notebook'>('chat')
+  const [view, setView] = useState<'chat' | 'settings' | 'onboarding' | 'history' | 'logbook' | 'notebook'>('chat')
   /** The Settings section on show; null is the list of sections. */
   const [settingsAt, setSettingsAt] = useState<SectionId | null>(null)
-  /** Which Activity list to open on; the header button always opens "What Otty is doing". */
-  const [activityTab, setActivityTab] = useState<ActivityTab>('work')
+  /** Which Logbook view to open on; the header button opens Everything. */
+  const [logView, setLogView] = useState<LogView>('all')
+  /** How many things need the user, from the Logbook's own Needs you view, so the dot and the view can't disagree. */
+  const [needsYou, setNeedsYou] = useState(0)
   /** The capture tray: highlights and snips waiting to be asked about, each with its own app. */
   const [captures, setCaptures] = useState<Capture[]>([])
   /** The app the user was in, for a question without captures. */
@@ -63,7 +64,6 @@ export function Panel() {
   const [finding, setFinding] = useState<number | null>(null)
   const findingRef = useRef(finding)
   findingRef.current = finding
-  const [activity, setActivity] = useState<ActivityItem[]>([])
   /** Bumped to scroll Settings to what Otty knows. */
   const { messages, busy, setBusy, waitingFirstToken, focusId, learn, asking, draft } = useChat(() => {
     setCaptures([])
@@ -103,8 +103,9 @@ export function Panel() {
   }, [])
 
   useEffect(() => {
-    void window.otty.listActivity().then(setActivity)
-    return window.otty.onActivity(setActivity)
+    const count = () => void window.otty.logbook('wait', '').then((p) => setNeedsYou(p.views.find((v) => v.view === 'wait')?.count ?? 0))
+    count()
+    return window.otty.onLogbook(count)
   }, [])
 
   /** Adds a capture to the tray, or starts a new tray with it. A full tray says so instead. */
@@ -132,12 +133,12 @@ export function Panel() {
           return setView('settings')
         }
         if (p.notice === 'open-activity') {
-          setActivityTab('work')
-          return setView('activity')
+          setLogView('all')
+          return setView('logbook')
         }
         if (p.notice === 'open-memory') return setView('notebook')
         take(p, !!p.add)
-        setView((v) => (v === 'history' || v === 'activity' ? 'chat' : v))
+        setView((v) => (v === 'history' || v === 'logbook' ? 'chat' : v))
         setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 50)
       }),
     []
@@ -329,19 +330,18 @@ export function Panel() {
             <Otter state={busy ? 'thinking' : 'idle'} size={34} />
             <div className="panel__title">{TITLES[view] ?? 'Otty'}</div>
             <div className="panel__actions">
-              {(activity.length > 0 || view === 'activity') && (
-                <button
-                  className="icon-btn icon-btn--dot"
-                  title={view === 'activity' ? 'Back to chat' : 'Activity'}
-                  onClick={() => {
-                    setActivityTab('work')
-                    setView(view === 'activity' ? 'chat' : 'activity')
-                  }}
-                >
-                  <Icon name={view === 'activity' ? 'comment-alt' : 'binoculars'} />
-                  {view !== 'activity' && activity.some((i) => i.unseen) && <span className="icon-btn__dot" />}
-                </button>
-              )}
+              <button
+                className="icon-btn icon-btn--dot"
+                title={view === 'logbook' ? 'Back to chat' : 'Logbook'}
+                aria-label={view === 'logbook' ? 'Back to chat' : needsYou ? `Logbook, ${needsYou} needs you` : 'Logbook'}
+                onClick={() => {
+                  setLogView('all')
+                  setView(view === 'logbook' ? 'chat' : 'logbook')
+                }}
+              >
+                <Icon name={view === 'logbook' ? 'comment-alt' : 'journal-alt'} />
+                {view !== 'logbook' && needsYou > 0 && <span className="icon-btn__dot" />}
+              </button>
               {settings.rememberChats && (
                 <button
                   className="icon-btn"
@@ -398,9 +398,9 @@ export function Panel() {
               section={settingsAt}
               onSection={setSettingsAt}
               onOpenNotebook={() => setView('notebook')}
-              onOpenActivity={(tab) => {
-                setActivityTab(tab)
-                setView('activity')
+              onOpenLogbook={(tab) => {
+                setLogView(tab)
+                setView('logbook')
               }}
             />
           ) : view === 'notebook' ? (
@@ -411,19 +411,8 @@ export function Panel() {
                 setView('settings')
               }}
             />
-          ) : view === 'activity' ? (
-            <Activity
-              key={activityTab}
-              startTab={activityTab}
-              items={activity}
-              onOpen={() => setView('chat')}
-              onOpenChat={(id) => void window.otty.openChat(id).then(() => setView('chat'))}
-              paused={settings.workPaused}
-              pausedUntil={settings.workPausedUntil}
-              onPause={(choice) =>
-                void window.otty.saveSettings(choice === false ? { workPaused: false } : { workPaused: true, workPausedUntil: pauseEnd(choice) }).then(setSettings)
-              }
-            />
+          ) : view === 'logbook' ? (
+            <Logbook key={logView} startView={logView} onOpenChat={(id) => void (id ? window.otty.openChat(id) : Promise.resolve()).then(() => setView('chat'))} />
           ) : view === 'history' ? (
             <History onOpen={() => setView('chat')} focusSearch={searchFocus} keep={settings.keepChats} />
           ) : (

@@ -1,8 +1,10 @@
 import { getStored } from '../settings'
-import { activity, chat, jobs, ledger, sentLog } from '../core'
+import type { LogView } from '../../shared/types'
+import { activity, chat, jobs, logbookSources } from '../core'
+import { entryDetails, logbook } from '../logbook'
 import { handle } from './check'
 
-/** Activity sends ids only; main looks up what each one is, so a window can't say what kind of thing it is (D-44). */
+/** The Logbook sends ids only; main looks up what each one is, so a window can't say what kind of thing it is (D-44). */
 const find = async (id: string) => (await activity()).find((i) => i.id === id)
 
 export function registerActivity(): void {
@@ -22,6 +24,9 @@ export function registerActivity(): void {
   handle('activity:retry', (_e, id: string) => jobs.retry(id))
   handle('activity:resume', (_e, id: string) => jobs.resume(id))
   handle('activity:seen', () => jobs.markSeen())
-  handle('sent:list', () => sentLog().list())
-  handle('actions:list', () => ledger().list())
+  // The Logbook (D-63): read-only words from main. Undo and notes take an id, and main finds what it names.
+  handle('logbook:get', async (_e, view: LogView, search: string) => logbook(await logbookSources(), view, search))
+  handle('logbook:entry', async (_e, id: string) => entryDetails(await logbookSources(), id))
+  handle('logbook:undo', (_e, id: string) => (id.startsWith('act:') ? chat.undoChange(Number(id.slice(4))) : false))
+  handle('logbook:note', (_e, id: string, text: string) => jobs.note(id, text))
 }

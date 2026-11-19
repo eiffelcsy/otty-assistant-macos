@@ -53,7 +53,7 @@ afterEach(cleanup)
 
 function open(section: SectionId | null, settings = base) {
   const onSaved = vi.fn()
-  render(<Settings settings={settings} onSaved={onSaved} section={section} onSection={() => {}} onOpenActivity={() => {}} onOpenNotebook={() => {}} />)
+  render(<Settings settings={settings} onSaved={onSaved} section={section} onSection={() => {}} onOpenLogbook={() => {}} onOpenNotebook={() => {}} />)
   return onSaved
 }
 

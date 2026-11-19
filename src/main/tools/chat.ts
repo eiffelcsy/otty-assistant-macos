@@ -189,7 +189,7 @@ export const scheduleJobTool: Tool = {
           function: {
             name: 'schedule_job',
             description:
-              'Look something up later, when the user asks for it at a time ("check this tomorrow at 9", "every Monday at 9"). The user is shown the time and the brief and decides. The job only reads public web pages and leaves a note in Activity. It cannot send or change anything. Like start_job, it only sees the brief.',
+              'Look something up later, when the user asks for it at a time ("check this tomorrow at 9", "every Monday at 9"). The user is shown the time and the brief and decides. The job only reads public web pages and leaves a note in the Logbook. It cannot send or change anything. Like start_job, it only sees the brief.',
             parameters: {
               type: 'object',
               properties: {

@@ -5,6 +5,7 @@ import { join } from 'path'
 import type { Page } from '@playwright/test'
 import { textOf, type ModelBody } from '../world/server'
 import { expect, test, type Otty } from '../fixtures'
+import { openLogbook } from '../logbook'
 
 /** Only streamed answers: a background call (the chat's title) quotes the question too, and mustn't use up its reply. */
 const streamed = (words: string) => (text: string, body: ModelBody) => body.stream === true && text.includes(words)
@@ -19,10 +20,10 @@ async function copyAndLook(otty: Otty, panel: Page, title: string): Promise<void
   await expect(lastAnswer(panel).getByRole('button', { name: 'Try again' })).toBeVisible()
 }
 
+/** The looks the Logbook lists as still to do or waiting: its Needs you and Coming up, and what's running. */
 async function activityTitles(panel: Page): Promise<string> {
-  await panel.getByRole('button', { name: 'Activity' }).click()
-  await expect(panel.locator('.activity')).toBeVisible()
-  const text = await panel.locator('.activity').innerText()
+  await openLogbook(panel, 'Needs you')
+  const text = await panel.locator('.logbook__main').innerText()
   await panel.getByRole('button', { name: 'Back to chat' }).click()
   return text
 }
@@ -43,7 +44,7 @@ test('Try again lists what it can undo; unticked the look carries on, ticked it 
     { say: 'Copied, and I’m looking into Gaming laptops.' },
     { say: 'Here is another fresh answer.' }
   )
-  // Each look stops at a page nobody has given it, so it waits in Activity until someone answers.
+  // Each look stops at a page nobody has given it, so it waits in the Logbook until someone answers.
   world.reply(streamed('best budget laptops of 2026'), { calls: [{ name: 'read_page', args: { url: 'https://laptops.example/budget' } }] })
   world.reply(streamed('best gaming laptops of 2026'), { calls: [{ name: 'read_page', args: { url: 'https://laptops.example/gaming' } }] })
   world.backgroundReply = 'Laptops'

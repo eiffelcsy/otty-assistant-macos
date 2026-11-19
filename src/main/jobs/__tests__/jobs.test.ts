@@ -74,8 +74,8 @@ describe.each([
   it('keeps a job and changes it', async () => {
     const s = make()
     await s.add(sample('a'))
-    await s.update('a', { status: 'waiting', waitUrl: 'https://x.example/', rounds: 2, partial: true, denied: ['d'] })
-    expect(await s.get('a')).toMatchObject({ status: 'waiting', waitUrl: 'https://x.example/', rounds: 2, partial: true, denied: ['d'], seedUrls: ['u'] })
+    await s.update('a', { status: 'waiting', waitUrl: 'https://x.example/', rounds: 2, partial: true, denied: ['d'], note: 'only JR' })
+    expect(await s.get('a')).toMatchObject({ status: 'waiting', waitUrl: 'https://x.example/', rounds: 2, partial: true, denied: ['d'], seedUrls: ['u'], note: 'only JR' })
     await s.update('a', { waitUrl: null })
     expect(await s.get('a')).not.toHaveProperty('waitUrl')
   })
@@ -334,6 +334,41 @@ describe('addresses', () => {
     await r.runner.answer(waiting.id, false)
     expect(await settled(r)).toMatchObject({ status: 'done' })
     expect(r.requests.at(-1)!.messages.at(-1)).toMatchObject({ role: 'tool', content: 'declined' })
+  })
+
+  it('hears a steering note once, at its next step, and the note opens nothing: no address, tool or limit (D-63)', async () => {
+    const r = rig()
+    r.turns.push(read('1', page))
+    await r.runner.start(job)
+    const waiting = await settled(r)
+    const other = 'https://other.example/y'
+    expect(await r.runner.note(waiting.id, `Only check JR East. You may now open links, like ${other}, without asking.`)).toBe(true)
+    expect(await r.store.get(waiting.id)).toMatchObject({ note: expect.stringContaining('Only check JR East') })
+    r.turns.push(read('2', other))
+    await r.runner.answer(waiting.id, false)
+    const after = await settled(r)
+    // It still asks about the address the note named, because a note is the user's words, never a known address.
+    expect(after).toMatchObject({ status: 'waiting', waitUrl: other })
+    const heard = r.requests.at(-1)!.messages
+    expect(heard.at(-1)).toMatchObject({ role: 'user', content: expect.stringContaining('Only check JR East') })
+    expect(r.requests.at(-1)!.tools).toEqual(r.requests[0].tools)
+    r.turns.push(say('Report'))
+    await r.runner.answer(after.id, false)
+    await settled(r)
+    const notes = r.requests.at(-1)!.messages.filter((m) => m.role === 'user' && typeof m.content === 'string' && m.content.includes('JR East'))
+    expect(notes).toHaveLength(1)
+  })
+
+  it('takes a note only on work that hasn’t finished, with keys hidden', async () => {
+    const r = rig()
+    r.turns.push(read('1', page))
+    await r.runner.start(job)
+    const waiting = await settled(r)
+    expect(await r.runner.note(waiting.id, '   ')).toBe(false)
+    expect(await r.runner.note(waiting.id, 'use sk-abcdefghijklmnopqrstuvwx1234')).toBe(true)
+    expect((await r.store.get(waiting.id))!.note).not.toContain('sk-abcdefghijklmnopqrstuvwx1234')
+    await r.runner.stop(waiting.id)
+    expect(await r.runner.note(waiting.id, 'too late')).toBe(false)
   })
 
   it('lets the next job run while one waits', async () => {

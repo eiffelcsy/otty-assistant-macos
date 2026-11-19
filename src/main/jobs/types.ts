@@ -30,6 +30,8 @@ export interface Job {
   waitUrl?: string
   /** Friendly words for why it stopped. */
   error?: string
+  /** The user's latest steering note, in their typed words, keys hidden (D-63). It can only narrow what it looks into. */
+  note?: string
   /** It ran out of a limit, so the report is only part of the answer. */
   partial: boolean
   /** When a scheduled job is due (ms since epoch). Kept after it runs, to say if it ran late. */

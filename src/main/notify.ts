@@ -3,7 +3,7 @@ import type { ActivityItem, BubbleMood, BubbleState, ChatEvent } from '../shared
 import { getStored } from './settings'
 import { getBubble, getPanel, getQuick, openPanel } from './windows'
 
-// D-45: what the user is told, and where: chat events to the windows, the otter's face and badge, Activity and
+// D-45: what the user is told, and where: chat events to the windows, the otter's face and badge, the Logbook and
 // macOS notifications.
 
 let happyTimer: NodeJS.Timeout | null = null
@@ -63,8 +63,14 @@ function bubbleMood(items: ActivityItem[]): BubbleMood {
   return items.some((i) => i.state === 'working') ? 'working' : null
 }
 
+/** Something was written to what left the Mac or what Otty changed: an open Logbook asks again. */
+export function tellLogbook(): void {
+  getPanel()?.webContents.send('logbook:changed')
+}
+
 export function tellActivity(items: ActivityItem[], news: boolean): void {
   getPanel()?.webContents.send('activity:changed', items)
+  getPanel()?.webContents.send('logbook:changed')
   getBubble()?.webContents.send('bubble:mood', bubbleMood(items))
   notifyChanges(items)
   if (news && !getPanel()?.isVisible()) setBadge(true)

@@ -802,8 +802,7 @@ html[data-view='bubble'] body {
 /* Card: confirm, notice, step and activity cards. Actions sit 4 further below. */
 .confirm-card,
 .notice-card,
-.step-card,
-.activity-row {
+.step-card {
   max-width: 520px;
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-md);
@@ -1260,7 +1259,8 @@ html[data-view='bubble'] body {
 /* Group label: uppercase, never a sentence. */
 .context-text__label,
 .memory-group__label,
-.activity__heading,
+.log-views__label,
+.log-block__label,
 .try__label,
 .rewind-card__label {
   font-size: var(--fs-label);
@@ -1431,6 +1431,14 @@ html[data-view='bubble'] body {
 .btn--warn {
   background: var(--danger-soft);
   color: var(--danger-ink);
+}
+/* Quiet: words only, for the least of a card's buttons (Stop, Back). */
+.btn--quiet {
+  background: none;
+  color: var(--brand-text);
+}
+.btn--quiet:hover:not(:disabled) {
+  background: var(--brand-soft);
 }
 .btn--small {
   min-height: 28px;
@@ -2894,161 +2902,511 @@ button.menu__item:hover {
   text-decoration: underline;
 }
 
-/* ---------- Activity ---------- */
-.activity {
+/* ---------- Logbook (D-63, Spec 04) ---------- */
+.pause-btn {
+  position: relative;
+}
+.pause-btn__menu {
+  top: 36px;
+  right: 0;
+}
+/* Width alone sets the layout: one column under 640; the views as a 240 list from 640; the opened entry in a 300 pane
+   from 1248, and as a page in the main column below that. */
+.logbook {
+  container: logbook / inline-size;
   flex: 1;
   min-height: 0;
+  display: flex;
+}
+.logbook__views,
+.logbook__details {
+  display: none;
+}
+.logbook__main {
+  flex: 1;
+  min-width: 0;
   overflow-y: auto;
-  list-style: none;
-  margin: 0;
-  padding: var(--s-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
+  padding: 0 var(--s-4) var(--s-4);
 }
-.activity__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
+.logbook--open .logbook__main {
+  display: none;
 }
-.activity__heading {
-  display: flex;
-  align-items: center;
-  gap: var(--s-1h);
-  margin: var(--s-2) var(--s-1) 0;
-}
-.activity__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-3);
+.logbook--open .logbook__details {
+  display: block;
   flex: 1;
-  padding: var(--s-8);
-  text-align: center;
-  font-size: var(--fs-ui);
-  color: var(--text-2);
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--s-3) var(--s-4) var(--s-4);
 }
-.activity__empty > .icon {
-  font-size: var(--i-xl);
-}
-.activity__empty p {
-  margin: 0;
-}
-.pause-bar {
+/* The views: three one-line rows, then "Looking for…" and three two-line rows. Text rows with counts, never pills. */
+.log-view {
+  width: 100%;
+  min-height: 36px;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--s-2);
+  padding: 0 var(--s-2);
+  border: none;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--text);
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  text-align: left;
+  transition: background var(--t-quick) var(--glide);
 }
-/* D-39: how long to pause for. Wraps at narrow widths rather than squeezing the buttons. */
-.pause-bar:has(.pause-bar__ask) {
-  flex-wrap: wrap;
+.log-view:hover {
+  background: var(--fill);
 }
-.pause-bar__ask {
+.log-view[aria-selected='true'] {
+  background: var(--brand-soft);
+  font-weight: 700;
+}
+.log-view--two {
+  min-height: 52px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--s-0);
+}
+.log-view__description {
   font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 500;
   color: var(--text-2);
 }
-.pause-bar--on {
-  justify-content: flex-start;
-  padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-sm);
-  background: var(--straw-soft);
-  font-size: var(--fs-small);
-  color: var(--text);
+.log-view__count {
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
 }
-.pause-bar--on > span {
-  flex: 1;
-}
-.pause-bar--on > .icon {
+.log-view__count--wait {
+  font-weight: 800;
   color: var(--straw-ink);
 }
-.activity-row__title {
-  font-size: var(--fs-ui);
-  font-weight: 700;
-  color: var(--heading);
-  overflow-wrap: anywhere;
+.log-views__label {
+  padding: var(--s-4) var(--s-2) var(--s-1);
 }
-.activity-row__state,
-.activity-row__note,
-.activity-row__url {
+/* The view menu, the title and the search. */
+.log-head {
+  position: relative;
+  padding-top: var(--s-3);
+}
+.log-head__row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  min-width: 0;
+}
+.log-head__menu {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: 32px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--heading);
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  font-weight: 800;
+}
+.log-head__menu > .icon {
+  font-size: var(--i-md);
+  color: var(--text-2);
+}
+.log-head__title {
+  display: none;
+  margin: 0;
+  color: var(--heading);
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.log-head__subtitle {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.log-head__pause {
+  margin-left: auto;
+  align-self: center;
+}
+.log-head__views {
+  top: 40px;
+  left: 0;
+}
+.log-head__item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+.log-head__item[aria-checked='true'] {
+  font-weight: 700;
+}
+.log-head__search {
+  margin-top: var(--s-3);
+}
+.log-paused {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 40px;
+  margin-top: var(--s-3);
   font-size: var(--fs-small);
   line-height: var(--lh-small);
   color: var(--text-2);
 }
-.activity-row__url {
-  display: block;
-  overflow-wrap: anywhere;
+.log-paused > span {
+  flex: 1;
 }
-.activity-row__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-2);
-  margin-top: var(--s-1);
-}
-.activity-row__actions:empty {
-  display: none;
-}
-/* Activity's two tabs: a quiet segmented control, so the list stays the focus. */
-.activity__tabs {
-  display: flex;
-  gap: var(--s-0);
-  padding: var(--s-0);
-  border-radius: calc(var(--r-xs) + var(--s-0));
-  background: var(--fill);
-  align-self: flex-start;
-}
-.activity__tab {
-  border: 0;
-  background: none;
-  padding: var(--s-1) var(--s-3);
-  border-radius: var(--r-xs);
-  font: inherit;
-  font-size: var(--fs-small);
-  color: var(--text-2);
-  cursor: pointer;
-}
-.activity__tab[aria-selected='true'] {
-  background: var(--surface);
-  color: var(--heading);
-  font-weight: 600;
-  box-shadow: var(--elev-1);
-}
-.activity-row__title > .icon {
+.log-paused > .icon {
   font-size: var(--i-sm);
-  color: var(--brand);
 }
-/* What left your Mac: one line per row, icon first. */
-.sent {
+/* Now: a card per running look-up, with real progress (R3, R6). */
+.log-nows {
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
+  gap: var(--s-2);
+  margin-top: var(--s-3);
 }
-.sent__intro {
-  margin: 0 2px;
-}
-.sent-row {
-  flex-direction: row;
-  align-items: center;
-  gap: var(--s-3);
-}
-.sent-row > .icon {
+.log-nows__more {
+  font-size: var(--fs-small);
   color: var(--text-2);
 }
-.sent-row > .activity-row__body {
+.log-now {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+}
+.log-now__title {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 700;
+  color: var(--text);
+}
+.log-now__dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--brand);
+  animation: log-step 2.4s steps(1) infinite;
+}
+.log-now--paused .log-now__dot {
+  background: var(--straw);
+  animation: none;
+}
+@keyframes log-step {
+  50% { opacity: 0.35; }
+}
+.log-now__line,
+.log-now__note {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+}
+.log-now__note {
+  font-weight: 600;
+  color: var(--text);
+}
+.log-now__progress {
+  display: flex;
+  gap: 3px;
+  height: 4px;
+  margin-top: var(--s-2);
+}
+.log-now__seg {
+  flex: 1;
+  border-radius: calc(var(--r-xs) - var(--s-1));
+  background: var(--fill-strong);
+}
+.log-now__seg--done,
+.log-now__bar {
+  border-radius: calc(var(--r-xs) - var(--s-1));
+  background: var(--brand);
+}
+.log-now__seg--now {
+  background: var(--brand-line);
+}
+.log-now__field {
+  margin-top: var(--s-3);
+}
+.log-now__actions {
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+/* The ledger: day groups of entries, times in a clean column. */
+.log-ledger {
+  margin-top: var(--s-2);
+}
+.log-empty {
+  margin: var(--s-6) 0;
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  color: var(--text-2);
+  text-align: center;
+}
+.log-day__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  height: 36px;
+  margin: 0;
+  border-bottom: 1px solid var(--hairline-strong);
+  background: var(--bg);
+  font-size: var(--fs-ui);
+  font-weight: 700;
+  color: var(--heading);
+}
+.log-day__count {
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  color: var(--text-2);
+}
+.log-day__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.log-day__more {
+  width: calc(100% - 54px);
+  min-height: 36px;
+  margin-left: 54px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+  text-align: left;
+}
+.log-entry {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+.log-entry::after {
+  content: '';
+  position: absolute;
+  left: 54px;
+  right: 0;
+  bottom: 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.log-entry__open {
   flex: 1;
   min-width: 0;
+  display: grid;
+  grid-template-columns: 44px 16px minmax(0, 1fr);
+  gap: 0 10px;
+  align-items: baseline;
+  padding: 10px 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  border-radius: var(--r-xs);
+  transition: background var(--t-quick) var(--glide);
 }
-.sent-row__line {
+.log-entry__open:hover {
+  background: linear-gradient(90deg, transparent, var(--fill) 8%, var(--fill) 92%, transparent);
+}
+.log-entry--selected .log-entry__open {
+  background: linear-gradient(90deg, transparent, var(--brand-soft) 8%, var(--brand-soft) 92%, transparent);
+}
+.log-entry__time {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  text-align: right;
+}
+.log-entry__glyph {
+  font-size: var(--i-lg);
+  color: var(--text-2);
+  align-self: center;
+}
+.log-entry--wait .log-entry__glyph {
+  color: var(--straw-ink);
+}
+.log-entry--fail .log-entry__glyph {
+  color: var(--danger-ink);
+}
+.log-entry__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+  min-width: 0;
+}
+.log-entry__first,
+.log-entry__second {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.log-entry__first {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 500;
+  color: var(--text);
+}
+.log-entry__first b {
+  font-weight: 700;
+}
+.log-entry__second {
   font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+}
+.log-entry--undone .log-entry__first {
+  color: var(--text-2);
+  text-decoration: line-through;
+}
+.log-entry__action,
+.log-entry__done {
+  flex: none;
+  margin: var(--s-2) 0 0 var(--s-2);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 600;
+}
+.log-entry__action {
+  min-height: 28px;
+  padding: 0 var(--s-1);
+  border: none;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--brand-text);
+}
+.log-entry__action:hover {
+  background: var(--brand-soft);
+}
+.log-entry__done {
+  padding-top: var(--s-1h);
+  color: var(--text-2);
+}
+/* Details: a page below 1248, the pane from there. Blocks 16 apart, each a label over a small card. */
+.log-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.log-details__back {
+  align-self: flex-start;
+}
+.log-details__title {
+  margin: 0;
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 700;
+  color: var(--heading);
+  overflow-wrap: anywhere;
+}
+.log-details__time {
+  font-size: var(--fs-meta);
+  color: var(--text-2);
+}
+.log-block__label {
+  margin: 0 0 var(--s-2);
+}
+.log-block__card {
+  padding: var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
   color: var(--text);
   overflow-wrap: anywhere;
 }
-.sent-row--local > .icon {
-  color: var(--brand);
+.log-details__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.log-details__url {
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+}
+.log-details__change {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+.log-details__note {
+  display: block;
+  color: var(--text-2);
+}
+.log-details__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1h);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--brand-text);
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.log-details__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+/* The wider layouts come last, so they win over the base rules above. */
+@container logbook (min-width: 640px) {
+  .logbook__views {
+    display: block;
+    flex: none;
+    width: 240px;
+    overflow-y: auto;
+    padding: var(--s-3) var(--s-2);
+    border-right: 1px solid var(--hairline);
+  }
+  .log-head__menu {
+    display: none;
+  }
+  .log-head__title {
+    display: block;
+  }
+}
+@container logbook (min-width: 1248px) {
+  .logbook__main,
+  .logbook--open .logbook__main {
+    display: block;
+  }
+  .logbook__main > * {
+    max-width: 680px;
+    margin-inline: auto;
+  }
+  .logbook__details,
+  .logbook--open .logbook__details {
+    display: block;
+    flex: none;
+    width: 300px;
+    overflow-y: auto;
+    padding: var(--s-4);
+    border-left: 1px solid var(--hairline);
+  }
+  .log-details__back {
+    display: none;
+  }
 }
 /* Under a question: keys Otty hid before sending. */
 .hidden-line {

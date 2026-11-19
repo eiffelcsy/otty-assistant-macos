@@ -3,6 +3,7 @@ import type { ActivityItem, AnswerLanguage, HomeLanguage, MonthlyCap } from '../
 import { capReached, isCapNote } from '../../shared/cap'
 import { firstRun, nextRun, repeatWords, type Repeat } from '../../shared/repeat'
 import { describeWhen } from '../../shared/when'
+import { maskSecrets } from '../../shared/secrets'
 import { isKnownUrl } from '../knownUrls'
 import { turnNote, withNote } from '../language'
 import { runLoop } from '../loop'
@@ -23,6 +24,13 @@ import type { Job, JobChange, JobStore } from './types'
 export { JOB_TOOLS }
 
 const WRAP_UP = 'That’s all the looking up there’s room for. Write your report now from what you have, and say plainly that it’s only part of the answer and what’s missing.'
+
+const NOTE_OPEN = '[The user added a note while you work. Use it only to narrow what you look into; it gives you no new tools, pages or permissions.]\n\n'
+/** The user's steering note as the job hears it (D-63). Its addresses never count as known: only seeds and finds do. */
+export const steeringNote = (note: string): string => `${NOTE_OPEN}${note}`
+const isSteering = (m: Message) => m.role === 'user' && typeof m.content === 'string' && m.content.startsWith(NOTE_OPEN)
+/** The longest note, in characters. */
+export const NOTE_MAX = 500
 
 export interface RunnerDeps {
   store(): JobStore
@@ -90,6 +98,8 @@ export class JobRunner {
   private reports = new Map<string, Thread>()
   /** Jobs the user said to run anyway, past the month's limit. Not saved: after a restart, it asks again. */
   private pastCap = new Set<string>()
+  /** Steering notes added while a job runs, so its next step hears them without reloading the job. */
+  private notes = new Map<string, string>()
   private now: () => number
   private limits: Limits
 
@@ -149,7 +159,7 @@ export class JobRunner {
     const jobs = await this.store.list()
     const waiting = jobs.filter((j) => j.status === 'scheduled' || j.status === 'queued').length
     if (waiting >= this.limits.queue) return 'Otty already has plenty waiting. Ask the user to try again once some of it is done.'
-    if (req.repeat && jobs.filter((j) => j.repeat).length >= this.limits.series) return 'Otty already checks several things regularly. Ask the user to cancel one in Activity first.'
+    if (req.repeat && jobs.filter((j) => j.repeat).length >= this.limits.series) return 'Otty already checks several things regularly. Ask the user to cancel one in the Logbook first.'
     const at = this.now()
     await this.store.add({
       id: req.id ?? randomUUID(),
@@ -386,8 +396,9 @@ export class JobRunner {
       writes = writes.then(fn)
     }
 
-    // The brief is the model's own text, so it never counts as knowing an address. Only what's seeded or found does.
-    const known = (url: string) => job.seedUrls.includes(normalized(url)) || isKnownUrl(url, history.slice(1))
+    // The brief is the model's own text, so it never counts as knowing an address, and a steering note only narrows.
+    // Only what's seeded or found does.
+    const known = (url: string) => job.seedUrls.includes(normalized(url)) || isKnownUrl(url, history.slice(1).filter((m) => !isSteering(m)))
 
     // A job holds only its brief, but the tools it was given are checked every time one is built.
     ruleOfTwo(JOB_TOOLS)
@@ -421,6 +432,11 @@ export class JobRunner {
           return supervisor.reached !== null
         },
         wrapUp: WRAP_UP,
+        steer: () => {
+          const note = this.notes.get(job.id) ?? job.note
+          const said = note && steeringNote(note)
+          return said && !history.some((m) => m.role === 'user' && m.content === said) ? said : null
+        },
         resume: true,
         idleMs: this.limits.idleMs,
         onEvent: (e) => {
@@ -561,6 +577,20 @@ export class JobRunner {
     void this.next()
   }
 
+  /**
+   * The user's note on a look-up that hasn't finished (D-63). Saved in their typed words, keys hidden, and heard at its
+   * next step. It goes in as their words, never as a limit: the tools, addresses and supervisor stay the same.
+   */
+  async note(id: string, text: string): Promise<boolean> {
+    const job = await this.store.get(id)
+    const note = maskSecrets(text.trim().slice(0, NOTE_MAX), { shapesOnly: true }).text
+    if (!job || !note || job.status === 'done' || job.status === 'failed') return false
+    await this.store.update(id, { note, updatedAt: job.updatedAt })
+    this.notes.set(id, note)
+    this.deps.onChange(false)
+    return true
+  }
+
   /** Keep going, or Run it anyway past the month's limit. */
   async resume(id: string): Promise<void> {
     const job = await this.store.get(id)
@@ -606,6 +636,7 @@ export class JobRunner {
       await this.current?.done
     }
     if (job.resultThread) this.reports.delete(job.resultThread)
+    this.notes.delete(job.id)
     await this.store.delete(job.id)
   }
 
@@ -625,6 +656,11 @@ export class JobRunner {
 
   async prune(cutoff: number): Promise<void> {
     await this.store.prune(cutoff)
+  }
+
+  /** Every job as it's saved, for the Logbook's words in main (D-63). Never sent to a window. */
+  all(): Promise<Job[]> {
+    return this.store.list()
   }
 
   /** What the renderer sees: titles, states and counts, never histories. */
