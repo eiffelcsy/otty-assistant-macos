@@ -1,6 +1,7 @@
 import { getStored } from '../settings'
 import type { LogView } from '../../shared/types'
-import { activity, chat, jobs, logbookSources } from '../core'
+import { activity, chat, homeSources, jobs, logbookSources } from '../core'
+import { home } from '../home'
 import { entryDetails, logbook } from '../logbook'
 import { handle } from './check'
 
@@ -29,4 +30,6 @@ export function registerActivity(): void {
   handle('logbook:entry', async (_e, id: string) => entryDetails(await logbookSources(), id))
   handle('logbook:undo', (_e, id: string) => (id.startsWith('act:') ? chat.undoChange(Number(id.slice(4))) : false))
   handle('logbook:note', (_e, id: string, text: string) => jobs.note(id, text))
+  // Home (D-66): one read-only query, worded in main; its buttons use the channels above, by id.
+  handle('home:get', async () => home(await homeSources()))
 }

@@ -232,11 +232,11 @@ function Block({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-export function Logbook({ startView = 'all', onOpenChat }: { startView?: LogView; onOpenChat: (chatId: string) => void }) {
+export function Logbook({ startView = 'all', startEntry, onOpenChat }: { startView?: LogView; startEntry?: string; onOpenChat: (chatId: string) => void }) {
   const [view, setView] = useState<LogView>(startView)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState<LogPage | null>(null)
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [openId, setOpenId] = useState<string | null>(startEntry ?? null)
   const [details, setDetails] = useState<LogDetails | null>(null)
   const [menu, setMenu] = useState(false)
   const [stopping, setStopping] = useState<Set<string>>(new Set())
@@ -255,6 +255,11 @@ export function Logbook({ startView = 'all', onOpenChat }: { startView?: LogView
   useEffect(() => {
     void window.otty.seenActivity()
   }, [])
+
+  // Opened on an entry (from Home): its details come with it.
+  useEffect(() => {
+    if (startEntry) void window.otty.logbookEntry(startEntry).then(setDetails)
+  }, [startEntry])
 
   const refresh = useCallback(() => {
     load()

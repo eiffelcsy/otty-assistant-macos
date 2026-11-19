@@ -107,6 +107,7 @@ export const CHANNELS = {
   'logbook:entry': { views: PANEL, args: [id] },
   'logbook:undo': { views: PANEL, args: [id] },
   'logbook:note': { views: PANEL, args: [id, text(500)] },
+  'home:get': { views: PANEL, args: [] },
   'memory:list': { views: PANEL, args: [] },
   'memory:add': { views: PANEL, args: [text(2_000)] },
   'memory:update': { views: PANEL, args: [int(0, Number.MAX_SAFE_INTEGER), record] },

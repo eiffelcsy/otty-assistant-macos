@@ -4,6 +4,15 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Home (D-66, 2026-11-19)
+
+Home is where Otty looks after you (Spec 06, part 2): ⌘1 at any width, and where the roomy window opens when Otty is opened from Applications, the Dock or the menu bar.
+- **The otter on its water line**, a greeting by the Mac's clock, and **one sentence** on how things stand: paused, then what needs you (and what's next today), then what's running, then what's due, then "Nothing needs you. Ask me anything."
+- **Only the blocks with something in them:** **Needs you** (the Logbook's own Needs you view, oldest first, three at most, the oldest open with the card's words, such as **Read it** and **Skip**), **Today** (a river of today's look-ups and checks, done, now and next, folding the earliest past six), **Looking after** (what's planned beyond today and what repeats), what left your Mac today in one sentence of counts, and **Try asking** until the first question.
+- Every word comes from main (`main/home/`), and deciding an item does what the Logbook's card does, by the same id. Home asks again when something changes, never by polling.
+- Home has its own message box; asking there starts a new chat and shows it.
+- In the frame, Home leads the screen menu and the nav (⌘1), Chats is ⌘2, and the Otty card in the sidebar opens Home.
+
 ### The roomy window (D-65, 2026-11-19)
 
 The Otty window has a second state (Spec 06, part 1): a normal Mac window with traffic lights, a Dock icon and a menu bar.

@@ -23,10 +23,11 @@ import { FindBar } from './FindBar'
 import { Onboarding } from './Onboarding'
 import { Settings, type SectionId } from './settings/Settings'
 import { Notebook } from './Notebook'
+import { Home } from '../home/Home'
 import { Frame, useWidth, type Place } from '../frame/Frame'
 import { columns } from '../frame/bands'
 
-type View = 'chat' | 'settings' | 'onboarding' | 'history' | 'logbook' | 'notebook'
+type View = 'home' | 'chat' | 'settings' | 'onboarding' | 'history' | 'logbook' | 'notebook'
 
 const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibility' | 'screen' }> = {
   'needs-accessibility': {
@@ -54,6 +55,7 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
 }
 
 const TITLES: Partial<Record<string, string>> = {
+  home: 'Home',
   history: 'Chats',
   logbook: 'Logbook',
   settings: 'Settings',
@@ -76,6 +78,10 @@ export function Panel() {
   const [settingsAt, setSettingsAt] = useState<SectionId | null>(null)
   /** Which Logbook view to open on; the header button opens Everything. */
   const [logView, setLogView] = useState<LogView>('all')
+  /** An entry to open the Logbook on, from Home (D-66). */
+  const [logEntry, setLogEntry] = useState<string | undefined>()
+  /** Home's own box: sending starts a new chat (Spec 06). */
+  const [homeInput, setHomeInput] = useState('')
   /** How many things need the user, from the Logbook's own Needs you view, so the dot and the view can't disagree. */
   const [needsYou, setNeedsYou] = useState(0)
   /** The capture tray: highlights and snips waiting to be asked about, each with its own app. */
@@ -231,7 +237,7 @@ export function Panel() {
       // The frame's keys (Spec 05): ⌘1–⌘4 screens, ⌘, Settings, ⌘N new chat, ⌘[ back, ⌃⌘S the sidebar, F6 the columns.
       const nav = navRef.current
       if (e.metaKey && !e.shiftKey && !e.altKey && settingsRef.current?.onboarded) {
-        const to = ({ '1': 'chat', '2': 'chats', '3': 'logbook', '4': 'notebook', ',': 'settings' } as const)[e.key as '1']
+        const to = ({ '1': 'home', '2': 'chat', '3': 'logbook', '4': 'notebook', ',': 'settings' } as const)[e.key as '1']
         if (to && !e.ctrlKey) {
           e.preventDefault()
           return nav.go(to)
@@ -431,6 +437,18 @@ export function Panel() {
     setInput('')
     void window.otty.resetChat()
   }
+  /** A question from Home starts a new chat and shows it, as from an empty chat. */
+  const askFromHome = async () => {
+    const text = homeInput.trim()
+    if (!text || busy) return
+    setHomeInput('')
+    keep.drop()
+    await window.otty.resetChat()
+    go('chat')
+    setBusy(true)
+    void window.otty.sendMessage(text, [], { app: null })
+  }
+
   // The keyboard and main's open requests reach the newest navigation through this ref.
   useEffect(() => {
     navRef.current = {
@@ -682,9 +700,39 @@ export function Panel() {
               />
             )}
             {shown === 'logbook' && (
-              <Logbook key={logView} startView={logView} onOpenChat={(id) => void (id ? window.otty.openChat(id) : Promise.resolve()).then(() => go('chat'))} />
+              <Logbook key={`${logView}:${logEntry ?? ''}`} startView={logView} startEntry={logEntry} onOpenChat={(id) => void (id ? window.otty.openChat(id) : Promise.resolve()).then(() => go('chat'))} />
             )}
             {shown === 'history' && <History onOpen={() => go('chat')} focusSearch={searchFocus} keep={settings.keepChats} />}
+            {shown === 'home' && (
+              <div className="frame__screen">
+                <Home
+                  onOpenChat={(id) => void (id ? window.otty.openChat(id) : Promise.resolve()).then(() => go('chat'))}
+                  onOpenEntry={(id) => {
+                    setLogView('all')
+                    setLogEntry(id)
+                    push('logbook')
+                  }}
+                  onOpenLogbook={(v) => {
+                    setLogView(v)
+                    setLogEntry(undefined)
+                    push('logbook')
+                  }}
+                  onSuggest={(text) => setHomeInput(text)}
+                  suggestions={suggestionsFor(null, settings.learn, settings.readsPages).map((s) => s.text)}
+                />
+                <footer className="composer">
+                  <MessageBox
+                    value={homeInput}
+                    onChange={setHomeInput}
+                    onSend={() => void askFromHome()}
+                    canSend={Boolean(homeInput.trim())}
+                    paused={settings.workPaused}
+                    placeholder="Ask Otty anything, or give it something to look after"
+                    label="Ask Otty"
+                  />
+                </footer>
+              </div>
+            )}
           </Frame>
         </div>
       </HomeContext.Provider>

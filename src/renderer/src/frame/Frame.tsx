@@ -8,7 +8,7 @@ import { columns, type Band, bandFor } from './bands'
 // decides where each part goes. Under 640 one screen at a time with a screen menu; from 640 a 72 px rail; from 712 a
 // list column beside the main one; from 980 a 216 px sidebar. Nothing here measures anything but its own width.
 
-export type Place = 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings'
+export type Place = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings'
 
 interface NavItem {
   place: Place
@@ -17,13 +17,17 @@ interface NavItem {
   keys: string
 }
 
-/** The screens, in the order of their shortcuts. Home joins as ⌘1 with D-66; until then the chat is. */
+/** The screens, in the order of their shortcuts. Narrow, the chat list is a page of its own, so it's on the menu too. */
 export const NAV: NavItem[] = [
-  { place: 'chat', label: 'Chat', icon: 'comment-alt', keys: '⌘1' },
-  { place: 'chats', label: 'Chats', icon: 'time-past', keys: '⌘2' },
+  { place: 'home', label: 'Home', icon: 'home', keys: '⌘1' },
+  { place: 'chat', label: 'Chat', icon: 'comment-alt', keys: '⌘2' },
+  { place: 'chats', label: 'Chats', icon: 'time-past', keys: '⇧⌘F' },
   { place: 'logbook', label: 'Logbook', icon: 'journal-alt', keys: '⌘3' },
   { place: 'notebook', label: 'Notebook', icon: 'book-bookmark', keys: '⌘4' }
 ]
+
+/** The rail and sidebar: Chats is the chat screen there, with its list beside it (Spec 05). */
+const RAIL: NavItem[] = [NAV[0], { place: 'chat', label: 'Chats', icon: 'comment-alt', keys: '⌘2' }, NAV[3], NAV[4]]
 
 /** The frame's own width, for the band. A container, not the viewport, so the preview and the window agree. */
 export function useWidth(el: HTMLElement | null): number {
@@ -225,7 +229,7 @@ function Nav({ kind, ...p }: FrameProps & { kind: 'rail' | 'sidebar' }) {
   return (
     <nav className={`frame__nav frame__nav--${kind}`} aria-label="Otty" data-column>
       <div className="frame__nav-top" />
-      <button className="frame__otty" title={p.status} aria-label={`Otty: ${p.status}`} onClick={() => p.onGo('chat')}>
+      <button className="frame__otty" title={p.status} aria-label={`Otty: ${p.status}`} onClick={() => p.onGo('home')}>
         <Otter state={p.busy ? 'thinking' : 'idle'} size={40} />
         {wide && (
           <span className="frame__otty-text">
@@ -235,18 +239,16 @@ function Nav({ kind, ...p }: FrameProps & { kind: 'rail' | 'sidebar' }) {
         )}
       </button>
       <div className="frame__nav-items">
-        {NAV.slice(1)
-          .filter((n) => !(p.noChats && n.place === 'chats'))
-          .map((n) => (
-            <NavButton
-              key={n.place}
-              item={n}
-              wide={wide}
-              selected={n.place === p.place || (n.place === 'chats' && p.place === 'chat')}
-              count={n.place === 'logbook' ? p.needsYou : 0}
-              onGo={p.onGo}
-            />
-          ))}
+        {RAIL.map((n) => (
+          <NavButton
+            key={n.place}
+            item={n}
+            wide={wide}
+            selected={n.place === p.place || (n.place === 'chat' && p.place === 'chats')}
+            count={n.place === 'logbook' || (wide && n.place === 'home') ? p.needsYou : 0}
+            onGo={p.onGo}
+          />
+        ))}
       </div>
       <div className="frame__nav-foot">
         {wide ? (

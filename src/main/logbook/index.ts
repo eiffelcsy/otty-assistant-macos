@@ -116,6 +116,9 @@ function entries(view: LogView, s: LogSources): LogEntry[] {
   }
 }
 
+/** Needs you, oldest first: what Home's inbox shows, from the same code as the Logbook's view (D-66). */
+export const needsYouEntries = (s: LogSources): LogEntry[] => entries('wait', s).reverse()
+
 /** Words too common to search on: "did my CV leave my Mac?" searches for "CV". */
 const COMMON = new Set(['a', 'an', 'the', 'did', 'does', 'do', 'my', 'me', 'i', 'it', 'is', 'was', 'what', 'when', 'where', 'which', 'who', 'leave', 'left', 'mac', 'otty', 'to', 'of', 'for', 'in', 'on', 'and', 'or', 'any', 'ever', 'has', 'have', '?'])
 

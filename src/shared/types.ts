@@ -462,7 +462,7 @@ export interface MemoryNote {
 export type WindowState = 'floating' | 'roomy'
 
 /** What the app menu asks the Otty window to do on its own screen (D-65); navigation lives in the renderer (D-64). */
-export type FrameCommand = 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
+export type FrameCommand = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
 
 /** The Logbook's views (D-63, Spec 04). The last three are the "Looking for…" ones. */
 export type LogView = 'wait' | 'next' | 'all' | 'sent' | 'changed' | 'noted'
@@ -543,6 +543,52 @@ export interface LogDetails {
   controls: LogControl[]
   /** A look-up's waiting question: the address it wants to read. */
   waitUrl?: string
+}
+
+/** Words with some parts in bold, so main can choose the words and the renderer only sets them (D-66). */
+export type Words = { text: string; strong?: boolean }[]
+
+/** One decision waiting on Home: the Logbook's Needs you item, with the card's own words for its buttons (Spec 06). */
+export interface HomeNeed {
+  /** The Logbook entry's id: Home and the Logbook act on the same thing. */
+  id: string
+  glyph: string
+  question: string
+  subject: string
+  /** "since 3:52". */
+  since: string
+  actions: LogControl[]
+  chatId?: string
+}
+
+/** A tick on Today's river. */
+export interface HomeTick {
+  id: string
+  time: string
+  state: 'done' | 'now' | 'next' | 'failed'
+  title: string
+  /** The line, with the title in it: "Train times to Sendai, looked into". */
+  text: Words
+  sub?: string
+}
+
+export interface HomeAfter {
+  id: string
+  title: string
+  when: string
+  repeat: boolean
+}
+
+/** Everything Home shows (D-66, Spec 06), worded by main. A block with nothing in it is left out. */
+export interface HomePage {
+  greeting: string
+  status: string
+  now: { id: string; text: Words; paused: boolean }[]
+  needs: { items: HomeNeed[]; total: number }
+  today: { date: string; ticks: HomeTick[]; folded: number }
+  after: { items: HomeAfter[]; total: number }
+  left: Words
+  firstRun: boolean
 }
 
 /** A row in Activity: background work, or an answer still running in another chat. */
@@ -711,6 +757,8 @@ export interface OttyApi {
   undoChange(id: string): Promise<boolean>
   /** A steering note on a look-up that hasn't finished (D-63). */
   noteJob(id: string, text: string): Promise<boolean>
+  /** Home's page, every word from main (D-66). */
+  home(): Promise<HomePage>
   /** What Try again or Edit on the latest turn would undo (D-36). Null when it isn't the latest turn. */
   rewindPlan(messageId: string): Promise<RewindPlan | null>
   /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */

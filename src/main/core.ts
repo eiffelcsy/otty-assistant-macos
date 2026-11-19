@@ -19,6 +19,8 @@ import { capStatus } from '../shared/cap'
 import { retentionCutoff } from './store/retention'
 import { forward, tellActivity, tellLogbook, tellSettings } from './notify'
 import type { LogSources } from './logbook'
+import type { HomeSources } from './home'
+import { serviceAt, serviceById } from '../shared/services'
 import { shownWindows } from './windows'
 
 // D-45: the chat, the jobs and the stores around them, made once. Windows, menus and IPC reach them from here.
@@ -73,6 +75,19 @@ export function ledger() {
   }
 }
 setLedger(ledger, () => logged())
+
+/** What Home reads (D-66): the Logbook's sources, and what Home's sentences need besides. */
+export async function homeSources(): Promise<HomeSources> {
+  const base = await logbookSources()
+  const s = settings.getStored()
+  return {
+    ...base,
+    remembered: s.rememberChats,
+    webOff: activeProfile().web === 'off',
+    service: serviceById(serviceAt(s.baseUrl)).label,
+    asked: base.chats.size > 0 || base.sent.some((i) => i.kind === 'question')
+  }
+}
 
 /** A sent-log or ledger row was written: the Logbook hears once a second at most, never by polling (D-63). */
 let loggedTimer: ReturnType<typeof setTimeout> | null = null
