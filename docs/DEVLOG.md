@@ -7,6 +7,11 @@ The working plan: what's next, how we'll build it, and how to check it works.
 - When an entry ships, move a short summary to [CHANGELOG.md](CHANGELOG.md), delete it here, and add its checks to the smoke test below.
 - Ideas that aren't planned yet live in [BRAINSTORM.md](BRAINSTORM.md). Promote one by writing an entry here.
 - Status: ⏳ next · 🔨 in progress · 🧪 built, needs a Mac test · ⏸ parked.
+- **Size is effort, never time.** It measures how much work there is and how hard it is, not how long it takes, so plans and ideas never give days, weeks or hours. One scale, used here, in BRAINSTORM and in LAUNCH_READINESS:
+  - **S:** one contained change in one area, following a pattern that already exists; little new design, a handful of tests.
+  - **M:** several parts across two or three areas (for example main, IPC and a screen), some new design such as a new channel, query or component, and a normal set of tests and smoke steps.
+  - **L:** a new subsystem or a change that reaches many areas: new stored data or a migration, a safety-sensitive surface that needs attack tests, open unknowns to settle first, or many tests and smoke steps.
+  - **S–M, M–L:** in between. Split a step out with its own size when one part is much bigger or riskier than the rest ("L (step 1: M)").
 
 ## Architecture (current)
 
@@ -83,16 +88,16 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M (2–3 days) |
-| D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
+| D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M |
+| D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
-| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M (1 day) |
-| D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M (1–2 days) |
-| D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
-| D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M (2 days) |
-| D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S (1 day) |
+| D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M |
+| D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
+| D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
+| D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
+| D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 

@@ -24,6 +24,7 @@ Where the checks live:
 | CI | CI itself: `npm ci` fails when `package-lock.json` is out of sync. |
 | Docs | `rules/docsDrift.test.ts`: every path it and DEVLOG’s architecture name exists. |
 | Otty is heading from | Prose only: a design direction, judged in review against `docs/AUTONOMY.md`. Its hard limits have their own rows (Tool safety, Jobs, Memory). |
+| Estimates are effort | Rule test `docsDrift.test.ts` "every Size and Effort is on the effort scale…" (Size and Effort cells in DEVLOG, BRAINSTORM, LAUNCH_READINESS, AUTONOMY and UX_REVIEW) and "no plan gives a time estimate…" (those docs, DESIGN and the screen specs). |
 | Keep the docs moving | Partly: `rules/docsDrift.test.ts` fails when a roadmap row and its entry disagree, or a shipped ID still has a DEVLOG entry. Writing the entries stays a process rule. |
 | Attachments | Rule tests `preload.test.ts` (ids and names only) and `boundaries.test.ts` (`pdfjs-dist` and `mammoth` by `import()` only, as runtime dependencies; `maskSecrets` in the worker). Test `code.test.ts` (files) "hides well-known key shapes anywhere"; `trust.test.ts` "takes out key shapes but leaves NAME=value as the user wrote it". Test `hiddenLines.test.ts` (hinted lines never reach otty.db or a request, D-40). |
 | Hotkeys | Smoke `launch.smoke.ts` (shortcuts registered). Prose only for *no panel views that only work in one column*: a layout judgement. |

@@ -20,7 +20,7 @@ The long-run direction, from something you ask to something that looks after thi
 
 ## How to use this doc
 
-- Add ideas freely, one line each, in the right section. Give each one **Impact** (H/M/L), **Effort** (S/M/L) and a pillar.
+- Add ideas freely, one line each, in the right section. Give each one **Impact** (H/M/L), **Effort** (S/M/L, the DEVLOG's scale: the amount and complexity of the work, never a time) and a pillar.
 - Status: `idea` · `considering` (worth a design sketch) · `→ D-n` (promoted to [DEVLOG.md](DEVLOG.md)) · `shipped` (see [CHANGELOG.md](CHANGELOG.md)) · `parked` / `rejected` (always with a reason, so we don't re-argue it) · `dream` (the far horizon: not for planning, there to show where the road goes).
 - Each table is ordered by **value per effort**: Impact (H 3, M 2, L 1) divided by Effort (S 1, S–M 1.5, M 2, M–L 2.5, L 3). On a tie, ideas nothing blocks come first, then `considering` before `idea`. Below the open ideas come `→ D-n`, then `shipped`, then `parked`.
 - At the start of each iteration, re-sort, then promote 1–3 of the best unblocked ideas to the dev log.
