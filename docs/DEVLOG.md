@@ -95,7 +95,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 | — | S–M (step 1: S) |
 | D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 (no art) | step 2: two painted frames (mouth open, munch) | S–M |
-| D-68 | See more: long highlights in a sent message fold to a few lines | 🔨 | — | S |
 | D-69 | Good to know: retire the always-on tip | 🔨 | — | S |
 | D-70 | Charts and slides with taste: a palette, softer marks, a richer deck template | 🔨 | — | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
@@ -107,7 +106,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 1. **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
 2. **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
 3. **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
-4. **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
+4. ✅ **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
 5. **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
 
 Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M, wants its composer spec) and Pebbles step 1 (H, M). The living cove needs painted sources first, like D-38. D-54 still waits for the OAuth client, and the eval in CI for the key.
@@ -415,16 +414,6 @@ The pattern: specs are written from the feature's happy path, so they test **one
 3. **A probe for agents (step 3, S–M).** `npm run probe` starts the release build in the smoke world and keeps it running, reading one JSON command per line on stdin (`open`, `click` by text, `type`, `key`, `resize`, `shot`, `controls` to list what's visible and clickable) and printing the result. An agent uses it to check a surface it just changed, at any width or state, without writing a spec; anything worth keeping becomes an invariant or a spec. The Browser pane's preview of `tools/ui-preview` stays the quickest look at a view.
 
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
-
-## D-68 · See more: long highlights fold 🔨
-
-**Goal.** A long highlight or pasted page in a sent message takes a few lines, not the whole window, so the answer stays in view. The full text is one tap away.
-
-**Design.** In a sent message (not the tray, which is already compact), a text capture longer than about six lines is clipped to six lines with a soft fade at the bottom and a **See more** button under it; pressing it shows the rest and the button becomes **See less**. Clipping is CSS (`max-height` from `--lh-*` tokens and a mask), measured once after render, so a short highlight gets no button. Find in chat (D-7) opens a folded capture when a match is inside it. Copy and search still use the full text.
-
-**Done when.** A long capture in a sent message shows **See more** and six lines, and a short one shows no button (`Messages.test.tsx`); pressing it shows the rest; a find match inside a folded capture unfolds it (`findInChat`'s scroll path); ui-preview's `chat` scene shows a folded capture.
-
-**Smoke test (add when it ships).** Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **See more**; press it → the whole text; **See less** folds it again. ⌘F a word near its end → it unfolds to the match.
 
 ## D-69 · Good to know: retire the always-on tip 🔨
 
@@ -815,3 +804,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 159. Close the roomy window (the red button or ⌘W) → it goes, and the Dock icon after it. Click the bubble → the floating window, beside it. ✋ also by hand: open Otty from Applications while it runs → the roomy window; each state reopens where it was left.
 160. Start a look-up that meets a page it hasn't been given → **⌘1** opens Home: "One thing needs you.", and Needs you shows the page with **Read it** and **Skip**. Read it → the look-up carries on, the item goes, and Today shows it. ✋ also by hand: the item folding into its receipt, and the now dot stepping only while something runs.
 161. On a first open, Home says good morning, afternoon or evening, "Nothing needs you. Ask me anything." and "Nothing has left your Mac today.", with no empty blocks; a Try asking row fills the box and sends nothing.
+162. Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **Show all**; press it → the whole text; **Show less** folds it again. ⌘F a word near its end → it unfolds to the match.

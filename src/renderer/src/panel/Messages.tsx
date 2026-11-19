@@ -38,7 +38,7 @@ export function UserText({ text }: { text: string }) {
   )
 }
 
-export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; compact?: boolean }) {
+export function ContextPreview({ ctx, compact = false, fold = false }: { ctx: ScreenContext; compact?: boolean; fold?: boolean }) {
   if (ctx.kind === 'image' && !ctx.dataUrl) {
     // Saved chats never keep pictures.
     return (
@@ -65,6 +65,7 @@ export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; c
       </div>
     )
   }
+  if (fold) return <FoldedText text={ctx.text} />
   const max = compact ? 90 : 160
   return (
     <div className="context-text">
@@ -72,6 +73,36 @@ export function ContextPreview({ ctx, compact = false }: { ctx: ScreenContext; c
         <Icon name="highlighter" /> Highlighted
       </span>
       <span className="context-text__body">{ctx.text.length > max ? ctx.text.slice(0, max) + '…' : ctx.text}</span>
+    </div>
+  )
+}
+
+/** A sent highlight: six lines with a fade, and Show all opens the rest (D-68). Find in chat unfolds one with a match. */
+function FoldedText({ text }: { text: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const [long, setLong] = useState(false)
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    setLong(el.scrollHeight > el.clientHeight + 1)
+    const unfold = () => setOpen(true)
+    el.addEventListener('otty-unfold', unfold)
+    return () => el.removeEventListener('otty-unfold', unfold)
+  }, [text])
+  return (
+    <div className="context-text">
+      <span className="context-text__label">
+        <Icon name="highlighter" /> Highlighted
+      </span>
+      <span ref={ref} className={`context-text__body context-text__body--fold${open ? ' context-text__body--open' : ''}`}>
+        {text}
+      </span>
+      {long && (
+        <button className="msg__more" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+          {open ? 'Show less' : 'Show all'}
+        </button>
+      )}
     </div>
   )
 }
@@ -96,7 +127,7 @@ export function CaptureList({
       {captures.map((c) => (
         <div key={c.id} className="capture">
           {c.app && <AppTag app={c.app} onRemove={onForgetApp && (() => onForgetApp(c.id))} />}
-          <ContextPreview ctx={c.context} compact={compact} />
+          <ContextPreview ctx={c.context} compact={compact} fold={!compact && !onRemove} />
           {onRemove && (
             <button className="context-card__x" title="Remove" onClick={() => onRemove(c.id)}>
               <Icon name="cross-small" />

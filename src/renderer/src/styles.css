@@ -2095,6 +2095,13 @@ html[data-view='bubble'] body {
 .msg--user .context-text {
   text-align: left;
 }
+/* D-68: a sent highlight shows six lines until Show all. */
+.context-text__body--fold {
+  -webkit-line-clamp: 6;
+}
+.context-text__body--open {
+  display: block;
+}
 .msg--user .captures,
 .msg--user .capture {
   align-items: flex-end;
