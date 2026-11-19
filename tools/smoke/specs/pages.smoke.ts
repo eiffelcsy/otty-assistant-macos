@@ -181,7 +181,7 @@ test('a remote picture in an answer shows only its words and is never fetched; O
   const panel = await otty.openPanel()
   await otty.ask(panel, 'Reply with exactly ![test](https://example.com/p.png)')
   const answer = panel.locator('.msg--otty .msg__bubble').last()
-  await expect(answer).toContainText('Here: test')
+  await expect(answer).toContainText('Picture not shown, to keep you safe: test')
   await expect(panel.locator('img[src^="http"]')).toHaveCount(0)
   expect(world.requests.filter((r) => r.url.includes('p.png'))).toEqual([])
   const otter = panel.locator('img.otter-frame').first()
