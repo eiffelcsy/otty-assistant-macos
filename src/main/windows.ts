@@ -1,14 +1,13 @@
-import { BrowserWindow, nativeImage, screen, shell, systemPreferences } from 'electron'
+import { app, BrowserWindow, nativeImage, screen, shell, systemPreferences } from 'electron'
 import type { OcrLine, PanelOpenPayload, PickupPicture, QuickState } from '../shared/types'
 import { setView } from './ipc/check'
 import { join } from 'path'
 import { getViewer } from './draw'
 import { readText } from './ocr'
 import { getStored, saveBubblePosition } from './settings'
+import { closeRoomy, expand, floatingSize, FLOATING, remember, sendState, shrink, windowState } from './roomy'
 
 const BUBBLE_SIZE = 84
-const PANEL_W = 420
-const PANEL_H = 580
 const QUICK_W = 420
 const QUICK_MAX_H = 560
 const GAP = 14
@@ -81,12 +80,16 @@ export function createBubble(): BrowserWindow {
 }
 
 export function createPanel(): BrowserWindow {
+  const size = floatingSize()
   panel = new BrowserWindow({
-    width: PANEL_W,
-    height: PANEL_H,
-    minWidth: 360,
-    minHeight: 420,
-    frame: false,
+    width: size.width,
+    height: size.height,
+    minWidth: FLOATING.minWidth,
+    minHeight: FLOATING.minHeight,
+    // D-65: a hidden title bar, not a frameless window, so the same window can show traffic lights when it's roomy.
+    // While it floats they're hidden, and the page draws its own corners on a transparent window, as before.
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 16, y: 20 },
     transparent: true,
     resizable: true,
     skipTaskbar: true,
@@ -97,11 +100,57 @@ export function createPanel(): BrowserWindow {
   })
   panel.setAlwaysOnTop(true, 'floating')
   panel.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  panel.setWindowButtonVisibility(false)
   secure(panel)
   load(panel, 'panel')
   sleepWhenHidden(panel)
-  panel.on('closed', () => (panel = null))
-  return panel
+  const win = panel
+  let quitting = false
+  app.once('before-quit', () => (quitting = true))
+  // The roomy window's close button and ⌘W put it away, back to floating for next time; quitting still quits.
+  win.on('close', (e) => {
+    if (quitting || windowState() !== 'roomy') return
+    e.preventDefault()
+    closeRoomy(win)
+  })
+  win.on('moved', () => remember(win))
+  win.on('resized', () => remember(win))
+  win.webContents.on('did-finish-load', () => sendState(win))
+  win.on('closed', () => (panel = null))
+  return win
+}
+
+/** Floating → roomy (Expand, ⇧⌘E, or opening Otty from Applications). */
+export function expandPanel(): void {
+  if (panel) expand(panel)
+}
+
+/** Roomy → floating, beside the bubble (or the cursor) as the floating window always opens. */
+export function shrinkPanel(): void {
+  if (panel) void shrink(panel, floatingSpot)
+}
+
+/** Where the floating window goes for a size: beside the bubble if it's showing, otherwise by the cursor. */
+function floatingSpot({ width: w, height: h }: { width: number; height: number }): { x: number; y: number } {
+  if (bubble?.isVisible()) {
+    const [bx, by] = bubble.getPosition()
+    const wa = screen.getDisplayNearestPoint({ x: bx, y: by }).workArea
+    let x = bx - w - GAP
+    if (x < wa.x) x = bx + BUBBLE_SIZE + GAP
+    const y = Math.max(wa.y + GAP, Math.min(by + BUBBLE_SIZE - h, wa.y + wa.height - h - GAP))
+    return { x: Math.round(Math.max(wa.x + GAP, Math.min(x, wa.x + wa.width - w - GAP))), y: Math.round(y) }
+  }
+  const c = screen.getCursorScreenPoint()
+  const wa = screen.getDisplayNearestPoint(c).workArea
+  return { x: Math.round(Math.max(wa.x + GAP, Math.min(c.x + GAP, wa.x + wa.width - w - GAP))), y: Math.round(Math.max(wa.y + GAP, Math.min(c.y + GAP, wa.y + wa.height - h - GAP))) }
+}
+
+/** Never two windows for one thing: while the roomy window is open, whatever would open the floating one brings it forward. */
+function roomyForward(): boolean {
+  if (!panel || windowState() !== 'roomy') return false
+  panel.show()
+  panel.focus()
+  return true
 }
 
 export function createQuick(): BrowserWindow {
@@ -255,7 +304,7 @@ function onSomeDisplay(p: { x: number; y: number }): boolean {
 
 /** Show the panel next to a point (the cursor or the bubble), clamped on-screen. */
 export function showPanelAt(anchor: { x: number; y: number }, anchorSize = 0): void {
-  if (!panel) return
+  if (!panel || roomyForward()) return
   const wa = screen.getDisplayNearestPoint(anchor).workArea
   const [w, h] = panel.getSize()
 
@@ -277,6 +326,7 @@ export function showPanelAtCursor(): void {
 }
 
 export function showPanelByBubble(): void {
+  if (roomyForward()) return
   if (!bubble || !bubble.isVisible()) return showPanelAtCursor()
   const [bx, by] = bubble.getPosition()
   // Prefer opening above-left of the bubble since it usually sits bottom-right.

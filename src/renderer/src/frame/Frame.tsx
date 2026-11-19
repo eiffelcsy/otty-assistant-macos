@@ -61,6 +61,10 @@ export interface FrameProps {
   list?: ReactNode
   /** With Remember my chats off there's no list of chats to go to. */
   noChats?: boolean
+  /** The window's state (D-65): roomy windows have traffic lights in the nav and a 52 px header. */
+  roomy?: boolean
+  /** Expand to the roomy window, or Shrink back. */
+  onResize?: () => void
   /** The sidebar folded to the rail by ⌃⌘S. */
   sidebarHidden: boolean
   notices?: ReactNode
@@ -72,7 +76,7 @@ export function Frame(p: FrameProps) {
   const cols = columns(p.width, Boolean(p.list))
   const nav = cols.nav === 'sidebar' && p.sidebarHidden ? 'rail' : cols.nav
   return (
-    <div className={`frame frame--${band}`} data-band={band}>
+    <div className={`frame frame--${band}${p.roomy ? ' frame--roomy' : ''}`} data-band={band}>
       {nav !== 'none' && <Nav kind={nav} {...p} />}
       {cols.list && p.list && (
         <section className="frame__list" data-column aria-label="Chats" tabIndex={-1}>
@@ -130,6 +134,16 @@ function Header(p: FrameProps & { compact: boolean }) {
             <Icon name="comment-medical" />
           </button>
         )}
+        {p.onResize &&
+          (p.roomy ? (
+            <button className="icon-btn" title="Shrink to floating ⇧⌘E" aria-label="Shrink to floating" onClick={p.onResize}>
+              <Icon name="compress" />
+            </button>
+          ) : (
+            <button className="icon-btn frame__expand" title="Expand ⇧⌘E" aria-label="Expand" onClick={p.onResize}>
+              <Icon name="expand" />
+            </button>
+          ))}
       </div>
     </header>
   )

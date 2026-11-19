@@ -4,6 +4,17 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The roomy window (D-65, 2026-11-19)
+
+The Otty window has a second state (Spec 06, part 1): a normal Mac window with traffic lights, a Dock icon and a menu bar.
+- **Expand** (the header's last button, or ⇧⌘E) moves the floating window into it in one animated move, keeping the screen, the chat, a streaming answer and the box's words; **Shrink to floating** (the same button, ⇧⌘E, or View › Shrink to floating) moves it back, leaving full screen first. The content dims during the move and surfaces after.
+- The Dock icon and the menu bar show first on Expand and go only once the window is small again, so the Dock never flickers. No Dock badge.
+- **Opening Otty** from Applications, Spotlight or Launchpad while it runs, clicking its Dock icon, or **Open the Otty window** in the menu bar opens the roomy window. While it's open, the bubble and Open chat bring it forward instead of opening a second window.
+- **Closing** it (the red button, ⌘W) puts it away and leaves Otty floating for next time. ⌘Q quits.
+- Each state reopens where it was left, if that's still on a connected display; the first roomy window is 1280 × 800, centred.
+- **The menu bar** follows the Mac's layout: Otty (Settings, Pause everything, Hide floating Otty, Quit), File (New chat, the capture shortcuts, Attach files, Close window), Edit, View (the screens, Hide sidebar, Shrink to floating, full screen), Window and Help. Pause is built from the same list as the menu bar icon's. The Dock icon's menu has New chat and Pause.
+- The window is now made with a hidden title bar instead of no frame, so the same window can show traffic lights; while floating they're hidden and it looks as before.
+
 ### The frame: one window, laid out by its width (D-64, 2026-11-19)
 
 The panel is now a frame (`renderer/src/frame/`) with screens in it (Spec 05), so dragging it wider changes the layout with no new screens.

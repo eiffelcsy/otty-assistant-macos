@@ -460,6 +460,27 @@ html[data-view='bubble'] body {
 .frame__back {
   -webkit-app-region: no-drag;
 }
+/* The roomy window (D-65, Spec 06): the system's corner, a 52 px header with the traffic lights in the nav's top row,
+   and the content dimming while the window moves between states. */
+.panel--roomy {
+  border: none;
+  border-radius: var(--r-sm);
+}
+.frame--roomy .panel__header,
+.frame--roomy .frame__nav-top {
+  height: 52px;
+}
+.panel--moving .frame {
+  animation: window-move var(--t-travel) var(--glide);
+}
+@keyframes window-move {
+  28% { opacity: 0.3; transform: none; }
+  72% { opacity: 0.3; transform: translateY(4px); }
+  100% { opacity: 1; transform: none; }
+}
+.frame__expand {
+  color: var(--brand-text);
+}
 /* The rail (640–979) and the sidebar (from 980): Otty, the screens, then Pause and Settings at the foot. */
 .frame__nav {
   flex: none;

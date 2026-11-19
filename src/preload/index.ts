@@ -101,6 +101,7 @@ const api: OttyApi = {
   captureSelection: () => ipcRenderer.invoke('capture:selection'),
   captureScreenshot: () => ipcRenderer.invoke('capture:screenshot'),
   closePanel: () => ipcRenderer.invoke('panel:close'),
+  setWindowState: (to) => ipcRenderer.invoke('window:state', to),
   openExternal: (url) => ipcRenderer.invoke('shell:open', url),
   copyText: (text) => ipcRenderer.invoke('clipboard:write', text),
 
@@ -128,7 +129,9 @@ const api: OttyApi = {
   onBubbleState: (cb) => listen('bubble:state', cb),
   onBubbleMood: (cb) => listen('bubble:mood', cb),
   onBubbleBadge: (cb) => listen('bubble:badge', cb),
-  onWindowVisible: (cb) => listen('window:visible', cb)
+  onWindowVisible: (cb) => listen('window:visible', cb),
+  onWindowState: (cb) => listen('window:state', cb),
+  onFrameCommand: (cb) => listen('frame:command', cb)
 }
 
 contextBridge.exposeInMainWorld('otty', api)

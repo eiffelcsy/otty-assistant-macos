@@ -1,4 +1,4 @@
-import type { PublicSettings, SettingsUpdate } from '../shared/types'
+import type { PublicSettings, SettingsUpdate, WindowState } from '../shared/types'
 import { defaultHomeLanguage } from './language'
 import { profileFor } from './providers/profiles'
 import { serviceAt, type ServiceId } from '../shared/services'
@@ -58,6 +58,8 @@ export interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'need
   apiKeyEnc?: string
   apiKeyPlain?: boolean
   bubblePosition?: { x: number; y: number }
+  /** Where each state of the Otty window was left (D-65). Main's alone: a window can't set it. */
+  windowBounds?: Partial<Record<WindowState, { x: number; y: number; width: number; height: number }>>
   /** "Not now" to moving into Applications (D-53), so it's asked once. */
   moveDeclined?: boolean
 }
@@ -142,7 +144,7 @@ export function getStored(): StoredSettings {
 
 export function getPublic(): PublicSettings {
   const s = load()
-  const { apiKeys, apiKeyEnc: _e, apiKeyPlain: _p, bubblePosition: _b, moveDeclined: _m, ...rest } = s
+  const { apiKeys, apiKeyEnc: _e, apiKeyPlain: _p, bubblePosition: _b, moveDeclined: _m, windowBounds: _w, ...rest } = s
   return {
     ...rest,
     hasApiKey: Boolean(apiKeys?.[serviceAt(s.baseUrl)]) || Boolean(envKey(s)),
@@ -193,6 +195,12 @@ export function update(u: SettingsUpdate): PublicSettings {
   }
   persist()
   return getPublic()
+}
+
+export function saveWindowBounds(state: WindowState, bounds: { x: number; y: number; width: number; height: number }): void {
+  const s = load()
+  s.windowBounds = { ...s.windowBounds, [state]: bounds }
+  persist()
 }
 
 export function saveBubblePosition(pos: { x: number; y: number }): void {

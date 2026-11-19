@@ -124,6 +124,7 @@ export const CHANNELS = {
   'capture:selection': { views: PANEL, args: [] },
   'capture:screenshot': { views: PANEL, args: [] },
   'panel:close': { views: PANEL, args: [] },
+  'window:state': { views: PANEL, args: [oneOf('expand', 'shrink')] },
   'shell:open': { views: CHAT, args: [text(8_000)] },
   'clipboard:write': { views: [...CHAT, 'pickup'], args: [text(1_000_000)] },
   'pickup:open': { views: CHAT, args: [text(50_000_000)] },

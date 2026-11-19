@@ -458,6 +458,12 @@ export interface MemoryNote {
   undone?: boolean
 }
 
+/** The Otty window's two states (D-65, Spec 06): floating beside your work, or a normal roomy Mac window. */
+export type WindowState = 'floating' | 'roomy'
+
+/** What the app menu asks the Otty window to do on its own screen (D-65); navigation lives in the renderer (D-64). */
+export type FrameCommand = 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
+
 /** The Logbook's views (D-63, Spec 04). The last three are the "Looking for…" ones. */
 export type LogView = 'wait' | 'next' | 'all' | 'sent' | 'changed' | 'noted'
 
@@ -742,6 +748,8 @@ export interface OttyApi {
   captureSelection(): Promise<PanelOpenPayload>
   captureScreenshot(): Promise<PanelOpenPayload>
   closePanel(): Promise<void>
+  /** Expand to the roomy window, or shrink back to floating (D-65). */
+  setWindowState(to: 'expand' | 'shrink'): Promise<void>
   openExternal(url: string): Promise<void>
   copyText(text: string): Promise<void>
 
@@ -781,4 +789,8 @@ export interface OttyApi {
   onBubbleBadge(cb: (on: boolean) => void): () => void
   /** Whether this window is on screen. */
   onWindowVisible(cb: (visible: boolean) => void): () => void
+  /** Which state the Otty window is in: on load and after every Expand or Shrink. */
+  onWindowState(cb: (state: WindowState) => void): () => void
+  /** The app menu asking the window to go somewhere or do something on its screen. */
+  onFrameCommand(cb: (command: FrameCommand) => void): () => void
 }
