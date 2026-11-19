@@ -24,6 +24,7 @@ Where the checks live:
 | CI | CI itself: `npm ci` fails when `package-lock.json` is out of sync. |
 | Docs | `rules/docsDrift.test.ts`: every path it and DEVLOG’s architecture name exists. |
 | Otty is heading from | Prose only: a design direction, judged in review against `docs/AUTONOMY.md`. Its hard limits have their own rows (Tool safety, Jobs, Memory). |
+| Estimates are effort | Rule test `docsDrift.test.ts` "every Size and Effort is on the effort scale…" (Size and Effort cells in DEVLOG, BRAINSTORM, LAUNCH_READINESS, AUTONOMY and UX_REVIEW) and "no plan gives a time estimate…" (those docs, DESIGN and the screen specs). |
 | Keep the docs moving | Partly: `rules/docsDrift.test.ts` fails when a roadmap row and its entry disagree, or a shipped ID still has a DEVLOG entry. Writing the entries stays a process rule. |
 | Attachments | Rule tests `preload.test.ts` (ids and names only) and `boundaries.test.ts` (`pdfjs-dist` and `mammoth` by `import()` only, as runtime dependencies; `maskSecrets` in the worker). Test `code.test.ts` (files) "hides well-known key shapes anywhere"; `trust.test.ts` "takes out key shapes but leaves NAME=value as the user wrote it". Test `hiddenLines.test.ts` (hinted lines never reach otty.db or a request, D-40). |
 | Hotkeys | Smoke `launch.smoke.ts` (shortcuts registered). Prose only for *no panel views that only work in one column*: a layout judgement. |
@@ -51,6 +52,7 @@ Where the checks live:
 | Drawings | Test `sanitize.test.ts`, `draw.test.ts`, `slides.test.ts`, `drawing.test.ts`. |
 | Action ledger | Tests `ledger.test.ts` (both backends, masking, forgetting, a failing ledger never throws) and `rewind.test.ts` "reads its list from the action ledger…". Smoke `ledger.smoke.ts`. |
 | Logbook | Tests `logbook.test.ts` (each view's sources, order, folding, search, masked text, details without the brief), `jobs.test.ts` "hears a steering note once, at its next step, and the note opens nothing…", `receipts.test.ts` "takes a reminder back from the Logbook too…". Smoke `logbook.smoke.ts`, `ledger.smoke.ts`. |
+| Home | Tests `home.test.ts` (the status sentence by priority, Needs you matching the Logbook's view, ticks in order and folded, counts from the logs, first run), `Home.test.tsx` (no empty blocks, deciding by id). Smoke `home.smoke.ts`. |
 | What left the Mac | Typecheck (`activeProvider(sent: SentTag)`). Rule test `requests.test.ts` (every call passes a tag; searches and pages are recorded). Test `sent.test.ts`. |
 | Monthly limit | Test `repeat.test.ts` "the monthly limit"; `trust.test.ts` "the monthly limit (D-33)". |
 | Repeating jobs | Test `repeat.test.ts` "repeating jobs"; `trust.test.ts` "repeats (D-34)". |

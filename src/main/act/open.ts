@@ -1,6 +1,7 @@
 import { existsSync } from 'fs'
 import { homedir } from 'os'
 import { isAbsolute, join, relative, resolve } from 'path'
+import { checkedUrl } from '../web'
 
 // What an `open` step may reach. Anything else is refused, and the step stays a manual one.
 
@@ -39,12 +40,10 @@ function inHome(target: string, home: string): string | null {
 
 export function openTarget(raw: string, exists: (path: string) => boolean = existsSync, home = homedir()): OpenTarget | null {
   const target = raw.trim()
-  if (/^https?:\/\//i.test(target)) {
-    try {
-      return { kind: 'url', url: new URL(target).href }
-    } catch {
-      return null
-    }
+  try {
+    return { kind: 'url', url: checkedUrl(target).href }
+  } catch {
+    /* not a web address: maybe a settings pane, a file or an app */
   }
   if (target.startsWith('x-apple.systempreferences:')) {
     return SETTINGS_PANES.has(target.slice('x-apple.systempreferences:'.length)) ? { kind: 'settings', url: target } : null

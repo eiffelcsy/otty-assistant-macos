@@ -77,6 +77,7 @@ const api: OttyApi = {
   logbookEntry: (id) => ipcRenderer.invoke('logbook:entry', id),
   undoChange: (id) => ipcRenderer.invoke('logbook:undo', id),
   noteJob: (id, text) => ipcRenderer.invoke('logbook:note', id, text),
+  home: () => ipcRenderer.invoke('home:get'),
   rewindPlan: (messageId: string) => ipcRenderer.invoke('chat:rewind-plan', messageId),
   rewind: (messageId, undo, mode, twist) => ipcRenderer.invoke('chat:rewind', messageId, undo, mode, twist),
   onActivity: (cb) => listen('activity:changed', cb),

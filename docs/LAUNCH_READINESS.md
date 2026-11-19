@@ -4,7 +4,7 @@ A first look, on 2026-11-15, at what Otty has today and what has to happen befor
 
 This is a starting point, not a plan of record. Facts about the code were checked against `feat/next-five` (v0.5.0). Facts about the outside world (prices, laws, store rules, provider terms) change often and are marked **verify**: check them at the source before relying on them. None of this is legal or tax advice.
 
-Sizes use the same scale as the DEVLOG: S (≤ 1 day), M (2–4 days), L (a week or more).
+Sizes use the DEVLOG's effort scale (S, M, L, defined under "How to use this doc"): the amount and complexity of the work, never a time.
 
 ---
 

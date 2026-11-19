@@ -20,7 +20,7 @@ The long-run direction, from something you ask to something that looks after thi
 
 ## How to use this doc
 
-- Add ideas freely, one line each, in the right section. Give each one **Impact** (H/M/L), **Effort** (S/M/L) and a pillar.
+- Add ideas freely, one line each, in the right section. Give each one **Impact** (H/M/L), **Effort** (S/M/L, the DEVLOG's scale: the amount and complexity of the work, never a time) and a pillar.
 - Status: `idea` · `considering` (worth a design sketch) · `→ D-n` (promoted to [DEVLOG.md](DEVLOG.md)) · `shipped` (see [CHANGELOG.md](CHANGELOG.md)) · `parked` / `rejected` (always with a reason, so we don't re-argue it) · `dream` (the far horizon: not for planning, there to show where the road goes).
 - Each table is ordered by **value per effort**: Impact (H 3, M 2, L 1) divided by Effort (S 1, S–M 1.5, M 2, M–L 2.5, L 3). On a tie, ideas nothing blocks come first, then `considering` before `idea`. Below the open ideas come `→ D-n`, then `shipped`, then `parked`.
 - At the start of each iteration, re-sort, then promote 1–3 of the best unblocked ideas to the dev log.
@@ -266,6 +266,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 | An Undo on the Saved whisper for the last change, as UX_REVIEW #2 suggested; D-61 shipped the whisper without it | L | S | idea, after D-61 |
 | Try again as a split button: Try again, with a small chevron that opens Shorter, Simpler and In more detail. The action row wraps to two lines at 420 since D-58, which is busier than the polish bar likes | M | S | idea, found in D-58 |
 | Drafts keep the tray too: captures and file ids beside the text (Spec 03). Today a draft is the words only, and a snip waiting in the quick view's tray doesn't follow ↵ continue in chat | M | S | idea, after D-62 |
+| Home's motion (Spec 06): the otter, greeting and Needs you surfacing 160 ms apart on open, a decided item folding into its receipt for 2.4 s, a finishing tick's dot filling as the now point drifts down. D-66 shows the blocks without it | M | S | idea, after D-66 |
+| Home's side blocks in the details pane at wide (Spec 06): Looking after and what left your Mac beside the main column from 980. Today they sit in Home's own two columns | M | S | idea, after D-66 |
 | Expand and Shrink on Otty's own 720 ms glide instead of macOS's animated move: main would step the bounds on the display's refresh, if that holds 60 fps (Spec 06). D-65 uses the native move | L | S | idea, after D-65 |
 | The roomy window's corner: the floating window keeps the page's 24 px corner on a transparent window; the roomy one uses a 10 px corner. Check both against the system's at 100% and 200%, and make the composer concentric with the one macOS draws | M | S | ✋ check, after D-65 |
 | The frame's motion (Spec 05): the rail's glyphs gliding into the sidebar, a joined column fading in on release, pushed pages gliding from the side, the selected nav row gliding (W2, W4, W5). D-64 lays out without animating | M | S | idea, after D-64 |
@@ -459,7 +461,7 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | Tools it builds for you: Otty spots a repeat and makes a small automation, starting as sandboxed, read-only recipes you can read in plain words | H | L | idea, the proactive end of [Build your own feature](#build-your-own-feature-otty-made-to-measure) |
 | A character that grows: Otty's manner and in-jokes change with your history together, so it's clearly yours after a year | H | L | idea, extends Otty's den |
 | Do, with undo: routine changes just happen, with "tap to reverse" | H | L | idea, needs the action ledger |
-| The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | → D-64 (frame), D-65 (roomy window), D-66 (Home); goals, Otty noticed and the den later |
+| The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | shipped as D-64 (frame), D-65 (roomy window) and D-66 (Home); goals, Otty noticed and the den later |
 | Phone app: Otty goes with you, one relationship across devices | H | L | long-term; reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
 | **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | idea; step 1 needs no account, sharing needs the hosted service and sign-in |

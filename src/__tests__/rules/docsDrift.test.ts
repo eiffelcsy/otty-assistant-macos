@@ -58,4 +58,41 @@ describe('docs drift', () => {
     // D-48 ships in phases, so its entry stays until the last one.
     expect(entries.filter((id) => shipped.has(id) && id !== 'D-48')).toEqual([])
   })
+
+  // Sizes are effort (the amount and complexity of the work, DEVLOG's scale), never time.
+  it('every Size and Effort is on the effort scale, with no days, weeks or hours', () => {
+    const TIME = /\b\d*\s*-?\s*(half[- ])?(days?|weeks?|hours?|hrs?|sprints?|afternoons?|evenings?)\b/i
+    const bad: string[] = []
+    for (const file of ['docs/DEVLOG.md', 'docs/BRAINSTORM.md', 'docs/LAUNCH_READINESS.md', 'docs/AUTONOMY.md', 'docs/UX_REVIEW.md']) {
+      let column = -1
+      for (const line of read(file).split('\n')) {
+        if (!line.startsWith('|')) {
+          column = -1
+          continue
+        }
+        const cells = line.split('|').slice(1, -1).map((c) => c.trim())
+        if (column < 0) {
+          column = cells.findIndex((c) => c === 'Size' || c === 'Effort')
+          continue
+        }
+        const cell = cells[column]
+        if (cell === undefined || /^-+$/.test(cell)) continue
+        if (!/^(S|M|L|S–M|M–L|ongoing|—)(\s|\(|$)/.test(cell) || TIME.test(cell)) bad.push(`${file}: ${cell}`)
+      }
+    }
+    expect(bad, 'a size that is a time, or not S, M or L').toEqual([])
+  })
+
+  it('no plan gives a time estimate, such as "(2 days)" or "a 1-day check"', () => {
+    const ESTIMATE = /\b[SML](–[ML])?\s*\([^)]*\b\d+(–\d+)?\s*(days?|weeks?|hours?)\b|\b(\d+(–\d+)?|one|two|three|half)[- ](day|week|hour)\s+(\w+\s+)?(check|spike|task|job|build|effort)\b/i
+    const files = ['docs/DEVLOG.md', 'docs/BRAINSTORM.md', 'docs/LAUNCH_READINESS.md', 'docs/AUTONOMY.md', 'docs/UX_REVIEW.md', 'docs/DESIGN.md']
+    const specs = tracked.filter((f) => f.startsWith('docs/design/specs/') && f.endsWith('.md'))
+    const hits = [...files, ...specs].flatMap((f) =>
+      read(f)
+        .split('\n')
+        .filter((l) => ESTIMATE.test(l))
+        .map((l) => `${f}: ${l.slice(0, 80)}`)
+    )
+    expect(hits).toEqual([])
+  })
 })

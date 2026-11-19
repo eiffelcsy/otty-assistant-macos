@@ -117,4 +117,12 @@ describe('one setting at a time (D-61)', () => {
     const [keyGuard] = CHANNELS['settings:set'].args
     for (const key of ['apiKey', 'baseUrl', 'model', 'workPaused', 'onboarded', '__proto__']) expect(keyGuard(key), key).toBe(false)
   })
+
+  it('settings:save takes what the windows send, and nothing that is main’s own', () => {
+    const [save] = CHANNELS['settings:save'].args
+    for (const ok of [{ baseUrl: 'https://api.deepseek.com', model: 'm', apiFormat: 'auto', apiKey: 'sk-x' }, { onboarded: true }, { workPaused: true, workPausedUntil: null }, { homeLanguage: 'zh-HK' }])
+      expect(save(ok), JSON.stringify(ok)).toBe(true)
+    for (const bad of [{ apiKeys: {} }, { windowBounds: {} }, { keychain: true }, { apiKey: 5 }, { askHotkey: 'Cmd+;rm' }, { workPaused: 'yes' }, JSON.parse('{"__proto__":{}}')])
+      expect(save(bad), JSON.stringify(bad)).toBe(false)
+  })
 })

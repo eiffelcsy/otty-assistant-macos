@@ -1,7 +1,8 @@
 import { lookup } from 'dns/promises'
 import { isIP } from 'net'
 import { checkedUrl, formatPage, WebError } from './web'
-import { LocalOnlyError, refused, send } from './net'
+import type { LookupFunction } from 'net'
+import { connectingVia, LocalOnlyError, refused, send } from './net'
 
 // Reads a web page from the Mac, for services with no page reader of their own. A hostile page could try to send
 // Otty to something only this Mac can reach, such as a router, so every address is checked before it's opened.
@@ -64,20 +65,36 @@ type Resolve = (host: string) => Promise<string[]>
 
 const resolveHost: Resolve = async (host) => (await lookup(host, { all: true })).map((a) => a.address)
 
+const blocked = () => new WebError('Otty can only read public web pages.', false)
+
+/** The lookup the connection itself uses, refusing a private answer: what was checked is what gets opened. */
+export function publicLookup(resolve: Resolve): LookupFunction {
+  return (host, options, callback) => {
+    resolve(host).then(
+      (addresses) => {
+        if (!addresses.length || addresses.some(isPrivateAddress)) return callback(blocked(), '', 0)
+        const all = addresses.map((address) => ({ address, family: isIP(address) }))
+        if (options.all) callback(null, all)
+        else callback(null, all[0].address, all[0].family)
+      },
+      (err: NodeJS.ErrnoException) => callback(err, '', 0)
+    )
+  }
+}
+
 /** Refuses anything but a public address on a normal web port. */
 async function assertPublic(url: URL, resolve: Resolve): Promise<void> {
-  const blocked = new WebError('Otty can only read public web pages.', false)
-  if (url.port && url.port !== '80' && url.port !== '443') throw blocked
+  if (url.port && url.port !== '80' && url.port !== '443') throw blocked()
   const host = url.hostname.replace(/^\[|\]$/g, '')
   let addresses: string[]
   if (isIP(host)) addresses = [host]
   else {
-    if (!host.includes('.')) throw blocked
+    if (!host.includes('.')) throw blocked()
     addresses = await resolve(host).catch(() => {
       throw new WebError('Otty couldn’t find that website.', false)
     })
   }
-  if (!addresses.length || addresses.some(isPrivateAddress)) throw blocked
+  if (!addresses.length || addresses.some(isPrivateAddress)) throw blocked()
 }
 
 /** The body as text, stopping at the size limit. */
@@ -106,16 +123,43 @@ function decode(text: string): string {
   })
 }
 
+const HIDDEN_BLOCK = /<!--|<(head|title|script|style|noscript|template|svg|nav|footer|form|iframe)\b/gi
+
+/**
+ * The page without comments and blocks that aren't reading text. One pass with indexOf: a lazy regex rescans to the
+ * end for every block that never closes, so a hostile page of unclosed tags froze the app for minutes.
+ */
+function withoutHidden(html: string): string {
+  const lower = html.toLowerCase()
+  const kept: string[] = []
+  // A block with no close after it has none after any later opening either, so each is looked for to the end once.
+  const unclosed = new Set<string>()
+  let at = 0
+  HIDDEN_BLOCK.lastIndex = 0
+  for (let m = HIDDEN_BLOCK.exec(html); m; m = HIDDEN_BLOCK.exec(html)) {
+    const close = m[1] ? `</${m[1].toLowerCase()}` : '-->'
+    const end = unclosed.has(close) ? -1 : lower.indexOf(close, HIDDEN_BLOCK.lastIndex)
+    if (end < 0) {
+      unclosed.add(close) // left open (`</head>` often is): only the tag goes, as the rest of the tags do later
+      continue
+    }
+    kept.push(html.slice(at, m.index), ' ')
+    at = m[1] ? lower.indexOf('>', end) + 1 || html.length : end + 3
+    HIDDEN_BLOCK.lastIndex = at
+  }
+  kept.push(html.slice(at))
+  return kept.join('')
+}
+
 /** A page's title and readable text. */
 export function htmlToText(html: string): { title: string; text: string } {
-  const title = decode(html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? '').replace(/\s+/g, ' ').trim()
+  const title = decode(html.match(/<title[^<>]*>([^<]*)/i)?.[1] ?? '').replace(/\s+/g, ' ').trim()
   const text = decode(
-    html
-      .replace(/<!--[\s\S]*?-->/g, ' ')
-      .replace(/<(head|title|script|style|noscript|template|svg|nav|footer|form|iframe)\b[\s\S]*?<\/\1\s*>/gi, ' ')
-      .replace(/<(br|hr)\b[^>]*>/gi, '\n')
+    withoutHidden(html)
+      .replace(/<(br|hr)\b[^<>]*>/gi, '\n')
       .replace(/<\/(p|div|li|tr|section|article|blockquote|h[1-6])\s*>/gi, '\n')
-      .replace(/<[^>]*>/g, ' ')
+      // [^<>]: a `<` that never closes would make [^>] scan to the end from every later `<`.
+      .replace(/<[^<>]*>/g, ' ')
   )
     .replace(/[ \t\f\r]+/g, ' ')
     .replace(/ ?\n ?/g, '\n')
@@ -125,7 +169,16 @@ export function htmlToText(html: string): { title: string; text: string } {
 }
 
 export async function readPageFromMac(address: string, fetchImpl: typeof fetch = send, resolve: Resolve = resolveHost): Promise<string> {
-  let url = checkedUrl(address)
+  const dispatcher = connectingVia(publicLookup(resolve))
+  try {
+    return await readThrough(checkedUrl(address), dispatcher, fetchImpl, resolve)
+  } finally {
+    void dispatcher.close()
+  }
+}
+
+async function readThrough(start: URL, dispatcher: ReturnType<typeof connectingVia>, fetchImpl: typeof fetch, resolve: Resolve): Promise<string> {
+  let url = start
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     if (refused(url.hostname)) throw new LocalOnlyError() // before the lookup, which would ask the network
     await assertPublic(url, resolve)
@@ -134,9 +187,11 @@ export async function readPageFromMac(address: string, fetchImpl: typeof fetch =
       // Redirects are followed by hand, so each new address gets checked too. Node's fetch keeps no cookies.
       res = await fetchImpl(url.href, {
         redirect: 'manual',
+        // The check above gives a clear refusal; this one holds if the name answers differently when connecting.
+        dispatcher,
         headers: { Accept: 'text/html,text/plain;q=0.9', 'User-Agent': 'Mozilla/5.0 (Macintosh) Otty' },
         signal: AbortSignal.timeout(TIMEOUT_MS)
-      })
+      } as RequestInit) // the DOM's RequestInit has no `dispatcher`; Node's fetch reads it
     } catch {
       throw new WebError('That page timed out or couldn’t be reached.', false)
     }

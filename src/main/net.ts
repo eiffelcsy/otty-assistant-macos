@@ -1,3 +1,5 @@
+import type { LookupFunction } from 'net'
+import { Agent } from 'undici'
 import { isLocal } from '../shared/services'
 
 // D-52: the one door out. Every request Otty makes goes through `send`, so "with a model on this Mac nothing leaves
@@ -31,3 +33,10 @@ export const send: typeof fetch = (input, init) => {
   // A local server's redirect would otherwise be followed off the Mac unchecked, so it isn't followed at all.
   return fetch(input, { ...init, redirect: 'manual' })
 }
+
+/**
+ * Connections whose address comes from `lookup`, for `send`'s `dispatcher`. A check made before `fetch` can be fooled
+ * by a name that answers differently the second time (DNS rebinding), so the check goes in the lookup the socket uses.
+ * Same undici as Electron 45's Node (7.30.1), so its fetch takes this Agent.
+ */
+export const connectingVia = (lookup: LookupFunction): Agent => new Agent({ connect: { lookup } })

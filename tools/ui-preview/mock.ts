@@ -17,10 +17,11 @@ import { draw } from '../../src/renderer/src/draw/render'
 import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 import { entryDetails, logbook, type LogSources } from '../../src/main/logbook'
+import { home } from '../../src/main/home'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -400,13 +401,13 @@ const sentSample: SentItem[] = [
 
 /** What main would read for the Logbook (D-63); the real `logbook()` words it, so the preview shows main's own words. */
 function logSources(): LogSources {
-  const empty = scene === 'logbook-empty'
-  const live = scene === 'logbook-running' || scene === 'logbook-paused'
+  const empty = scene === 'logbook-empty' || scene === 'home-quiet' || scene === 'home-first'
+  const live = scene === 'logbook-running' || scene === 'logbook-paused' || scene === 'home-running' || scene === 'home-paused'
   return {
     now: Date.now(),
     jobs: empty ? [] : live ? [...jobSample, running, { ...running, id: 'j10', title: 'Ryokan near Kyoto station', lookups: 5, note: undefined }] : jobSample,
-    held: scene === 'logbook-paused',
-    pausedUntil: scene === 'logbook-paused' ? Date.now() + 3 * 3.6e6 : null,
+    held: scene === 'logbook-paused' || scene === 'home-paused',
+    pausedUntil: scene === 'logbook-paused' || scene === 'home-paused' ? Date.now() + 3 * 3.6e6 : null,
     overCap: false,
     sent: empty ? [] : sentSample,
     changes: empty ? [] : changeSample,
@@ -563,6 +564,8 @@ const api: OttyApi = {
   seenActivity: noop,
   logbook: async (v, search) => logbook(logSources(), v, search),
   logbookEntry: async (id) => entryDetails(logSources(), id),
+  // D-66: main's own Home words, from the same samples as the Logbook.
+  home: async () => home({ ...logSources(), remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
   undoChange: async () => true,
   noteJob: async () => true,
   hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
@@ -766,7 +769,10 @@ const api: OttyApi = {
     if (q.get('state') === 'roomy') setTimeout(() => cb('roomy'), 0)
     return () => {}
   },
-  onFrameCommand: () => () => {},
+  onFrameCommand: (cb) => {
+    if (scene.startsWith('home')) setTimeout(() => cb('home'), 120)
+    return () => {}
+  },
   setWindowState: noop
 }
 

@@ -5,11 +5,11 @@ import { offerMove } from './install'
 import { closeStore } from './store'
 import { startMetrics } from './metrics'
 import { openChat } from './captureRoute'
-import { checkPause, createTray, registerHotkeys } from './controls'
+import { checkPause, createTray, openRoomy, registerHotkeys } from './controls'
 import { jobs, startServices } from './core'
 import { registerIpc } from './ipc'
 import { setBadge } from './notify'
-import { createBubble, createPanel, createQuick, expandPanel, getPanel } from './windows'
+import { createBubble, createPanel, createQuick, getPanel } from './windows'
 
 // The app's lifecycle. What it starts lives elsewhere (D-45): the chat and jobs in `core.ts`, the windows' messages
 // in `ipc/`, where captures go in `captureRoute.ts`, the menu bar and hotkeys in `controls.ts`, and what the user is
@@ -45,8 +45,8 @@ if (!app.requestSingleInstanceLock()) {
 
   // Opening Otty from Applications, Spotlight or Launchpad while it runs, or clicking its Dock icon: the roomy window
   // (D-65, Spec 06). The bubble and Open chat keep the floating one.
-  app.on('second-instance', expandPanel)
-  app.on('activate', expandPanel)
+  app.on('second-instance', openRoomy)
+  app.on('activate', openRoomy)
   app.on('will-quit', () => {
     globalShortcut.unregisterAll()
     closeStore()

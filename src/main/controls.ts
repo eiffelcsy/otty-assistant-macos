@@ -85,6 +85,12 @@ function frame(command: FrameCommand): void {
   panel.webContents.send('frame:command', command)
 }
 
+/** Opening Otty itself (Applications, the Dock, the menu bar): the roomy window, on Home (Spec 06). Expand keeps its screen. */
+export function openRoomy(): void {
+  expandPanel()
+  frame('home')
+}
+
 export function menuTemplate(): Item[] {
   const s = settings.getStored()
   return [
@@ -92,7 +98,7 @@ export function menuTemplate(): Item[] {
     { label: 'Snap part of my screen', accelerator: s.snapHotkey, click: () => void snipScreen() },
     { label: 'Capture the whole screen', accelerator: s.screenHotkey, click: () => void snapWholeScreen() },
     { label: 'Open chat', click: openChat },
-    { label: 'Open the Otty window', click: expandPanel },
+    { label: 'Open the Otty window', click: openRoomy },
     { type: 'separator' },
     ...pauseItems(),
     {
@@ -161,8 +167,8 @@ export function appMenuTemplate(): Item[] {
     {
       label: 'View',
       submenu: [
-        { label: 'Chat', ...shown('Cmd+1'), click: () => frame('chat') },
-        { label: 'Chats', ...shown('Cmd+2'), click: () => frame('chats') },
+        { label: 'Home', ...shown('Cmd+1'), click: () => frame('home') },
+        { label: 'Chats', ...shown('Cmd+2'), click: () => frame('chat') },
         { label: 'Logbook', ...shown('Cmd+3'), click: () => frame('logbook') },
         { label: 'Notebook', ...shown('Cmd+4'), click: () => frame('notebook') },
         { type: 'separator' },

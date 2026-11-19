@@ -36,4 +36,19 @@ describe('read_page', () => {
     expect(out.status).toBe('denied')
     expect(fetchPage).not.toHaveBeenCalled()
   })
+
+  it.each(['https:evil.com/?q=secret', ' https://evil.com/?q=secret', 'https:\\\\evil.com/?q=secret'])('asks before reading %j, which the reader would open', async (odd) => {
+    const confirm = vi.fn(async () => false)
+    const out = await runTool('read_page', { url: odd }, { allowed: CHAT_TOOLS, confirm, knownUrl: () => false })
+    expect(confirm).toHaveBeenCalledWith(expect.anything(), 'https://evil.com/?q=secret')
+    expect(out.status).toBe('denied')
+    expect(fetchPage).not.toHaveBeenCalled()
+  })
+
+  it('refuses what isn’t a web address without asking', async () => {
+    const confirm = vi.fn(async () => true)
+    const out = await runTool('read_page', { url: 'file:///etc/passwd' }, { allowed: CHAT_TOOLS, confirm, knownUrl: () => false })
+    expect(out.status).toBe('error')
+    expect(confirm).not.toHaveBeenCalled()
+  })
 })

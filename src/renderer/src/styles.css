@@ -44,6 +44,8 @@
   --knob: var(--surface);
 
   --otter-bubble: var(--silver);
+  /* Decoration only, never information: the water the otter floats in on Home (D-66). */
+  --water: rgba(99, 124, 66, 0.12);
 
   /* Spacing: a 4px grid. --s-1h is only for the gap between an inline icon and its text. */
   --s-0: 2px;
@@ -134,6 +136,7 @@
     --danger-ink: #f0a597;
     --ok-soft: rgba(140, 155, 106, 0.16);
     --knob: var(--text);
+    --water: rgba(140, 155, 106, 0.16);
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3);
     --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 18px -4px rgba(0, 0, 0, 0.45);
     --elev-3: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 40px -8px rgba(0, 0, 0, 0.6);
@@ -738,6 +741,362 @@ html[data-view='bubble'] body {
   margin: var(--s-1) 0;
   background: var(--hairline);
 }
+
+/* ---------- Home (D-66, Spec 06): the otter, one sentence, then only the blocks with something in them ---------- */
+.home {
+  container: home / inline-size;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.home__column {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-4) var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.home-greeting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.home-greeting__otter {
+  position: relative;
+  z-index: 1;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  animation: squish var(--t-settle) var(--buoy);
+}
+.home-greeting__water {
+  width: 220px;
+  height: 22px;
+  margin-top: -18px;
+  border-radius: 50%;
+  background: var(--water);
+}
+.home-greeting__hello {
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  font-weight: 800;
+  color: var(--heading);
+}
+.home-greeting__status {
+  max-width: 46ch;
+  margin: var(--s-1) 0 0;
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--text-2);
+  text-wrap: balance;
+}
+.home-now {
+  margin-top: var(--s-3);
+  min-height: 32px;
+  padding: 0 var(--s-3) 0 var(--s-2);
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.home-now b {
+  color: var(--text);
+}
+.home-now__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand);
+  animation: log-step 2.4s steps(1) infinite;
+}
+.home-now__dot--paused {
+  background: var(--straw);
+  animation: none;
+}
+.home__blocks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.home__pair,
+.home__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+@container home (min-width: 600px) {
+  .home__pair {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .home__column {
+    padding-top: var(--s-8);
+  }
+}
+.home-block {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.home-block__head {
+  margin: 0;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  gap: var(--s-1h);
+  font-size: var(--i-sm);
+  color: var(--text-2);
+}
+.home-block__label {
+  flex: 1;
+}
+.home-block__value {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.home-block--wait .home-block__head > .icon,
+.home-block--wait .home-block__value {
+  color: var(--straw-ink);
+  font-weight: 700;
+}
+.home-needs,
+.home-river,
+.home-after,
+.home-try {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.home-need + .home-need {
+  border-top: 1px solid var(--hairline);
+}
+.home-need--open {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-1) 0 var(--s-3);
+}
+.home-need__glyph {
+  color: var(--straw-ink);
+  font-size: var(--i-lg);
+}
+.home-need__fold {
+  width: 100%;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: var(--s-3);
+  align-items: center;
+  text-align: left;
+  color: var(--text);
+}
+.home-need__question {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 600;
+}
+.home-need--open .home-need__question {
+  white-space: normal;
+  font-weight: 700;
+}
+.home-need__subject {
+  margin-top: var(--s-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.home-need__actions {
+  margin-top: var(--s-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2);
+}
+.home-need__since {
+  margin-left: auto;
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.home-more,
+.home-left__link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--brand-text);
+  text-align: left;
+}
+.home-more {
+  min-height: 36px;
+}
+.home-river {
+  position: relative;
+}
+.home-river::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 61px;
+  width: 2px;
+  background: var(--water);
+}
+.home-tick {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px 20px minmax(0, 1fr);
+  gap: var(--s-2);
+  align-items: baseline;
+  padding: var(--s-2) 0;
+}
+.home-tick__time {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-ui);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--text-2);
+}
+.home-tick__dot {
+  justify-self: center;
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--grass);
+  background: var(--surface);
+}
+.home-tick--done .home-tick__dot {
+  background: var(--grass);
+}
+.home-tick--failed .home-tick__dot {
+  border-color: var(--straw);
+}
+.home-tick--now .home-tick__dot {
+  width: 14px;
+  height: 14px;
+  border: none;
+  background: var(--brand);
+  box-shadow: 0 0 0 4px var(--brand-soft);
+}
+.home-tick--now .home-tick__time {
+  font-weight: 700;
+  color: var(--brand-text);
+}
+.home-tick__text {
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+  text-align: left;
+}
+.home-tick__line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 500;
+  color: var(--text);
+}
+.home-tick--done .home-tick__line {
+  color: var(--text-2);
+}
+.home-tick__sub {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.home-after__row,
+.home-try__row {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 var(--s-2);
+  border: none;
+  border-radius: var(--r-xs);
+  background: none;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-ui);
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+}
+.home-after__row:hover,
+.home-try__row:hover {
+  background: var(--fill);
+}
+.home-after__row > .icon,
+.home-try__row > .icon {
+  font-size: var(--i-md);
+  color: var(--text-2);
+}
+.home-try__row > .icon {
+  color: var(--brand-text);
+}
+.home-after__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.home-after__when {
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.home-left {
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+  display: flex;
+  gap: var(--s-2);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+}
+.home-left b {
+  color: var(--text);
+}
+.home-left > .icon {
+  font-size: var(--i-md);
+  margin-top: var(--s-0);
+}
+@keyframes squish {
+  0% { transform: scale(0.94); }
+  100% { transform: none; }
+}
+/* ---------- end Home ---------- */
 
 /* Icon button: 32 in the header and composer, 28 (--sm) in rows and answers. */
 .icon-btn {
@@ -1705,6 +2064,7 @@ html[data-view='bubble'] body {
 .memory-group__label,
 .log-views__label,
 .log-block__label,
+.home-block__label,
 .try__label,
 .rewind-card__label {
   font-size: var(--fs-label);

@@ -53,7 +53,7 @@ The button sits at the trailing end of the header: in the floating state "Expand
 
 ### The window itself
 
-The floating window today is frameless and transparent, with corners the page draws (`--radius`, 24). The roomy window needs the system's traffic lights, corners and shadow, and a window can't change between frameless and framed after it's made. So the panel is made once with a hidden title bar (`titleBarStyle: 'hidden'`) and its buttons hidden while floating (`setWindowButtonVisibility(false)`). Both states then get the system's corners and shadow. D-65 starts with a one-day check of how that looks on the floating window: if the system corner reads right, `--radius` follows it so the composer stays concentric (Foundations, "Shape"); if it doesn't, the fallback is two windows that swap at the midpoint of the move, behind the dim, sharing everything through main.
+The floating window today is frameless and transparent, with corners the page draws (`--radius`, 24). The roomy window needs the system's traffic lights, corners and shadow, and a window can't change between frameless and framed after it's made. So the panel is made once with a hidden title bar (`titleBarStyle: 'hidden'`) and its buttons hidden while floating (`setWindowButtonVisibility(false)`). Both states then get the system's corners and shadow. D-65 starts with a small check of how that looks on the floating window: if the system corner reads right, `--radius` follows it so the composer stays concentric (Foundations, "Shape"); if it doesn't, the fallback is two windows that swap at the midpoint of the move, behind the dim, sharing everything through main.
 
 ### The Dock and the menu bar
 

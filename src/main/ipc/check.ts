@@ -1,4 +1,4 @@
-import type { SettableKey } from '../../shared/types'
+import type { SettableKey, SettingsUpdate } from '../../shared/types'
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron'
 
 // D-44: a compromised renderer is what the sandbox is for, so main checks everything a window sends. Each channel
@@ -63,6 +63,23 @@ export const SETTABLE = {
   capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x)
 } as const satisfies Record<SettableKey, Guard>
 
+/**
+ * What `settings:save` may change: the SETTABLE keys, the connection (main tests it), onboarding and Pause. Any other
+ * key is refused, so a window can't write main's own fields (`apiKeys`, `windowBounds`).
+ */
+const SAVABLE: Partial<Record<keyof SettingsUpdate, Guard>> = {
+  ...SETTABLE,
+  apiFormat: oneOf('auto', 'openai', 'anthropic'),
+  baseUrl: text(2000),
+  model: text(200),
+  apiKey: text(2000),
+  onboarded: bool,
+  workPaused: bool,
+  workPausedUntil: checkedLater // cleaned by `cleanPauseEnd` as it's saved
+}
+
+const savable: Guard = (x) => record(x) && Object.entries(x as object).every(([k, v]) => Object.hasOwn(SAVABLE, k) && SAVABLE[k as keyof SettingsUpdate]!(v))
+
 const CHAT: View[] = ['panel', 'quick']
 const PANEL: View[] = ['panel']
 const LANGUAGE = oneOf('en', 'zh-HK')
@@ -70,7 +87,7 @@ const LANGUAGE = oneOf('en', 'zh-HK')
 /** Every channel a window may use. The preload's channels must all be here (a rule test checks). */
 export const CHANNELS = {
   'settings:get': { views: CHAT, args: [] },
-  'settings:save': { views: CHAT, args: [record] },
+  'settings:save': { views: CHAT, args: [savable] },
   'settings:set': { views: PANEL, args: [oneOf(...Object.keys(SETTABLE)), (x) => x !== undefined] },
   'settings:counts': { views: PANEL, args: [] },
   'settings:test': { views: PANEL, args: [] },
@@ -107,6 +124,7 @@ export const CHANNELS = {
   'logbook:entry': { views: PANEL, args: [id] },
   'logbook:undo': { views: PANEL, args: [id] },
   'logbook:note': { views: PANEL, args: [id, text(500)] },
+  'home:get': { views: PANEL, args: [] },
   'memory:list': { views: PANEL, args: [] },
   'memory:add': { views: PANEL, args: [text(2_000)] },
   'memory:update': { views: PANEL, args: [int(0, Number.MAX_SAFE_INTEGER), record] },
