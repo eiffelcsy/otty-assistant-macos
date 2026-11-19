@@ -86,6 +86,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M (2–3 days) |
 | D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | 🔨 core built; typography, the tray inside the box and the rest waiting | D-59 | M–L (3–4 days) |
 | D-63 | The Logbook: Activity, What left your Mac and What Otty changed become one screen of views (Spec 04) | ⏳ planned | D-59 | L (4–5 days) |
+| D-64 | The frame: the panel split into a frame plus screens, so width alone sets the layout (rail, medium, wide; Spec 05) | ⏳ planned | D-59, D-62 | M–L (3–4 days) |
+| D-65 | The roomy window: Expand / Shrink, the Dock icon and the menu bar, opening from Applications (Spec 06, part 1) | ⏳ planned | D-64 | M (2–3 days, plus a 1-day corner check) |
+| D-66 | Home: the greeting, Needs you, Today, Looking after and what left your Mac (Spec 06, part 2) | ⏳ planned | D-63, D-64 | M–L (3–4 days) |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
@@ -220,6 +223,60 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Done when.** Activity, SentList and ChangeList are gone and each is a Logbook view; every entry's words come from main; the Now card shows real progress; the preview scenes in Spec 04 exist; `activity.smoke.ts`, `jobs.smoke.ts`, `schedule.smoke.ts`, `ledger.smoke.ts` and `sent.smoke.ts` are moved to the Logbook.
 
 **Smoke test (add to the checklist when it ships).** Start a look-up: the Now card shows pages done and expected; add a note and see it under the card; Stop shows "Stopping…" then stops. From Settings, See what left my Mac opens that view. Undo a reminder from What Otty changed. Search for a host Otty read and find it.
+
+## D-64 · The frame and layout from width ⏳
+
+**Goal.** Split `Panel.tsx` into a frame (header, navigation, columns, notices) and screens (Home, Chat, Logbook, Notebook, Settings, Onboarding), so the window's width alone decides the layout: one screen at a time under 640, a 72 px rail from 640, a list column from 712, a sidebar from 980, and a details pane from 1248 (980 on Home). The floating panel can then be dragged wider and gets the medium and wide layouts with no new screens. The spec is `docs/design/specs/05-frame.md`.
+
+**Design.**
+1. **Frame and screens.** `renderer/src/frame/` holds `Frame.tsx` (header, rail or sidebar, columns, notices), `bands.ts` (the band boundaries, worked out from the main column's 400 px minimum and exposed to CSS as custom properties) and `useFrame()` (`{ band, listShown, detailsShown, push, back }`). Each screen exports its parts (`list`, `main`, `details`) and whether it's a root. A part that isn't a column becomes a page in the main column. No screen measures the window.
+2. **Navigation state stays in the renderer**: the root screen, the stack of pushed pages, each column's scroll position, the chat on show. It's layout, not data. ⌘1–⌘4, ⌘,, ⌘N, ⌘[ / ⌘], ⌃⌘S, ⌥⌘0 and F6 come from one keymap in the frame.
+3. **The compact header** gets the screen menu (otter + title + chevron) on root screens and Back on pushed ones, and always the same four icons: Pause, Logbook, New chat, Expand. Today's header buttons for Activity, Recent chats and Settings go into the screen menu. Expand does nothing until D-65 except tell main (the channel can land here, unused).
+4. **Container queries** on the frame's body (`container: otty / inline-size`); no viewport media queries. Notices (the health banner, the paused line) move into the frame, at the top of the main column.
+5. **ui-preview** learns `&w=`, `&h=` and `&state=floating|roomy`, and the frame scenes in Spec 05.
+6. **No main changes** beyond letting the panel be dragged wider than today (it's already resizable; check `minWidth` 360 and that nothing clamps the width).
+
+**Tests.** `bands.test.ts`: every boundary keeps the main column at 400 or more, and the bands meet without gaps. Frame tests: a part becomes a page when its column is hidden; Back restores the scroll position; each root screen's keyboard shortcut. `rules/renderer.test.ts` still passes (no off-scale values). The screens baseline at 420 is unchanged for every existing scene, which is the proof the split changed no pixels.
+
+**Done when.** `Panel.tsx` is a frame plus screens; every existing scene at 420 matches its baseline; the frame scenes exist at 380, 420, 640, 760, 980, 1200 and 1280 in light and dark with no horizontal scroll; dragging the panel from 360 to 1440 never loses the scroll position or the draft; F6 reaches every column. `basics.smoke.ts`, `history.smoke.ts`, `activity.smoke.ts` and `settings.smoke.ts` are updated for the screen menu.
+
+**Smoke test (add to the checklist when it ships).** Open the panel, open Chats from the screen menu and come back with ⌘[. Drag the panel wider: at about 700 px the rail appears, at about 1000 the sidebar, and the chat stays where it was. ✋ Check the rail and sidebar glide at 100% and 200% zoom, because the screens baseline can't show motion.
+
+## D-65 · The roomy window ⏳
+
+**Goal.** The same window gets a second state: a normal Mac window with traffic lights, a Dock icon and a menu bar, opening on Home at 1280 × 800. Expand / Shrink (⇧⌘E) moves between the states in one 720 ms move, keeping the chat, scroll and draft. Opening Otty from Applications, Spotlight or Launchpad opens it. The spec is part 1 of `docs/design/specs/06-roomy-and-home.md`.
+
+**Design.**
+1. **Corner check first (1 day).** Make the panel with `titleBarStyle: 'hidden'` and `setWindowButtonVisibility(false)` while floating, instead of `frame: false, transparent: true`, and compare the floating window's system corners and shadow with today's at 100% and 200%. If they read right, `--radius` follows the system corner. If not, fall back to two windows that swap behind the dim at the move's midpoint, with everything shared through main (the conversation, drafts and screen already live there or are sent). Write the outcome in this entry before going on.
+2. **States in `windows.ts`.** `expand()` and `shrink()` do the steps in Spec 06's order: Dock icon and app menu first on Expand and last on Shrink (W14), the level (`floating` and all workspaces, or normal), the traffic lights, `fullscreenable`, and the minimum size (360 × 420 or 720 × 520). Main steps the bounds over 720 ms on the `--glide` curve; if that drops frames on a 60 Hz Mac (measure with `OTTY_METRICS=1`), use the native animation. Shrink leaves full screen first.
+3. **Remembered places.** `{ floating, roomy }` bounds in main's settings file, saved when a move or resize ends, restored only inside a connected display's work area. Not in `SETTABLE`.
+4. **Routing.** `app.on('activate')` opens the roomy window on Home. While it's open, the bubble, "Open chat" and ↵ "continue in chat" bring it forward on that chat instead of opening the floating window. The quick view is unchanged.
+5. **Menus.** The app menu (Otty, File, Edit, View, Window, Help) is built in `controls.ts` beside `menuTemplate()`, sharing the Pause items, and set only while roomy. The Dock menu holds New chat and Pause. The menu bar icon gains "Open the Otty window". No Dock badge.
+6. **IPC.** `window:state` (panel view only) asks for expand or shrink; the window's state reaches the renderer with its events, so the header is 44 or 52 and the traffic-light row shows. Registered in `CHANNELS` with a guard (`'expand' | 'shrink'`).
+7. **Renderer.** The dim, reflow and surface timings (Spec 06), and the Expand / Shrink button's two faces.
+
+**Tests.** A `windows` unit test with a fake `BrowserWindow`: Expand shows the Dock before the move and Shrink hides it after; restored bounds outside every display fall back to defaults; the level and minimum size change with the state. `ipc.test.ts` covers the new channel. Menu template tests: the Pause items match the menu bar icon's; every View item's accelerator matches the frame's keymap.
+
+**Done when.** Expand and Shrink keep the chat, scroll, draft and a streaming answer; the Dock icon and menu bar come and go without a flicker; opening Otty from Applications opens the roomy window on Home; the bubble brings the roomy window forward while it's open; each state reopens where it was left; full screen works and Shrink leaves it; the idle budget holds with the roomy window open and idle.
+
+**Smoke test (add to the checklist when it ships).** Press Expand mid-answer: the answer keeps streaming and the draft stays. ⇧⌘E back. Close the roomy window and click the bubble: the floating window opens beside it. ✋ Watch the Dock while shrinking (no flicker), open Otty from Applications while it's running, and use full screen, because the harness fakes the Dock and can't see the system's animations.
+
+## D-66 · Home ⏳
+
+**Goal.** Home is the landing screen of the roomy window and ⌘1 at any width: the otter at the centre, a greeting and one sentence of how things stand, then only the blocks with something in them: Needs you, Today, Looking after, what left your Mac, and Try asking on a first run. Goals, Otty noticed and keepsakes keep their places but ship with their own features. The spec is part 2 of `docs/design/specs/06-roomy-and-home.md`.
+
+**Design.**
+1. **One read-only query.** `home()` (`home:get` in `CHANNELS`) returns everything worded by main (`home/words.ts`): the greeting, the status sentence by Spec 06's priority, what's running with progress, the first three Needs you items and their total, today's ticks, what's being looked after, the what-left-your-Mac sentence with its counts, and whether this is a first run. Needs you calls the same function as the Logbook's Needs you view (D-63), so the two can't disagree. Today and Looking after read `JobStore` (runs and due times today; scheduled jobs and series after today) and use `describeWhen`. What left your Mac counts the sent log and the ledger for today, and says "since Otty opened" when Remember my chats is off (`MemorySentLog`).
+2. **Refresh on events**, never by polling: a job's status, a confirm opening or closing, a sent-log or ledger row, pause. Coalesced to once a second, and nothing while the window sleeps.
+3. **Actions reuse what exists.** Deciding a Needs you item sends its id through the same channel as the chat's and the Logbook's cards; Add a note is D-63's `noteJob`; every row opens its Logbook entry.
+4. **Screen.** `renderer/src/home/` with the greeting, the four blocks and the river, laid out by band (Spec 06). The `--water` colour token joins the foundations in `styles.css`, light and dark, checked by the contrast test as decoration (it carries no text).
+5. **The message box on Home** is D-62's, and sending starts a new chat and switches to it.
+
+**Tests.** `home.test.ts` in main: the status sentence for each case in the priority table; Needs you matches the Logbook's view for the same data; today's ticks come in order with the running one marked and more than six folded; counts come from the logs and "since Otty opened" with the memory log; a first run shows Try asking and stops after the first question. Renderer tests for each block's empty and full states. The idle check with Home open and nothing running.
+
+**Done when.** The roomy window opens on Home; every block is hidden when it has nothing; every word on Home comes from main; deciding an item on Home does exactly what the card in the chat does, and the Logbook agrees; the preview scenes in Spec 06 exist at every width in light and dark; the idle budget holds.
+
+**Smoke test (add to the checklist when it ships).** With a scheduled look-up waiting on a page, open Home: the greeting says one thing needs you and the item is open; Skip it and see the receipt, then the block leaves. Start a look-up and see the now line and the river's now dot; let it finish and see the tick fill. With nothing sent today, Home says nothing has left your Mac.
 
 ## D-48 · Agents check their own work 🔨 phases 1–2 built
 

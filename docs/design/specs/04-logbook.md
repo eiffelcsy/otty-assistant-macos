@@ -44,11 +44,11 @@ The Needs you count (`--straw-ink`, 800) also shows beside Logbook in the sideba
 
 ### Medium (640–979)
 
-64 rail · 240 list · main. The list column holds the views: three rows (Needs you, Coming up, Everything) as 36 px one-line rows, then the label "Looking for…" (`--fs-label`, 16 above, 4 below) and three 52 px two-line rows with their descriptions. The main column has the title as a plain `--fs-heading` (no chevron), the search and the ledger, gutters 16. Opening an entry pushes a details page within the main column, with Back.
+72 rail · 240 list · main (Spec 05). The list column holds the views: three rows (Needs you, Coming up, Everything) as 36 px one-line rows, then the label "Looking for…" (`--fs-label`, 16 above, 4 below) and three 52 px two-line rows with their descriptions. The main column has the title as a plain `--fs-heading` (no chevron), the search and the ledger, gutters 16. Opening an entry pushes a details page within the main column, with Back.
 
 ### Wide (≥ 980)
 
-216 sidebar · 250 list · main (ledger at most 680, centred) · 300 details pane. The pane shows the opened entry; with nothing opened, it shows Needs you's first item, or a quiet line "Choose an entry to see why it happened and what it touched."
+216 sidebar · 248 list · main (ledger at most 680, centred), and from 1248 a 300 details pane (Spec 05); between 980 and 1247 an opened entry is a page in the main column. The pane shows the opened entry; with nothing opened, it shows Needs you's first item, or a quiet line "Choose an entry to see why it happened and what it touched."
 
 ## The ledger
 
@@ -102,7 +102,7 @@ When a look-up is running, a Card sits above the ledger in every view:
 
 ## Details
 
-Opened entries show the same blocks, in a details page (compact and medium) or the pane (wide). Pane padding 14; blocks 16 apart; each block a label (`--fs-label` `--text-2`) 6 above a small card (`--surface`, radius 12, padding 12).
+Opened entries show the same blocks, in a details page (compact and medium) or the pane (wide). Pane padding 16; blocks 16 apart; each block a label (`--fs-label` `--text-2`) 8 above a small card (`--surface`, radius 12, padding 12).
 
 | Block | Holds |
 | --- | --- |

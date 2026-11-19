@@ -267,6 +267,9 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Try again as a split button: Try again, with a small chevron that opens Shorter, Simpler and In more detail. The action row wraps to two lines at 420 since D-58, which is busier than the polish bar likes | M | S | idea, found in D-58 |
 | Drafts keep the tray too: captures and file ids beside the text (Spec 03). Today a draft is the words only, and a snip waiting in the quick view's tray doesn't follow ↵ continue in chat | M | S | idea, after D-62 |
 | Recent chats as one ledger of rows: rows on the panel background, an inset hairline between them, and the open chat marked with `--surface` and `--elev-1` (DESIGN.md, Row) once the list sits beside the chat in the roomy window | M | S | idea, after D-59 |
+| Greet by name on Home once the Notebook knows how you like to be called ("Good afternoon, Mei"), never guessed from an account or a file | L | S | idea, from Spec 06 |
+| Home's "Today" river carrying Otty's own calendar blocks and meeting prep, so the day is one line of what's done, now and next | M | M | idea, after D-66 and Otty's own calendar |
+| A Dock badge was considered for Needs you and left out: a red number asks to be cleared, which is the nagging the den's rules forbid. Revisit only if people miss decisions while the bubble is hidden | L | S | decided against for now (Spec 06) |
 
 ## Speed: spending a fast, cheap model
 
@@ -447,7 +450,7 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | Tools it builds for you: Otty spots a repeat and makes a small automation, starting as sandboxed, read-only recipes you can read in plain words | H | L | idea, the proactive end of [Build your own feature](#build-your-own-feature-otty-made-to-measure) |
 | A character that grows: Otty's manner and in-jokes change with your history together, so it's clearly yours after a year | H | L | idea, extends Otty's den |
 | Do, with undo: routine changes just happen, with "tap to reverse" | H | L | idea, needs the action ledger |
-| The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | considering, long-term |
+| The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | → D-64 (frame), D-65 (roomy window), D-66 (Home); goals, Otty noticed and the den later |
 | Phone app: Otty goes with you, one relationship across devices | H | L | long-term; reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
 | **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | idea; step 1 needs no account, sharing needs the hosted service and sign-in |
@@ -643,7 +646,7 @@ Each state remembers its own size and position, and an **Expand / Shrink** butto
 - Same conversation, same `ChatEvent`s: the ↵ "continue in chat" swap opens the Otty window, and Expand / Shrink is the same window, so nothing is handed over.
 - Safety never needs room: Pause, Undo, confirm cards and "what left my Mac" work in the narrowest compact window.
 
-**What it changes:** Otty hides from the Dock (`LSUIElement`, `app.dock.hide()`), so the roomy state needs a Dock icon and a menu bar while it's open, then has to go back to hiding when it shrinks or closes. Screens must work at any width (container queries, not one narrow column). The steps to get the panel ready are in `docs/UX_REVIEW.md`, "Getting the panel ready for the roomy window". The first visual draft, the names (Logbook, Notebook), the water motion system and the micro-interaction catalogue are in `docs/DESIGN.md`.
+**What it changes:** Otty hides from the Dock (`LSUIElement`, `app.dock.hide()`), so the roomy state needs a Dock icon and a menu bar while it's open, then has to go back to hiding when it shrinks or closes. Screens must work at any width (container queries, not one narrow column). The steps to get the panel ready are in `docs/UX_REVIEW.md`, "Getting the panel ready for the roomy window". The first visual draft, the names (Logbook, Notebook), the water motion system and the micro-interaction catalogue are in `docs/DESIGN.md`; the frame, the two states and Home are specced in `docs/design/specs/05-frame.md` and `06-roomy-and-home.md` (D-64 to D-66).
 
 ### Desktops (Spaces) and full-screen apps
 

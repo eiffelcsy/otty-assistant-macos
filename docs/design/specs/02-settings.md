@@ -109,10 +109,10 @@ Summary: "Diagnostics · version 0.9.2"
 **Section page** (a row tapped): pushes in from the right (W4). Header: Back, the section's name as the title, and the "Saved" whisper at the header's trailing edge. Content: groups 24 apart, each group label 8 above its box, 16 px gutters, 16 px bottom padding. No in-content heading, since the header already names the section.
 
 ### Medium (640–979)
-64 px rail · 240 px list column · content. The list column holds the search field (36, 8 from its edges) and the six sections as two-line rows, selected with `--brand-soft`. The content column has 24 px gutters, the section's name as a `--fs-heading` heading 24 from the top with the "Saved" whisper on its baseline at the right, and groups 24 apart.
+72 px rail · 240 px list column · content (Spec 05). The list column holds the search field (36, 8 from its edges) and the six sections as two-line rows, selected with `--brand-soft`. The content column has 24 px gutters, the section's name as a `--fs-heading` heading 24 from the top with the "Saved" whisper on its baseline at the right, and groups 24 apart.
 
 ### Wide (≥ 980)
-216 px sidebar · 250 px list · content with groups at most **600 px** wide, left-aligned 32 px in from the list column. No details pane: Settings never needs one.
+216 px sidebar · 248 px list · content with groups at most **600 px** wide, left-aligned 32 px in from the list column. No details pane: Settings never needs one.
 
 ## Row anatomy
 
