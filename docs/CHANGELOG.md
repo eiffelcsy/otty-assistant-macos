@@ -4,6 +4,18 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Chat and the message box, finished (D-62, 2026-11-19)
+
+The rest of Spec 03, after the core (one box, drafts) below.
+- **Answers read better:** every heading is one title size (no display-size `#`), lists and numbers line up, links underline lightly, code sits in a block with its language and a Copy icon, tables scroll sideways in their own box with numbers right-aligned, and a 💡 tip is a "Good to know" card that appears once the answer has finished. A picture Otty won't load says so: "Picture not shown, to keep you safe".
+- **Long questions clip** at twelve lines with a fade and **Show all**.
+- **While an answer streams**, a caret sits after its last words. **⌘.** stops it from anywhere in the panel.
+- **↑ in an empty box** edits the last question, through the same card as Edit question.
+- **The tray is inside the box:** captures, files and the tray's actions sit over the text, with "2 of 4" once there are several.
+- **The language button** waits until an answer has been asked for in the home language once (UX_REVIEW #7); main remembers it.
+- **Paused:** the box says "Otty is paused", Send becomes **Paused · Carry on**, and nothing is sent until then, in the panel and the quick view.
+- The explain card waits with two still bars instead of dots.
+
 ### The Logbook (D-63, 2026-11-19)
 
 Activity, What left your Mac and What Otty changed are one screen, the **Logbook** (Spec 04), opened from the header's Logbook button or from Settings › Privacy.
