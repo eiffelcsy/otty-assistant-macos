@@ -1,5 +1,5 @@
-import { Notification } from 'electron'
-import type { ActivityItem, BubbleMood, BubbleState, ChatEvent } from '../shared/types'
+import { BrowserWindow, Notification } from 'electron'
+import type { ActivityItem, BubbleMood, BubbleState, ChatEvent, PublicSettings } from '../shared/types'
 import { getStored } from './settings'
 import { getBubble, getPanel, getQuick, openPanel } from './windows'
 
@@ -61,6 +61,11 @@ function bubbleMood(items: ActivityItem[]): BubbleMood {
   if (getStored().workPaused) return 'paused'
   if (items.some((i) => i.state === 'waiting')) return 'waiting'
   return items.some((i) => i.state === 'working') ? 'working' : null
+}
+
+/** Every window shows the same settings, whichever one (or the menu bar, or main) changed them. */
+export function tellSettings(now: PublicSettings): void {
+  for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send('settings:changed', now)
 }
 
 /** Something was written to what left the Mac or what Otty changed: an open Logbook asks again. */

@@ -93,6 +93,7 @@ describe('CLAUDE.md "Idle budget (NFR-3)": every infinite animation is reviewed'
     rise: 'thinking only, while an answer runs',
     glow: 'while working only',
     dots: 'typing dots, stepped, while an answer runs',
+    caret: 'the streaming caret: two steps every 1.2 s, only while an answer streams',
     'log-step': 'the Logbook’s Now dot: two steps every 2.4 s, only while a look-up runs and the Logbook is open'
   }
 

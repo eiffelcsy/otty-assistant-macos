@@ -20,7 +20,7 @@ import { entryDetails, logbook, type LogSources } from '../../src/main/logbook'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -72,13 +72,14 @@ const settings: PublicSettings = {
   keepChats: '1y',
   homeLanguage: q.get('home') === 'none' ? null : 'zh-HK',
   learn: true,
-  workPaused: false,
+  workPaused: scene === 'paused',
   workPausedUntil: null,
   notifyDone: false,
   openAtLogin: false,
   canOpenAtLogin: true,
   monthlyCap: scene.startsWith('settings') || scene === 'cap' || scene === 'near' ? { unit: 'questions', limit: 300 } : null,
-  capNoticed: null
+  capNoticed: null,
+  homeUsed: q.get('home') !== 'unused'
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -257,6 +258,43 @@ const cards: Record<string, ConfirmCard> = {
   'confirm-reminder': { kind: 'reminder', title: 'Add this reminder?', yes: 'Add it', item: 'Essay deadline', when: 'Thu 20 Nov at 6:00 PM', list: 'In Reminders' },
   'confirm-unusual': { kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'xn--pple-43d.com', readable: 'аpple.com', rest: '/account/verify', unusual: 'alphabet' }
 }
+/** Spec 03's answer typography: a long question that clips, headings, a list, a wide table, code and a tip. */
+const typographySample: ChatMessage[] = [
+  {
+    id: 'u1',
+    role: 'user',
+    text: Array.from({ length: 16 }, (_, i) => `Line ${i + 1} of a long question about otter habitats, pasted from my notes.`).join('\n'),
+    captures: [],
+    app: null
+  },
+  {
+    id: 'a1',
+    role: 'assistant',
+    language: 'en',
+    tools: [],
+    text: `# Where otters live
+
+Sea otters live along the **North Pacific** coast; river otters live inland.
+
+## By species
+
+1. Sea otter: kelp forests
+2. Eurasian otter: rivers and lakes
+
+| Species | Weight (kg) | Range (km²) | Where | Status |
+| --- | --- | --- | --- | --- |
+| Sea otter | 30 | 1,200 | North Pacific coast, from Japan to California | Endangered |
+| Eurasian otter | 7.5 | 40 | Rivers and lakes across Europe and Asia | Near threatened |
+
+\`\`\`python
+habitats = {"sea": "kelp", "river": "banks"}
+print(habitats["sea"])
+\`\`\`
+
+> 💡 Otters hold hands while they sleep so they don’t drift apart.`
+  }
+]
+
 const askingSample: ChatMessage[] = [{ id: 'u1', role: 'user', text: 'When is the last train from Tokyo to Sendai on Saturday?', captures: [], app: null }]
 function playCard(cb: (e: ChatEvent) => void, card: ConfirmCard) {
   cb({ type: 'load', messages: askingSample })
@@ -634,7 +672,8 @@ const api: OttyApi = {
       setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
       setTimeout(() => document.querySelector<HTMLButtonElement>('button[title^="Ask the same question"]')?.click(), 250)
     }
-    if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
+    if (scene === 'chat' || scene === 'compose' || scene === 'find' || scene === 'paused') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
+    if (scene === 'typography') setTimeout(() => cb({ type: 'load', messages: typographySample }), 50)
     return () => {}
   },
   onPanelOpen: (cb) => {

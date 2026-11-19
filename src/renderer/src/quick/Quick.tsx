@@ -36,6 +36,10 @@ export function Quick() {
   const [popover, setPopover] = useState(false)
   const [opened, setOpened] = useState(0)
   const [home, setHome] = useState<HomeLanguage | null>(null)
+  /** The language button waits until an answer has been asked for in the home language once (UX_REVIEW #7). */
+  const [homeUsed, setHomeUsed] = useState(false)
+  /** Everything is paused (D-39): nothing is asked until the user lets Otty carry on. */
+  const [paused, setPaused] = useState(false)
   const [readsPages, setReadsPages] = useState(false)
   const [pick, setPick] = useState<AnswerLanguage | undefined>()
   const [learning, setLearning] = useState(false)
@@ -66,6 +70,8 @@ export function Quick() {
         clear()
         window.otty.getSettings().then((s) => {
           setHome(s.homeLanguage)
+          setHomeUsed(s.homeUsed)
+          setPaused(s.workPaused)
           setReadsPages(s.readsPages)
           setLearning(s.learn)
           setAskHotkey(s.askHotkey)
@@ -106,7 +112,7 @@ export function Quick() {
   const ask = (picked?: ActionItem) => {
     const item = picked ?? (input.trim() ? undefined : fallback)
     const text = item ? item.label : input.trim()
-    if (!text) return
+    if (!text || paused) return
     setQuestion(text)
     setFull(false)
     window.otty.sendMessage(text, captures, { app, fresh: true, action: item?.action, language: pick })
@@ -116,7 +122,7 @@ export function Quick() {
   const follow = () => {
     const text = followUp.trim()
     if (!text) return void expand()
-    if (busy) return
+    if (busy || paused) return
     setFollowUp('')
     keep.drop()
     window.otty.sendMessage(text, [])
@@ -228,6 +234,7 @@ export function Quick() {
                   <MessageBox
                     bare
                     noSend
+                    paused={paused}
                     inputRef={inputRef}
                     value={input}
                     onChange={setInput}
@@ -287,6 +294,7 @@ export function Quick() {
                 onSend={follow}
                 canSend={Boolean(followUp.trim())}
                 busy={busy}
+                paused={paused}
                 onStop={() => void window.otty.stop()}
                 placeholder={asking ? 'Or ask something else' : 'Ask a follow-up…'}
                 label="Ask a follow-up"
@@ -329,10 +337,16 @@ export function Quick() {
                       <Icon name="pencil" /> check writing
                     </button>
                   )}
-                  {home && <LanguagePill home={home} value={pick} onChange={setPick} />}
-                  <button className="quick__key quick__key--go" onClick={() => ask()} disabled={!input.trim() && !fallback}>
-                    <kbd>↵</kbd> ask Otty
-                  </button>
+                  {home && homeUsed && <LanguagePill home={home} value={pick} onChange={setPick} />}
+                  {paused ? (
+                    <button className="quick__key quick__key--go" onClick={() => void window.otty.saveSettings({ workPaused: false }).then(() => setPaused(false))}>
+                      Paused · Carry on
+                    </button>
+                  ) : (
+                    <button className="quick__key quick__key--go" onClick={() => ask()} disabled={!input.trim() && !fallback}>
+                      <kbd>↵</kbd> ask Otty
+                    </button>
+                  )}
                 </span>
               )}
             </div>

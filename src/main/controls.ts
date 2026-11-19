@@ -1,10 +1,11 @@
-import { BrowserWindow, globalShortcut, Menu, Tray } from 'electron'
+import { globalShortcut, Menu, Tray } from 'electron'
 import type { SettingsUpdate } from '../shared/types'
 import { pauseEnd, type PauseChoice } from '../shared/pauseUntil'
 import { describeWhen } from '../shared/when'
 import * as settings from './settings'
 import { askAboutSelection, openChat, snapWholeScreen, snipScreen } from './captureRoute'
 import { activityChanged, chat, forgetAllChats, jobs, tidyOldChats } from './core'
+import { tellSettings } from './notify'
 import { trayIcon } from './trayIcon'
 import { getBubble, openSettings } from './windows'
 
@@ -119,6 +120,6 @@ export function applySettings(u: SettingsUpdate) {
   refreshTray()
   // Every window shows the same settings, whichever one (or the menu bar) changed them.
   const now = settings.getPublic()
-  for (const w of BrowserWindow.getAllWindows()) if (!w.isDestroyed()) w.webContents.send('settings:changed', now)
+  tellSettings(now)
   return now
 }

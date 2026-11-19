@@ -103,6 +103,8 @@ export interface SessionHooks {
   jobLive?(id: string): Promise<boolean>
   /** Takes back a look whose answer is being replaced: gone if it never started, stopped if it had. */
   withdrawJob?(id: string): Promise<void>
+  /** The first answer in the home language, so the message box can start offering the language button. */
+  onHomeUsed?(): void
 }
 
 
@@ -586,6 +588,7 @@ export class ChatSession {
       fileText: captures.length ? undefined : sampleText(prepared.map((p) => p.doc)),
       home
     })
+    if (home && language === home && !this.deps.settings().homeUsed) this.hooks.onHomeUsed?.()
     const prompt = opts.action ? actionPrompt(opts.action, language, home) : text
     const budget = fileBudget(this.deps.profile().contextTokens)
     const fitted = fitFiles(prepared.map((p) => ({ name: p.meta.name, doc: p.doc, image: p.image?.dataUrl })), budget)

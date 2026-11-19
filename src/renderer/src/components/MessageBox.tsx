@@ -18,6 +18,8 @@ interface Props {
   onStop?: () => void
   /** Snip and Attach, in the panel. Dimmed while answering. */
   tools?: { onSnip: () => void; onAttach: () => void }
+  /** Captures, files and the tray's actions, inside the box over the text (Spec 03, Tray). */
+  tray?: ReactNode
   /** Beside Send: the language choice for the next answer. */
   extra?: ReactNode
   /** Leave Send out, for a box whose sending lives elsewhere (the quick view's hint row). */
@@ -26,12 +28,17 @@ interface Props {
   bare?: boolean
   onPaste?: (e: ClipboardEvent<HTMLTextAreaElement>) => void
   onBlur?: () => void
+  /** Everything is paused (D-39): Send becomes "Paused · Carry on", and Enter sends nothing until it's pressed. */
+  paused?: boolean
+  /** ↑ in an empty box. */
+  onArrowUp?: () => void
   inputRef?: Ref<HTMLTextAreaElement>
 }
 
-export function MessageBox({ value, onChange, onSend, placeholder, label, canSend, busy = false, onStop, tools, extra, noSend, bare, onPaste, onBlur, inputRef }: Props) {
+export function MessageBox({ value, onChange, onSend, placeholder, label, canSend, busy = false, onStop, tools, extra, noSend, bare, onPaste, onBlur, onArrowUp, paused = false, tray, inputRef }: Props) {
   return (
     <div className={`message-box${bare ? ' message-box--bare' : ''}`}>
+      {tray}
       <div className="composer__row">
         {tools && (
           <>
@@ -47,22 +54,30 @@ export function MessageBox({ value, onChange, onSend, placeholder, label, canSen
           ref={inputRef}
           className="composer__input"
           rows={1}
-          placeholder={placeholder}
+          placeholder={paused ? 'Otty is paused' : placeholder}
           aria-label={label}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onPaste={onPaste}
           onBlur={onBlur}
           onKeyDown={(e) => {
+            if (e.key === 'ArrowUp' && !value && onArrowUp) {
+              e.preventDefault()
+              onArrowUp()
+            }
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
-              onSend()
+              if (!paused) onSend()
             }
           }}
         />
-        {extra}
+        {!paused && extra}
         {!noSend &&
-          (busy && onStop ? (
+          (paused ? (
+            <button className="btn btn--quiet btn--small message-box__paused" title="Otty is paused. Let it carry on" onClick={() => void window.otty.saveSettings({ workPaused: false })}>
+              Paused · Carry on
+            </button>
+          ) : busy && onStop ? (
             <button className="send-btn send-btn--stop" title="Stop" aria-label="Stop" onClick={onStop}>
               <Icon name="stop" solid />
             </button>

@@ -521,6 +521,42 @@ html[data-view='bubble'] body {
   color: var(--brand-ink);
   border-bottom-right-radius: var(--r-xs);
 }
+/* Past twelve lines a question clips with a fade, and Show all opens it (Spec 03). */
+.msg__bubble--clip {
+  max-height: calc(var(--lh-body) * 12 + 20px);
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent);
+}
+.message-box__paused {
+  align-self: flex-end;
+  white-space: nowrap;
+}
+.msg__more {
+  align-self: flex-end;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+/* While an answer streams, a caret sits after its last words (S5), stepping on and off. */
+.msg--streaming .md > p:last-child::after,
+.msg--streaming .md > :is(ul, ol):last-child > li:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  margin-left: var(--s-0);
+  vertical-align: -2px;
+  border-radius: calc(var(--r-xs) - var(--s-1));
+  background: var(--brand);
+  animation: caret 1.2s steps(1) infinite;
+}
+@keyframes caret {
+  50% { opacity: 0; }
+}
 /* Answers are the content: no bubble, the full reading width. */
 .msg--otty .msg__bubble {
   padding: 0;
@@ -544,27 +580,44 @@ html[data-view='bubble'] body {
   padding-left: var(--s-5);
 }
 .md li {
-  margin: var(--s-0) 0;
+  margin: 0;
+}
+.md li + li,
+.md li > ul,
+.md li > ol {
+  margin-top: var(--s-1);
 }
 .md li::marker {
   color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+/* Answer typography (Spec 03): one title size for every heading level, 20 above and 8 below. */
+.md h3 {
+  margin: var(--s-5) 0 var(--s-2);
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 700;
+  color: var(--heading);
 }
 .md strong {
   font-weight: 700;
-  color: var(--heading);
+  color: var(--text);
 }
 .md code {
   background: var(--fill-strong);
   padding: 0 var(--s-1);
   border-radius: var(--r-xs);
+  font-family: var(--mono);
   font-size: var(--fs-small);
 }
 .md pre {
-  background: var(--fill);
+  background: var(--surface-2);
   border: 1px solid var(--hairline);
-  padding: var(--s-2) var(--s-3);
+  padding: var(--s-2) var(--s-3) var(--s-3);
   border-radius: var(--r-sm);
   overflow-x: auto;
+  font-size: var(--fs-small);
+  line-height: var(--lh-ui);
 }
 .md pre code {
   background: none;
@@ -574,40 +627,77 @@ html[data-view='bubble'] body {
   margin: var(--s-3) 0;
   border: 1px solid var(--hairline);
   border-radius: var(--r-sm);
-  background: var(--fill);
+  background: var(--surface-2);
   overflow: hidden;
 }
 .md .code-block pre {
   margin: 0;
   border: none;
   border-radius: 0;
-  padding-top: var(--s-0);
+  padding-top: 0;
 }
 .code-block__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--s-0) var(--s-1) 0 var(--s-3);
+  height: 32px;
+  padding: 0 var(--s-0) 0 var(--s-3);
 }
 .code-block__lang {
-  font-size: var(--fs-meta);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--text-2);
-  text-transform: capitalize;
 }
 .md a {
   color: var(--brand-text);
-  text-decoration-color: var(--brand-line);
-  text-underline-offset: 2px;
+  text-decoration: underline 1px var(--brand-line);
+  text-underline-offset: 3px;
+}
+/* Tables use the full reading width and scroll sideways inside their own box. */
+.md-table {
+  margin: var(--s-3) 0;
+  overflow-x: auto;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--hairline);
 }
 .md table {
+  width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-small);
   line-height: var(--lh-small);
 }
+.md th {
+  background: var(--surface-2);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--text-2);
+}
 .md th,
 .md td {
-  border: 1px solid var(--hairline-strong);
-  padding: var(--s-1) var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  white-space: nowrap;
+}
+.md tr + tr > td,
+.md tbody > tr:first-child > td {
+  border-top: 1px solid var(--hairline);
+}
+.md td.md-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.md-picture {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1h);
+  font-size: var(--fs-meta);
+  color: var(--text-2);
 }
 
 /* explain terms + tip cards */
@@ -677,6 +767,25 @@ html[data-view='bubble'] body {
   background: var(--surface);
   border: 1px solid var(--brand-line);
 }
+/* Waiting for its words: two bars that step between two tints twice, then stay still (Spec 03, V1). */
+.explain-card__waiting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-1) 0;
+}
+.explain-card__waiting > span {
+  height: 10px;
+  border-radius: calc(var(--r-xs) - var(--s-0));
+  background: var(--fill-strong);
+  animation: waiting 1.2s steps(1) 2;
+}
+.explain-card__waiting > span + span {
+  width: 70%;
+}
+@keyframes waiting {
+  50% { background: var(--fill); }
+}
 .explain-card__body {
   font-size: var(--fs-ui);
   line-height: var(--lh-ui);
@@ -705,21 +814,22 @@ html[data-view='bubble'] body {
 .tip-card {
   margin: var(--s-3) 0 0;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
+  border-radius: calc(var(--r-sm) + var(--s-0));
   background: var(--straw-soft);
-  font-size: var(--fs-ui);
-  line-height: var(--lh-ui);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
   display: flex;
-  gap: var(--s-2);
-  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--s-1);
+  animation: surface var(--t-settle) var(--glide);
 }
-.tip-card > .icon {
+.tip-card__label {
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--straw-ink);
-  font-size: var(--i-md);
-  margin-top: 3px;
-}
-.tip-card__body {
-  flex: 1;
 }
 .tip-card p {
   margin: 0;
@@ -941,27 +1051,28 @@ html[data-view='bubble'] body {
   flex-direction: column;
   gap: var(--s-2);
 }
-/* The message box (D-62): the snip tool, the text and Send in one box, its corner concentric with the window's. A bare
-   box sits inside a card that has its own surface (the quick view's first question). */
+/* The message box (D-62): the tray, then the snip tool, the text and Send, in one box whose corner is concentric with
+   the window's. A bare box sits inside a card that has its own surface (the quick view's first question). */
 .message-box {
   display: flex;
   flex-direction: column;
   gap: var(--s-1h);
 }
-.message-box--bare .composer__row {
-  padding: 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
+.message-box:not(.message-box--bare) {
+  padding: var(--s-1h);
+  border-radius: calc(var(--radius) - var(--s-3));
+  background: var(--surface);
+  box-shadow: var(--elev-2);
+  transition: box-shadow var(--t-quick) var(--glide);
 }
-.message-box--bare .composer__row:focus-within {
-  box-shadow: none;
+.message-box:not(.message-box--bare):focus-within {
+  box-shadow: var(--elev-2), var(--ring);
 }
 .message-box--bare .composer__input {
   padding: 0;
   max-height: 96px;
 }
-.quick .message-box:not(.message-box--bare) .composer__row {
+.quick .message-box:not(.message-box--bare) {
   background: var(--fill);
   box-shadow: none;
 }
@@ -969,14 +1080,20 @@ html[data-view='bubble'] body {
   display: flex;
   align-items: flex-end;
   gap: var(--s-1);
-  padding: var(--s-1h);
-  border-radius: calc(var(--radius) - var(--s-3));
-  background: var(--surface);
-  box-shadow: var(--elev-2);
-  transition: box-shadow var(--t-quick) var(--glide);
 }
-.composer__row:focus-within {
-  box-shadow: var(--elev-2), var(--ring);
+/* Inside the box, the tray loses its own card: captures, files and the tray's actions sit over the text. */
+.message-box > .context-card {
+  padding: var(--s-1) var(--s-1) 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.tray-count {
+  margin-left: auto;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
 }
 .composer__tool {
   width: 32px;
