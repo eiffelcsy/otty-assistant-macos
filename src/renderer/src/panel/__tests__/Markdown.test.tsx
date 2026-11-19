@@ -35,6 +35,12 @@ describe('Markdown', () => {
     expect(tip(true)).toContain('Good to know')
     expect(tip(true)).toContain('Otters hold hands')
   })
+
+  it('shows the tip’s label once, when the answer writes it too, as prompts.ts asks', () => {
+    const html = renderToStaticMarkup(<Markdown text={'Answer.\n\n> 💡 **Good to know:** waiting a minute usually fixes it.'} />)
+    expect(html.match(/Good to know/g)).toHaveLength(1)
+    expect(html).toContain('waiting a minute usually fixes it.')
+  })
 })
 
 describe('the proofread card', () => {
