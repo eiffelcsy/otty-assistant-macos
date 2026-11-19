@@ -28,7 +28,7 @@ const BLOG = 'https://travel-blog.example/rail-pass-review'
 async function offer(otty: Otty, world: World, panel: Page, look: Look = RAIL): Promise<void> {
   world.reply(look.question, { calls: [{ name: 'start_job', args: { title: look.title, brief: look.brief } }] }, { say: look.after })
   await otty.ask(panel, look.question)
-  await expect(panel.getByText('Look into this in the background?')).toBeVisible()
+  await expect(panel.getByText('Look into this in the background?', { exact: true })).toBeVisible()
 }
 
 /** The chat's own background calls (its title) have gone out, so taking the network away can't catch them. */
