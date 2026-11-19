@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Web safety fixes (2026-11-19)
+
+- **Read this page? asks for every unknown address.** An address the reader accepts, such as `https:example.com` or one with a leading space, used to skip the card. The tool now parses the address first and checks that. Step cards' `open` uses the same parser.
+- **A web address can't turn private while Otty connects.** The reader checked a name's address, then `fetch` looked it up again, so a name that answered differently the second time (DNS rebinding) could reach the router. The check now runs in the lookup the connection uses (`connectingVia` in `net.ts`, with `undici` 7.30.1, the same as Electron 45's).
+- **A hostile page can't freeze Otty.** The page reader strips scripts, menus and comments in one pass. Before, a page full of unclosed tags took minutes on the main process.
+- **Settings saves only what a window may change.** `settings:save` refuses unknown keys and checks each value, so a window can't write the saved keys or window positions.
+
 ### Home (D-66, 2026-11-19)
 
 Home is where Otty looks after you (Spec 06, part 2): ⌘1 at any width, and where the roomy window opens when Otty is opened from Applications, the Dock or the menu bar.

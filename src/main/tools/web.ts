@@ -1,7 +1,7 @@
 import { readPageFromMac } from '../pageReader'
 import { profileFor, searchesOnServer } from '../providers/profiles'
 import { getApiKey, getStored } from '../settings'
-import { deepseekFetch, deepseekSearch, WebError, type WebConfig } from '../web'
+import { checkedUrl, deepseekFetch, deepseekSearch, WebError, type WebConfig } from '../web'
 import { record } from '../sent'
 import { send } from '../net'
 import { maskSecrets } from '../../shared/secrets'
@@ -101,8 +101,15 @@ export const readPageTool: Tool = {
   async run(args, ctx) {
     if (webOff()) return offWeb
     const web = webConfig()
-    const url = text(args, 'url')
-    if (/^https?:\/\//i.test(url) && !ctx.knownUrl(url) && !(await ctx.confirm(pageCard('read', url), url))) return declined
+    let url: string
+    try {
+      // Parsed before the check, as the reader will parse it: `https:evil.com` or a leading space is still an address.
+      url = checkedUrl(text(args, 'url')).href
+    } catch (err) {
+      if (err instanceof WebError) return { result: err.message, status: 'error' }
+      throw err
+    }
+    if (!ctx.knownUrl(url) && !(await ctx.confirm(pageCard('read', url), url))) return declined
     noter(ctx, 'page', url)(web ? 'DeepSeek' : hostOf(url), web ? hostOf(web.baseUrl) : hostOf(url))
     try {
       // Someone else's page can hold a key too (a leaked config, a paste site), and it shouldn't be passed on.

@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { htmlToText, isPrivateAddress, readPageFromMac } from '../pageReader'
+import { createServer } from 'http'
+import type { AddressInfo, LookupFunction } from 'net'
+import { connectingVia } from '../net'
+import { htmlToText, isPrivateAddress, publicLookup, readPageFromMac } from '../pageReader'
 
 const html = (body: string, status = 200) => new Response(body, { status, headers: { 'content-type': 'text/html; charset=utf-8' } })
 const publicDns = async () => ['93.184.216.34']
@@ -14,6 +17,18 @@ describe('isPrivateAddress', () => {
 
   it.each(['93.184.216.34', '8.8.8.8', '172.32.0.1', '100.128.0.1', '2606:4700:4700::1111', '::ffff:8.8.8.8'])('allows %s', (ip) => {
     expect(isPrivateAddress(ip)).toBe(false)
+  })
+})
+
+describe('htmlToText', () => {
+  it('keeps the body when </head> is left out, and drops scripts, menus and comments', () => {
+    expect(htmlToText('<html><head><title>T &amp; x</title><body><p>Hi</p><script>evil</script><nav>menu</nav><!-- c -->ok')).toEqual({ title: 'T & x', text: 'Hi\nok' })
+  })
+
+  it.each(['<nav>', '<!--', '<title', '<a ', '<br', '<head><nav></nav>'])('reads a hostile page of %j quickly', (unit) => {
+    const started = performance.now()
+    htmlToText(unit.repeat(Math.ceil(3_000_000 / unit.length)))
+    expect(performance.now() - started).toBeLessThan(2000) // a lazy regex took minutes here
   })
 })
 
@@ -76,6 +91,7 @@ describe('readPageFromMac', () => {
     await readPageFromMac('https://example.com/', fetcher as unknown as typeof fetch, publicDns)
     const init = (fetcher.mock.calls as unknown as [string, RequestInit][])[0][1]
     expect(init.redirect).toBe('manual')
+    expect((init as { dispatcher?: unknown }).dispatcher).toBeDefined()
     expect(Object.keys(init.headers as object).map((h) => h.toLowerCase())).not.toContain('cookie')
   })
 
@@ -105,5 +121,40 @@ describe('htmlToText', () => {
       <body><nav>Menu</nav><script>alert(1)</script><h1>Otters</h1><p>Sea &#x26; river<br>otters &mdash; 🦦</p><!-- hidden --><footer>© 2026</footer></body></html>`)
     expect(title).toBe('A & B')
     expect(text).toBe('Otters\nSea & river\notters — 🦦')
+  })
+})
+
+describe('the connection’s own lookup (DNS rebinding)', () => {
+  const ask = (lookup: LookupFunction, all: boolean) =>
+    new Promise<unknown>((resolve, reject) => lookup('evil.example', { all }, (err, address) => (err ? reject(err) : resolve(address))))
+
+  it('refuses a private answer and passes a public one on', async () => {
+    await expect(ask(publicLookup(async () => ['127.0.0.1']), false)).rejects.toThrow('public web pages')
+    await expect(ask(publicLookup(async () => ['8.8.8.8', '10.0.0.1']), true)).rejects.toThrow('public web pages')
+    await expect(ask(publicLookup(async () => ['8.8.8.8']), false)).resolves.toBe('8.8.8.8')
+    await expect(ask(publicLookup(async () => ['8.8.8.8']), true)).resolves.toEqual([{ address: '8.8.8.8', family: 4 }])
+  })
+
+  it('is the lookup fetch connects with, so a name that turns private on the second ask never reaches the server', async () => {
+    let hits = 0
+    const server = createServer((_req, res) => {
+      hits++
+      res.end('inside')
+    })
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
+    const { port } = server.address() as AddressInfo
+    const url = `http://rebind.example:${port}/`
+    try {
+      const anyAnswer: LookupFunction = (_h, o, cb) => (o.all ? cb(null, [{ address: '127.0.0.1', family: 4 }]) : cb(null, '127.0.0.1', 4))
+      const open = connectingVia(anyAnswer)
+      expect(await (await fetch(url, { dispatcher: open } as RequestInit)).text()).toBe('inside') // the Agent's lookup is used
+      await open.close()
+      const checked = connectingVia(publicLookup(async () => ['127.0.0.1']))
+      await expect(fetch(url, { dispatcher: checked } as RequestInit)).rejects.toThrow()
+      await checked.close()
+      expect(hits).toBe(1)
+    } finally {
+      server.close()
+    }
   })
 })
