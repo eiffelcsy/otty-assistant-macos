@@ -56,7 +56,8 @@ test.describe('a shortcut that can’t be registered', () => {
     const panel = await otty.openPanel()
     await expect(banner(panel)).toContainText(/Another app uses .+, so it won’t work for/)
     await banner(panel).getByRole('button', { name: 'Change it' }).click()
-    await expect(panel.getByLabel('Shortcut: capture the whole screen')).toBeVisible()
-    await expect(panel.getByText('Another app is using this shortcut').first()).toBeVisible()
+    await expect(panel.getByRole('heading', { name: 'Shortcuts' })).toBeVisible()
+    // Both rows hold the same shortcut, so both say so.
+    await expect(panel.getByText('Another app uses this. Pick a different one.').first()).toBeVisible()
   })
 })

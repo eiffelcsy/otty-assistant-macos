@@ -14,7 +14,7 @@ const lastAnswer = (page: Page) => page.locator('.msg--otty').last()
 /** The copy-and-look question, its card answered yes, with the look paused on a page it must ask about. */
 async function copyAndLook(otty: Otty, panel: Page, title: string): Promise<void> {
   await otty.ask(panel, 'copy hello and look into laptops')
-  await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+  await panel.getByRole('button', { name: 'Start it' }).click()
   await expect(lastAnswer(panel).getByText(`Copied, and I’m looking into ${title}.`)).toBeVisible()
   await expect(lastAnswer(panel).getByRole('button', { name: 'Try again' })).toBeVisible()
 }
@@ -57,8 +57,8 @@ test('Try again lists what it can undo; unticked the look carries on, ticked it 
   const card = panel.locator('.rewind-card')
   const stop = card.getByRole('checkbox', { name: 'Stop looking into “Budget laptops”' })
   await expect(stop).toBeChecked()
-  await expect(card.getByText('Can’t be undone:')).toBeVisible()
-  await expect(card.locator('.rewind-card__lasting')).toContainText('Copied.')
+  await expect(card.getByText('Can’t be undone')).toBeVisible()
+  await expect(card.locator('.rewind-card__item--lasting')).toContainText('Copied.')
 
   // Unticked: a new answer, and the look carries on.
   await stop.uncheck()
@@ -144,7 +144,7 @@ test('Edit question after a remembered fact offers to forget it', { tag: ['@step
   await lastAnswer(panel).getByRole('button', { name: 'Edit question' }).click()
   const card = panel.locator('.rewind-card')
   await expect(card.getByRole('checkbox', { name: 'Forget “Is learning Spanish”' })).toBeChecked()
-  await card.getByRole('button', { name: 'Edit', exact: true }).click()
+  await card.getByRole('button', { name: 'Edit question' }).click()
   await expect(panel.getByPlaceholder(/Ask/)).toHaveValue('I’m learning Spanish. How do I say hello?')
   await panel.getByPlaceholder(/Ask/).fill('I’m learning Spanish. How do I say good morning?')
   await panel.getByRole('button', { name: 'Send' }).click()
@@ -172,4 +172,20 @@ test('reopened from Recent chats, only the latest answer can be tried again or e
   await expect(again.getByRole('button', { name: 'Edit question' })).toHaveCount(1)
   await expect(lastAnswer(again).getByRole('button', { name: 'Try again' })).toBeVisible()
   await expect(again.locator('.msg--otty').first().getByText('First answer.')).toBeVisible()
+})
+
+test('Shorter asks the same question again with one line after it, and the new answer replaces the old', { tag: ['@step-148'] }, async ({ otty, world }) => {
+  world.reply(streamed('What is a fjord?'), { say: 'A fjord is a long, deep, narrow inlet of the sea between high cliffs, carved by a glacier.' }, { say: 'A sea inlet carved by ice.' })
+  const panel = await otty.openPanel()
+  await otty.ask(panel, 'What is a fjord?')
+  await expect(panel.getByText('carved by a glacier.')).toBeVisible()
+  const first = world.modelRequests().filter((b) => b.stream).at(-1)!
+
+  await lastAnswer(panel).getByRole('button', { name: 'Shorter' }).click()
+  await expect(panel.getByText('A sea inlet carved by ice.')).toBeVisible()
+  await expect(panel.getByText('carved by a glacier.')).toHaveCount(0)
+  const again = world.modelRequests().filter((b) => b.stream).at(-1)!
+  const question = first.messages!.at(-1)!
+  expect(again.messages!.slice(0, -1)).toEqual(first.messages!.slice(0, -1))
+  expect(again.messages!.at(-1)).toEqual({ ...question, content: `${String(question.content)}\n\nAnswer this again, shorter than last time.` })
 })

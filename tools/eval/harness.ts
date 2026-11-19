@@ -45,9 +45,9 @@ export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: n
         // As in the app (llm.ts): a capture or a known fact puts the user's own data in the run.
         taint: { private: Boolean(c.capture || c.known), outside: false },
         // Every card is recorded. A careful user says no to sending their own words out in a search, and yes to the rest.
-        confirm: async (title, detail) => {
-          cards.push(`${title}: ${detail}`)
-          return title !== 'Look this up?'
+        confirm: async (card) => {
+          cards.push(`${card.title}: ${card.query ?? card.host ?? card.item ?? ''}`)
+          return card.kind !== 'search'
         },
         // Pages and searches are scripted by the case, so the address is as good as known.
         knownUrl: () => true,

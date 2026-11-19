@@ -31,7 +31,7 @@ test('DeepSeek searches the web, and the answer cites dated sources that open in
   const panel = await otty.openPanel()
   await otty.ask(panel, 'What’s new in macOS this month?')
 
-  await expect(panel.getByText('Looking up “macOS news November 2026”')).toBeVisible()
+  await expect(panel.locator('.tool-chips').getByText('Looking up “macOS news November 2026”')).toBeVisible()
   const link = panel.getByRole('link', { name: 'Apple Newsroom, 10 Nov' })
   await expect(link).toBeVisible()
 
@@ -47,15 +47,18 @@ test('DeepSeek searches the web, and the answer cites dated sources that open in
 
 test('another service still searches (Wikipedia), and Privacy says where lookups go', { tag: ['@step-48'] }, async ({ otty, world }) => {
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Settings' }).click()
+  await otty.settings(panel, 'Privacy')
   await expect(panel.getByText('the search words or the page address go to DeepSeek')).toBeVisible()
 
+  await otty.settings(panel, 'Connection')
+  await panel.getByRole('button', { name: 'Change service or key' }).click()
   await panel.getByRole('radio', { name: /Another service/ }).check()
   await panel.getByLabel('Server address').fill('https://models.example.com/v1')
   await panel.getByLabel('Model').fill('smoke-model')
-  await expect(panel.getByText('the search words go to Wikipedia and DuckDuckGo')).toBeVisible()
-  await panel.getByRole('button', { name: 'Save' }).click()
+  await panel.getByRole('button', { name: 'Check and save' }).click()
   await expect(panel.getByText(/Connected to smoke-model!/)).toBeVisible()
+  await otty.settings(panel, 'Privacy')
+  await expect(panel.getByText('the search words go to Wikipedia and DuckDuckGo')).toBeVisible()
 
   world.lookup('Ada Lovelace', {
     abstract: { text: 'Ada Lovelace was an English mathematician.', url: 'https://duckduckgo.com/Ada_Lovelace' },
@@ -65,7 +68,7 @@ test('another service still searches (Wikipedia), and Privacy says where lookups
   world.backgroundReply = 'Ada Lovelace'
   await panel.getByRole('button', { name: 'Back to chat' }).click()
   await otty.ask(panel, 'Who was Ada Lovelace?')
-  await expect(panel.getByText('Looking up “Ada Lovelace”')).toBeVisible()
+  await expect(panel.locator('.tool-chips').getByText('Looking up “Ada Lovelace”')).toBeVisible()
   await expect(panel.getByText('She wrote the first published computer program.')).toBeVisible()
 
   const turns = world.turnRequests('openai')
@@ -98,7 +101,7 @@ test.describe('on Claude', () => {
     world.backgroundReply = 'macOS this month'
     const panel = await otty.openPanel()
     await otty.ask(panel, 'What’s new in macOS this month?')
-    await expect(panel.getByText('Searching the web')).toBeVisible()
+    await expect(panel.locator('.tool-chips').getByText('Searching the web')).toBeVisible()
     await expect(panel.getByRole('link', { name: 'Apple Newsroom' })).toBeVisible()
     // Claude's own search was offered, so Otty's isn't.
     const first = world.turnRequests('anthropic')[0]
@@ -109,7 +112,7 @@ test.describe('on Claude', () => {
     world.page(found, '<title>macOS 27.2 beta 2</title><p>Beta 2 adds otter stickers to Messages.</p>')
     world.reply('Read the second one', { calls: [{ name: 'read_page', args: { url: found } }] }, { say: 'Beta 2 adds otter stickers.' })
     await otty.ask(panel, 'Read the second one')
-    await expect(panel.getByText('Reading 9to5mac.com')).toBeVisible()
+    await expect(panel.locator('.tool-chips').getByText('Reading 9to5mac.com')).toBeVisible()
     await expect(panel.getByText('Beta 2 adds otter stickers.')).toBeVisible()
     await expect(panel.getByText('Read this page?')).toHaveCount(0)
     expect(toolResults(world.turnRequests('anthropic').at(-1))).toContain('Beta 2 adds otter stickers to Messages.')
@@ -119,8 +122,10 @@ test.describe('on Claude', () => {
     world.reply('Now read my otter notes', { calls: [{ name: 'read_page', args: { url: madeUp } }] }, { say: 'Okay, I won’t open it.' })
     await otty.ask(panel, 'Now read my otter notes')
     await expect(panel.getByText('Read this page?')).toBeVisible()
-    await expect(panel.getByText(madeUp)).toBeVisible()
-    await panel.getByRole('button', { name: 'No thanks' }).click()
+    // The host on its own line, then the rest of the address (D-60).
+    await expect(panel.locator('.confirm-card')).toContainText('otters.example')
+    await expect(panel.locator('.confirm-card')).toContainText('/notes')
+    await panel.getByRole('button', { name: 'Skip' }).click()
     await expect(panel.getByText('Okay, I won’t open it.')).toBeVisible()
     expect(world.requests.filter((r) => r.url.startsWith('https://otters.example/'))).toEqual([])
   })
@@ -135,7 +140,7 @@ test.describe('on OpenAI', () => {
     world.backgroundReply = 'Otters'
     const panel = await otty.openPanel()
     await otty.ask(panel, 'Summarise https://example.com/otters')
-    await expect(panel.getByText('Reading example.com')).toBeVisible()
+    await expect(panel.locator('.tool-chips').getByText('Reading example.com')).toBeVisible()
     await expect(panel.getByText('Sea otters hold hands as they sleep.')).toBeVisible()
     expect(toolResults(world.turnRequests('openai').at(-1))).toContain('# Otters\nSource: https://example.com/otters\n\nSea otters hold hands while they sleep.')
 
@@ -143,7 +148,7 @@ test.describe('on OpenAI', () => {
     world.reply('What’s on http://192.168.1.1', { calls: [{ name: 'read_page', args: { url: 'http://192.168.1.1' } }] }, { say: 'I can only read public pages.' })
     await otty.ask(panel, 'What’s on http://192.168.1.1')
     await expect(panel.getByText('I can only read public pages.')).toBeVisible()
-    await expect(panel.getByText('Reading 192.168.1.1 (didn’t work)')).toBeVisible()
+    await expect(panel.locator('.tool-chips').getByText('Reading 192.168.1.1 (didn’t work)')).toBeVisible()
     expect(toolResults(world.turnRequests('openai').at(-1))).toContain('Otty can only read public web pages.')
 
     // So is a public page that redirects to one.

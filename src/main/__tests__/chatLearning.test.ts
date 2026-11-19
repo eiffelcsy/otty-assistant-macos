@@ -366,7 +366,7 @@ describe('starting a job', () => {
     replies = [call('start_job', { title: 'Flights', brief: 'Compare flights' }), say('OK')]
     const turn = chat.send('compare the cheapest flights', [], null)
     await vi.waitFor(() => expect(events.some((e) => e.type === 'confirm')).toBe(true))
-    expect(events.find((e) => e.type === 'confirm')).toMatchObject({ detail: expect.stringContaining('Compare flights') })
+    expect(events.find((e) => e.type === 'confirm')).toMatchObject({ card: { kind: 'job', yes: 'Start it', detail: expect.stringContaining('Compare flights') } })
     chat.respondConfirm((events.find((e) => e.type === 'confirm') as Extract<ChatEvent, { type: 'confirm' }>).confirmId, false)
     await turn
     expect(started).toEqual([])
@@ -408,7 +408,7 @@ describe('asking for a job later', () => {
     const turn = chat.send('check the Tokyo rail pass price tomorrow at 9', [], null)
     await vi.waitFor(() => expect(events.some((e) => e.type === 'confirm')).toBe(true))
     expect(started).toEqual([])
-    expect(confirmOf(events).detail).toMatch(/^Tomorrow at 9:00.*won’t send or change anything/s)
+    expect(confirmOf(events).card.detail).toMatch(/^Tomorrow at 9:00.*won’t send or change anything/s)
     chat.respondConfirm(confirmOf(events).confirmId, true)
     await turn
     expect(started).toHaveLength(1)
@@ -421,7 +421,7 @@ describe('asking for a job later', () => {
     replies = [call('start_job', { title: 'T', brief: 'Compare flights' }), say('OK')]
     const turn = chat.send('compare flights', [], null)
     await vi.waitFor(() => expect(events.some((e) => e.type === 'confirm')).toBe(true))
-    expect(confirmOf(events).detail).toMatch(/Compare flights[\s\S]*It stops after 30 searches or pages\.$/)
+    expect(confirmOf(events).card.detail).toMatch(/Compare flights[\s\S]*It stops after 30 searches or pages\.$/)
     chat.respondConfirm(confirmOf(events).confirmId, false)
     await turn
   })

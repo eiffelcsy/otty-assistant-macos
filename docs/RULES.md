@@ -55,5 +55,6 @@ Where the checks live:
 | Charts | Test `chart.test.ts` "hands the model the same numbers the chart shows" and "keeps what the data says out of the diagram's code"; `eval.test.ts` "the chart scorer". |
 | Usage meter | Test `usage.test.ts`; `trust.test.ts` "says so in friendly words, never money". |
 | Health | Test `health.test.ts`, `suggestions.test.ts`. Prose only for *a chip never sends* until renderer tests (D-48 phase 2). |
+| Confirm cards | Tests `receipts.test.ts` (a receipt however the card ends, Undo only when recorded, a skip on a new question), `cards.test.tsx` "ignores a click in its first 400 ms…" and "approves nothing on Enter on the card itself". Rule test `ipc.test.ts` (each `SETTABLE` key refuses what isn't one). Test `drafts.test.ts` and `MessageBox.test.tsx` for the one message box and drafts kept in main. |
 | Step cards | Rule test `osascript.test.ts` (model text reaches `osascript` only through argv; no shell). Test `act.test.ts`; `chatLearning.test.ts` "shows a card with no chip, flags risky steps and acts only in the asking app". |
 | Every iteration ends with | Partly: `rules/docsDrift.test.ts` fails when CLAUDE.md or DEVLOG's architecture names a path that's gone. The pass itself stays a process rule. |

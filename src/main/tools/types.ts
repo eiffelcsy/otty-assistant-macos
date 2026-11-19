@@ -1,5 +1,6 @@
 import type { UndoKind } from '../ledger'
 import type { RunTaint } from '../toolSafety'
+import type { ConfirmCard } from '../../shared/types'
 
 // What every tool is made of. A tool is one entry in `TOOLS` (`index.ts`), next to its row in `toolSafety.ts`: the
 // definition the model sees and when it's offered, its chip, how the ledger can undo it, and how it runs.
@@ -7,8 +8,8 @@ import type { RunTaint } from '../toolSafety'
 export type Args = Record<string, unknown>
 
 export interface ToolContext {
-  /** Ask the user to approve a side-effecting action. */
-  confirm(title: string, detail: string): Promise<boolean>
+  /** Ask the user to approve a side-effecting action, with a card built in `cards.ts`. `url` is the page it's about. */
+  confirm(card: ConfirmCard, url?: string): Promise<boolean>
   /** True when this exact address came from the user, a search or a page, not from the model. */
   knownUrl(url: string): boolean
   /**
@@ -48,8 +49,10 @@ export interface MacHands {
   open(url: string): Promise<void>
   /** Copies text, with a Markdown table as a real table as well. True when it held one. */
   copy(text: string): Promise<boolean>
-  /** Adds a reminder to Apple Reminders. */
-  remind(title: string, due: Date | null): Promise<void>
+  /** Adds a reminder to Apple Reminders, and returns its id, for Undo ('' when Reminders gave none). */
+  remind(title: string, due: Date | null): Promise<string>
+  /** Removes a reminder Otty added. */
+  unremind(id: string): Promise<void>
 }
 
 /** Calls already made by work that can be resumed. `claim` is true only the first time for a run and call. */

@@ -3,7 +3,7 @@
  * At the end, a test fails if the app crashed, logged an error, tried to leave the machine or asked the world for
  * something nobody scripted.
  */
-import { _electron as electron, expect, test as base, type ElectronApplication, type Page } from '@playwright/test'
+import { _electron as electron, expect, test as base, type ElectronApplication, type Locator, type Page } from '@playwright/test'
 import { execFileSync } from 'child_process'
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
@@ -128,6 +128,29 @@ export class Otty {
     const box = page.locator('textarea').last()
     await box.fill(text)
     await box.press('Enter')
+  }
+
+  /**
+   * Opens Settings at one of its sections (D-61): "You & Otty", "Shortcuts", "Privacy", "Usage & limit", "Connection"
+   * or "Help". Works from the chat or from inside Settings.
+   */
+  async settings(page: Page, section: string): Promise<void> {
+    const list = page.getByRole('textbox', { name: 'Find a setting' })
+    const back = page.getByRole('button', { name: 'All settings' })
+    // From a section or the Notebook, back up to the list; from anywhere else, the header's Settings button.
+    if (!(await back.isVisible()) && !(await list.isVisible())) await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    for (let i = 0; i < 2; i++) {
+      await expect(list.or(back).first()).toBeVisible()
+      if (await list.isVisible()) break
+      await back.click()
+    }
+    await page.locator('.set-row--section', { hasText: section }).click()
+    await expect(page.getByRole('heading', { name: section })).toBeVisible()
+  }
+
+  /** Holds a "Hold to forget" button down long enough (D-61). */
+  async hold(button: Locator): Promise<void> {
+    await button.click({ delay: 1_400 })
   }
 
   /** Change what the fake Mac reports (selection, app in front, permissions, snips). */

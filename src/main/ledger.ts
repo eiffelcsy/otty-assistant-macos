@@ -6,7 +6,7 @@ import { maskSecrets } from '../shared/secrets'
 // marked once it's done. Try again reads it to say what it can take back, and Activity shows it. Like the sent log,
 // it lives and dies with chats, and callers go through `begin`, which does nothing until main plugs a ledger in.
 
-export type UndoKind = 'memory' | 'job' | 'none'
+export type UndoKind = 'memory' | 'job' | 'reminder' | 'none'
 
 export interface ActionRow {
   id: number
@@ -80,7 +80,8 @@ const toItem = (r: ActionRow): ChangeItem => ({
   at: r.at,
   summary: r.summary,
   status: r.status,
-  canUndo: r.undo !== 'none',
+  // A reminder Reminders gave no id for can't be found again.
+  canUndo: r.undo !== 'none' && Boolean(r.ref),
   ...(r.chatId ? { chatId: r.chatId } : {}),
   ...(r.undoneAt ? { undone: true } : {})
 })

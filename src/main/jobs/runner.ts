@@ -408,8 +408,9 @@ export class JobRunner {
           sent: { group: job.id, ...(job.sourceThread ? { chatId: job.sourceThread } : {}) },
           knownUrl: known,
           // Nobody is there to answer, so the question is saved and the job stops here until someone does.
-          confirm: async (_title, url) => {
-            if (job.denied.includes(normalized(url))) return false
+          confirm: async (_card, url) => {
+            // Only read_page asks in a job (JOB_TOOLS are read-only), with the address it would read.
+            if (!url || job.denied.includes(normalized(url))) return false
             throw new ToolPause(url)
           }
         },

@@ -4,6 +4,47 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Try again with a twist (D-58, 2026-11-18)
+
+- **Shorter**, **Simpler** and **In more detail** sit beside Try again under the latest finished answer. Each is Try again (D-36: the same undo list, the history cut to the question) with one line added after the question, "Answer this again, shorter than last time.", so everything before it is sent as it was and the cache holds (`rewind.test.ts` checks it byte for byte).
+
+### A heads-up at 80% of the monthly limit (D-57, 2026-11-18)
+
+- With a monthly limit set, the health line says "You've used 80% of this month's limit of 300 questions" once the month reaches 80%, with **Change the limit**. Seen (Not now, or the button), it doesn't come back until next month; past the limit, the existing line takes over. Worked out in `shared/cap.ts` (`nearCap`), with the month it was seen saved as `capNoticed`. No notification, no sound.
+
+### One message box, and drafts that stay (2026-11-18)
+
+The core of D-62 (Spec 03); its DEVLOG entry lists what's still to come.
+- **One message box** for the panel and both of the quick view's boxes: Enter sends, Shift-Enter makes a line, nothing goes mid-composition, Send turns into Stop while Otty answers, and Snip and Attach say "After this answer" until then. The panel's box says "Ask a follow-up…" once there's a chat.
+- **Drafts stay with their chat.** What's typed is kept in main's memory per chat, so ↵ **continue in chat** carries the quick view's follow-up into the panel, and switching chats brings each one's words back. Recent chats shows "Draft: …". A restart starts each box empty.
+- **Answers that end early say how.** Stop leaves "You stopped this answer." A failed answer's card offers the one button that helps: **Open Settings** for a key problem, **Start a new chat** for one that's grown too long, **Try again** otherwise.
+- **While Otty works**, the thinking row says what the running tool is doing, and after 6 s "Still with you. DeepSeek is slow right now." Scrolling up while an answer streams stops the chat following it, and **New text** brings you back.
+- Older answers keep their action row for hover and keyboard focus; the latest shows it. The empty chat is the otter, one line with the shortcut, and up to three things to try.
+
+### Settings in sections, saved as you go (D-61, 2026-11-18)
+
+Settings opens on six sections, each with a one-line summary: You & Otty, Shortcuts, Privacy, Usage & limit, Connection and Help (Spec 02). There's no Save button.
+- **Every control saves as it changes** through one new channel, `settings:set`, with a check per key (`SETTABLE` in `ipc/check.ts`); the connection isn't one of them. "Saved" shows beside the section's name for a moment. If a save fails, the control goes back and the row says "Couldn't save that. Try again."
+- **Forgetting is held, with the real count.** Turning Remember my chats off, or a shorter Keep chats for that would forget some, opens a prompt under the row ("Forget 23 chats older than 30 days?") with **Hold to forget** (1.2 s, letting go early does nothing) and **Keep them**. Forget all chats and Forget everything in the Notebook sit in a "Can't be undone" group with their counts. The counts come from main (`settings:counts`).
+- **Shortcuts are recorded**, not typed: click the keycaps and press the new chord, Esc to cancel. One another app owns is refused on the spot, the old one stays, and the row says so.
+- **Usage in questions**: this month's count, a bar towards the limit (straw from 80%), and a limit field in questions a month. A saved limit in tokens still works, with **Count questions instead**.
+- **Connection** shows the service and whether its key is saved, with **Change service or key** opening the fields in place and their own **Check and save**.
+- **Find a setting** filters every row by title and a few other words ("hotkey", "memory"); ↵ opens the section with the row glowing once.
+- **The Notebook** is its own view now (the list of what Otty knows), opened from Privacy, a Noted line's Edit or the used marker, with a way back to Privacy.
+- The health line's **Change it** and **Change the limit** open Shortcuts and Usage & limit. Preview scenes: `settings` and `settings-you` to `settings-help`, `settings-find`, `-retention`, `-broken` and `-recording`.
+
+### Decisions and receipts (D-60, 2026-11-18)
+
+Confirm cards are worth reading and can't be approved by accident, and every decision stays in the chat (Spec 01).
+- **Cards by kind, worked out in main.** `ToolContext.confirm` takes a typed card built in `cards.ts`: Read this page? and Open this link? show the host on its own line, as the tool will reach it (a user name before `@` gone, another alphabet in its `xn--` form with the readable one beside it), then the rest of the address cut in the middle. Search the web for this? shows the words and where they go; Add this reminder? the title, when and where. The buttons name the action (**Read it**, **Open it**, **Search**, **Add it**, **Start it**, **Schedule it**) and **Skip**; "Yes, go ahead" and "No thanks" are gone.
+- **Unusual cards look different, and only those:** an address in another alphabet, a plain `http:` page, a search after private data met outside words (D-41), or a look past the monthly limit. Each gets a straw edge and one line saying why, decided in code, never by the model.
+- **Arming.** A card's buttons ignore the pointer until the card has been at least half on screen for 400 ms, so a click meant for something else can't approve it. The keyboard is never delayed. Focus moves to the card (never a button) only when you aren't typing, and the box says "Or ask something else" while a card waits. After ten minutes a card says since when; coming back to one that waited over a minute draws one slow ring. If main doesn't hear the answer, the card says so and stays.
+- **Receipts.** An answered card leaves one line in the answer: "✓ Read jreast.co.jp", "– Skipped example.com (you asked something else)", "✓ Added “Essay deadline” · Undo". They're saved with the answer, so they survive reopening the chat (no schema change).
+- **Reminders can be undone.** Otty keeps the id Reminders gives a new reminder, so Undo on its receipt, or Try again's list, removes that reminder and no other (`unremind`, through argv). The ledger calls it undoable only when there's an id.
+- **The Noted line** says Noted, Updated (with "was: …") or Forgot, in full, with Undo and Edit; a straw pen line draws under a new note once, on a live answer; an undone note stays, struck through, as "Forgotten". **Notes an answer only read** fold into one bookmark button in its action row, with a menu listing them.
+- **The Try again card** has the spec's lists: ticked rows to undo, and lock rows for what can't be. Its buttons read Try again or Edit question, and Keep this answer.
+- UI preview scenes: `confirm-read`, `confirm-open`, `confirm-search`, `confirm-reminder`, `confirm-unusual`, `receipts`, `rewind` and `noted`, all in `npm run screens`. The eval records cards by their parts.
+
 ### Ready to extend: tools as entries, no electron in the loop (D-45 step 3, 2026-11-18)
 
 Nothing changes for anyone using Otty: the model is offered the same tools, in the same order, byte for byte, under every service and setting.

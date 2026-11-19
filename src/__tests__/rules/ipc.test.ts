@@ -11,7 +11,7 @@ vi.mock('electron', () => ({
     on: (channel: string, fn: (e: unknown, ...a: unknown[]) => unknown) => registered.set(channel, fn)
   }
 }))
-const { CHANNELS, handle, on, setView } = await import('../../main/ipc/check')
+const { CHANNELS, SETTABLE, handle, on, setView } = await import('../../main/ipc/check')
 type Channel = keyof typeof CHANNELS
 
 const channels = Object.keys(CHANNELS) as Channel[]
@@ -70,5 +70,51 @@ describe('a checked handler', () => {
     expect(calls.has('chats:clear')).toBe(false)
     send('chats:clear', panel, frame, [])
     expect(calls.get('chats:clear')).toEqual([[]])
+  })
+})
+
+describe('one setting at a time (D-61)', () => {
+  // Wrong values for every key Settings may change. Each must be refused before anything is saved.
+  const BAD: Record<keyof typeof SETTABLE, unknown[]> = {
+    showBubble: ['yes', 1, null],
+    notifyDone: ['true', 0],
+    openAtLogin: [{}],
+    thinking: ['on'],
+    shareAppContext: [[]],
+    rememberChats: [undefined, 'false'],
+    learn: [null],
+    keepChats: ['7d', 30, null],
+    homeLanguage: ['fr', 'zh', 0],
+    askHotkey: ['', 'Alt+Space; rm -rf ~', 'x'.repeat(61), 42],
+    snapHotkey: ['Alt Shift Space', null],
+    screenHotkey: ['Command+Alt+⌘'],
+    monthlyCap: [],
+    capNoticed: ['2026-1', 'November', null, 202611]
+  }
+  const GOOD: Record<keyof typeof SETTABLE, unknown> = {
+    showBubble: false,
+    notifyDone: true,
+    openAtLogin: true,
+    thinking: false,
+    shareAppContext: true,
+    rememberChats: false,
+    learn: true,
+    keepChats: '30d',
+    homeLanguage: null,
+    askHotkey: 'Alt+Shift+Space',
+    snapHotkey: 'Command+4',
+    screenHotkey: 'Control+F5',
+    monthlyCap: { unit: 'questions', limit: 300 },
+    capNoticed: '2026-11'
+  }
+
+  it.each(Object.keys(SETTABLE) as (keyof typeof SETTABLE)[])('%s refuses what isn’t one, and takes what is', (key) => {
+    for (const v of BAD[key]) expect(SETTABLE[key](v), String(v)).toBe(false)
+    expect(SETTABLE[key](GOOD[key])).toBe(true)
+  })
+
+  it('takes only those keys, never the connection or a pause', () => {
+    const [keyGuard] = CHANNELS['settings:set'].args
+    for (const key of ['apiKey', 'baseUrl', 'model', 'workPaused', 'onboarded', '__proto__']) expect(keyGuard(key), key).toBe(false)
   })
 })

@@ -1,3 +1,4 @@
+import type { SettableKey } from '../../shared/types'
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron'
 
 // D-44: a compromised renderer is what the sandbox is for, so main checks everything a window sends. Each channel
@@ -38,6 +39,30 @@ export const list =
 /** For an argument main checks properly further on (`cleanCap`, `validExport`, `registerFiles`). */
 export const checkedLater: Guard = () => true
 
+/** An Electron accelerator as the shortcut recorder writes it: "Alt+Shift+Space". */
+const hotkey: Guard = (x) => typeof x === 'string' && /^[A-Za-z0-9+]{1,60}$/.test(x)
+
+/**
+ * What Settings may change one at a time (D-61), each with its check. The connection isn't here: it goes through
+ * `settings:save`, which tests it. `monthlyCap` is cleaned by `cleanCap` as it's saved.
+ */
+export const SETTABLE = {
+  showBubble: bool,
+  notifyDone: bool,
+  openAtLogin: bool,
+  thinking: bool,
+  shareAppContext: bool,
+  rememberChats: bool,
+  learn: bool,
+  keepChats: oneOf('30d', '1y', 'forever'),
+  homeLanguage: oneOf(null, 'zh-HK'),
+  askHotkey: hotkey,
+  snapHotkey: hotkey,
+  screenHotkey: hotkey,
+  monthlyCap: checkedLater,
+  capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x)
+} as const satisfies Record<SettableKey, Guard>
+
 const CHAT: View[] = ['panel', 'quick']
 const PANEL: View[] = ['panel']
 const LANGUAGE = oneOf('en', 'zh-HK')
@@ -46,6 +71,8 @@ const LANGUAGE = oneOf('en', 'zh-HK')
 export const CHANNELS = {
   'settings:get': { views: CHAT, args: [] },
   'settings:save': { views: CHAT, args: [record] },
+  'settings:set': { views: PANEL, args: [oneOf(...Object.keys(SETTABLE)), (x) => x !== undefined] },
+  'settings:counts': { views: PANEL, args: [] },
   'settings:test': { views: PANEL, args: [] },
   'permissions:get': { views: PANEL, args: [] },
   'permissions:open': { views: CHAT, args: [oneOf('accessibility', 'screen')] },
@@ -62,7 +89,7 @@ export const CHANNELS = {
   'chats:clear': { views: PANEL, args: [] },
   'chat:confirm': { views: CHAT, args: [id, bool] },
   'chat:rewind-plan': { views: CHAT, args: [id] },
-  'chat:rewind': { views: CHAT, args: [id, list(id, 50), oneOf('retry', 'edit')] },
+  'chat:rewind': { views: CHAT, args: [id, list(id, 50), oneOf('retry', 'edit'), optional(oneOf('shorter', 'simpler', 'detail'))] },
   'chat:learn': { views: CHAT, args: [bool] },
   'chat:explain': { views: CHAT, args: [text(500), text(50_000), optional(LANGUAGE)] },
   'steps:run': { views: CHAT, args: [id, int(0, 100), optional(bool)] },
@@ -83,6 +110,8 @@ export const CHANNELS = {
   'memory:update': { views: PANEL, args: [int(0, Number.MAX_SAFE_INTEGER), record] },
   'memory:remove': { views: PANEL, args: [int(0, Number.MAX_SAFE_INTEGER)] },
   'memory:clear': { views: PANEL, args: [] },
+  'chat:undo-receipt': { views: CHAT, args: [id, int(0, 100)] },
+  'chat:draft': { views: CHAT, args: [text(20_000), text(40)] },
   'memory:undo': { views: CHAT, args: [id, int(0, Number.MAX_SAFE_INTEGER)] },
   'memory:open': { views: CHAT, args: [] },
   'files:pick': { views: CHAT, args: [] },

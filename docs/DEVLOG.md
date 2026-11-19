@@ -84,16 +84,12 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M (2–3 days) |
-| D-60 | Decisions and receipts: confirm cards by kind, arming, receipts that stay, the Noted line (Spec 01) | ⏳ planned | D-59 | M (2–3 days) |
-| D-61 | Settings in sections, applied as you go, no Save button (Spec 02) | ⏳ planned | D-59 | M (2–3 days) |
-| D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | ⏳ planned | D-59, D-60 | M–L (3–4 days) |
-| D-63 | The Logbook: Activity, What left your Mac and What Otty changed become one screen of views (Spec 04) | ⏳ planned | D-59, D-60 | L (4–5 days) |
+| D-62 | Chat and one message box: the chat column, answer typography, thinking and streaming, drafts kept in main (Spec 03) | 🔨 core built; typography, the tray inside the box and the rest waiting | D-59 | M–L (3–4 days) |
+| D-63 | The Logbook: Activity, What left your Mac and What Otty changed become one screen of views (Spec 04) | ⏳ planned | D-59 | L (4–5 days) |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: 1–2 days) |
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
-| D-57 | A heads-up at 80% of the monthly limit | ⏳ planned | — | S |
-| D-58 | Try again with a twist: Shorter, Simpler, In more detail | ⏳ planned | — | S |
 | D-37 | Feed Otty: drop a file or dragged text on the otter to ask about it | ⏳ needs art | two painted frames (mouth open, munch); files in the quick view | S–M (1 day) |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M (1–2 days) |
 | D-1 | Context-aware intents (local encoder classifier) | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L (4–6 days) |
@@ -102,7 +98,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
-**Where things stand (2026-11-18).** The beta-hardening batch, D-49 to D-53, is built on `main`'s working tree: fuses, logs and Copy diagnostics, keys only from the Keychain, one door out, and a move to Applications. D-54 to D-58 are planned and not started; D-54 waits on the owner's OAuth client. The smoke checklist is 138 steps; 134 has a spec, and 135–138 need the packaged app or a model on the Mac (✋).
+**Where things stand (2026-11-18, evening).** The UI batch is built on stacked branches from `main`: D-60 decisions and receipts (`feat/decisions-receipts`), D-61 Settings in sections (`feat/settings-sections`), the core of D-62 chat and one message box (`feat/chat-message-box`), D-57 the 80% heads-up (`feat/limit-heads-up`) and D-58 Try again with a twist (`feat/try-again-twist`). The whole smoke suite passes on the last of them (147 tests). Next: D-63 the Logbook (L), the rest of D-62 (its entry lists it), then D-55 and D-56; D-54 still waits on the owner's OAuth client. `npm run screens` will differ on every chat and settings scene, so new baselines are their own PR after CI. The smoke checklist is 148 steps; 135–138 need the packaged app or a model on the Mac (✋).
+
+**Earlier (2026-11-18).** The beta-hardening batch, D-49 to D-53, shipped: fuses, logs and Copy diagnostics, keys only from the Keychain, one door out, and a move to Applications.
 
 **Earlier (2026-11-16, later).** D-47, the smoke harness, is built on `feat/smoke-harness` with D-48 phase 1: 130 smoke tests over 119 of the 127 checklist steps pass in about 5 minutes, and the 8 bugs they found are fixed. The steps marked ✋ in the checklist still need a person on a Mac. The eval was rerun on 2026-11-17 (below).
 
@@ -181,45 +179,9 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Smoke test (add to the checklist when it ships).** ✋ A person compares each window at 420 × 580, light and dark, with DESIGN.md's component specs, because pixel fidelity isn't something a spec can assert.
 
 **Where it stands (2026-11-18).** Built: every token, `--muted` renamed to `--text-2` everywhere and gone (no alias was needed), and the components in `styles.css`: button (primary, soft, quiet-style `copy-btn`, warn; small and large), icon button (32 and `--sm` 28, 25% corners), small × (20 visible in a 28 target), switch (Settings toggles), field, row (Recent chats), group (Settings sections), card, header, composer box and keycap. Measured at 420 × 580: header 44, composer 64 (box 44), health line 40, so chrome is 108 px (19%). Answers have no bubble and use the full width; question to answer 8, turn to turn 20. Both tests are in `rules/renderer.test.ts`, with 5 off-scale entries, and fail on a planted bad value. Dark `--text-2` on `--brand-soft` was 4.35:1, so a selected radio row uses `--text`. Smoke passes (137): the new spacing exposed a race in `FindBar`, where an earlier match's wait for the chat to stop gliding pulled the view back after a quick ↵, so a newer jump now cancels it; and the health specs match Allow and Reopen Otty exactly, because the banner's words are now a button that contains them.
-**Not done yet:** tooltip, toast and menu (nothing uses them yet: tooltips are still native `title`s), the *unusual* and *receipt* cards (D-60), the group label above its box and rows with inset hairlines (Settings' markup, D-61), the header hairline that appears only on scroll, and the reduced-motion fade. **Checks waiting:** `npm run screens` will differ on every scene, so the new baselines are their own PR after CI; idle CPU with `OTTY_METRICS=1` (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8).
+**Not done yet:** tooltip and toast (tooltips are still native `title`s), the header hairline that appears only on scroll, and the reduced-motion fade. D-60 built the *unusual* card, the receipt and a first menu (the used marker); D-61 the group label above its box and rows with inset hairlines. **Checks waiting:** idle CPU with `OTTY_METRICS=1` on a Mac (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8). The baselines landed in their own PR (#65), and the smoke harness's idle spec passes.
 
-## D-60 · Decisions and receipts ⏳
-
-**Goal.** Confirm cards that are worth reading and can't be approved by accident, a trace of every decision in the chat, and a Noted line that gets the eye once. The spec is `docs/design/specs/01-decisions.md`; this entry is how to build it.
-
-**Design.**
-1. **Cards by kind, worked out in main.** `ToolContext.confirm` takes a typed card (`{ kind: 'read' | 'open' | 'search' | 'reminder', ... }`) instead of a title and a detail. The four callers (`tools/web.ts` twice, `tools/mac.ts` twice) build it: host and path from `new URL`, the query as typed by the model, the service's name from the profile, the reminder's title, time (`describeWhen`) and list. `unusual` is decided in main: punycode or non-ASCII host, `http:`, a search under `needsCard`, or over the cap. The `confirm` event carries the card; `title` and `detail` stay filled so older code and saved chats keep working.
-2. **One `ConfirmCard` component** (`components/ConfirmCard.tsx`) for the chat, the Logbook pane and the quick view, sized by a `size` prop. Arming: buttons ignore pointer input until the card has been at least 50% visible for 400 ms, keyboard never delayed. Focus goes to the card, never a button.
-3. **Receipts.** When a confirm is answered, main records `{ allowed, text, undo? }` on the answer (a new optional `receipts` field on the assistant `ChatMessage`, saved in the message JSON, so no schema change; `store/upgrade.ts` reads old messages without it). The text and Undo come from the ledger row (D-46) where there is one. A new question that stops the turn records "Skipped (you asked something else)".
-4. **Rewind card** restyled as a Card with the spec's lists; behaviour unchanged (D-36).
-5. **Noted line** to spec: label, fact, "was:" for updates, inline Undo and Edit, the pen underline only on live answers, the undone state. "Used" lines become the used marker: a 28 px icon button in the action row with a menu.
-
-**Tests.** `cards.test.tsx`: each kind renders its parts and button words; the unusual line shows only for its four reasons; a click at 300 ms does nothing and at 450 ms answers; Enter on the card doesn't approve. A main test per caller: the card's host is the host the tool then fetches or opens (an address with userinfo, `@`, punycode and a trailing dot). `llm.test.ts`: a receipt is saved and reloads; skipping by asking again records the skip. The Noted line test covers added, updated with "was", undone, and no animation class on a reopened chat.
-
-**Done when.** No card says "Yes, go ahead" or "No thanks"; every answered card leaves a receipt that survives reopening; the preview scenes in Spec 01 exist at 420, 760 and 1200, light and dark; `rewind.smoke.ts`, `sent.smoke.ts`, `web.smoke.ts`, `pages.smoke.ts` and `ruleOfTwo.smoke.ts` use the new button names; `npm run screens` shows only the expected changes.
-
-**Smoke test (add to the checklist when it ships).** A page outside what the user sent asks with **Read it** / **Skip**; Read it leaves "Read <host>" in the chat, still there after reopening. A punycode address shows the other-alphabet line. Clicking a card's button the instant it appears does nothing. Add a reminder, then Undo on its receipt removes it.
-
-## D-61 · Settings in sections ⏳
-
-**Goal.** Settings in six sections that apply as you go, with forgetting behind a hold and a real count, and the memory list moved out. The spec is `docs/design/specs/02-settings.md`.
-
-**Design.**
-1. **One setting at a time.** A `setSetting(key, value)` channel in `CHANNELS` with a guard per key (the same rules `saveSettings` applies today, split per key), returning the saved value or a friendly error. `saveSettings` stays for onboarding only. Turning **Remember my chats** off and shortening **Keep chats for** go through a separate `forgetChats({ olderThan? })` channel that the hold button calls; the setting changes only after it.
-2. **Counts from main:** `settingsCounts()` returns chats, chats older than each retention choice, and notes.
-3. **Screens:** `panel/settings/` with one component per section, a shared `SettingRow` (switch, choice, link, value, keys, hold) and `SettingsIndex`. The memory list moves to a **Notebook** view (a plain list for now, opened from Privacy and from the Noted line's Edit); the Notebook screen proper comes with the Otty window.
-4. **Key recorder** replaces the three text fields, with the clash check main already does (`takenHotkeys`).
-5. **Usage** in questions only; a saved token limit shows read-only with "Count questions instead".
-6. **Find a setting** over a static list of rows and synonyms, using `shared/match.ts`.
-7. Settings' "See what left your Mac" and "See what Otty changed" open today's Activity tabs until D-63 makes them Logbook views.
-
-**Tests.** A guard test per key (bad values refused, nothing saved). A renderer test per row kind round-trips through a mocked `setSetting`, and a failed save puts the old value back. The hold button: release at 1.1 s forgets nothing, 1.2 s calls `forgetChats` once. `settings.test.ts`: retention counts are right at the boundary day.
-
-**Done when.** No Save button in Settings; every control saves on change; nothing is forgotten without the hold; the index fits 420 × 580 without scrolling; the preview scenes in Spec 02 exist; `sent.smoke.ts` and `privacy.smoke.ts` stop pressing Save; `providers.smoke.ts` uses Change service or key and Check and save.
-
-**Smoke test (add to the checklist when it ships).** Flip **Tell me when something is ready**: "Saved" appears, and the change survives a restart. Shorten Keep chats for with an old chat present: the prompt names the count, and Keep them changes nothing. Record a new shortcut, and a taken one shows the clash line.
-
-## D-62 · Chat and one message box ⏳
+## D-62 · Chat and one message box 🔨 core built
 
 **Goal.** The chat column, answers and the message box built to spec, with one box for the quick view and the panel and drafts that never get lost. The spec is `docs/design/specs/03-chat.md`.
 
@@ -237,6 +199,10 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Done when.** One message box component in the codebase; drafts survive chat and window switches; chrome is 108 px at 420 × 580; the preview scenes in Spec 03 exist; `basics.smoke.ts`, `captures.smoke.ts` and `language.smoke.ts` pass with any selector changes in the same PR.
 
 **Smoke test (add to the checklist when it ships).** Type in the quick view, press ↵ "continue in chat": the text is still in the box. Type in one chat, switch to another and back: the draft is there, and the list says "Draft:". Scroll up while an answer streams: "New text" appears and brings you back. Pull the network during an answer: the card says what happened, with one button.
+
+**Where it stands (2026-11-18).** Built: one `MessageBox` (`components/MessageBox.tsx`) for the panel's composer and both of the quick view's boxes; drafts kept per chat in main's memory (`ChatSession.setDraft`, a `draft` event every window hears and a load event that carries it), saved 300 ms after typing and at once on blur or ↵ continue in chat, with "Draft:" in Recent chats; errors with a `kind` (`FriendlyError.kind`: network, key, too-long) and a card with the one button that helps; "You stopped this answer." (`answer.stopped`, set only by Stop, not by a new question); the thinking row with the running tool's words and the slow line at 6 s; following stops when you scroll up while Otty writes, with a "New text" button; actions shown on the latest answer, others on hover or focus; the empty chat as Spec 03 draws it. Smoke steps 145–146; scenes `thinking`, `stopped`, `failed-key`, `failed-long`.
+**Not done yet:** the tray and files inside the box; the user bubble's shape and the long-text clip; answer typography (headings, the code bar, tables, the tip's "Good to know" label); the explain card's waiting bars; chunks fading in, the caret, and extras surfacing after the end; ↑ to edit the last question and ⌘. to stop; the language button only after Chinese is used; the paused box; captures and file ids in drafts (text only for now); medium and wide widths.
+
 
 ## D-63 · The Logbook ⏳
 
@@ -443,22 +409,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 **Done when.** A saved tile shows only for its kinds of capture and sends its prompt as typed (renderer test and `@step-N`); a drafted tile is saved only from the card's button; 12 is the most, and a too-long name or prompt is refused in main (`settings.test.ts`).
 
-## D-57 · A heads-up at 80% of the monthly limit ⏳
-
-**Goal.** With a monthly limit set (D-33), Otty says once, gently, when the month reaches 80%, so the limit is never a surprise.
-
-**Design.** `shared/cap.ts` gains `nearCap(status)`; the health line (`shared/health.ts`) shows "You've used 80% of this month's limit" with **Change the limit**, once per month (the month it was shown is saved), and never again after the limit is passed (that line already exists). No notification, no sound.
-
-**Done when.** `cap.test.ts` and `health.test.ts` cover 79%, 80%, the once-a-month rule and a new month; `@step-N` sees the line once.
-
-## D-58 · Try again with a twist ⏳
-
-**Goal.** Beside Try again: **Shorter**, **Simpler** and **In more detail**, so changing an answer's shape is one tap.
-
-**Design.** The same rewind as Try again (D-36): the history is cut to a prefix and the stored question resent unchanged, plus one line in that turn's `turnNote` ("Make it shorter than last time"). The cache still holds, because the note is at the end of the user message. The rewind plan is the same as Try again's. Only on the latest answer, as Try again.
-
-**Done when.** `rewind.test.ts`: the request with a twist equals Try again's plus the one line, byte for byte; the three buttons show only under the latest finished answer (`cards.test.tsx`); `@step-N` runs Shorter.
-
 ---
 
 ## D-14 · Otty's own snip: a paw cursor and a frozen screen ⏸
@@ -657,7 +607,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 6. Click the otter with text highlighted → same flow, in the panel next to the otter.
 7. **⌥⇧Space** → draw a box over a chart → ask "what is this?" → the answer describes the image. ✋ also by hand: the real crosshair and a real model’s description.
 8. Click a dotted term → the explainer card appears → **Ask more** sends a follow-up.
-9. "Remind me to call mum at 5pm" → the confirm card appears → Allow → the reminder shows in the Reminders app. The tool chip shows a clock icon, not an emoji.
+9. "Remind me to call mum at 5pm" → the confirm card appears → **Add it** → the reminder shows in the Reminders app. The tool chip shows a clock icon, not an emoji.
 10. "Find me the Wikipedia page for otters and open it" → a search chip appears, then the open_url confirm.
 11. Wrong key → a friendly error appears. Wi-Fi off → a friendly error appears.
 12. Drag the otter, quit, relaunch → the position is remembered. ✋ a real drag of the floating otter, and its position after a relaunch.
@@ -665,9 +615,9 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 14. In Safari, press **⌥Space** → the tag shows the page. The first time, macOS asks to let Otty control Safari. Ask "what is this site?" → the answer uses the page. ✋ also by hand: Safari’s first automation prompt.
 15. Ask in the full panel, then press **⌥Space** and ask something new → open **Recent chats** → the earlier chat is there. Open it and ask a follow-up → it remembers.
 16. Quit and relaunch → Recent chats still lists them, and a snip shows as "Screen snip (not saved)".
-17. Settings → Privacy → turn off "Remember my chats" → Save → the list is empty and the clock button is gone.
+17. Settings › Privacy → turn off "Remember my chats" → it asks "Turn off and forget 1 chat?"; **Keep them** changes nothing. Turn it off again and hold **Hold to forget** → Saved, the list is empty and the clock button is gone.
 18. Ask from the quick view, then click elsewhere before the answer finishes → a straw-coloured dot appears on the otter. Click the otter → the panel shows the answer and the dot clears.
-19. Settings → My other language → **English only** → Save → no EN / 中 pill, no "In 中文" button, no 中文 tiles or explain-card toggle. Answers are English even when you type Chinese.
+19. Settings › You & Otty › Help in my own language → **English only** → Saved, and no EN / 中 pill, no "In 中文" button, no 中文 tiles or explain-card toggle. Answers are English even when you type Chinese.
 20. Pick **繁體中文（香港）** → Save. Highlight English text → ↵ with an empty box → an English answer. Type 「這是什麼意思？」 → a Chinese answer in Traditional characters.
 21. Press **中** on the pill and type a question **in English** → a Chinese answer. The next message is back on Auto (English).
 22. On the latest English answer press **In 中文** → the same answer in Chinese. Reopen the chat from Recent chats → the button still works.
@@ -691,12 +641,12 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 40. Add four captures, then a fifth → "Otty can look at 4 things at once"; remove one with its ✕ → the note goes away. Highlight the same text twice → only one copy.
 41. Highlight text → **⌥Space** → in the quick view press **＋ add more** → click into another app (it stays open), highlight → **⌥Space** → the capture is added without the card moving or taking focus. ↵ → Compare runs. Click elsewhere → it closes.
 42. Open the quick view, then switch to another desktop (Ctrl→) → it's still there, unfocused. Highlight something there → **⌥Space** → added. Click **esc close** → it closes. A chat saved by 0.3.2 still opens. ✋ also by hand: switching desktops.
-43. Upgrade from 0.3.2: with a few chats saved by 0.3.2, start this build → Recent chats shows them straight away (no empty flash), `chats.json` is gone and `otty.db` is in `~/Library/Application Support/Otty`. Search an English word and 「打印」 → the right chats. Settings → Privacy → **Forget all chats** → the list is empty. ✋ also by hand: the real ~/Library/Application Support/Otty location.
+43. Upgrade from 0.3.2: with a few chats saved by 0.3.2, start this build → Recent chats shows them straight away (no empty flash), `chats.json` is gone and `otty.db` is in `~/Library/Application Support/Otty`. Search an English word and 「打印」 → the right chats. Settings › Privacy → hold **Forget all chats** → the list is empty. ✋ also by hand: the real ~/Library/Application Support/Otty location.
 44. Ask a long question and, while the answer streams, force-quit Otty (`kill -9` its process). Relaunch → the chat is in Recent chats with the question, and a follow-up works.
-45. Settings → Privacy → **Keep chats for** shows **1 year**. Pick **30 days** → Save → chats older than 30 days are gone, and Recent chats says "Otty keeps chats for 30 days on this Mac".
+45. Settings › Privacy › **Keep chats for** shows **1 year**. Pick **30 days** → it asks "Forget 1 chat older than 30 days?" → hold → chats older than 30 days are gone, and Recent chats says "Otty keeps chats for 30 days on this Mac".
 46. Ask "What's new in macOS this month?" → a "Looking up …" chip, and an answer citing dated sources as links that open in the browser. ✋ also by hand: whether a real model cites dated sources (eval).
 47. In Safari on a public article, press **⌥Space** with nothing highlighted → type "Summarize this page" → a "Reading <site>" chip and a summary of that page. On a signed-in page (e.g. your webmail) → Otty says it can't read it and suggests highlighting instead. Ask in 中文 about a Hong Kong topic → Chinese sources. ✋ also by hand: a real ⌥Space in Safari, and whether a real model’s wording is kind (eval).
-48. Settings → set the base URL to another provider → search still answers (Wikipedia), and reading a public page still works (step 61). Settings → Privacy shows the DeepSeek line, then the Wikipedia/DuckDuckGo line.
+48. Settings › Privacy shows the DeepSeek line under Web look-ups. Settings › Connection › Change service or key → another service → the Wikipedia/DuckDuckGo line → **Check and save** → search still answers (Wikipedia), and reading a public page still works (step 61).
 49. Snip a page with a very long window title, then send it → the app tag above the snip ends in "…" and stays inside the chat, in the panel and the quick view. ✋ also by hand: how the cut-off title looks.
 50. Ask "Read https://example.com" → Otty reads it with no card. Search for something and ask it to read a result → no card. Ask it to read an address nobody gave it → a "Read this page?" card shows the full address, and **No** sends nothing.
 51. In a built app, ask Otty to reply with exactly `![test](https://example.com/p.png)` → the word "test" appears, and no picture loads. Snips, file thumbnails, icons and painted Otty still show.
@@ -709,19 +659,19 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 58. With the window open, switch to another app, paste, and come back → it's still there on top. Press Esc → it closes, and the app you were in has focus. Snip something with no words → "Otty couldn't find any words in this picture". Turn the Wi-Fi off → it still works.
 > **Status (2026-11-06):** steps 55–58 passed on 0.5.0. Steps 59–61 are **yet to be tested**, because they need other services. Steps 62–66 have no result yet.
 
-59. Settings → pick **Claude** → paste a key → **Save**: the test names the model. Ask something that needs a tool → the chip and answer work. Ask a follow-up, then reopen the chat from Recent chats and ask another. ✋ also by hand: a real key against the live API.
+59. Settings › Connection › Change service or key → pick **Claude** → paste a key → **Check and save**: the test names the model. Ask something that needs a tool → the chip and answer work. Ask a follow-up, then reopen the chat from Recent chats and ask another. ✋ also by hand: a real key against the live API.
 60. On Claude, ask "What's new in macOS this month?" → a "Searching the web" chip, then an answer citing sources. Ask it to read one of those sources → no card. Ask it to read an address nobody gave it → a "Read this page?" card. ✋ also by hand: whether a real model cites its sources (eval).
 61. On OpenAI or a custom address, ask Otty to read a public page → a "Reading <site>" chip and a summary. Ask it to read `http://192.168.1.1` → it says it can only read public pages. Switch services mid-chat → the conversation carries on, and switching back keeps each key.
 62. In Safari on a public article, open the panel with nothing highlighted → a **Summarize this page** tile. Tap it → a "Reading <site>" chip and a summary, with no card. Remove the app tag → the tile goes. In the quick view, press ⌥Space with nothing highlighted, then ↵ → the same summary. On a YouTube video page, or with a model on this Mac → no offer. On a page that needs a sign-in → a friendly "can't read it".
 63. Ask something with a dotted term, wait 3 seconds, tap it → the card opens straight away. Turn on **Think deeper** → cards still work. Turn Wi-Fi off, tap a new term, then back on and tap again → the second tap works.
 64. Highlight a long paragraph → ⌥Space → ↵ → Recent chats shows a short real title, not the cut-off text. Search a word from the title → the chat is found. Ask a question in 中文 → a Chinese title.
 65. Highlight a draft with mistakes in Mail → ⌥Space → **check writing** → the marked-up card, with a reason for each fix. **Copy fixed text** → paste → no marks. Press **In 中文** → the reasons change and the fixed text doesn't. Check a correct paragraph → it says it reads well. Reopen the chat → the same card. Toggle dark mode → the changes stay legible.
-66. Press **⌘⌥⇧Space** → Otty blinks out for a moment, then a picture labelled **Whole screen** of the display under the cursor, without the floating otter or any Otty window in it, readable when opened. Ask about it → the answer treats it as the whole screen. With the panel open, it's added to the tray. On a second display, it snaps that one. With Screen Recording off → the friendly notice. Settings shows the third shortcut, and setting one another app uses shows "Another app is using this shortcut" after saving. ✋ also by hand: that the real picture leaves out Otty’s windows, and a second display.
+66. Press **⌘⌥⇧Space** → Otty blinks out for a moment, then a picture labelled **Whole screen** of the display under the cursor, without the floating otter or any Otty window in it, readable when opened. Ask about it → the answer treats it as the whole screen. With the panel open, it's added to the tray. On a second display, it snaps that one. With Screen Recording off → the friendly notice. Settings › Shortcuts shows the third shortcut; recording one another app uses shows "Another app uses this. Pick a different one." and keeps the old one. ✋ also by hand: that the real picture leaves out Otty’s windows, and a second display.
 67. Say "I'm learning Spanish for a trip" → the answer shows *Noted: Is learning Spanish* with **Undo** and **Edit**, and no card. In a new chat, "how do I say thank you?" leans Spanish without being told. Press **Undo** → it says Undone, and the next new chat doesn't know it. Reopen the chat → the line is still there, still Undone.
 68. Mention a health detail in passing ("I have diabetes, what can I eat?") → nothing is noted. Say "remember I'm diabetic" → it's noted. Say "remember my wifi password is otter123" → Otty kindly says it doesn't keep those, and nothing is noted.
 69. Highlight an email from someone else → **Summarize** → nothing is noted. Say "forget that I'm learning Spanish" → *Forgotten*, with an Undo.
 70. Press the brain button in the panel's header (or **don't learn** in the quick view), then say "remember I have a dog" → nothing is noted, and Otty doesn't claim it was. Reopen the chat → still off.
-71. Settings → **What Otty knows about you** → edit one, and the next answer uses the new words. Pause one → it stops being used. Add "I'm a nurse", then "my password is x" → the second is turned down. **From a chat on…** opens that chat. **Forget everything Otty knows** asks once, then the list is empty. Turn **Let Otty learn about me** off → no Noted lines, and answers stop using the list.
+71. Settings › Privacy › **Open the Notebook** → edit one, and the next answer uses the new words. Pause one → it stops being used. Add "I'm a nurse", then "my password is x" → the second is turned down. **From a chat on…** opens that chat. Settings › Privacy says how many notes, and holding **Forget everything in the Notebook** empties it. Turn **Let Otty note things about me** off → no Noted lines, and answers stop using the list.
 72. Over a few days of use, mostly in one app → *Noted: Mostly works in Excel*. Delete it → it doesn't come back.
 73. Type `17.5% of 2,340` and press ↵ → **409.5** at once, with Wi-Fi off too, and **Copy** and **Explain the working**. Explain → the model explains it. Try `38°C to °F`, `10 km to miles` and `what is 2 + 2?`. `macOS 15.1`, `12/25/2026` and `1 in 3` go to the model.
 74. Ask "What's 17.5% of 2,340 plus 8% tax?" → one "Calculated … = …" chip with no flicker, and the right total. Tap the chip → it copies. Ask "Solve 3x + 7 = 25" → a short pause while it thinks, then rendered steps (a real fraction bar, not `\frac`) and a check line. Ask "What's the capital of France?" → no extra pause.
@@ -742,7 +692,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 89. Ask for a formula with inline math (a matrix, then "check: trace = 7") → every formula is drawn, none shows `$` or red text. A price like "$5 and $10" stays text.
 90. On a step card, press **Done** on step 1 → it ticks and step 2 becomes current. Press **Done, check it** → Otty looks at the screen and says whether it worked.
 91. Start a job, turn Wi-Fi off → within about 2 minutes the row says "Lost the connection. Trying again…", then Paused. Turn Wi-Fi on → Keep going continues from where it was. Stop a job → **Try again** carries on from its last step, and the report replaces the partial one.
-92. With "Let Otty learn about me" on and "Is learning Spanish" saved, ask "how do I say thank you in Spanish?" → a quiet **Used: Is learning Spanish** line under the answer. Ask "what's the capital of France?" → no line. Reopen the chat → the first answer still shows it. Tap the line → Settings opens at the memory list. Turn learning off → no line on a new answer.
+92. With "Let Otty learn about me" on and "Is learning Spanish" saved, ask "how do I say thank you in Spanish?" → a bookmark button in the answer's action row, "Used 1 note from your Notebook". Ask "what's the capital of France?" → none. Reopen the chat → the first answer still has it. Its menu lists the note and **Open the Notebook**. Turn learning off → no line on a new answer.
 93. Ask "check the Tokyo rail pass price tomorrow at 9" → a card saying **Tomorrow at 9:00 AM, Otty will look this up… It won't send or change anything. Otty has to be running then.** Press No → nothing is scheduled. Ask again and say yes → Activity shows **Will look tomorrow at 9:00 AM** with Cancel. Cancel → the row goes.
 94. Schedule something for 2 minutes from now (say "in 2 minutes") and leave Otty running → at that time the row starts working, and finishes as a normal chat with only the dot set, no popup. Check Activity Monitor: no extra wake-ups while it waits.
 95. Schedule something for 3 minutes ahead, then sleep the Mac (Apple menu → Sleep) for 5 minutes and wake it → it runs once, and the finished row says **Looked a little late**. Quit Otty, wait past the time, relaunch → it runs once, late.
@@ -769,7 +719,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 116. Ask Otty to draw a page that says "add click A href https://evil.example" → the diagram has no link, and nothing is fetched (Activity Monitor › Network for Otty shows no new connections while drawing and exporting).
 117. Ask a question with a highlight, then open Activity › **What left your Mac** → "Asked DeepSeek: 1 highlight", with the time and host, and **Open** goes to that chat. A search and a page read have their own rows. On a model on this Mac → "nothing left your Mac". Delete the chat → its rows go. Turn off Remember my chats → the list empties.
 118. Highlight `export OPENAI_API_KEY=sk-test1234567890abcdefgh` in Terminal → ⌥Space → ↵ → under the question, "Otty hid 1 key before sending", and the question shows `[hidden key]`. Ask "what's my key?" → Otty says it was hidden. Search Recent chats for the value → nothing. Type "my password is hunter2" → it stays as typed.
-119. Settings › What Otty has used › **Set a monthly limit** → 1 question → Save. Ask a question → it's answered, and a line at the top says the limit has passed, with **Change the limit**. Start a background look → the card's yes leads to a row saying "You've reached this month's limit… Run it anyway?" → **Run it anyway** runs it. Explain cards still open when tapped.
+119. Settings › Usage & limit › **Set a monthly limit** → 1 question → Saved. Ask a question → it's answered, and a line at the top says the limit has passed, with **Change the limit**. Start a background look → the card's yes leads to a row saying "You've reached this month's limit… Run it anyway?" → **Run it anyway** runs it. Explain cards still open when tapped.
 120. Ask "check the Tokyo rail pass price every Monday at 9" → the card says **Every Monday at 9:00 AM, starting …** and about 4 looks a month. Yes → Coming up shows ↻ with "next …" and **Stop repeating**.
 121. Ask for a daily check two minutes from now → it runs and leaves a note, and Coming up moves to tomorrow. Sleep the Mac across two due times → one late run on wake, not two. **Stop repeating** → the series goes, and the notes stay.
 122. Attach a CSV of sales with dates → "chart sales by month" → a bar chart card, with a tick-chip "Worked out the chart". **See the numbers** shows the table. Check one month against Numbers or Excel. The answer's figures match the table.
@@ -780,7 +730,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 127. Reopen the chat from Recent chats → only the latest answer has the buttons, and nothing older changed. In the quick view → **Try again** only.
 128. `npm run smoke` → it passes, and `npm run smoke -- --grep @harness` shows every way out of the machine refused. ✋ Run it with your own Otty open and check that it keeps working and its chats are unchanged.
 129. `npm run build:mac`, then `npm run smoke:packaged` → "The packaged app started". ✋ It launches the real built app for a few seconds, so run it on a Mac with the build.
-130. Highlight a line of private notes, ⌥Space, and ask Otty to summarise a page that tells it to search for the highlighted text → after reading the page, a **Look this up?** card shows the exact words before any search; **No thanks** keeps them on the Mac. In a chat with nothing highlighted or attached, a search after a page needs no card.
+130. Highlight a line of private notes, ⌥Space, and ask Otty to summarise a page that tells it to search for the highlighted text → after reading the page, a **Search the web for this?** card shows the exact words before any search; **Skip** keeps them on the Mac. In a chat with nothing highlighted or attached, a search after a page needs no card.
 131. Ask Otty to add a reminder and say yes → Settings › Privacy › **See what Otty changed** lists "Reminder added" as can't be undone. Remember something, then **Try again** → the card offers to forget it, and afterwards the row says undone. **Forget all chats** → the list is empty.
 132. In Activity, **Pause everything** → **For an hour** → the bar and the menu bar say "paused until" a time an hour away. Let the Mac sleep through it, then wake it → Otty carries on by itself, and a scheduled look runs once. **Until tomorrow morning** says tomorrow at 9:00. **Until I say** waits for **Let Otty carry on**.
 133. Paste a key into a question → under it, **Otty hid 1 key before sending**. Tap it → the line, with only the first 3 and last 4 characters of the key, and a note to retype it to send it anyway. Quit and reopen Otty, then tap it again → it says Otty doesn't keep these after a restart. A file with keys → its "N keys hidden" line shows the same.
@@ -789,3 +739,13 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 136. `npm run build:mac`, then `npx @electron/fuses read --app dist/mac-arm64/Otty.app` → RunAsNode, NodeOptions and NodeCliInspect are off; EmbeddedAsarIntegrityValidation, OnlyLoadAppFromAsar and CookieEncryption are on. `ELECTRON_RUN_AS_NODE=1 dist/mac-arm64/Otty.app/Contents/MacOS/Otty -e "console.log(1)"` opens Otty instead of printing 1. `codesign --verify dist/mac-arm64/Otty.app` passes, and `npm run smoke:packaged` still starts. ✋ needs the packaged app.
 137. Open the DMG and run Otty from it → "Move Otty to your Applications folder?". **Not now** → it carries on, and the next launch doesn't ask. Reset (delete `moveDeclined` from `settings.json`), run from the DMG again, **Move to Applications** → Otty relaunches from `/Applications`. Settings › Help › Copy diagnostics says "in Applications: yes". ✋ needs the packaged app and a DMG.
 138. In the installed app, with `DEEPSEEK_API_KEY` set in the shell that opens it and no key saved → Otty still asks for a key. ✋ needs the installed app; `settings.test.ts` covers it, and the case where the Keychain can't be reached.
+139. Ask Otty to read a page that nobody sent → **Read this page?** with the host on its own line and the rest of the address below, and **Read it** / **Skip**. Read it → the answer has "✓ Read <host>", and it's still there after reopening the chat from Recent chats.
+140. A page in another alphabet (`https://аpple.com/…`) → the card shows the `xn--` host and "This address uses letters from another alphabet." Skip → "Skipped <host>".
+141. Click a card's button the instant it appears → nothing happens; a moment later it works. ✋ also by hand: tab to a button and press Space at once → it answers straight away.
+142. "Remind me to feed the otters" → **Add it** → "✓ Added “Feed the otters” · Undo". Undo → the reminder is gone from Reminders and the line says Undone. ✋ also by hand: the real Reminders app.
+143. Settings has no Save button. Settings › You & Otty → turn on **Tell me when something is ready** → "Saved" shows by the title; quit and relaunch → it's still on, and the list's summary says "notifications on".
+144. Settings → **Find a setting** → "hotkey" → the shortcut rows; ↵ → Shortcuts opens with that row glowing once.
+145. Highlight something, ⌥Space, ↵, then type a follow-up in the quick view and press **↵ continue in chat** → the panel's box has the same words.
+146. Ask something, type a few words in the box, press **New chat** and ask something else → Recent chats shows the first chat with "Draft: …" in straw; open it → the words are back in the box.
+147. With a monthly limit of 5 questions, ask four → the health line says "You've used 80% of this month's limit of 5 questions", with **Change the limit**. **Not now** → it's gone, and stays gone after a relaunch until next month.
+148. Ask something, then **Shorter** under the answer → a new, shorter answer replaces it. Simpler and In more detail do the same, and only the latest finished answer offers them.

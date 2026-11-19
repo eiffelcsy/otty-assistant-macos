@@ -6,6 +6,7 @@ import type {
   Capture,
   ChatEvent,
   ChatMessage,
+  ConfirmCard,
   FileAttachment,
   Memory,
   OttyApi,
@@ -18,7 +19,7 @@ import { draw } from '../../src/renderer/src/draw/render'
 import type { DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|activity|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -50,7 +51,7 @@ const pickupSample = (() => {
 })()
 
 const settings: PublicSettings = {
-  hasApiKey: true,
+  hasApiKey: scene !== 'settings-broken',
   needsKey: true,
   savedKeys: ['deepseek'],
   keychain: true,
@@ -63,7 +64,7 @@ const settings: PublicSettings = {
   askHotkey: 'Alt+Space',
   snapHotkey: 'Alt+Shift+Space',
   screenHotkey: 'Command+Alt+Shift+Space',
-  takenHotkeys: q.get('taken') ? ['Alt+Space'] : [],
+  takenHotkeys: q.get('taken') || scene === 'settings-keys' ? ['Command+Alt+Shift+Space'] : [],
   onboarded: scene !== 'onboarding',
   shareAppContext: true,
   rememberChats: true,
@@ -75,7 +76,8 @@ const settings: PublicSettings = {
   notifyDone: false,
   openAtLogin: false,
   canOpenAtLogin: true,
-  monthlyCap: scene === 'settings' || scene === 'cap' ? { unit: 'questions', limit: 300 } : null
+  monthlyCap: scene.startsWith('settings') || scene === 'cap' || scene === 'near' ? { unit: 'questions', limit: 300 } : null,
+  capNoticed: null
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }
@@ -246,6 +248,53 @@ const memorySample: ChatMessage[] = [
   }
 ]
 
+/** D-60: a card waiting under an answer, one per kind, and one unusual. */
+const cards: Record<string, ConfirmCard> = {
+  'confirm-read': { kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'jreast.co.jp', rest: '/en/timetable/tokyo-sendai?day=sat' },
+  'confirm-open': { kind: 'open', title: 'Open this link?', yes: 'Open it', host: 'acme.cloud', rest: '/pricing#limits' },
+  'confirm-search': { kind: 'search', title: 'Search the web for this?', yes: 'Search', query: 'Mei Ling Tan flat 4B Tai Hang Road rent increase notice', service: 'DeepSeek', unusual: 'private' },
+  'confirm-reminder': { kind: 'reminder', title: 'Add this reminder?', yes: 'Add it', item: 'Essay deadline', when: 'Thu 20 Nov at 6:00 PM', list: 'In Reminders' },
+  'confirm-unusual': { kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'xn--pple-43d.com', readable: 'аpple.com', rest: '/account/verify', unusual: 'alphabet' }
+}
+const askingSample: ChatMessage[] = [{ id: 'u1', role: 'user', text: 'When is the last train from Tokyo to Sendai on Saturday?', captures: [], app: null }]
+function playCard(cb: (e: ChatEvent) => void, card: ConfirmCard) {
+  cb({ type: 'load', messages: askingSample })
+  cb({ type: 'start', id: 'a1', language: 'en' })
+  cb({ type: 'tool', id: 'a1', callId: 't1', label: 'Searching the web', icon: 'search', status: 'done' })
+  cb({ type: 'delta', id: 'a1', text: 'The timetable is on JR East’s site, so I’d like to read it.' })
+  cb({ type: 'confirm', id: 'a1', confirmId: 'k1', card })
+}
+
+const receiptsSample: ChatMessage[] = [
+  { id: 'u1', role: 'user', text: 'Check the last train to Sendai on Saturday and remind me to book on Thursday', captures: [], app: null },
+  {
+    id: 'a1',
+    role: 'assistant',
+    language: 'en',
+    tools: [{ callId: 't1', label: 'Searching the web', icon: 'search', status: 'done' }],
+    text: 'The last Hayabusa leaves Tokyo at **21:44** and reaches Sendai at 23:16. I’ve added the reminder for Thursday.',
+    receipts: [
+      { allowed: true, verb: 'Read', what: 'jreast.co.jp' },
+      { allowed: false, verb: 'Skipped', what: 'eki-net.com' },
+      { allowed: true, verb: 'Added', what: '“Book the Sendai train”', undo: { kind: 'reminder', ref: 'r1', label: 'Remove the reminder “Book the Sendai train”' } }
+    ]
+  },
+  { id: 'u2', role: 'user', text: 'Also open the seat map', captures: [], app: null },
+  { id: 'a2', role: 'assistant', language: 'en', tools: [], text: 'Sure, what would you like instead?', receipts: [{ allowed: false, verb: 'Skipped', what: 'jreast.co.jp', why: 'you asked something else' }] }
+]
+
+const notedSample: ChatMessage[] = [
+  memorySample[0],
+  {
+    ...(memorySample[1] as Extract<ChatMessage, { role: 'assistant' }>),
+    memories: [
+      { memoryId: 1, text: 'Is learning Japanese for a trip to Sendai in the spring, mostly to read menus and train signs', action: 'added' },
+      { memoryId: 2, text: 'Mostly works in Excel and Safari', action: 'updated', before: 'Mostly works in Excel' },
+      { memoryId: 4, text: 'Has a cat called Mochi', action: 'added', undone: true }
+    ]
+  }
+]
+
 const stepsSample: ChatMessage[] = [
   { id: 'u1', role: 'user', text: 'How do I export this as a PDF and add up column B?', captures: [], app: { name: 'Excel', title: 'Budget.xlsx' } },
   {
@@ -354,6 +403,7 @@ const saved = [
 ]
 
 let chatCb: ((e: ChatEvent) => void) | null = null
+const pressed = new Set<string>()
 let openCb: ((p: PanelOpenPayload) => void) | null = null
 const emit = (e: ChatEvent) => chatCb?.(e)
 
@@ -394,8 +444,11 @@ const trayed = { panel: false, quick: false }
 const api: OttyApi = {
   getSettings: async () => settings,
   saveSettings: async (u) => ({ ...Object.assign(settings, u) }),
+  setDraft: () => {},
+  setSetting: async (key, value) => ({ ...Object.assign(settings, { [key]: value }) }),
+  settingsCounts: async () => ({ chats: 142, olderThan: { '30d': 23, '1y': 4, forever: 0 }, notes: 18 }),
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
-  getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: false }),
+  getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: scene === 'near' || scene === 'cap' }),
   openPermissionSettings: noop,
   relaunch: noop,
   getDiagnostics: async () =>
@@ -407,15 +460,15 @@ const api: OttyApi = {
     searches: 37,
     pages: 21,
     jobs: 4,
-    month: { questions: scene === 'cap' ? 312 : 96, tokens: 1_200_000 },
+    month: { questions: scene === 'cap' ? 312 : scene === 'near' ? 250 : 96, tokens: 1_200_000 },
     service: 'DeepSeek',
     usageUrl: 'https://platform.deepseek.com/usage',
-    ...(settings.monthlyCap ? { cap: { ...settings.monthlyCap, used: scene === 'cap' ? 312 : 96, over: scene === 'cap' } } : {})
+    ...(settings.monthlyCap ? { cap: { ...settings.monthlyCap, used: scene === 'cap' ? 312 : scene === 'near' ? 250 : 96, over: scene === 'cap' } } : {})
   }),
   sendMessage: async (text, captures, opts) => fakeAnswer(text, captures, opts?.language, opts?.files),
   stop: noop,
   resetChat: async () => emit({ type: 'reset' }),
-  listChats: async () => saved.map(({ id, title, app, updatedAt }) => ({ id, title, app, updatedAt })),
+  listChats: async () => saved.map(({ id, title, app, updatedAt }, i) => ({ id, title, app, updatedAt, ...(i === 1 && scene === 'history' ? { draft: 'and what about the weekend fares?' } : {}) })),
   openChat: async (id, focusMessageId) => {
     const t = saved.find((c) => c.id === id)
     if (t) emit({ type: 'load', messages: t.messages, focusMessageId })
@@ -446,12 +499,18 @@ const api: OttyApi = {
   listSent: async () => (q.get('sent') === 'none' ? [] : sentSample),
   hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
   listChanges: async () => (q.get('sent') === 'none' ? [] : changeSample),
+  undoReceipt: async (answerId, at) => {
+    const r = (receiptsSample.find((m) => m.id === answerId) as Extract<ChatMessage, { role: 'assistant' }> | undefined)?.receipts?.[at]
+    if (r) emit({ type: 'receipt', id: answerId, at, receipt: { ...r, undone: true } })
+    return Boolean(r)
+  },
   rewindPlan: async () => ({
     undo: [
       { id: 'memory:a1:1', label: 'Forget “Is learning Spanish”' },
+      { id: 'reminder:r1', label: 'Remove the reminder “Call mum”' },
       { id: 'job:j1', label: 'Stop looking into “Cheapest way from Hong Kong to Tokyo”' }
     ],
-    lasting: ['Reminder added: Call mum — 5:00 PM']
+    lasting: ['Opened acme.cloud/pricing']
   }),
   rewind: async (_id, _undo, mode) => (mode === 'edit' ? { text: 'Explain this simply', captures: [{ id: 'c1', context: highlighted, app }], files: [] } : null),
   onActivity: () => () => {},
@@ -529,8 +588,36 @@ const api: OttyApi = {
     if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
     if (scene === 'code') setTimeout(() => cb({ type: 'load', messages: codeSample }), 50)
     if (scene === 'drawing') setTimeout(() => cb({ type: 'load', messages: drawingSample }), 50)
-    if (scene === 'chart' || scene === 'cap') setTimeout(() => cb({ type: 'load', messages: chartSample }), 50)
+    if (scene === 'chart' || scene === 'cap' || scene === 'near') setTimeout(() => cb({ type: 'load', messages: chartSample }), 50)
     if (scene === 'memory') setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
+    if (scene === 'noted') setTimeout(() => cb({ type: 'load', messages: notedSample }), 50)
+    if (scene === 'receipts') setTimeout(() => cb({ type: 'load', messages: receiptsSample }), 50)
+    if (cards[scene]) setTimeout(() => playCard(cb, cards[scene]), 50)
+    // D-62: an answer on its way, stopped, or failed in a way its card can help with.
+    if (scene === 'thinking')
+      setTimeout(() => {
+        cb({ type: 'load', messages: askingSample })
+        cb({ type: 'user', id: 'u2', text: 'And on Sunday?', captures: [], app: null })
+        cb({ type: 'start', id: 'a2', language: 'en' })
+        cb({ type: 'tool', id: 'a2', callId: 't1', label: 'Looking up “Tokyo Sendai last train Sunday”', icon: 'search', status: 'running' })
+      }, 50)
+    const ended: Record<string, Partial<Extract<ChatMessage, { role: 'assistant' }>>> = {
+      stopped: { text: 'The last Hayabusa on a Saturday leaves Tokyo at 21:44 and', stopped: true },
+      'failed-key': { text: '', error: 'Otty’s key doesn’t look right. Please check it in Settings.', errorKind: 'key' },
+      'failed-long': { text: '', error: 'This chat has grown too long. Please start a new one.', errorKind: 'too-long' }
+    }
+    if (ended[scene]) setTimeout(() => cb({ type: 'load', messages: [...askingSample, { id: 'a1', role: 'assistant', language: 'en', tools: [], text: '', ...ended[scene] }] }), 50)
+    // The rewind card opens from Try again on the last answer.
+    if (scene === 'rewind') {
+      setTimeout(() => cb({ type: 'load', messages: memorySample }), 50)
+      // Once the chat has finished gliding to its end, so where the card settles never depends on timing, then pinned
+      // to the end, as a person would see it after pressing Try again on the latest answer.
+      setTimeout(() => document.querySelector<HTMLButtonElement>('button[title^="Ask the same question"]')?.click(), 600)
+      setTimeout(() => {
+        const chat = document.querySelector('.chat')
+        chat?.scrollTo({ top: chat.scrollHeight })
+      }, 750)
+    }
     if (scene === 'chat' || scene === 'compose' || scene === 'find') setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     return () => {}
   },
@@ -541,7 +628,36 @@ const api: OttyApi = {
     // Once only: StrictMode subscribes twice, and a second snip would land in the tray.
     if (scene === 'tray' && !trayed.panel) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 160)
     trayed.panel = true
-    if (scene === 'settings' || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    if (scene.startsWith('settings') || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    // D-61: `&section=you|keys|privacy|usage|conn|help` opens a section; the other settings scenes set one up.
+    const titles: Record<string, string> = { you: 'You & Otty', keys: 'Shortcuts', privacy: 'Privacy', usage: 'Usage & limit', conn: 'Connection', help: 'Help' }
+    const setUp: Record<string, string> = { 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn' }
+    const section = setUp[scene] ?? (titles[scene.replace('settings-', '')] ? scene.replace('settings-', '') : null)
+    // React runs this twice in development, so each press happens once.
+    const press = (sel: string, text?: string, tries = 20): void => {
+      if (pressed.has(sel + text)) return
+      const el = [...document.querySelectorAll<HTMLElement>(sel)].find((e) => !text || e.textContent?.includes(text))
+      if (!el) return void (tries && setTimeout(() => press(sel, text, tries - 1), 50))
+      pressed.add(sel + text)
+      el.click()
+    }
+    if (section) setTimeout(() => press('.set-row--section', titles[section]), 160)
+    if (scene === 'provider') setTimeout(() => press('.set-row', 'Change service or key'), 240)
+    if (scene === 'settings-recording') setTimeout(() => press('.keys-btn'), 240)
+    if (scene === 'settings-retention')
+      setTimeout(() => {
+        const keep = document.querySelector<HTMLSelectElement>('select[aria-label="Keep chats for"]')
+        if (!keep) return
+        Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(keep, '30d')
+        keep.dispatchEvent(new Event('change', { bubbles: true }))
+      }, 320)
+    if (scene === 'settings-find')
+      setTimeout(() => {
+        const box = document.querySelector<HTMLInputElement>('input[aria-label="Find a setting"]')
+        if (!box) return
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(box, 'shortcut')
+        box.dispatchEvent(new Event('input', { bubbles: true }))
+      }, 160)
     if (scene === 'memories') setTimeout(() => cb({ context: null, notice: 'open-memory' }), 80)
     if (scene === 'activity') setTimeout(() => cb({ context: null, notice: 'open-activity' }), 80)
     if (scene === 'find') setTimeout(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true })), 200)

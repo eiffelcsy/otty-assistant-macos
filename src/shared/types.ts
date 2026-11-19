@@ -190,6 +190,8 @@ export interface PublicSettings {
   openAtLogin: boolean
   /** A limit for the month (D-33). Past it, anything Otty would start by itself asks first. Null = no limit. */
   monthlyCap: MonthlyCap | null
+  /** The month ("2026-11") the 80% heads-up was seen in, so it shows once a month (D-57). */
+  capNoticed: string | null
   /** Only the installed app can be a login item; a development build can't. */
   canOpenAtLogin: boolean
 }
@@ -260,6 +262,31 @@ export interface SettingsUpdate extends Partial<Omit<PublicSettings, 'hasApiKey'
   apiKey?: string
 }
 
+/** The counts Settings names before anything is forgotten (D-61), worked out in main. */
+export interface SettingsCounts {
+  chats: number
+  /** How many chats each "Keep chats for" choice would forget now. */
+  olderThan: Record<KeepChats, number>
+  notes: number
+}
+
+/** A setting Settings saves on its own as it changes (`SETTABLE` in main checks each). */
+export type SettableKey =
+  | 'showBubble'
+  | 'notifyDone'
+  | 'openAtLogin'
+  | 'thinking'
+  | 'shareAppContext'
+  | 'rememberChats'
+  | 'learn'
+  | 'keepChats'
+  | 'homeLanguage'
+  | 'askHotkey'
+  | 'snapHotkey'
+  | 'screenHotkey'
+  | 'monthlyCap'
+  | 'capNoticed'
+
 export interface Permissions {
   platform: string
   accessibility: boolean
@@ -306,6 +333,10 @@ export type ChatMessage =
       text: string
       tools: ToolChipInfo[]
       error?: string
+      /** What kind of failure, so its card offers the one button that helps (D-62). */
+      errorKind?: ErrorKind
+      /** The user pressed Stop before it finished. */
+      stopped?: boolean
       language?: AnswerLanguage
       /** When the answer started (ms since epoch). Absent in chats saved before 0.4. */
       at?: number
@@ -321,7 +352,59 @@ export type ChatMessage =
       jobs?: { id: string; title: string }[]
       /** What it did that can't be taken back, in words: a reminder added, a link opened (D-36). */
       lasting?: string[]
+      /** What each confirm card was answered with, in order, so the decision stays in the chat (D-60). */
+      receipts?: Receipt[]
     }
+
+/** Why an answer failed, as far as its card's button is concerned: try again, fix the key, or start a new chat. */
+export type ErrorKind = 'network' | 'key' | 'too-long' | 'other'
+
+/** Why a card looks different, decided in main from the tool's arguments, never by the model (D-60). */
+export type Unusual = 'alphabet' | 'http' | 'private' | 'cap'
+
+/**
+ * A confirm card, already split into its parts by main, so the renderer never parses an address and the host shown
+ * is the host the tool will use (D-60).
+ */
+export interface ConfirmCard {
+  kind: 'read' | 'open' | 'search' | 'reminder' | 'job'
+  title: string
+  /** The primary button's words; the other is always Skip. */
+  yes: string
+  /** read, open: the host as the tool will reach it (`xn--` form for another alphabet), and the rest of the address, cut short. */
+  host?: string
+  /** The host in letters people read, when it uses another alphabet. */
+  readable?: string
+  rest?: string
+  /** search: the words as the model will send them, and where they go. */
+  query?: string
+  service?: string
+  /** reminder and job: what it's called. */
+  item?: string
+  /** reminder: when, in words, and where it goes. */
+  when?: string
+  list?: string
+  /** job: the card's longer words. */
+  detail?: string
+  unusual?: Unusual
+}
+
+/** A confirm card once answered: one line that stays in the chat (D-60). The words come from main. */
+export interface Receipt {
+  allowed: boolean
+  /** "Read", "Added", "Skipped". */
+  verb: string
+  /** The host, query or title, shown stronger. */
+  what: string
+  /** Why it was skipped, when it wasn't the user's Skip: "you asked something else". */
+  why?: string
+  /** How to take it back, when Otty can (a reminder, a look). The renderer only sends the receipt's place. */
+  undo?: { kind: 'reminder' | 'job'; ref: string; label: string }
+  undone?: boolean
+}
+
+/** Try again with a twist (D-58). */
+export type Twist = 'shorter' | 'simpler' | 'detail'
 
 /** What Try again or Edit would take back, shown before the answer goes (D-36). Each undo is ticked by default. */
 export interface RewindPlan {
@@ -415,6 +498,8 @@ export interface ChatSummary {
   title: string
   app?: string
   updatedAt: number
+  /** Words left in its message box, kept in main's memory only (D-62). */
+  draft?: string
 }
 
 /** A chat found by a search. Backends return plain text; the renderer marks `ranges` itself. */
@@ -433,16 +518,20 @@ export interface ChatSearchHit {
 export type ChatEvent =
   | { type: 'reset' }
   /** A saved chat was reopened: replace everything shown with these messages. */
-  | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string; learn?: false; streaming?: string }
+  | { type: 'load'; messages: ChatMessage[]; focusMessageId?: string; learn?: false; streaming?: string; draft?: string }
+  /** The words waiting in the message box for the chat on show, typed in another window (D-62). */
+  | { type: 'draft'; text: string; from?: string }
   | ({ type: 'user' } & Omit<Extract<ChatMessage, { role: 'user' }>, 'role'>)
   | { type: 'start'; id: string; language?: AnswerLanguage }
   | { type: 'delta'; id: string; text: string }
   /** An instant answer, in place of any deltas. */
   | { type: 'calc'; id: string; expression: string; result: string }
   | ({ type: 'tool'; id: string } & ToolChipInfo)
-  | { type: 'confirm'; id: string; confirmId: string; title: string; detail: string }
-  | { type: 'done'; id: string }
-  | { type: 'error'; id: string; message: string }
+  | { type: 'confirm'; id: string; confirmId: string; card: ConfirmCard }
+  /** A card was answered, or its Undo pressed: the receipt at `at` in the answer's list. */
+  | { type: 'receipt'; id: string; at: number; receipt: Receipt }
+  | { type: 'done'; id: string; stopped?: true }
+  | { type: 'error'; id: string; message: string; kind?: ErrorKind }
   /** Otty saved, changed or forgot a memory, or Undo was pressed on one (`note.undone`). */
   | { type: 'memory'; id: string; note: MemoryNote }
   /** Which memories matched this question. Sent once, as the answer starts. */
@@ -490,6 +579,9 @@ export interface PickupPicture {
 export interface OttyApi {
   getSettings(): Promise<PublicSettings>
   saveSettings(update: SettingsUpdate): Promise<PublicSettings>
+  /** Saves one setting as it changes (D-61). Null when main refused it. */
+  setSetting<K extends SettableKey>(key: K, value: PublicSettings[K]): Promise<PublicSettings | null>
+  settingsCounts(): Promise<SettingsCounts>
   testConnection(): Promise<{ ok: boolean; message: string }>
   getPermissions(): Promise<Permissions>
   openPermissionSettings(kind: PermissionKind): Promise<void>
@@ -509,6 +601,10 @@ export interface OttyApi {
   deleteChat(id: string): Promise<void>
   clearChats(): Promise<void>
   respondConfirm(confirmId: string, allow: boolean): Promise<void>
+  /** The message box's words for the chat on show, kept in main so another window or chat switch doesn't lose them. */
+  setDraft(text: string): void
+  /** Undo on a receipt: takes back the reminder or look it records. False when it couldn't. */
+  undoReceipt(answerId: string, at: number): Promise<boolean>
   /** Presses a step's button. `sure` is the second click on a risky step. */
   runStep(answerId: string, index: number, sure?: boolean): Promise<void>
   tickStep(answerId: string, index: number, done: boolean): Promise<void>
@@ -534,7 +630,8 @@ export interface OttyApi {
   /** What Try again or Edit on the latest turn would undo (D-36). Null when it isn't the latest turn. */
   rewindPlan(messageId: string): Promise<RewindPlan | null>
   /** Takes the latest turn back, undoing the ticked items. `retry` asks again; `edit` returns the question. */
-  rewind(messageId: string, undo: string[], mode: 'retry' | 'edit'): Promise<EditDraft | null>
+  /** `twist` asks for the same answer in another shape: shorter, simpler or in more detail (D-58). */
+  rewind(messageId: string, undo: string[], mode: 'retry' | 'edit', twist?: Twist): Promise<EditDraft | null>
   onActivity(cb: (items: ActivityItem[]) => void): () => void
   /** Settings changed in main (the menu bar, another window), so every view shows the same. */
   onSettings(cb: (settings: PublicSettings) => void): () => void

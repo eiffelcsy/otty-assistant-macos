@@ -258,12 +258,14 @@ test('⌘⌥⇧Space takes the whole screen; into the tray with the panel open; 
 
 test('Settings shows the whole-screen shortcut and warns when it can’t be used', { tag: ['@step-66'] }, async ({ otty }) => {
   const panel = await otty.openPanel()
-  await panel.getByRole('button', { name: 'Settings' }).click()
-  const field = panel.getByLabel('Shortcut: capture the whole screen')
-  await expect(field).toHaveValue('Command+Alt+Shift+Space')
+  await otty.settings(panel, 'Shortcuts')
+  const keys = panel.getByRole('button', { name: /^The whole screen: Command\+Alt\+Shift\+Space/ })
+  await expect(keys).toBeVisible()
   // Stands in for another app's shortcut: Otty's own ask shortcut is already taken when this one registers.
-  await field.fill('Alt+Space')
-  await panel.getByRole('button', { name: 'Save' }).click()
-  await expect(panel.getByText('Another app is using this shortcut').first()).toBeVisible()
-  expect((await otty.snapshot()).shortcuts).not.toContain('Command+Alt+Shift+Space')
+  await keys.click()
+  await panel.getByRole('button', { name: /recording/ }).press('Alt+Space')
+  await expect(panel.getByText('Another app uses this. Pick a different one.')).toBeVisible()
+  // The old shortcut stays, and still works.
+  await expect(keys).toBeVisible()
+  expect((await otty.snapshot()).shortcuts).toContain('Command+Alt+Shift+Space')
 })

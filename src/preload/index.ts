@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { OttyApi } from '../shared/types'
+import type { ChatEvent, OttyApi } from '../shared/types'
+
+/** Which window typed a draft, so its own echo is skipped. Random per window, and never leaves the preload. */
+const DRAFTS_FROM = Math.random().toString(36).slice(2)
 
 function listen<T>(channel: string, cb: (v: T) => void): () => void {
   const handler = (_e: Electron.IpcRendererEvent, v: T) => cb(v)
@@ -39,6 +42,8 @@ function listenHeld<T>(channel: string, cb: (v: T) => void): () => void {
 const api: OttyApi = {
   getSettings: () => ipcRenderer.invoke('settings:get'),
   saveSettings: (u) => ipcRenderer.invoke('settings:save', u),
+  setSetting: (key, value) => ipcRenderer.invoke('settings:set', key, value),
+  settingsCounts: () => ipcRenderer.invoke('settings:counts'),
   testConnection: () => ipcRenderer.invoke('settings:test'),
   getPermissions: () => ipcRenderer.invoke('permissions:get'),
   openPermissionSettings: (kind) => ipcRenderer.invoke('permissions:open', kind),
@@ -55,6 +60,8 @@ const api: OttyApi = {
   deleteChat: (id) => ipcRenderer.invoke('chats:delete', id),
   clearChats: () => ipcRenderer.invoke('chats:clear'),
   respondConfirm: (id, allow) => ipcRenderer.invoke('chat:confirm', id, allow),
+  undoReceipt: (answerId, at) => ipcRenderer.invoke('chat:undo-receipt', answerId, at),
+  setDraft: (text) => ipcRenderer.send('chat:draft', text, DRAFTS_FROM),
   runStep: (answerId, index, sure) => ipcRenderer.invoke('steps:run', answerId, index, sure),
   tickStep: (answerId, index, done) => ipcRenderer.invoke('steps:tick', answerId, index, done),
   checkStep: (answerId, index) => ipcRenderer.invoke('steps:check', answerId, index),
@@ -69,7 +76,7 @@ const api: OttyApi = {
   listSent: () => ipcRenderer.invoke('sent:list'),
   listChanges: () => ipcRenderer.invoke('actions:list'),
   rewindPlan: (messageId: string) => ipcRenderer.invoke('chat:rewind-plan', messageId),
-  rewind: (messageId: string, undo: string[], mode: 'retry' | 'edit') => ipcRenderer.invoke('chat:rewind', messageId, undo, mode),
+  rewind: (messageId, undo, mode, twist) => ipcRenderer.invoke('chat:rewind', messageId, undo, mode, twist),
   onActivity: (cb) => listen('activity:changed', cb),
   onSettings: (cb) => listen('settings:changed', cb),
   setChatLearn: (on) => ipcRenderer.invoke('chat:learn', on),
@@ -111,7 +118,8 @@ const api: OttyApi = {
   bubbleMenu: () => ipcRenderer.send('bubble:menu'),
   bubbleDrag: (phase) => ipcRenderer.send('bubble:drag', phase),
 
-  onChatEvent: (cb) => listen('chat:event', cb),
+  // A draft this window typed comes back to every window; this one already has it (D-62).
+  onChatEvent: (cb) => listen<ChatEvent>('chat:event', (e) => (e.type === 'draft' && e.from === DRAFTS_FROM ? undefined : cb(e))),
   onPanelOpen: (cb) => listenHeld('panel:open', cb),
   onQuickOpen: (cb) => listenHeld('quick:open', cb),
   onBubbleState: (cb) => listen('bubble:state', cb),

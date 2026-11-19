@@ -36,6 +36,18 @@ export const isCapNote = (note: string | undefined): boolean => Boolean(note?.st
 export const capPassed = (cap: MonthlyCap): string =>
   `You’ve passed this month’s limit of ${amount(cap)}. Your own questions still go through, but Otty asks before starting anything by itself.`
 
+/** "2026-11": the month a heads-up was seen in. */
+export const monthKey = (now = new Date()): string => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+/** D-57: 80% of the limit or more, not yet passed, and not already seen this month. Passed has its own line. */
+export function nearCap(status: CapStatus | null, noticed: string | null, now = new Date()): boolean {
+  return Boolean(status && !status.over && status.used >= status.limit * 0.8 && noticed !== monthKey(now))
+}
+
+/** The heads-up itself: gentle, once, before the limit is a surprise. */
+export const capNear = (status: CapStatus): string =>
+  `You’ve used ${Math.floor((status.used / status.limit) * 100)}% of this month’s limit of ${amount(status)}. Past it, Otty asks before starting anything by itself.`
+
 /** First of this month, local time. */
 export function monthStart(now = new Date()): Date {
   return new Date(now.getFullYear(), now.getMonth(), 1)

@@ -1,4 +1,4 @@
-import type { AnswerLanguage, Capture, PanelOpenPayload, SendOptions } from '../../shared/types'
+import type { AnswerLanguage, Capture, PanelOpenPayload, SendOptions, Twist } from '../../shared/types'
 import { chatStore } from '../store'
 import { discardFile, pickFiles, readFile, registerFiles } from '../files'
 import { explainTerm } from '../llm'
@@ -8,7 +8,7 @@ import { isSecret } from '../memory/guard'
 import { chat, deleteChat, forgetAllChats, resetChat, stuckOnStep } from '../core'
 import { getPanel, getQuick, showPanelByBubble } from '../windows'
 import { BrowserWindow } from 'electron'
-import { handle } from './check'
+import { handle, on } from './check'
 
 /** Recent chats shows this many; search reaches the rest. */
 const RECENT_CHATS = 500
@@ -21,12 +21,14 @@ export function registerChat(): void {
   handle('chat:stop', () => chat.stop())
   handle('chat:reset', () => resetChat())
   handle('chat:confirm', (_e, id: string, allow: boolean) => chat.respondConfirm(id, allow))
+  handle('chat:undo-receipt', (_e, answerId: string, at: number) => chat.undoReceipt(answerId, at))
   handle('chat:rewind-plan', (_e, id: string) => chat.rewindPlan(id))
-  handle('chat:rewind', (_e, id: string, undo: string[], mode: 'retry' | 'edit') => chat.rewind(id, undo, mode))
+  handle('chat:rewind', (_e, id: string, undo: string[], mode: 'retry' | 'edit', twist?: Twist | null) => chat.rewind(id, undo, mode, twist ?? undefined))
   handle('chat:learn', (_e, on: boolean) => chat.setLearn(on))
   handle('chat:explain', (_e, term: string, around: string, language?: AnswerLanguage) => explainTerm(term, around, language ?? undefined))
 
-  handle('chats:list', () => chatStore().list({ limit: RECENT_CHATS }))
+  handle('chats:list', async () => (await chatStore().list({ limit: RECENT_CHATS })).map((c) => ({ ...c, ...(chat.draftOf(c.id) ? { draft: chat.draftOf(c.id) } : {}) })))
+  on('chat:draft', (_e, text: string, from: string) => chat.setDraft(text, from))
   handle('chats:open', (_e, id: string, focusMessageId?: string) => chat.open(id, focusMessageId ?? undefined))
   handle('chats:search', (_e, q: string) => chatStore().search(q.slice(0, 200)))
   handle('chats:delete', (_e, id: string) => deleteChat(id))

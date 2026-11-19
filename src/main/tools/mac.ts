@@ -1,3 +1,4 @@
+import { pageCard, reminderCard } from '../cards'
 import { declined, hostOf, text, type Tool, type ToolOutcome } from './types'
 
 // The tools that change something on the Mac. Each one's change is lasting (`toolSafety.ts`), so the ones the user
@@ -23,7 +24,7 @@ export const openUrlTool: Tool = {
     const url = text(args, 'url')
     if (!/^https?:\/\//i.test(url)) return { result: 'Refused: only http(s) links can be opened.', status: 'error' }
     if (!ctx.mac) return noHands
-    if (!(await ctx.confirm('Open this link?', url))) return declined
+    if (!(await ctx.confirm(pageCard('open', url)))) return declined
     await ctx.mac.open(url)
     return { result: `Opened ${url}`, status: 'done' }
   }
@@ -70,14 +71,15 @@ export const reminderTool: Tool = {
     }
   }),
   label: (args) => ({ icon: 'alarm-clock', label: `Reminder: “${text(args, 'title')}”` }),
+  undo: 'reminder',
   async run(args, ctx) {
     const title = text(args, 'title').trim()
     const due = args.due ? new Date(text(args, 'due')) : null
     const when = due && !isNaN(+due) ? due : null
     const detail = when ? `${title} — ${when.toLocaleString()}` : title
     if (!ctx.mac) return noHands
-    if (!(await ctx.confirm('Add this reminder?', detail))) return declined
-    await ctx.mac.remind(title, when)
-    return { result: `Reminder added: ${detail}`, status: 'done' }
+    if (!(await ctx.confirm(reminderCard(title, when)))) return declined
+    const id = await ctx.mac.remind(title, when)
+    return { result: `Reminder added: ${detail}`, status: 'done', ...(id ? { undo: { ref: id, label: `Remove the reminder “${title}”` } } : {}) }
   }
 }

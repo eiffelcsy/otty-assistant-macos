@@ -6,6 +6,7 @@ import { record } from '../sent'
 import { send } from '../net'
 import { maskSecrets } from '../../shared/secrets'
 import { needsCard } from '../toolSafety'
+import { pageCard, searchCard } from '../cards'
 import { declined, hostOf, text, type Setup, type Tool, type ToolContext } from './types'
 
 // The tools that bring in the open web. Every request still leaves through `send` (D-52).
@@ -89,7 +90,7 @@ export const searchWebTool: Tool = {
     const query = text(args, 'query')
     // D-41: once private data and outside words meet, the model's own query is shown before it leaves. The other
     // tools that send words out always ask (open_url, jobs), or only go to addresses Otty already knows (read_page).
-    if (needsCard('search_web', ctx.taint) && !(await ctx.confirm('Look this up?', query))) return declined
+    if (needsCard('search_web', ctx.taint) && !(await ctx.confirm(searchCard(query, webConfig() ? 'DeepSeek' : 'Wikipedia and DuckDuckGo')))) return declined
     return { result: await searchWeb(query, noter(ctx, 'search', query)), status: 'done' }
   }
 }
@@ -101,7 +102,7 @@ export const readPageTool: Tool = {
     if (webOff()) return offWeb
     const web = webConfig()
     const url = text(args, 'url')
-    if (/^https?:\/\//i.test(url) && !ctx.knownUrl(url) && !(await ctx.confirm('Read this page?', url))) return declined
+    if (/^https?:\/\//i.test(url) && !ctx.knownUrl(url) && !(await ctx.confirm(pageCard('read', url), url))) return declined
     noter(ctx, 'page', url)(web ? 'DeepSeek' : hostOf(url), web ? hostOf(web.baseUrl) : hostOf(url))
     try {
       // Someone else's page can hold a key too (a leaked config, a paste site), and it shouldn't be passed on.

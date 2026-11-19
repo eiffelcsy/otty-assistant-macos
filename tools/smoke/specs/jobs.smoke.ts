@@ -28,7 +28,7 @@ const BLOG = 'https://travel-blog.example/rail-pass-review'
 async function offer(otty: Otty, world: World, panel: Page, look: Look = RAIL): Promise<void> {
   world.reply(look.question, { calls: [{ name: 'start_job', args: { title: look.title, brief: look.brief } }] }, { say: look.after })
   await otty.ask(panel, look.question)
-  await expect(panel.getByText('Look into this in the background?')).toBeVisible()
+  await expect(panel.getByText('Look into this in the background?', { exact: true })).toBeVisible()
 }
 
 /** The chat's own background calls (its title) have gone out, so taking the network away can't catch them. */
@@ -61,7 +61,7 @@ const toolText = (world: World, look: Look = RAIL) =>
 async function stuckOffline(otty: Otty, world: World, panel: Page): Promise<void> {
   await offer(otty, world, panel)
   await otty.control((c) => c.power('suspend'))
-  await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+  await panel.getByRole('button', { name: 'Start it' }).click()
   await chatSettled(world, panel)
   await openActivity(panel)
   await expect(row(panel, RAIL.title)).toContainText('Waiting its turn')
@@ -89,14 +89,14 @@ test.describe('the card', () => {
     await expect(card).toContainText(RAIL.brief)
     await expect(card).toContainText('only this text goes with it')
     await expect(card).toContainText(/It stops after \d+ searches or pages, or \d+ minutes/)
-    await panel.getByRole('button', { name: 'No thanks' }).click()
+    await panel.getByRole('button', { name: 'Skip' }).click()
     await expect(panel.getByText('Alright, I won’t look into it.')).toBeVisible()
     expect(jobRequests(world)).toEqual([])
     await expect(panel.getByRole('button', { name: 'Activity' })).toHaveCount(0)
 
     quickJob(world)
     await offer(otty, world, panel)
-    await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+    await panel.getByRole('button', { name: 'Start it' }).click()
     await expect(panel.getByText(`Looking into “${RAIL.title}”`, { exact: true })).toBeVisible()
     await expect(panel.getByText(RAIL.after)).toBeVisible()
     await openActivity(panel)
@@ -119,7 +119,7 @@ test.describe('a job that meets trouble', () => {
       { say: 'Report: 50,000 yen for 7 days on every site I could reach.' }
     )
     await offer(otty, world, panel)
-    await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+    await panel.getByRole('button', { name: 'Start it' }).click()
     await chatSettled(world, panel)
     await openActivity(panel)
 
@@ -214,7 +214,7 @@ test.describe('when it’s done', () => {
     await offer(otty, world, panel)
     // Asleep while the card is answered, so the look starts only once the panel is closed.
     await otty.control((c) => c.power('suspend'))
-    await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+    await panel.getByRole('button', { name: 'Start it' }).click()
     await chatSettled(world, panel)
     await panel.getByRole('button', { name: 'Close (Esc)' }).click()
     await otty.control((c) => c.power('resume'))
@@ -243,7 +243,7 @@ test.describe('when it’s done', () => {
     world.reply(RAIL.brief, { calls: [{ name: 'read_page', args: { url: BLOG } }] }, { say: 'Report: the blog says 50,000 yen.' })
     world.read(BLOG, { title: 'Rail pass review', content: 'The 7-day pass is 50,000 yen.' })
     await offer(otty, world, panel)
-    await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+    await panel.getByRole('button', { name: 'Start it' }).click()
     await chatSettled(world, panel)
     await openActivity(panel)
     await expect(row(panel, RAIL.title)).toContainText('Waiting for you')
@@ -267,7 +267,7 @@ test.describe('forgetting', () => {
       const panel = await otty.openPanel()
       quickJob(world, 'Report: nothing of this is kept.')
       await offer(otty, world, panel)
-      await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+      await panel.getByRole('button', { name: 'Start it' }).click()
       await openActivity(panel)
       await expect(row(panel, RAIL.title)).toContainText('Done')
       await row(panel, RAIL.title).getByRole('button', { name: 'Open' }).click()
@@ -288,9 +288,9 @@ test.describe('forgetting', () => {
     const panel = await otty.openPanel()
     world.reply(RAIL.brief, { say: 'never sent' })
     await stuckOffline(otty, world, panel)
-    await panel.getByRole('button', { name: 'Settings' }).click()
-    await panel.getByRole('button', { name: 'Forget all chats' }).click()
-    await expect(panel.getByRole('button', { name: 'All chats forgotten' })).toBeVisible()
+    await otty.settings(panel, 'Privacy')
+    await otty.hold(panel.getByRole('button', { name: 'Hold to forget: Forget all chats' }))
+    await expect(panel.getByRole('group', { name: 'Can’t be undone' })).toContainText('Forgotten')
     await panel.getByRole('button', { name: 'Back to chat' }).click()
     await expect(panel.getByRole('button', { name: 'Activity' })).toHaveCount(0)
   })

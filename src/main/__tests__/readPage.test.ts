@@ -27,7 +27,7 @@ describe('read_page', () => {
   it('shows the full address before reading an unknown one', async () => {
     const confirm = vi.fn(async () => true)
     const out = await runTool('read_page', { url }, { allowed: CHAT_TOOLS, confirm, knownUrl: () => false })
-    expect(confirm).toHaveBeenCalledWith('Read this page?', url)
+    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ kind: 'read', title: 'Read this page?', host: new URL(url).host }), url)
     expect(out.status).toBe('done')
   })
 

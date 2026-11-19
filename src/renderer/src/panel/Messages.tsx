@@ -1,8 +1,9 @@
 import { useContext, useEffect, useRef, useState } from 'react'
-import type { AppInfo, Capture, EditDraft, MemoryNote, RewindPlan, ScreenContext, ToolChipInfo, UsedMemory } from '../../../shared/types'
+import type { AppInfo, Capture, EditDraft, MemoryNote, RewindPlan, ScreenContext, ToolChipInfo, Twist, UsedMemory } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { HiddenSheet } from '../components/HiddenSheet'
 import { StepCard } from '../components/StepCard'
+import { ConfirmCard, ReceiptLine } from '../components/ConfirmCard'
 import { DrawingCard } from '../draw/DrawingCard'
 import { capturedText } from '../../../shared/captures'
 import { withoutFixedFence } from '../../../shared/diff'
@@ -151,41 +152,75 @@ function ToolChip({ tool: t }: { tool: ToolChipInfo }) {
   )
 }
 
-const NOTED: Record<MemoryNote['action'], string> = { added: 'Noted', updated: 'Updated', forgotten: 'Forgotten' }
+const NOTED: Record<MemoryNote['action'], string> = { added: 'Noted', updated: 'Updated', forgotten: 'Forgot' }
 
-/** What Otty just learned, in the open. Trust comes from seeing it and being able to take it back, not from being asked. */
-function MemoryLine({ answerId, note }: { answerId: string; note: MemoryNote }) {
+/**
+ * What Otty just learned, in the open, in full (Spec 01, N1–N3). Trust comes from seeing it and being able to take it
+ * back, not from being asked. `fresh` draws the underline once, on an answer arriving now.
+ */
+function MemoryLine({ answerId, note, fresh }: { answerId: string; note: MemoryNote; fresh: boolean }) {
+  const words = `${NOTED[note.action]}: ${note.text}`
   return (
-    <div className={`memory-line${note.undone ? ' memory-line--undone' : ''}`}>
+    <div className={`memory-line${note.undone ? ' memory-line--undone' : ''}${fresh ? ' memory-line--fresh' : ''}`}>
       <Icon name="bookmark" />
       <span className="memory-line__text">
-        {NOTED[note.action]}: {note.text}
-      </span>
-      {note.undone ? (
-        <span className="memory-line__done">Undone</span>
-      ) : (
-        <>
-          <button className="memory-line__btn" onClick={() => void window.otty.undoMemory(answerId, note.memoryId)}>
-            Undo
-          </button>
-          {note.action !== 'forgotten' && (
-            <button className="memory-line__btn" onClick={() => void window.otty.openMemories()}>
-              Edit
-            </button>
+        <span className="memory-line__label">{NOTED[note.action]}:</span> <span className="memory-line__fact">{note.text}</span>
+        {note.action === 'updated' && note.before && <span className="memory-line__was"> (was: {note.before})</span>}
+        <span className="memory-line__actions">
+          {note.undone ? (
+            <span className="memory-line__done">{note.action === 'forgotten' ? 'Remembered again' : 'Forgotten'}</span>
+          ) : (
+            <>
+              <button className="memory-line__btn" aria-label={`Undo: ${words}`} onClick={() => void window.otty.undoMemory(answerId, note.memoryId)}>
+                Undo
+              </button>
+              {note.action !== 'forgotten' && (
+                <button className="memory-line__btn" onClick={() => void window.otty.openMemories()}>
+                  Edit
+                </button>
+              )}
+            </>
           )}
-        </>
-      )}
+        </span>
+      </span>
     </div>
   )
 }
 
-/** Which memories matched the question, shown when they're read as well as when they're written. Tapping opens the list. */
-function UsedLine({ used }: { used: UsedMemory[] }) {
+/** The notes an answer read, folded into one button in the action row; its menu lists them (UX_REVIEW #6). */
+function UsedMarker({ used }: { used: UsedMemory[] }) {
+  const [open, setOpen] = useState(false)
+  const box = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const away = (e: Event) => !box.current?.contains(e.target as Node) && setOpen(false)
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('pointerdown', away)
+    document.addEventListener('keydown', esc)
+    return () => {
+      document.removeEventListener('pointerdown', away)
+      document.removeEventListener('keydown', esc)
+    }
+  }, [open])
+  const label = `Used ${used.length === 1 ? '1 note' : `${used.length} notes`} from your Notebook`
   return (
-    <button className="used-line" title="See what Otty knows about you" onClick={() => void window.otty.openMemories()}>
-      <Icon name="bookmark" />
-      <span>Used: {used.map((u) => u.text).join(' · ')}</span>
-    </button>
+    <div className="used" ref={box}>
+      <button className="icon-btn icon-btn--sm used__btn" title={label} aria-label={label} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)}>
+        <Icon name="bookmark" />
+      </button>
+      {open && (
+        <div className="menu used__menu" role="menu">
+          {used.map((u) => (
+            <div key={u.memoryId} className="menu__item menu__item--text" role="menuitem">
+              {u.text}
+            </div>
+          ))}
+          <button className="menu__item" role="menuitem" onClick={() => void window.otty.openMemories()}>
+            Open the Notebook
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -221,6 +256,13 @@ function CalcCard({ calc }: { calc: NonNullable<Assistant['calc']> }) {
 
 type RewindMode = 'retry' | 'edit'
 
+/** Try again with a twist (D-58): the same question, asked for another shape. */
+const TWISTS: [Twist, string][] = [
+  ['shorter', 'Shorter'],
+  ['simpler', 'Simpler'],
+  ['detail', 'In more detail']
+]
+
 /**
  * Before Try again or Edit replaces an answer (D-36): what it did that Otty can take back, ticked by default, and
  * what it can't. Only shown when there's something to say.
@@ -242,36 +284,37 @@ function RewindCard({ mode, plan, onGo, onCancel }: { mode: RewindMode; plan: Re
       return next
     })
   return (
-    <div className="confirm-card rewind-card" ref={card}>
-      <div className="confirm-card__title">{mode === 'retry' ? 'Try this again?' : 'Edit your question?'}</div>
-      <div className="confirm-card__detail">This answer goes{mode === 'edit' ? ', and your question comes back to the box' : ''}.</div>
+    <div className="confirm-card rewind-card" ref={card} role="group" aria-label={mode === 'retry' ? 'Try this again?' : 'Edit your question?'}>
+      <div className="ask__title">{mode === 'retry' ? 'Try this again?' : 'Edit your question?'}</div>
+      <div className="ask__sub">This answer goes{mode === 'edit' ? ', and your question comes back to the box' : ''}.</div>
       {plan.undo.length > 0 && (
-        <>
-          <div className="rewind-card__label">Otty will also undo:</div>
+        <div className="rewind-card__list">
+          <div className="rewind-card__label">Otty will also undo</div>
           {plan.undo.map((u) => (
-            <label key={u.id} className="toggle rewind-card__item">
+            <label key={u.id} className="rewind-card__item">
               <input type="checkbox" checked={ticked.has(u.id)} onChange={() => flip(u.id)} />
               <span>{u.label}</span>
             </label>
           ))}
-        </>
+        </div>
       )}
       {plan.lasting.length > 0 && (
-        <>
-          <div className="rewind-card__label">Can’t be undone:</div>
-          <ul className="rewind-card__lasting">
-            {plan.lasting.map((l, i) => (
-              <li key={i}>{l}</li>
-            ))}
-          </ul>
-        </>
+        <div className="rewind-card__list">
+          <div className="rewind-card__label">Can’t be undone</div>
+          {plan.lasting.map((l, i) => (
+            <div key={i} className="rewind-card__item rewind-card__item--lasting">
+              <Icon name="lock" />
+              <span>{l}</span>
+            </div>
+          ))}
+        </div>
       )}
       <div className="confirm-card__row">
         <button className="btn btn--primary" onClick={() => onGo([...ticked])}>
-          {mode === 'retry' ? 'Try again' : 'Edit'}
+          {mode === 'retry' ? 'Try again' : 'Edit question'}
         </button>
         <button className="btn btn--soft" onClick={onCancel}>
-          Cancel
+          Keep this answer
         </button>
       </div>
     </div>
@@ -284,7 +327,8 @@ export function AssistantMessage({
   found,
   source = '',
   latest = false,
-  onEdit
+  onEdit,
+  onSettings
 }: {
   m: Assistant
   again?: AgainOffer
@@ -294,24 +338,26 @@ export function AssistantMessage({
   latest?: boolean
   /** Puts an edited question back in the box. Left out, there's no Edit (the quick view). */
   onEdit?: (draft: EditDraft) => void
+  /** Opens Settings at Connection, for an answer that failed on its key. */
+  onSettings?: () => void
 }) {
   const [copied, setCopied] = useState(false)
-  const [rewinding, setRewinding] = useState<{ mode: RewindMode; plan: RewindPlan } | null>(null)
+  const [rewinding, setRewinding] = useState<{ mode: RewindMode; plan: RewindPlan; twist?: Twist } | null>(null)
   const ask = useContext(AskContext)
-  const go = async (mode: RewindMode, undo: string[]) => {
+  const go = async (mode: RewindMode, undo: string[], twist?: Twist) => {
     setRewinding(null)
-    const draft = await window.otty.rewind(m.id, undo, mode)
+    const draft = await window.otty.rewind(m.id, undo, mode, twist)
     if (mode === 'edit' && draft) onEdit?.(draft)
   }
-  const rewind = async (mode: RewindMode) => {
+  const rewind = async (mode: RewindMode, twist?: Twist) => {
     const plan = await window.otty.rewindPlan(m.id)
     if (!plan) return
-    if (plan.undo.length || plan.lasting.length) setRewinding({ mode, plan })
-    else await go(mode, [])
+    if (plan.undo.length || plan.lasting.length) setRewinding({ mode, plan, twist })
+    else await go(mode, [], twist)
   }
   const canRewind = latest && !m.streaming && !m.calc
   return (
-    <div className={`msg msg--otty${found ? ' msg--found' : ''}`} data-msg-id={m.id}>
+    <div className={`msg msg--otty${found ? ' msg--found' : ''}${latest ? ' msg--latest' : ''}`} data-msg-id={m.id}>
       {m.tools.length > 0 && (
         <div className="tool-chips">
           {m.tools.map((t) => (
@@ -319,6 +365,13 @@ export function AssistantMessage({
           ))}
         </div>
       )}
+      {m.receipts?.length ? (
+        <div className="receipts">
+          {m.receipts.map((r, i) => (
+            <ReceiptLine key={i} answerId={m.id} at={i} receipt={r} fresh={Boolean(m.live)} />
+          ))}
+        </div>
+      ) : null}
       {m.calc && <CalcCard calc={m.calc} />}
       {m.text && !m.calc && (
         <div className="msg__bubble">
@@ -331,27 +384,32 @@ export function AssistantMessage({
         <DrawingCard key={i} kind="mermaid" code={c.code} chart={{ table: c.table }} host={{ done: !m.streaming, ask: (text) => ask(text) }} />
       ))}
       {m.steps && <StepCard answerId={m.id} card={m.steps} stuck={!m.streaming} />}
-      {m.confirm && (
-        <div className="confirm-card">
-          <div className="confirm-card__title">{m.confirm.title}</div>
-          <div className="confirm-card__detail confirm-card__detail--long">{m.confirm.detail}</div>
-          <div className="confirm-card__row">
-            <button className="btn btn--primary" onClick={() => window.otty.respondConfirm(m.confirm!.confirmId, true)}>
-              Yes, go ahead
-            </button>
-            <button className="btn btn--soft" onClick={() => window.otty.respondConfirm(m.confirm!.confirmId, false)}>
-              No thanks
-            </button>
-          </div>
-        </div>
-      )}
+      {m.confirm && <ConfirmCard key={m.confirm.confirmId} {...m.confirm} />}
+      {m.stopped && !m.error && <div className="msg__stopped">You stopped this answer.</div>}
       {m.error && (
-        <div className="error-card">
+        <div className="error-card" role="alert">
           <Icon name="sad" />
-          <span>{m.error}</span>
+          <span className="error-card__text">
+            {m.error}
+            {m.errorKind === 'key' && onSettings ? (
+              <button className="btn btn--primary btn--small" onClick={onSettings}>
+                Open Settings
+              </button>
+            ) : m.errorKind === 'too-long' ? (
+              <button className="btn btn--primary btn--small" onClick={() => void window.otty.resetChat()}>
+                Start a new chat
+              </button>
+            ) : (
+              canRewind && (
+                <button className="btn btn--primary btn--small" onClick={() => void rewind('retry')}>
+                  Try again
+                </button>
+              )
+            )}
+          </span>
         </div>
       )}
-      {!m.streaming && (m.text || canRewind) && (
+      {!m.streaming && (m.text || canRewind || m.used?.length) && (
         <div className="msg__actions">
           {m.text && (
             <button
@@ -366,12 +424,19 @@ export function AssistantMessage({
               {copied ? 'Copied' : 'Copy'}
             </button>
           )}
-          {canRewind && (
+          {canRewind && !m.error && (
             <button className="copy-btn" onClick={() => void rewind('retry')} title="Ask the same question again for a new answer">
               <Icon name="refresh" />
               Try again
             </button>
           )}
+          {canRewind &&
+            !m.error &&
+            TWISTS.map(([twist, label]) => (
+              <button key={twist} className="copy-btn" onClick={() => void rewind('retry', twist)} title={`Try again, ${label.toLowerCase()}`}>
+                {label}
+              </button>
+            ))}
           {canRewind && onEdit && (
             <button className="copy-btn" onClick={() => void rewind('edit')} title="Change your question and ask it again">
               <Icon name="edit" />
@@ -390,15 +455,19 @@ export function AssistantMessage({
               {again.label}
             </button>
           )}
+          {m.used?.length ? <UsedMarker used={m.used} /> : null}
         </div>
       )}
       {rewinding && (
-        <RewindCard mode={rewinding.mode} plan={rewinding.plan} onGo={(undo) => void go(rewinding.mode, undo)} onCancel={() => setRewinding(null)} />
+        <RewindCard mode={rewinding.mode} plan={rewinding.plan} onGo={(undo) => void go(rewinding.mode, undo, rewinding.twist)} onCancel={() => setRewinding(null)} />
       )}
-      {m.used?.length ? <UsedLine used={m.used} /> : null}
-      {m.memories?.map((n) => (
-        <MemoryLine key={n.memoryId} answerId={m.id} note={n} />
-      ))}
+      {m.memories?.length ? (
+        <div className="memory-lines" aria-live="polite">
+          {m.memories.map((n) => (
+            <MemoryLine key={n.memoryId} answerId={m.id} note={n} fresh={Boolean(m.live)} />
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }

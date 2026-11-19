@@ -56,7 +56,7 @@ async function offerLater(otty: Otty, world: World, panel: Page, later: Later, a
 
 async function scheduleLater(otty: Otty, world: World, panel: Page, later: Later): Promise<void> {
   await offerLater(otty, world, panel, later, later.after)
-  await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+  await panel.getByRole('button', { name: 'Schedule it' }).click()
   await expect(panel.getByText(later.after)).toBeVisible()
 }
 
@@ -92,7 +92,7 @@ test('a look for tomorrow at 9: No schedules nothing; yes shows it in Activity, 
   await expect(card).toContainText('It won’t send or change anything.')
   await expect(card).toContainText('Otty has to be running then')
   await expect(card).toContainText(RAIL.brief)
-  await panel.getByRole('button', { name: 'No thanks' }).click()
+  await panel.getByRole('button', { name: 'Skip' }).click()
   await expect(panel.getByText('Alright, I won’t.')).toBeVisible()
   await expect(panel.getByRole('button', { name: 'Activity' })).toHaveCount(0)
 
@@ -183,7 +183,7 @@ test('Pause everything stops the running look and holds the scheduled one, acros
   world.reply(running.question, { calls: [{ name: 'start_job', args: { title: running.title, brief: running.brief } }] }, { say: running.after })
   await otty.ask(panel, running.question)
   await otty.control((c) => c.power('suspend'))
-  await panel.getByRole('button', { name: 'Yes, go ahead' }).last().click()
+  await panel.getByRole('button', { name: 'Start it' }).last().click()
   await expect(panel.getByText(running.after)).toBeVisible()
   await expect.poll(() => world.modelRequests().filter((b) => !b.stream).length).toBeGreaterThan(0)
   await openActivity(panel)
@@ -228,7 +228,7 @@ test('Activity: Coming up first, soonest at the top, then Recent; Pause everythi
   await scheduleLater(otty, world, panel, nearer)
   world.reply(now.question, { calls: [{ name: 'start_job', args: { title: now.title, brief: now.brief } }] }, { say: now.after })
   await otty.ask(panel, now.question)
-  await panel.getByRole('button', { name: 'Yes, go ahead' }).last().click()
+  await panel.getByRole('button', { name: 'Start it' }).last().click()
   await expect(panel.getByText(now.after)).toBeVisible()
 
   await openActivity(panel)
@@ -260,7 +260,7 @@ test('every Monday at 9: the card says so and about 4 looks a month; Coming up s
   const card = panel.locator('.confirm-card')
   await expect(card).toContainText(new RegExp(`Every Monday at ${timeRe(look.at)}, starting`))
   await expect(card).toContainText('about 4 looks a month')
-  await panel.getByRole('button', { name: 'Yes, go ahead' }).click()
+  await panel.getByRole('button', { name: 'Schedule it' }).click()
   await expect(panel.getByText(look.after)).toBeVisible()
 
   await openActivity(panel)

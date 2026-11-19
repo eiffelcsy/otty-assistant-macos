@@ -813,17 +813,10 @@ html[data-view='bubble'] body {
   flex-direction: column;
   gap: var(--s-2);
 }
-.confirm-card__title,
 .notice-card__title {
   font-size: var(--fs-ui);
   font-weight: 700;
   color: var(--heading);
-}
-.confirm-card__detail {
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-  color: var(--text-2);
-  word-break: break-all;
 }
 .notice-card__body {
   font-size: var(--fs-small);
@@ -851,73 +844,94 @@ html[data-view='bubble'] body {
   color: var(--danger-ink);
   margin-top: 3px;
 }
+/* An answer that failed: one button that helps, never a raw code (D-62). */
+.msg--otty .error-card {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger-ink) 30%, transparent);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+.error-card__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+}
+.msg__stopped {
+  margin-top: calc(var(--s-1) - var(--s-2));
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--text-2);
+}
+/* Older answers keep their actions for hover and keyboard focus; the latest shows them (UX_REVIEW #6). */
+.msg--otty:not(.msg--latest) .msg__actions {
+  opacity: 0;
+  transition: opacity var(--t-quick) var(--glide);
+}
+.msg--otty:not(.msg--latest):hover .msg__actions,
+.msg--otty:not(.msg--latest):focus-within .msg__actions {
+  opacity: 1;
+}
+/* "New text": following stopped because the user scrolled up while Otty was writing. */
+.new-text {
+  position: absolute;
+  bottom: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  height: 28px;
+  padding: 0 var(--s-3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--elev-2);
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--text);
+  animation: surface var(--t-settle) var(--glide) both;
+}
+.thinking__words {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+}
+.thinking__tool {
+  animation: surface var(--t-quick) var(--glide) both;
+}
+.thinking__slow {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+  animation: surface var(--t-settle) var(--glide) both;
+}
 .ok-card {
   background: var(--ok-soft);
 }
 
 /* empty state */
 .empty {
-  margin: auto 0;
+  margin: var(--s-6) 0 auto;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--s-2);
 }
 .empty h2 {
-  margin: var(--s-2) 0 var(--s-1);
+  margin: var(--s-3) 0 0;
   font-size: var(--fs-heading);
   font-weight: 800;
   line-height: var(--lh-heading);
-  letter-spacing: -0.01em;
-  text-wrap: balance;
   color: var(--heading);
 }
 .empty p {
-  margin: 0 0 var(--s-4);
-  font-size: var(--fs-ui);
+  max-width: 32ch;
+  margin: var(--s-1) 0 0;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
   color: var(--text-2);
-}
-.how-to {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  width: 100%;
-  text-align: left;
-}
-.how-to__item {
-  display: flex;
-  gap: var(--s-3);
-  align-items: center;
-  padding: var(--s-2) var(--s-3);
-  border: none;
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
-  font-size: var(--fs-ui);
-  line-height: var(--lh-ui);
-}
-.how-to__item b {
-  font-weight: 700;
-  color: var(--heading);
-}
-.how-to__item--btn {
-  text-align: left;
-  transition: box-shadow var(--t-quick) var(--glide);
-}
-.how-to__item--btn:hover {
-  box-shadow: var(--elev-2);
-}
-.how-to__icon {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: calc(var(--r-sm) - var(--s-0));
-  display: grid;
-  place-items: center;
-  font-size: var(--i-md);
-  background: var(--brand-soft);
-  color: var(--brand);
 }
 
 /* ---------- Composer ---------- */
@@ -928,7 +942,30 @@ html[data-view='bubble'] body {
   flex-direction: column;
   gap: var(--s-2);
 }
-/* One box holds the snip tool, the text and the send button. Its corner is concentric with the window's. */
+/* The message box (D-62): the snip tool, the text and Send in one box, its corner concentric with the window's. A bare
+   box sits inside a card that has its own surface (the quick view's first question). */
+.message-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1h);
+}
+.message-box--bare .composer__row {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.message-box--bare .composer__row:focus-within {
+  box-shadow: none;
+}
+.message-box--bare .composer__input {
+  padding: 0;
+  max-height: 96px;
+}
+.quick .message-box:not(.message-box--bare) .composer__row {
+  background: var(--fill);
+  box-shadow: none;
+}
 .composer__row {
   display: flex;
   align-items: flex-end;
@@ -975,8 +1012,6 @@ html[data-view='bubble'] body {
   user-select: text;
 }
 .composer__input::placeholder,
-.quick__input::placeholder,
-.quick__follow::placeholder,
 .field::placeholder,
 .history__search input::placeholder,
 .find-bar__field input::placeholder {
@@ -1471,13 +1506,9 @@ html[data-view='bubble'] body {
 .toggle--off {
   opacity: 0.45;
 }
-/* Settings toggles are switches: a 36 × 20 track at the end of the row, and the whole row flips it. */
-.settings .toggle {
-  justify-content: space-between;
-  cursor: pointer;
-}
-.settings .toggle input {
-  order: 1;
+/* Switch: a 36 × 20 track. In Settings the whole row flips it. */
+.switch {
+  flex: none;
   appearance: none;
   position: relative;
   width: 36px;
@@ -1489,7 +1520,7 @@ html[data-view='bubble'] body {
   cursor: inherit;
   transition: background var(--t-quick) var(--glide);
 }
-.settings .toggle input::before {
+.switch::before {
   content: '';
   position: absolute;
   top: 2px;
@@ -1501,12 +1532,16 @@ html[data-view='bubble'] body {
   box-shadow: var(--elev-1);
   transition: transform var(--t-quick) var(--glide);
 }
-.settings .toggle input:checked {
+.switch:checked {
   background: var(--brand-fill);
   box-shadow: none;
 }
-.settings .toggle input:checked::before {
+.switch:checked::before {
   transform: translateX(16px);
+}
+.switch:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
 }
 .hint {
   font-size: var(--fs-meta);
@@ -1583,37 +1618,360 @@ html[data-view='bubble'] body {
 .settings {
   flex: 1;
   overflow-y: auto;
-  padding: var(--s-4);
+  padding: var(--s-3) var(--s-4) var(--s-4);
   display: flex;
   flex-direction: column;
-  gap: var(--s-3);
+  gap: var(--s-6);
 }
-/* Group */
-.settings section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-4);
-  background: var(--surface);
-  border-radius: var(--r-md);
-  box-shadow: var(--elev-1);
-}
-.settings h3 {
-  margin: 0;
-  font-size: var(--fs-ui);
-  font-weight: 700;
-  line-height: var(--lh-ui);
-  color: var(--heading);
+
+/* ---------- Settings in sections (D-61, Spec 02) ---------- */
+.set-find {
   display: flex;
   align-items: center;
-  gap: var(--s-1h);
+  gap: var(--s-2);
+  height: 36px;
+  margin-bottom: calc(var(--s-4) - var(--s-6));
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--i-md);
 }
-.settings section .btn--small {
+.set-find:focus-within {
+  border-color: var(--brand);
+  box-shadow: var(--ring);
+}
+.set-find input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font: inherit;
+  font-size: var(--fs-ui);
+  color: var(--text);
+}
+.set-find input::placeholder {
+  color: var(--text-3);
+}
+.set-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  margin: calc(var(--s-1) - var(--s-3)) 0 calc(var(--s-2) - var(--s-6)) calc(-1 * var(--s-2));
+}
+.set-bar__title {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 700;
+  color: var(--heading);
+}
+/* The Saved whisper: one per section, restarted by each change. */
+.set-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.set-saved .icon {
+  font-size: var(--i-sm);
+}
+.set-saved--on {
+  animation: whisper 2.56s var(--glide) both;
+}
+@keyframes whisper {
+  0% { opacity: 0; }
+  11%, 81% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.set-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.set-group__label {
+  padding-left: var(--s-4);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+.set-group__box {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+  overflow: hidden;
+}
+/* A row: 44 high on one line, growing with its description. The hairline is inset 16 and skips the last row. */
+.set-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 44px;
+  padding: var(--s-3) var(--s-4);
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+}
+.set-row + .set-row::before,
+.set-row + .meter::before,
+.meter + .set-row::before,
+.set-prompt + .set-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--s-4);
+  right: 0;
+  border-top: 1px solid var(--hairline);
+}
+.set-row--tap {
+  cursor: pointer;
+  transition: background var(--t-tap) var(--glide);
+}
+.set-row--tap:active {
+  background: var(--fill);
+}
+.set-row--off .set-row__title,
+.set-row--off .switch {
+  opacity: 0.45;
+}
+.set-row--found {
+  animation: found var(--t-drift) var(--glide);
+}
+.set-row--section {
+  min-height: 52px;
+  padding-top: var(--s-2);
+  padding-bottom: var(--s-2);
+}
+.set-row__glyph {
+  flex: none;
+  font-size: var(--i-lg);
+  color: var(--text-2);
+}
+.set-row__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+}
+.set-row__title {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 600;
+  color: var(--text);
+}
+.set-row__title--find {
+  font-weight: 500;
+}
+.set-row__title--find b {
+  font-weight: 700;
+}
+.set-row__desc,
+.set-row__sum,
+.set-row__value {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 500;
+  color: var(--text-2);
+}
+.set-row__sum {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set-row__sum--warn {
+  color: var(--straw-ink);
+}
+.set-row__value {
+  flex: none;
+}
+.set-row__failed {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--danger-ink);
+}
+.set-row__chevron {
+  flex: none;
+  font-size: var(--i-md);
+  color: var(--text-2);
+}
+.set-none {
+  margin: 0;
+  padding: var(--s-4);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+/* Choice: a pop-up button over a native menu. */
+.popup {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+.popup select {
+  appearance: none;
+  height: 28px;
+  padding: 0 var(--s-6) 0 var(--s-3);
+  border: none;
+  border-radius: var(--r-xs);
+  background: var(--fill-strong);
+  font: inherit;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.popup select:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+.popup .icon {
+  position: absolute;
+  right: var(--s-2);
+  font-size: var(--i-sm);
+  color: var(--text-2);
+  pointer-events: none;
+}
+/* Keys: keycaps that turn into a recording field. */
+.keycaps {
+  display: inline-flex;
+  gap: var(--s-1);
+}
+.keys-btn {
+  flex: none;
+  padding: var(--s-1);
+  border: none;
+  border-radius: var(--r-xs);
+  background: none;
+  cursor: pointer;
+}
+.keys-btn:hover {
+  background: var(--fill);
+}
+.recorder {
+  flex: none;
+  min-width: 160px;
+  height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--brand-line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+  font: inherit;
+  font-size: var(--fs-small);
+  color: var(--text-2);
+  outline: none;
+}
+/* Hold: the fill sweeps across over 1.2 s; letting go early does nothing. */
+.hold {
+  flex: none;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.hold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: color-mix(in srgb, var(--danger-ink) 22%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.hold--on::after {
+  transform: scaleX(1);
+  transition: transform 1.2s linear;
+}
+.set-prompt {
+  max-width: none;
+  margin: var(--s-2) var(--s-3);
+}
+.set-prompt .confirm-card__row {
+  margin-top: var(--s-2);
+}
+.set-conn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: 0 var(--s-4) var(--s-4);
+}
+.set-conn .btn {
   align-self: flex-start;
 }
-.settings h3 .icon {
-  color: var(--brand);
-  font-size: var(--i-md);
+/* The month's meter. */
+.meter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-3) var(--s-4);
+}
+.meter__top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-1h);
+}
+.meter__count {
+  font-size: var(--fs-heading);
+  line-height: var(--lh-heading);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--heading);
+}
+.meter__unit,
+.meter__limit {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.meter__limit {
+  margin-left: auto;
+}
+.meter__bar {
+  height: 6px;
+  margin-top: 10px;
+  border-radius: var(--r-xs);
+  background: var(--fill-strong);
+  overflow: hidden;
+}
+.meter__fill {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  transition: width var(--t-settle) var(--glide);
+}
+.meter__fill--near {
+  background: var(--straw);
+}
+.meter__note {
+  margin: 10px 0 0;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+}
+.limit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+.limit__field {
+  width: 88px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .onboarding {
@@ -1751,20 +2109,6 @@ html[data-view='quick'] body {
 .quick__box .context-text__body {
   -webkit-line-clamp: 2;
 }
-.quick__input {
-  resize: none;
-  border: none;
-  outline: none;
-  padding: 0;
-  background: transparent;
-  font: inherit;
-  font-size: var(--fs-body);
-  line-height: 22px;
-  color: var(--text);
-  max-height: 96px;
-  field-sizing: content;
-  user-select: text;
-}
 .quick__question {
   font-size: var(--fs-body);
   font-weight: 600;
@@ -1883,6 +2227,10 @@ html[data-view='quick'] body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.history__draft {
+  font-weight: 600;
+  color: var(--straw-ink);
 }
 .history__meta {
   font-size: var(--fs-small);
@@ -2220,69 +2568,120 @@ html[data-view='pickup'] #root {
 }
 
 /* ---------- What Otty learns ---------- */
-/* Quiet on purpose: it's a note in the margin, not a message. */
+/* The Noted line (Spec 01, N1–N3): the safety control for memory, always in full, never folded into a count. */
+.memory-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-top: calc(var(--s-1) - var(--s-2));
+}
 .memory-line {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--s-1h);
-  font-size: var(--fs-meta);
-  line-height: var(--lh-meta);
+  min-height: 24px;
+  padding: var(--s-0) 0;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
   color: var(--text-2);
 }
 .memory-line > .icon {
+  flex: none;
+  width: var(--i-lg);
+  margin-top: var(--s-0);
   font-size: var(--i-sm);
-  color: var(--brand);
+  text-align: center;
+  color: var(--straw-ink);
 }
 .memory-line__text {
   min-width: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.memory-line--undone .memory-line__text {
-  text-decoration: line-through;
+.memory-line__label {
+  font-weight: 600;
+}
+.memory-line__fact {
+  font-weight: 600;
+  color: var(--text);
+  /* The straw pen line: drawn once on a live answer, resting at 40% so it can still be seen scrolling back. */
+  background: linear-gradient(color-mix(in srgb, var(--straw) 40%, transparent), color-mix(in srgb, var(--straw) 40%, transparent)) 0 100% / 100% 2px no-repeat;
+  transition: color var(--t-quick) var(--glide);
+}
+.memory-line--fresh .memory-line__fact {
+  animation: pen var(--t-drift) var(--glide) 700ms both;
+}
+@keyframes pen {
+  from { background-size: 0 2px; background-image: linear-gradient(var(--straw), var(--straw)); }
+  60% { background-size: 100% 2px; background-image: linear-gradient(var(--straw), var(--straw)); }
+}
+.memory-line__was {
+  font-weight: 500;
+}
+.memory-line--undone .memory-line__fact {
+  background: none;
+  color: var(--text-2);
+  text-decoration: line-through 1px;
+}
+.memory-line__actions {
+  white-space: nowrap;
+  margin-left: var(--s-2);
 }
 .memory-line__btn {
-  flex: none;
-  border: none;
-  background: none;
-  padding: 0 var(--s-1);
-  border-radius: var(--r-xs);
-  font-size: var(--fs-meta);
-  color: var(--brand-text);
-}
-.memory-line__btn:hover {
-  background: var(--brand-soft);
-}
-.memory-line__done {
-  flex: none;
-}
-.used-line {
-  display: flex;
-  align-items: center;
-  gap: var(--s-1h);
-  max-width: 100%;
+  min-height: 28px;
+  margin: -5px 0;
   padding: 0;
   border: none;
   background: none;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.memory-line__btn + .memory-line__btn {
+  margin-left: var(--s-3);
+}
+.memory-line__btn:hover {
+  text-decoration: underline;
+}
+
+/* The used marker: notes an answer read, in a menu (UX_REVIEW #6). */
+.used {
+  position: relative;
+}
+.menu {
+  position: absolute;
+  z-index: 5;
+  min-width: 200px;
+  max-width: 280px;
+  padding: var(--s-1);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--elev-3);
+  display: flex;
+  flex-direction: column;
+}
+.used__menu {
+  bottom: 32px;
+  left: 0;
+}
+.menu__item {
+  min-height: 30px;
+  padding: var(--s-1h) var(--s-2);
+  border: none;
   border-radius: var(--r-xs);
-  font-size: var(--fs-meta);
-  line-height: var(--lh-meta);
-  color: var(--text-2);
+  background: none;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text);
   text-align: left;
 }
-.used-line > .icon {
-  flex: none;
-  font-size: var(--i-sm);
+.menu__item--text {
+  color: var(--text-2);
 }
-.used-line > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.used-line:hover {
-  color: var(--brand-text);
+button.menu__item:hover {
+  background: var(--fill-strong);
 }
 .memory-group {
   display: flex;
@@ -2729,18 +3128,6 @@ html[data-view='pickup'] #root {
 }
 
 /* ---------- Quick view follow-ups ---------- */
-.quick__follow {
-  width: 100%;
-  border: none;
-  border-top: 1px solid var(--hairline);
-  background: none;
-  padding: var(--s-2) var(--s-0) var(--s-0);
-  resize: none;
-  font: inherit;
-  font-size: var(--fs-ui);
-  color: var(--text);
-  outline: none;
-}
 .quick__asked {
   align-self: flex-end;
   max-width: 85%;
@@ -2748,11 +3135,6 @@ html[data-view='pickup'] #root {
   border-radius: var(--r-sm);
   background: var(--fill);
   font-size: var(--fs-small);
-}
-.confirm-card__detail--long {
-  white-space: pre-wrap;
-  max-height: 180px;
-  overflow-y: auto;
 }
 
 /* ---------- Health: something the user will try won't work yet ---------- */
@@ -2817,43 +3199,39 @@ html[data-view='pickup'] #root {
   color: var(--text);
 }
 
-/* ---------- Usage meter ---------- */
-.usage {
-  margin: 0;
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-  color: var(--text);
-}
-
-/* ---------- Try asking: what nobody finds alone ---------- */
+/* ---------- Try asking: what nobody finds alone. Rows, not chips; a click fills the box and never sends ---------- */
 .try {
   display: flex;
   flex-direction: column;
-  gap: var(--s-1);
   width: 100%;
-  margin-top: 4px;
+  margin-top: var(--s-6);
   text-align: left;
 }
-.try__chip {
+.try__label {
+  padding: 0 var(--s-2) var(--s-1);
+}
+.try__row {
   display: flex;
   align-items: center;
-  gap: var(--s-1h);
-  padding: var(--s-2) var(--s-3);
-  border: 1px solid var(--hairline);
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 0 var(--s-2);
+  border: none;
   border-radius: var(--r-sm);
   background: none;
   font-size: var(--fs-small);
+  font-weight: 600;
   color: var(--text);
   text-align: left;
-  transition: background var(--t-quick) var(--glide), border-color var(--t-quick) var(--glide);
+  transition: background var(--t-tap) var(--glide);
 }
-.try__chip > .icon {
+.try__row > .icon {
   flex: none;
-  color: var(--brand);
+  font-size: var(--i-md);
+  color: var(--text-2);
 }
-.try__chip:hover {
-  background: var(--brand-soft);
-  border-color: var(--brand-line);
+.try__row:hover {
+  background: var(--fill);
 }
 
 /* ---------- Drawings (D-30) ---------- */
@@ -3051,37 +3429,236 @@ html[data-view='viewer'] body {
   opacity: 0.45;
 }
 
-/* The monthly limit, under What Otty has used (D-33). */
-.cap {
+/* Before Try again or Edit replaces an answer (D-36, Spec 01). */
+.rewind-card__list {
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
-  margin-top: var(--s-3);
+  margin-top: var(--s-1);
 }
-.cap__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--s-2);
-}
-.cap__unit {
-  width: auto;
-}
-.cap__amount {
-  width: 96px;
-}
-
-/* Before Try again or Edit replaces an answer (D-36). */
 .rewind-card__label {
-  margin-top: 4px;
+  margin-bottom: var(--s-1);
 }
 .rewind-card__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 28px;
   font-size: var(--fs-small);
   line-height: var(--lh-small);
 }
-.rewind-card__lasting {
+.rewind-card__item input {
+  width: 16px;
+  height: 16px;
   margin: 0;
-  padding-left: var(--s-5);
-  font-size: var(--fs-small);
+  accent-color: var(--brand-fill);
+}
+.rewind-card__item--lasting {
   color: var(--text-2);
+}
+.rewind-card__item--lasting .icon {
+  width: var(--i-lg);
+  font-size: var(--i-sm);
+  text-align: center;
+}
+
+/* ---------- Confirm cards and receipts (D-60, Spec 01) ---------- */
+/* A glyph column (16 + 10), then the title, detail and buttons all on one edge, 26 in. */
+.ask {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  outline: none;
+  transition: box-shadow var(--t-quick) var(--glide);
+}
+.ask:focus-visible {
+  box-shadow: var(--elev-1), var(--ring);
+}
+.ask__glyph {
+  flex: none;
+  width: var(--i-lg);
+  margin-top: 3px;
+  font-size: var(--i-lg);
+  color: var(--text-2);
+}
+.ask__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ask__title {
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 700;
+  color: var(--heading);
+}
+.ask__detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-top: var(--s-2);
+}
+.ask__host {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.ask__readable {
+  font-weight: 500;
+  color: var(--text-2);
+}
+.ask__sub {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.rewind-card .ask__sub {
+  margin-top: calc(var(--s-1) - var(--s-2));
+}
+.ask__meta,
+.ask__since {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--text-2);
+}
+.ask__since {
+  align-self: center;
+}
+.ask__query {
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 500;
+  color: var(--text);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.ask__query--clip {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+.ask__more {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.ask__long {
+  max-height: 120px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+}
+/* Unusual: a straw inner edge and the line that says why. Nothing else changes. */
+.ask--unusual {
+  box-shadow: var(--elev-1), inset 0 0 0 1px var(--straw);
+}
+.ask__unusual {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-1h);
+  margin-top: var(--s-2);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 600;
+  color: var(--straw-ink);
+}
+.ask__unusual .icon {
+  margin-top: var(--s-0);
+  font-size: var(--i-sm);
+}
+.ask .confirm-card__row {
+  margin-top: var(--s-3);
+}
+/* Arming: a stray click can't approve. The pointer passes through until the card has been seen for 400 ms. */
+.ask .btn {
+  transition: opacity var(--t-quick) var(--glide), background var(--t-quick) var(--glide), transform var(--t-tap) var(--glide);
+}
+.ask--arming .btn {
+  opacity: 0.45;
+  pointer-events: none;
+}
+.ask .btn[aria-busy='true'] {
+  opacity: 0.7;
+}
+.ask__failed {
+  margin-top: var(--s-2);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--danger-ink);
+}
+/* Back to a card that has waited: one slow ring. */
+.ask--ring {
+  animation: ask-ring var(--t-drift) var(--glide) 1;
+}
+@keyframes ask-ring {
+  50% { box-shadow: var(--elev-1), 0 0 0 2px var(--brand-line); }
+}
+
+/* A receipt: one line in the answer's flow, like a tool chip. */
+.receipts {
+  display: flex;
+  flex-direction: column;
+}
+.receipt {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1h);
+  min-height: 28px;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  color: var(--text-2);
+}
+.receipt > .icon {
+  flex: none;
+  width: var(--i-lg);
+  font-size: var(--i-sm);
+  text-align: center;
+  color: var(--brand);
+}
+.receipt--skipped > .icon {
+  color: var(--text-2);
+}
+.receipt__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.receipt__text b {
+  font-weight: 600;
+  color: var(--text);
+}
+.receipt__undo {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--fs-meta);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+.receipt__undo:hover {
+  text-decoration: underline;
+}
+.receipt--fresh {
+  animation: surface var(--t-settle) var(--glide) both;
+}
+@keyframes surface {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
