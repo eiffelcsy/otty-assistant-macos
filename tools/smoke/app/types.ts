@@ -32,7 +32,7 @@ export interface SmokeMac {
 
 /** Something Otty did to the Mac, recorded instead of done. */
 export interface SmokeCall {
-  kind: 'osascript' | 'open-external' | 'open-path' | 'show-in-folder' | 'notify' | 'login-item' | 'dialog'
+  kind: 'osascript' | 'open-external' | 'open-path' | 'show-in-folder' | 'notify' | 'login-item' | 'dialog' | 'dock'
   detail: string[]
   at: number
 }

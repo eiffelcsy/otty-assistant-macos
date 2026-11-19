@@ -68,6 +68,9 @@ export function Panel() {
   /** ⌃⌘S folds the sidebar to the rail. */
   const [sidebarHidden, setSidebarHidden] = useState(false)
   const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null)
+  /** Floating or roomy (D-65), from main; the content dims while the window moves between them. */
+  const [roomy, setRoomy] = useState(false)
+  const [moving, setMoving] = useState(false)
   const width = useWidth(frameEl)
   /** The Settings section on show; null is the list of sections. */
   const [settingsAt, setSettingsAt] = useState<SectionId | null>(null)
@@ -133,7 +136,11 @@ export function Panel() {
     push('settings')
     setSettingsAt(section)
   }
-  const navRef = useRef({ go, back, newChat: () => {} })
+  const navRef = useRef({ go, back, newChat: () => {}, attach: () => {}, help: () => {} })
+  const roomyRef = useRef(roomy)
+  useEffect(() => {
+    roomyRef.current = roomy
+  }, [roomy])
   const settingsRef = useRef(settings)
   settingsRef.current = settings
   const messagesRef = useRef(messages)
@@ -148,6 +155,30 @@ export function Panel() {
     })
     return window.otty.onSettings(setSettings)
   }, [])
+
+  useEffect(
+    () =>
+      window.otty.onWindowState((state) => {
+        setRoomy(state === 'roomy')
+        setMoving(true)
+        setTimeout(() => setMoving(false), 720)
+      }),
+    []
+  )
+  // The app menu asks the window to go somewhere (D-65): the same navigation as the keys.
+  useEffect(
+    () =>
+      window.otty.onFrameCommand((c) => {
+        const nav = navRef.current
+        if (c === 'new') return nav.newChat()
+        if (c === 'sidebar') return setSidebarHidden((h) => !h)
+        if (c === 'find') return dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true }))
+        if (c === 'attach') return nav.attach()
+        if (c === 'help') return nav.help()
+        nav.go(c)
+      }),
+    []
+  )
 
   useEffect(() => {
     const count = () => void window.otty.logbook('wait', '').then((p) => setNeedsYou(p.views.find((v) => v.view === 'wait')?.count ?? 0))
@@ -217,6 +248,12 @@ export function Panel() {
           e.preventDefault()
           return setSidebarHidden((h) => !h)
         }
+      }
+      // ⇧⌘E: Expand or Shrink (Spec 06).
+      if (e.metaKey && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault()
+        void window.otty.setWindowState(roomyRef.current ? 'shrink' : 'expand')
+        return
       }
       if (e.key === 'F6') {
         e.preventDefault()
@@ -396,7 +433,19 @@ export function Panel() {
   }
   // The keyboard and main's open requests reach the newest navigation through this ref.
   useEffect(() => {
-    navRef.current = { go, back, newChat }
+    navRef.current = {
+      go,
+      back,
+      newChat,
+      attach: () => {
+        go('chat')
+        void att.pick()
+      },
+      help: () => {
+        go('settings')
+        setSettingsAt('help')
+      }
+    }
   })
   const again = againOffer(messages, settings?.homeLanguage ?? null, busy)
 
@@ -459,7 +508,7 @@ export function Panel() {
   return (
     <AskContext.Provider value={(t, action) => send(t, false, action ? ({ label: t, action } as ActionItem) : undefined)}>
       <HomeContext.Provider value={settings.homeLanguage}>
-        <div className="panel" ref={setFrameEl} {...drop}>
+        <div className={`panel${roomy ? ' panel--roomy' : ''}${moving ? ' panel--moving' : ''}`} ref={setFrameEl} {...drop}>
           {dragging && (
             <div className="drop-veil">
               <Icon name="clip" />
@@ -479,6 +528,8 @@ export function Panel() {
             paused={settings.workPaused}
             onNewChat={newChat}
             sidebarHidden={sidebarHidden}
+            roomy={roomy}
+            onResize={() => void window.otty.setWindowState(roomy ? 'shrink' : 'expand')}
             noChats={!settings.rememberChats}
             menuExtras={menuExtras}
             actions={chatActions}

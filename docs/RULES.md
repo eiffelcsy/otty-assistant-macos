@@ -27,6 +27,7 @@ Where the checks live:
 | Keep the docs moving | Partly: `rules/docsDrift.test.ts` fails when a roadmap row and its entry disagree, or a shipped ID still has a DEVLOG entry. Writing the entries stays a process rule. |
 | Attachments | Rule tests `preload.test.ts` (ids and names only) and `boundaries.test.ts` (`pdfjs-dist` and `mammoth` by `import()` only, as runtime dependencies; `maskSecrets` in the worker). Test `code.test.ts` (files) "hides well-known key shapes anywhere"; `trust.test.ts` "takes out key shapes but leaves NAME=value as the user wrote it". Test `hiddenLines.test.ts` (hinted lines never reach otty.db or a request, D-40). |
 | Hotkeys | Smoke `launch.smoke.ts` (shortcuts registered). Prose only for *no panel views that only work in one column*: a layout judgement. |
+| Window states | Test `roomy.test.ts` (the Dock before Expand's move and after Shrink's, the level, traffic lights and minimum size, bounds off every display, closing). Smoke `window.smoke.ts` (Expand mid-answer, ⇧⌘E, closing). |
 | UI work | `npm run screens` compares every preview scene, light and dark, with committed screenshots (CI job `screens`). Using tokens is `renderer.test.ts`. |
 | Pick up text | Rule test `boundaries.test.ts` "asks Apple Vision for Chinese before English". Test `ocr.test.ts`. Smoke `pickup.smoke.ts` runs the real helper on English and Chinese. |
 | Otty is painted art | Prose only: the frames are generated, and a check would only repeat the script. |

@@ -20,7 +20,7 @@ import { entryDetails, logbook, type LogSources } from '../../src/main/logbook'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -754,7 +754,14 @@ const api: OttyApi = {
   onBubbleState: () => () => {},
   onBubbleMood: () => () => {},
   onBubbleBadge: () => () => {},
-  onWindowVisible: () => () => {}
+  onWindowVisible: () => () => {},
+  // D-65: `&state=roomy` draws the roomy window's header and traffic-light row.
+  onWindowState: (cb) => {
+    if (q.get('state') === 'roomy') setTimeout(() => cb('roomy'), 0)
+    return () => {}
+  },
+  onFrameCommand: () => () => {},
+  setWindowState: noop
 }
 
 ;(window as any).otty = api

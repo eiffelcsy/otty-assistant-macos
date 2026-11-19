@@ -84,8 +84,8 @@ export function press(accelerator: string): boolean {
 
 type Fn = (...args: never[]) => unknown
 
-/** The real object, with some methods replaced. Real methods stay bound to the real object, as native ones need. */
-function overlay<T extends object>(real: T, fakes: Record<string, Fn>): T {
+/** The real object, with some methods (or whole parts, such as `app.dock`) replaced. Real methods stay bound to the real object, as native ones need. */
+function overlay<T extends object>(real: T, fakes: Record<string, Fn | object>): T {
   return new Proxy(real, {
     get(target, key) {
       if (typeof key === 'string' && key in fakes) return fakes[key]
@@ -173,7 +173,17 @@ export function installMac(appRoot: string): void {
     }),
     // Electron takes the app's path from the entry it was started with, which is out-smoke/ here. The app it runs is
     // the repo's (out/main), so report that, as `electron-vite dev` and a release would: the OCR helper is found by it.
-    app: overlay(electron.app, { getAppPath: () => appRoot }),
+    // D-65: the Dock icon comes and goes with the roomy window. The fake Mac records it, so a smoke run never shows
+    // an icon in the person's real Dock.
+    app: overlay(electron.app, {
+      getAppPath: () => appRoot,
+      dock: {
+        show: async () => record('dock', ['show']),
+        hide: () => record('dock', ['hide']),
+        setMenu: () => {},
+        isVisible: () => calls.filter((c) => c.kind === 'dock').at(-1)?.detail[0] === 'show'
+      }
+    }),
     screen: overlay(electron.screen, {
       getCursorScreenPoint: () => {
         if (mac.cursor) return mac.cursor
