@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { retryPrompt, type DrawingKind } from '../../../shared/drawing'
 import type { DrawingResult } from '../../../shared/types'
 import { Icon } from '../components/Icon'
@@ -49,9 +49,12 @@ export function DrawingCard({ kind, code, host, chart }: { kind: DrawingKind; co
     }
   }, [kind, code, host.done])
 
+  // One message at a time: a newer one cancels the older one's timer, which used to clear "Saved" right after "Copied".
+  const clear = useRef<ReturnType<typeof setTimeout>>(undefined)
   const flash = (text: string | null) => {
+    clearTimeout(clear.current)
     setSaid(text)
-    if (text) setTimeout(() => setSaid(null), 1800)
+    if (text) clear.current = setTimeout(() => setSaid(null), 1800)
   }
 
   const out = async (how: 'copy' | 'png' | 'pdf') => {

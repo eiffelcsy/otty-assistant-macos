@@ -264,8 +264,32 @@ test('Settings shows the whole-screen shortcut and warns when it can’t be used
   // Stands in for another app's shortcut: Otty's own ask shortcut is already taken when this one registers.
   await keys.click()
   await panel.getByRole('button', { name: /recording/ }).press('Alt+Space')
-  await expect(panel.getByText('Another app uses this. Pick a different one.')).toBeVisible()
+  // On this row: re-registering can flag the ask row for a moment too, which made a page-wide match flaky.
+  await expect(panel.locator('.set-row').filter({ has: keys }).getByText('Another app uses this. Pick a different one.')).toBeVisible()
   // The old shortcut stays, and still works.
   await expect(keys).toBeVisible()
   expect((await otty.snapshot()).shortcuts).toContain('Command+Alt+Shift+Space')
+})
+
+test('a long highlight folds in the sent message: Show all opens it, and ⌘F unfolds it to a match', { tag: ['@step-164'] }, async ({ otty, world }) => {
+  const panel = await otty.openPanel()
+  const long = [...Array.from({ length: 30 }, (_, i) => `Line ${i + 1} is about otters and their fur.`), 'The last line mentions seagrass.'].join('\n')
+  await highlightIntoPanel(otty, long)
+  await expect(trayItems(panel)).toHaveCount(1)
+  world.reply('Line 1 is about otters', { say: 'It ends with a plant.' })
+  await panel.locator('.composer textarea').press('Enter')
+  await expect(panel.getByText('It ends with a plant.')).toBeVisible()
+
+  const sent = panel.locator('.msg--user')
+  const body = sent.locator('.context-text__body')
+  await expect(body).not.toHaveClass(/context-text__body--open/)
+  await sent.getByRole('button', { name: 'Show all' }).click()
+  await expect(body).toHaveClass(/context-text__body--open/)
+  await sent.getByRole('button', { name: 'Show less' }).click()
+  await expect(body).not.toHaveClass(/context-text__body--open/)
+
+  await panel.keyboard.press('Meta+F')
+  await panel.getByPlaceholder('Find in this chat').fill('seagrass')
+  await expect(body).toHaveClass(/context-text__body--open/)
+  await expect(sent.getByRole('button', { name: 'Show less' })).toBeVisible()
 })

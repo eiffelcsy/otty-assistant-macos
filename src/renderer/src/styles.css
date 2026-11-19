@@ -353,6 +353,10 @@ html[data-view='bubble'] body {
 .bubble:hover {
   transform: scale(1.06);
 }
+/* D-37: something to eat is over the otter. */
+.bubble--feeding {
+  transform: scale(1.12);
+}
 .bubble:active {
   cursor: grabbing;
   transform: scale(0.97);
@@ -2107,6 +2111,13 @@ html[data-view='bubble'] body {
 }
 .msg--user .context-text {
   text-align: left;
+}
+/* D-68: a sent highlight shows six lines until Show all. */
+.context-text__body--fold {
+  -webkit-line-clamp: 6;
+}
+.context-text__body--open {
+  display: block;
 }
 .msg--user .captures,
 .msg--user .capture {

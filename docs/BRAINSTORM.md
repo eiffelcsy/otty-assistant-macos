@@ -50,7 +50,7 @@ The five promoted on value per effort are in DEVLOG ("Priority, 2026-11-20").
 | Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | M | considering, part of Otty's den; keepsakes need painted art (re-sized 2026-11-20) |
 | Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | → D-38 |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering, Look after me needs it to speak |
-| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | → D-37 (step 1 needs no art) |
+| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | → D-37 (step 1 shipped; the munch waits for art) |
 | More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
 | A simplified small-size head for the 34px header and quick view, where painted fur gets soft | M | S | idea |
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
@@ -228,7 +228,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | One fake world for both test tools: `ui-preview` scenes fed by D-47's scripted model and pages instead of a hand-written mock `window.otty`, so the two can't drift | H | M | idea, from D-47; after D-67, which found the mock's drift was half of why the 2026-11-19 bugs got through |
 | Smoke on a CI matrix: the oldest supported macOS and an Intel runner, for the release gate (LAUNCH_READINESS 6.8) | M | S | idea, from D-47 |
 | `net.ts` as the one door out: enforce `web: 'off'` there in code, and feed What left your Mac from it instead of tagging each call site | H | S | shipped (D-52: the door and `web: 'off'`; the sent log stays tagged, because only the caller knows why) |
-| Tests that find what people find: invariants over every window state and width (a way to close, menus inside the window, New chat from every screen), a nav matrix, fake-world cases recorded from real sites, and a `probe` an agent can drive by hand during development | H | S–M | → D-67 (step 1); the probe is step 2 |
+| Tests that find what people find: invariants over every window state and width (a way to close, menus inside the window, New chat from every screen), a nav matrix, fake-world cases recorded from real sites, and a `probe` an agent can drive by hand during development | H | S–M | → D-67 (step 1 shipped: the invariants; recorded cases and the probe are steps 2 and 3) |
 | Agents check their own work: one `verify` command, a Stop hook, lint, CLAUDE.md rules as tests, a PR template with evidence for each "Done when" line | H | M | phases 1–2 shipped (D-48); phase 3 near the beta |
 | An agent "owner's summary" on each PR: what changed for users in plain words, the evidence, what still needs a person, so merging takes minutes | H | S | shipped (D-48's PR template: "What changes for people using Otty" and "Left for a person") |
 | Write "Done when" lines as checkable statements from the start (each names its test or smoke tag), so the intent check has something to match | M | S | → D-55 (part of the feature kit) |
@@ -257,8 +257,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Long highlights in a sent message fold to a few lines with **See more**, so a pasted page doesn't push the answer off screen | M | S | → D-68 |
-| "Good to know" tips: decide whether they earn their place. The model adds one to most answers, each makes the answer longer, and "In more detail" (D-58) and explain links already teach on demand | M | S | → D-69 |
+| Long highlights in a sent message fold to a few lines with **Show all**, so a pasted page doesn't push the answer off screen | M | S | shipped (D-68) |
+| "Good to know" tips: decide whether they earn their place. The model adds one to most answers, each makes the answer longer, and "In more detail" (D-58) and explain links already teach on demand | M | S | shipped (D-69: retired from the prompt; old cards still draw) |
 | Syntax colours in answers' code blocks, with a small lazily loaded highlighter and token colours from `styles.css` | M | S | idea, after D-29 |
 | Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | shipped (D-36) |
 | Try again with a twist: **Shorter**, **Simpler** or **In more detail** beside Try again, as the same rewind plus one line in the turn's note | M | S | → D-58 |

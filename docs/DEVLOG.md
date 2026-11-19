@@ -93,27 +93,25 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
-| D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 | — | S–M (step 1: S) |
-| D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 (no art) | step 2: two painted frames (mouth open, munch) | S–M |
-| D-68 | See more: long highlights in a sent message fold to a few lines | 🔨 | — | S |
-| D-69 | Good to know: retire the always-on tip | 🔨 | — | S |
+| D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
+| D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 built; step 2 waits for art | step 2: two painted frames (mouth open, munch) | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
 
 **Priority (2026-11-20): Otty, not a chat clone.** The owner's new list (BRAINSTORM: "Otty's look", "Making things", "Together", TOON, the iOS core, and smaller fixes from use) is planned in BRAINSTORM, and every row in BRAINSTORM and this roadmap was re-scored against the updated vision (BRAINSTORM, "Re-score, 2026-11-20"). The best value per effort, among what nothing blocks:
-1. **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
-2. **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
+1. ✅ (step 1) **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
+2. ✅ **D-37 Feed Otty, step 1** (H, S–M). The owner's version needs no new art and no files in the quick view: a drop opens a new chat in the Otty window. It's the most "Otty" way in.
 3. ✅ **D-70 Charts and slides with taste** (H, S–M). What Otty makes is what people show others, and today it looks like a default library. It's also the first step towards Pebbles and Otty slides.
-4. **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
-5. **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
+4. ✅ **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
+5. ✅ **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
 
 Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M, wants its composer spec) and Pebbles step 1 (H, M). The living cove needs painted sources first, like D-38. D-54 still waits for the OAuth client, and the eval in CI for the key.
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
-**Where things stand (2026-11-20).** The owner's new feature list is planned (BRAINSTORM, DESIGN "Signature moments"), BRAINSTORM is re-scored, and D-67 step 1, D-37 step 1, D-68, D-69 and D-70 are being built, each on its own branch after `docs/plans-2026-11-20`.
+**Where things stand (2026-11-20).** The owner's new feature list is planned (BRAINSTORM, DESIGN "Signature moments"), BRAINSTORM is re-scored, and D-67 step 1, D-37 step 1, D-68, D-69 and D-70 are built and merged (CHANGELOG). Next by score: D-56 My own tiles, then the liquid capsule and Pebbles step 1; D-67 steps 2–3 and D-37 step 2 when a spec or the art needs them.
 
 **Earlier (2026-11-19).** D-63, the Logbook, is built on `feat/logbook` (CHANGELOG), stacked on the specs for D-64 to D-66 (`docs/frame-roomy-home-specs`) and the UI batch below. Activity, What left your Mac and What Otty changed are one screen of views, worded in main; a look-up's steering note reaches its next step and can only narrow it. The rest of D-62 is built on `feat/chat-polish` (CHANGELOG). D-64, the frame, is built on `feat/frame` (CHANGELOG). D-65, the roomy window, is built on `feat/roomy` (CHANGELOG). D-66, Home, is built on `feat/home` (CHANGELOG). With it, the UI plan from Specs 01–06 is built; next are D-55 and D-56, and D-54 once the owner's OAuth client exists. Each PR's "Left for a person" lists the ✋ checks, and the new screen baselines are their own PRs after CI. The Logbook's wider layouts work by container queries but get their preview widths (`&w=`) with D-64.
 
@@ -413,33 +411,13 @@ The pattern: specs are written from the feature's happy path, so they test **one
 2. **Recorded fake-world cases (step 2, S).** `tools/smoke/world/` gains pages recorded from real sites' shapes (a redirect to a sign-in host, a cookie wall, a page that's all script), each a fixture with where it came from. `pageReader.test.ts` and the web specs read them.
 3. **A probe for agents (step 3, S–M).** `npm run probe` starts the release build in the smoke world and keeps it running, reading one JSON command per line on stdin (`open`, `click` by text, `type`, `key`, `resize`, `shot`, `controls` to list what's visible and clickable) and printing the result. An agent uses it to check a surface it just changed, at any width or state, without writing a spec; anything worth keeping becomes an invariant or a spec. The Browser pane's preview of `tools/ui-preview` stays the quickest look at a view.
 
+**Where it stands (2026-11-20).** Step 1 is built: `tools/ui-preview/screens/invariants.screens.ts`, 17 checks over both states at 380, 680, 760 and 1280 wide, the nav matrix from Home, the Logbook, the Notebook and Settings, and the Notebook's back arrow. Putting back #81's missing Close and New chat staying on its screen fails them, as it should. On its first run it found two more:
+- **Esc didn't close Pause's menu** (the screen menu's did), so in the app it reached the window. Fixed in `PauseButton.tsx`.
+- **The preview's mock kept only the last chat listener**, so the chat never heard its own reset in the preview, unlike the real preload. Fixed in `mock.ts`; it's the "one fake world" row in BRAINSTORM in miniature.
+Steps 2 and 3 are next when a spec or a bug needs them.
+
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
 
-## D-68 · See more: long highlights fold 🔨
-
-**Goal.** A long highlight or pasted page in a sent message takes a few lines, not the whole window, so the answer stays in view. The full text is one tap away.
-
-**Design.** In a sent message (not the tray, which is already compact), a text capture longer than about six lines is clipped to six lines with a soft fade at the bottom and a **See more** button under it; pressing it shows the rest and the button becomes **See less**. Clipping is CSS (`max-height` from `--lh-*` tokens and a mask), measured once after render, so a short highlight gets no button. Find in chat (D-7) opens a folded capture when a match is inside it. Copy and search still use the full text.
-
-**Done when.** A long capture in a sent message shows **See more** and six lines, and a short one shows no button (`Messages.test.tsx`); pressing it shows the rest; a find match inside a folded capture unfolds it (`findInChat`'s scroll path); ui-preview's `chat` scene shows a folded capture.
-
-**Smoke test (add when it ships).** Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **See more**; press it → the whole text; **See less** folds it again. ⌘F a word near its end → it unfolds to the match.
-
-## D-69 · Good to know: retire the always-on tip 🔨
-
-**Goal.** Decide whether the 💡 tip earns its place.
-
-**What it is.** The system prompt asks for one `> 💡 **Good to know:**` blockquote "when an extra bit of background would really help", and `Markdown.tsx` holds it back until the answer ends, then draws it as a card labelled Good to know.
-
-**Decision: retire it from the prompt, keep drawing old ones.**
-- Models treat an optional flourish as a habit: most answers get a tip, so every answer is longer, against the prompt's own "under ~150 words", and the tip is the part people skip.
-- Teaching already happens on demand, and better: explain links mark the tricky terms, and **In more detail** (D-58) gives more when someone wants it.
-- The card's late arrival moves the end of every answer after it finishes, which the polish bar counts against it.
-- Saved chats keep their tips: the renderer still draws a `💡` blockquote as a quiet card, so nothing old breaks.
-
-**What changes.** The tip lines go from `systemPrompt` (`prompts.ts`); the system prompt depends only on settings, so DeepSeek's cache misses once per chat on upgrade and then holds. The eval baseline is compared after the change (no case scores tips). The `Markdown.tsx` card stays for history.
-
-**Done when.** `systemPrompt` has no tip instruction (`llm.test.ts` or a prompt test); an old answer with a tip still renders its card (`Markdown.test.tsx`); ✋ the eval baseline holds against a real model (needs `OTTY_EVAL_KEY`).
 
 ## D-14 · Otty's own snip: a paw cursor and a frozen screen ⏸
 
@@ -522,6 +500,8 @@ The pattern: specs are written from the feature's happy path, so they test **one
 - `bubble:feed` (bubble view only, a list of at most 5 ids) looks the ids up in main's file registry (`pendingFiles`) and opens the panel beside the bubble with `PanelOpenPayload.files`. Unknown ids are dropped, so the bubble can't name a file it didn't register.
 - The panel starts a new chat (the same `newChat` as ⌘N), adds the files to the tray (`useAttachments.adopt`), and focuses the box. While the roomy window is open, it comes forward instead.
 - Dragged text is left for step 2: it needs the frontmost app at drop time, which the bubble's drop doesn't know.
+
+**Where it stands (2026-11-20).** Step 1 is built (CHANGELOG, "Feed Otty files"): `Bubble.test.tsx`, `pending.test.ts` and the IPC table cover it, and a real drop from Finder is smoke step 162 (✋).
 
 **Step 2 (needs art).** Two painted frames from `tools/otty-art/` (mouth open while something is over it, one munch on drop), stepped, never looping; dragged text becomes a text capture.
 
@@ -800,4 +780,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 159. Close the roomy window (the red button or ⌘W) → it goes, and the Dock icon after it. Click the bubble → the floating window, beside it. ✋ also by hand: open Otty from Applications while it runs → the roomy window; each state reopens where it was left.
 160. Start a look-up that meets a page it hasn't been given → **⌘1** opens Home: "One thing needs you.", and Needs you shows the page with **Read it** and **Skip**. Read it → the look-up carries on, the item goes, and Today shows it. ✋ also by hand: the item folding into its receipt, and the now dot stepping only while something runs.
 161. On a first open, Home says good morning, afternoon or evening, "Nothing needs you. Ask me anything." and "Nothing has left your Mac today.", with no empty blocks; a Try asking row fills the box and sends nothing.
-162. Ask "make a pie chart: rent 1200, food 400, fun 250" → slices in sea, coral and kelp with a thin gap between them, and the legend in grey text. Ask for a bar chart of a CSV → sea-blue bars with quiet axes. Ask "draw how a bill becomes a law" → rounded boxes and soft lines. Ask for 5 slides → the title slide sits on a soft wash with a straw sun, bullets are green dots, a quote slide has a large quote mark, and the page number is a small badge. Check light and dark. ✋ how it looks; `render.test.ts` and `slides.test.ts` cover the settings and the template, and `drawings.smoke.ts` that they still draw.
+162. Open the Pause menu (the pause button in the header or the rail) and press **Esc** → the menu closes and the window stays open. ✋ the window closing on Esc is main's, which the preview can't show; `invariants.screens.ts` checks the menu closes.
+163. Ask "why does my Mac fan get loud?" → the answer ends without a **Good to know** card. Reopen an older chat whose answer had one → the card is still there. ✋ needs a real model (whether it still adds tips unasked); `prompts.test.ts` covers the prompt and `Markdown.test.tsx` the old card.
+164. Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **Show all**; press it → the whole text; **Show less** folds it again. ⌘F a word near its end → it unfolds to the match.
+165. Drag a PDF from Finder onto the otter → it swells while over it; drop → the Otty window opens beside it on a new chat, the PDF's chip reads, and ↵ summarises it. With the roomy window open, it comes forward with the new chat. Drop six files → five chips and "Otty can take up to 5 files at a time". Drag text from Safari onto it → nothing happens. ✋ a real drop from Finder needs a file on disk behind it, which Playwright can't make (as step 30); `Bubble.test.tsx` covers the bubble's side.
+166. Ask "make a pie chart: rent 1200, food 400, fun 250" → slices in sea, coral and kelp with a thin gap between them, and the legend in grey text. Ask for a bar chart of a CSV → sea-blue bars with quiet axes. Ask "draw how a bill becomes a law" → rounded boxes and soft lines. Ask for 5 slides → the title slide sits on a soft wash with a straw sun, bullets are green dots, a quote slide has a large quote mark, and the page number is a small badge. Check light and dark. ✋ how it looks; `render.test.ts` and `slides.test.ts` cover the settings and the template, and `drawings.smoke.ts` that they still draw.

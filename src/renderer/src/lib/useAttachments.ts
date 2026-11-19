@@ -70,6 +70,8 @@ export function useAttachments() {
     reading: chips.some((c) => c.state === 'reading'),
     pick: () => add(window.otty.pickFiles()),
     drop: (files: File[]) => add(window.otty.dropFiles(files)),
+    /** Files main already registered, from a drop on the otter (D-37). */
+    adopt: (files: PendingFile[]) => add(Promise.resolve(files)),
     remove,
     take
   }

@@ -468,10 +468,11 @@ const saved = [
   thread('2', '點樣 upgrade 我嘅 plan？', 'Safari', 864e5, sample.slice(2))
 ]
 
-let chatCb: ((e: ChatEvent) => void) | null = null
+/** Every window part that listens, as the real preload has it: the chat and the health line both do (D-67 found one lost). */
+const chatCbs = new Set<(e: ChatEvent) => void>()
 const pressed = new Set<string>()
 let openCb: ((p: PanelOpenPayload) => void) | null = null
-const emit = (e: ChatEvent) => chatCb?.(e)
+const emit = (e: ChatEvent) => chatCbs.forEach((cb) => cb(e))
 
 // The paperclip "picks" these: a PDF, a picture and one Otty turns away.
 const thumb =
@@ -658,8 +659,9 @@ const api: OttyApi = {
   quickState: () => {},
   bubbleMenu: () => {},
   bubbleDrag: () => {},
+  feedOtty: async () => {},
   onChatEvent: (cb) => {
-    chatCb = cb
+    chatCbs.add(cb)
     if (scene === 'proofread') setTimeout(() => cb({ type: 'load', messages: proofreadSample }), 50)
     if (scene === 'steps') setTimeout(() => cb({ type: 'load', messages: stepsSample }), 50)
     if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
@@ -697,7 +699,7 @@ const api: OttyApi = {
     }
     if (scene === 'chat' || scene === 'compose' || scene === 'find' || scene === 'paused' || scene.startsWith('frame-')) setTimeout(() => cb({ type: 'load', messages: sample }), 50)
     if (scene === 'typography') setTimeout(() => cb({ type: 'load', messages: typographySample }), 50)
-    return () => {}
+    return () => void chatCbs.delete(cb)
   },
   onPanelOpen: (cb) => {
     openCb = cb
