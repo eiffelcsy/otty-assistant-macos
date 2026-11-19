@@ -61,6 +61,12 @@ export function FindBar({
       // A newer jump wins: the last match's "bring it back" must not pull the view away from this one.
       unglide.current?.()
       unglide.current = null
+      // A match inside a folded highlight (D-68): open it now, so it can be scrolled to, and tell it so its button agrees.
+      const folded = r.startContainer.parentElement?.closest('.context-text__body--fold:not(.context-text__body--open)')
+      if (folded) {
+        folded.classList.add('context-text__body--open')
+        folded.dispatchEvent(new Event('otty-unfold'))
+      }
       const at = r.getBoundingClientRect()
       const view = box.getBoundingClientRect()
       const centre = () => box.scrollBy({ top: r.getBoundingClientRect().top - box.getBoundingClientRect().top - view.height / 2, behavior: 'smooth' })

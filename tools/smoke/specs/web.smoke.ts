@@ -114,14 +114,14 @@ test.describe('on Claude', () => {
     await otty.ask(panel, 'Read the second one')
     await expect(panel.locator('.tool-chips').getByText('Reading 9to5mac.com')).toBeVisible()
     await expect(panel.getByText('Beta 2 adds otter stickers.')).toBeVisible()
-    await expect(panel.getByText('Read this page?')).toHaveCount(0)
+    await expect(panel.getByText('Read this page?', { exact: true })).toHaveCount(0)
     expect(toolResults(world.turnRequests('anthropic').at(-1))).toContain('Beta 2 adds otter stickers to Messages.')
 
     // An address the model came up with by itself needs the user's OK.
     const madeUp = 'https://otters.example/notes'
     world.reply('Now read my otter notes', { calls: [{ name: 'read_page', args: { url: madeUp } }] }, { say: 'Okay, I won’t open it.' })
     await otty.ask(panel, 'Now read my otter notes')
-    await expect(panel.getByText('Read this page?')).toBeVisible()
+    await expect(panel.getByText('Read this page?', { exact: true })).toBeVisible()
     // The host on its own line, then the rest of the address (D-60).
     await expect(panel.locator('.confirm-card')).toContainText('otters.example')
     await expect(panel.locator('.confirm-card')).toContainText('/notes')

@@ -257,7 +257,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| Long highlights in a sent message fold to a few lines with **See more**, so a pasted page doesn't push the answer off screen | M | S | → D-68 |
+| Long highlights in a sent message fold to a few lines with **Show all**, so a pasted page doesn't push the answer off screen | M | S | shipped (D-68) |
 | "Good to know" tips: decide whether they earn their place. The model adds one to most answers, each makes the answer longer, and "In more detail" (D-58) and explain links already teach on demand | M | S | shipped (D-69: retired from the prompt; old cards still draw) |
 | Syntax colours in answers' code blocks, with a small lazily loaded highlighter and token colours from `styles.css` | M | S | idea, after D-29 |
 | Retry and edit on your latest question, like other chat apps: run it again, or change it and resend. Cutting the history there keeps the cache valid, because what's left is a prefix. Before the answer is replaced, Otty lists what it did, with undo ticked by default and untickable: memories it noted, research it started. Step-card actions say "can't be undone yet" until the ledger exists | H | S–M | shipped (D-36) |

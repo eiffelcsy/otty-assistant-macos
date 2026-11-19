@@ -4,6 +4,10 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Long highlights fold (D-68, 2026-11-20)
+
+- **A long highlight in a sent message shows six lines and Show all**, the same as a long question. Before, it was cut at 160 characters with no way to read the rest. **Show less** folds it again, and Find in this chat opens a folded highlight when a match is inside it. The tray keeps its short preview.
+
 ### Good to know, retired (D-69, 2026-11-20)
 
 - **Answers no longer end with a 💡 Good to know card.** The model added one to most answers, which made each longer and moved the end of the answer after it finished. Explain links and **In more detail** already teach on demand. Older chats keep their cards.
