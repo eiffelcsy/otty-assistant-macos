@@ -611,6 +611,8 @@ What makes Otty feel expensive and unlike a chat app with an avatar. The design 
 | **The living cove, step 3:** the cove follows the weather and season, from the Mac's own time and, if allowed, a coarse location, never sent anywhere | M | M | idea, after step 2 |
 | Answer surfacing through the water line: a new answer rises from just under a soft horizon at the bottom of the chat, rather than appearing (one `--t-settle`, then still) | M | S | idea, pairs with the capsule |
 | Ripples where you touch: a press on the cove or a Pebble sends one ring outwards (`--t-drift`, brief) | L | S | idea |
+| Reeds that sway as the otter drifts past, and a lily pad that bobs when pressed: the painted pieces (D-71 step 4) moved once, from their base, never while idle | M | S | idea, art ready |
+| Small visitors in the cove, painted through `tools/otty-art/`: a dragonfly at day, fireflies at dusk, a fish ring on the water, each brief and rare, never on a loop | M | S–M | idea |
 | Light that follows the otter: the hero's highlight sits where the otter floats, so cards near it catch a little more light | L | S | idea, after step 1 |
 | The window's edge as a water meniscus: a 1 px inner highlight that thickens slightly at the top, so the floating window reads as a drop of the cove | L | S | idea |
 | Trackpad haptics on armed buttons and a Pebble landing in the Pouch, through the Swift helper (`NSHapticFeedbackManager`) | M | M | idea, after the long-lived Swift helper |

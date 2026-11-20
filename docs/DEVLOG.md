@@ -96,7 +96,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
 | D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 built; step 2 waits for art | step 2: two painted frames (mouth open, munch) | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
-| D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 steps 1–3 built (art) | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
+| D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 steps 1–4 built (art) | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
@@ -423,6 +423,8 @@ Step 2's art is painted too: `cove-day` (the second try, softer and warmer than 
 
 Step 3's art is painted too: `float` (Otty's face, on its back, paws on its chest, feet and tail up), then `float-paddle` (the second try: the first grew a third hind foot), `float-pebble` (a piece of teal sea glass, the Pebble look) and `float-doze`, repainted from it. `prepare.py` lines each up with the base by its outline (pebble had drifted 17px), cuts them with the base's box at 768px wide (180 KB for the four), and pulls the edge in 2px, because the model paints a faint pale haze that showed as a halo on night water; the outermost whisker tips go with it. Checked on all four coves with the lower third faded as a water line. When wired: the water line is a CSS mask, and the otter needs a per-time-of-day tint (it keeps daylight colours on night water), not repainted poses per time. A ripple ring round it is still to paint or draw.
 
+Step 4's art is painted too. `cove-day-clear` took the kept day picture's clouds, reeds and lily pads out (the second try: the first added an otter, because every request opens by naming Otty) and was kept as `cove-day`; dawn, golden hour and night were repainted from it, all still on row 506. The pieces were each right first time: `reeds-tall`, `reeds-low`, `stones` (with driftwood and moss), `lilypad`, `lilypad-flower`, `cloud-wide`, `cloud-puff`. They're painted alone on white (clouds white on black, so their opacity is their brightness) and cut to their own box, longest side 768px, into `assets/cove/` (812 KB for the folder). A test scene at the draft's 960×660 (shore, clouds, water, pads, the otter, stones and reeds, each at its own scroll rate, and night with the pieces tinted) reads as one place. For the wiring: the picture is 640px tall at 960px wide, so it must cover the window and its water must blend into `--cv-deep`; pieces on the water need the otter's water-line fade; reeds can sway briefly from their base (`transform-origin: bottom`) when the otter drifts by; and pieces take the time of day as a CSS tint, like the otter.
+
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
 
 
@@ -524,7 +526,7 @@ Step 3's art is painted too: `float` (Otty's face, on its back, paws on its ches
 
 **Done when.** Each mood shows on its trigger, and `OTTY_METRICS=1` shows idle under 0.5% of a core with the otter asleep and awake.
 
-## D-71 · Otty's painted set 🔨 steps 1–3
+## D-71 · Otty's painted set 🔨 steps 1–4
 
 **Goal.** Every picture Otty needs, now and planned, painted in the same hand as today's portrait, so D-37 step 2, D-38 and the living cove stop waiting for art.
 
@@ -537,7 +539,8 @@ Step 3's art is painted too: `float` (Otty's face, on its back, paws on its ches
 1. The generator, and the bust expressions: thinking, oops, listening, wink, cheer, head tilt, sleepy, mouth open and munch (D-37), catch (W9). (S)
 2. The living cove: dawn, day, golden hour and night, each a sky-and-shore layer and a water layer, under 1.5 MB together. (M)
 3. A full-body Otty floating on its back: one painted base and poses repainted from it (a paddle frame, a Pebble on its chest, dozing), swapped in place while CSS bobs and drifts the whole otter. Repainted poses beat cutting one painting into parts, which would leave holes behind the head and paws. Inside the idle budget: brief or stepped motion only. Rolling over waits. (M)
-4. Later: a simplified small head for 34px, keepsakes, accessories, shells, the paw cursor (D-14).
+4. Foreground pieces, so the scene moves in more depths than two: the coves repainted clear (no clouds, reeds or lily pads), and clouds, reed clumps, a stone heap with driftwood and lily pads as cut-outs, each laid and moved on its own. (S)
+5. Later: a simplified small head for 34px, keepsakes, accessories, shells, the paw cursor (D-14).
 
 **Done when (step 1).** `generate.py` makes a named asset from the Keychain key and refuses to overwrite a kept source; each expression is in `source/`, passes review against the idle portrait, and comes out of `prepare.py` as a 512px WebP; LAUNCH_READINESS 12.7 notes the generator's terms.
 

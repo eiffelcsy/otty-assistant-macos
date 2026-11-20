@@ -35,6 +35,8 @@ OTTER = 790  # width of Otty on the tile; the shoulders run off its bottom edge
 COVE_OUT = ROOT / 'src/renderer/src/assets/cove'
 HORIZON, FEATHER = 506, 8
 FLOAT_W = 768  # width of the floating Otty frames
+PIECES = ('reeds', 'stones', 'lilypad', 'cloud')  # the cove's foreground pieces
+PIECE_MAX = 768  # longest side of a piece
 
 
 def load(name: str) -> np.ndarray:
@@ -132,7 +134,7 @@ def main() -> None:
         frames['idle-blink'] = idle * (1 - m) + load(closed.name) * m
     # Every other source but the cove is a bust expression in the same framing (generate.py), cut against its own background.
     for f in sorted(SRC.glob('*.webp')):
-        if f.stem not in ('idle', 'idle-eyes-closed') and not f.stem.startswith(('cove-', 'float')):
+        if f.stem not in ('idle', 'idle-eyes-closed') and not f.stem.startswith(('cove-', 'float') + PIECES):
             frames[f.stem] = load(f.name)
     for name, rgb in frames.items():
         cutout(rgb, bg if name.startswith('idle') else background(rgb)).save(OUT / f'{name}.webp', quality=88, method=6)
@@ -141,6 +143,36 @@ def main() -> None:
     for f in sorted(SRC.glob('cove-*.webp')):
         cove(f)
     floating()
+    for f in sorted(SRC.glob('*.webp')):
+        if f.stem.startswith(PIECES):
+            piece(f)
+
+
+def whole(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """A whole figure on white. The model paints a faint pale haze round it, which shows as a halo on dark water,
+    so the edge is pulled in 2px."""
+    color, alpha = matte(rgb, background(rgb, bottom=True))
+    alpha = np.asarray(Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5))
+                       .filter(ImageFilter.GaussianBlur(1))).astype(np.float32) / 255
+    return color, alpha
+
+
+def piece(f: Path) -> None:
+    """A foreground piece of the cove (D-71 step 4), cut to its own box. Clouds are painted white on black, so their
+    opacity is their brightness; everything else is a whole figure on white."""
+    rgb = load(f.name)
+    if f.stem.startswith('cloud'):
+        alpha = rgb.max(axis=2) / 255
+        color = np.clip(rgb / np.maximum(alpha, 1e-3)[..., None], 0, 255)
+    else:
+        color, alpha = whole(rgb)
+    ys, xs = np.nonzero(alpha > 0.02)
+    m = 8
+    img = Image.fromarray(np.dstack([color, alpha * 255]).astype(np.uint8), 'RGBA')
+    img = img.crop((max(xs.min() - m, 0), max(ys.min() - m, 0), xs.max() + m, ys.max() + m))
+    img.thumbnail((PIECE_MAX, PIECE_MAX), Image.LANCZOS)
+    img.save(COVE_OUT / f'{f.stem}.webp', quality=85, method=6)
+    print('wrote', (COVE_OUT / f'{f.stem}.webp').relative_to(ROOT), img.size)
 
 
 def floating() -> None:
@@ -153,10 +185,7 @@ def floating() -> None:
     box = (xs.min() - m, ys.min() - m, xs.max() + m, ys.max() + m)
     for f in sorted(SRC.glob('float*.webp')):
         rgb = load(f.name)
-        color, alpha = matte(rgb, background(rgb, bottom=True))
-        # The model paints a faint pale haze round a whole figure, which shows as a halo on night water: pull the edge in.
-        alpha = np.asarray(Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5))
-                           .filter(ImageFilter.GaussianBlur(1))).astype(np.float32) / 255
+        color, alpha = whole(rgb)
         dy, dx = (0, 0) if f.stem == 'float' else best_shift(base_a, alpha)
         img = Image.fromarray(np.dstack([color, alpha * 255]).astype(np.uint8), 'RGBA')
         moved = Image.new('RGBA', img.size)

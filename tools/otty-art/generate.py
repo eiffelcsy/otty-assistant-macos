@@ -43,14 +43,16 @@ COVE = (
     'Composition, exactly: a perfectly straight, level horizon line across the whole picture at 37% of the height '
     'from the top. Above it, the sky, and low far hills along the horizon, with a gentle wooded hill rising on the left '
     'third and another on the right third, leaving a wide open gap in the centre where the sky meets the water. '
-    'The centre of the sky, top middle, stays calm and simple with only a few soft clouds, because text will sit there. '
+    'The sky is clear, with no clouds at all (clouds are separate pieces), and its top middle stays calm because text '
+    'will sit there. '
     'Below the horizon, calm open water with the sky and hills softly reflected and a few soft ripples, getting deeper '
-    'in colour towards the bottom. A few small clumps of reeds only in the bottom-left and bottom-right corners, kept '
-    'well below the horizon, and two or three small lily pads on the water. Nothing tall crosses the horizon line. '
+    'in colour towards the bottom, open right to the edges: no reeds, no lily pads, no stones, nothing in the '
+    'foreground (those are separate pieces laid over it). Nothing crosses the horizon line. '
 )
 SAME_COVE = (
-    'This is Otty\'s cove. Repaint this EXACT picture, keeping every shape, the horizon height, the hills, the reeds, '
-    'the lily pads and the brush style identical; change only the time of day, light and colour: '
+    'This is Otty\'s cove. Repaint this EXACT picture, keeping every shape, the horizon height, the hills, the open '
+    'water and the brush style identical, with no clouds, reeds, lily pads or stones; change only the time of day, '
+    'light and colour: '
 )
 
 FLOAT = (
@@ -63,6 +65,18 @@ FLOAT = (
 SAME_FLOAT = (
     'This is Otty floating on its back. Repaint this EXACT picture, keeping the size, position, angle, body, head, '
     'fur and brush style identical, and a plain pure white background; change only: '
+)
+
+PIECE = (
+    'Paint one object for Otty\'s lake cove, in the SAME soft dry-brush children\'s-book style as the reference: '
+    'visible brush strokes, soft edges, no outlines, muted warm colours that sit with the otter\'s browns and creams. '
+    'No otter, no animals. The object alone, whole and centred with space all round, nothing cut off, on a plain pure '
+    'white background with no shadow, no ground and no water: '
+)
+CLOUD = (
+    'Paint a single soft cloud for a storybook sky, in the SAME soft dry-brush style as the reference: visible brush '
+    'strokes, soft feathered edges. Paint it in pure white and light greys only, centred with plenty of space all '
+    'round, on a plain, flat, pure black background, nothing else: '
 )
 
 # name: (prompt, size, reference). Bust expressions keep the reference's face; only what the expression needs changes.
@@ -91,6 +105,12 @@ RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
               'wide and excited, smiling.', '1024x1024'),
     'cove-day': (COVE + 'Time: a clear bright afternoon. Soft blue sky fading to pale near the horizon, a small white '
                  'sun high on the right, fresh greens on the hills, teal water with white glints.', '1536x1024'),
+    # How the kept cove-day lost its reeds, lily pads and clouds; the result was kept as cove-day.
+    'cove-day-clear': ('This is Otty\'s cove. Repaint this EXACT picture, keeping the sky colours, sun, hills, '
+                       'horizon height, water, reflections and brush style identical, but remove every cloud, every '
+                       'reed and every lily pad: clear sky where the clouds were, and open water continuing to the '
+                       'edges and corners where the reeds and pads were. No otter, no animals, no people.', '1536x1024',
+                       'cove-day.webp'),
     'cove-dawn': (SAME_COVE + 'dawn. Lavender-blue sky fading to peach and rose at the horizon, a low pale sun just above '
                   'the horizon a little right of centre, soft mist along the hills, hills in hazy violet-grey, water '
                   'pink near the horizon and slate blue below, with a soft sun path.', '1536x1024', 'cove-day.webp'),
@@ -109,6 +129,23 @@ RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
                      'front paws, looking at it with delight.', '1536x1024', 'float.webp'),
     'float-doze': (SAME_FLOAT + 'dozing: eyes gently closed as soft downward curves, a tiny content smile, front paws '
                    'folded on its chest.', '1536x1024', 'float.webp'),
+    # Foreground pieces, laid over the cove and moved on their own (D-71 step 4).
+    'reeds-tall': (PIECE + 'A tall clump of lake reeds and cattails, about ten slender blades and three brown cattail '
+                   'heads, growing from one base, leaning gently to the right. Sage and olive greens.', '1024x1536'),
+    'reeds-low': (PIECE + 'A low, wide clump of short lake reeds and grasses, about fifteen blades of different '
+                  'heights, a little wider than tall. Sage and olive greens with a few straw-coloured tips.',
+                  '1536x1024'),
+    'stones': (PIECE + 'A small heap of smooth, rounded shore stones in warm greys and sandy browns, five or six '
+               'stones of different sizes, with a short piece of pale, sun-bleached driftwood lying across the front, '
+               'and a little moss on the biggest stone. Seen from slightly above, as if at the water\'s edge.',
+               '1536x1024'),
+    'lilypad': (PIECE + 'One round lily pad with a small notch, lying flat on water, seen from a low angle so it '
+                'looks like a wide flattened oval. Soft sage green with lighter veins. No water drawn.', '1536x1024'),
+    'lilypad-flower': (PIECE + 'Two overlapping lily pads lying flat, seen from a low angle as wide flattened ovals, '
+                       'with one soft pink water-lily flower open on the bigger pad. Sage greens. No water drawn.',
+                       '1536x1024'),
+    'cloud-wide': (CLOUD + 'One long, low, wispy cloud, much wider than tall.', '1536x1024'),
+    'cloud-puff': (CLOUD + 'One soft, rounded, puffy cloud, a little wider than tall.', '1536x1024'),
 }
 
 
@@ -164,7 +201,8 @@ def main(args: list[str]) -> None:
         img = paint(*RECIPES[name])
         if img.size == (1024, 1024):
             img = img.resize((SOURCE_SIZE, SOURCE_SIZE), Image.LANCZOS)
-        n = len(list(TRIES.glob(f'{name}-*.webp'))) + 1
+        n = 1 + max([int(t.stem[len(name) + 1:]) for t in TRIES.glob(f'{name}-*.webp')
+                     if t.stem[len(name) + 1:].isdigit()], default=0)
         img.save(TRIES / f'{name}-{n}.webp', quality=95)
         print('painted', (TRIES / f'{name}-{n}.webp').relative_to(ROOT))
 
