@@ -94,8 +94,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
-| D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 built; step 2 waits for art | step 2: two painted frames (mouth open, munch) | S–M |
-| D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
 | D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 steps 1–4 built (art) | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
@@ -108,7 +106,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 4. ✅ **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
 5. ✅ **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
 
-Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M, wants its composer spec) and Pebbles step 1 (H, M). The living cove needs painted sources first, like D-38. D-54 still waits for the OAuth client, and the eval in CI for the key.
+Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M, wants its composer spec) and Pebbles step 1 (H, M). D-54 still waits for the OAuth client, and the eval in CI for the key.
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
@@ -417,7 +415,7 @@ The pattern: specs are written from the feature's happy path, so they test **one
 - **The preview's mock kept only the last chat listener**, so the chat never heard its own reset in the preview, unlike the real preload. Fixed in `mock.ts`; it's the "one fake world" row in BRAINSTORM in miniature.
 Steps 2 and 3 are next when a spec or a bug needs them.
 
-**Where it stands (2026-11-20).** Step 1 is built: the ten expressions are kept in `source/` and cut to `src/renderer/src/assets/otty/` (not wired yet; `Otter.tsx` takes them in D-37 step 2 and D-38). Idle, blink and the icon came out unchanged. Listening took three tries and oops and sleepy two; the tries stay in `tools/otty-art/tries/`, ignored by git.
+**Where it stands (2026-11-20).** Step 1 is built: the ten expressions are kept in `source/` and cut to `src/renderer/src/assets/otty/` (wired: `Otter.tsx` shows thinking, cheer, tilt, sleepy, mouth open, munch and catch for D-37 step 2 and D-38; listening, oops and wink aren't used yet). Idle, blink and the icon came out unchanged. Listening took three tries and oops and sleepy two; the tries stay in `tools/otty-art/tries/`, ignored by git.
 
 Step 2's art is painted too: `cove-day` (the second try, softer and warmer than a realistic first one), then dawn, golden hour and night repainted from it, so all four share one horizon (row 506 of 1024, 49% down, lower than the draft's 37%, which leaves more sky for the greeting). `prepare.py` splits each at the horizon into `assets/cove/cove-*-shore.webp` and `-water.webp` (a soft 16px seam, 384 KB for all eight). One 1536px size, not 1× and 2×: painterly art holds up on a retina roomy window. Mid-scroll the water slides over the hills' foot and the low dawn and golden sun, which reads as the sun meeting the lake. Not wired: Home's cove is the living cove's step 1. Below 1024px the water ends, so the window's own `--cv-deep` colour must carry on under it.
 
@@ -499,32 +497,6 @@ Step 4's art is painted too. `cove-day-clear` took the kept day picture's clouds
 - Turn on Reduce motion in macOS → no boop.
 
 ---
-
-## D-37 · Feed Otty 🔨 step 1
-
-**Goal.** Drop files on the otter to ask about them. A new chat opens in the Otty window with the files in its tray, ready for a question or a tile. (Revised 2026-11-20, the owner's version: a new chat in the window, not the quick view, so it no longer waits for files in the quick view.)
-
-**Design, step 1 (no new art).**
-- The bubble accepts drops: while files are over it, it swells a little (`bubble--feeding`, a transform over `--t-quick`, on touch only). On drop, it hands the files to main through the same `files:register` path the panel uses (the preload turns each `File` into a path on its way to main; the bubble gets ids and names only), then sends the ids on `bubble:feed`.
-- `bubble:feed` (bubble view only, a list of at most 5 ids) looks the ids up in main's file registry (`pendingFiles`) and opens the panel beside the bubble with `PanelOpenPayload.files`. Unknown ids are dropped, so the bubble can't name a file it didn't register.
-- The panel starts a new chat (the same `newChat` as ⌘N), adds the files to the tray (`useAttachments.adopt`), and focuses the box. While the roomy window is open, it comes forward instead.
-- Dragged text is left for step 2: it needs the frontmost app at drop time, which the bubble's drop doesn't know.
-
-**Where it stands (2026-11-20).** Step 1 is built (CHANGELOG, "Feed Otty files"): `Bubble.test.tsx`, `pending.test.ts` and the IPC table cover it, and a real drop from Finder is smoke step 162 (✋).
-
-**Step 2 (needs art).** Two painted frames from `tools/otty-art/` (mouth open while something is over it, one munch on drop), stepped, never looping; dragged text becomes a text capture.
-
-**Done when (step 1).** Dropping a file on the otter calls `dropFiles` then `feedOtty` with the ids (`Bubble.test.tsx`); `bubble:feed` is bubble-only and refuses anything but a short list of ids (`rules/ipc.test.ts` and `check.ts`'s table); unknown ids open nothing (`files.test.ts › pendingFiles`); ✋ a real drop from Finder opens a new chat with the chip, because Playwright can't make a file on disk behind a drop (as step 30).
-
-**Smoke test (add to the checklist when it ships).** ✋ Drag a PDF from Finder onto the otter → it swells while over it; drop → the Otty window opens beside it on a new chat, the PDF's chip reads, and ↵ summarises it. With the roomy window open, it comes forward with the new chat. A drop of six files → five chips and "Otty can take up to 5 files at a time".
-
-## D-38 · Otter moods ⏳
-
-**Goal.** The otter feels alive without costing battery: it gets sleepy after about 10 minutes idle (Zzz), wakes on hover, looks startled when grabbed, wiggles when dropped, cheers when an answer lands and tilts its head on an error.
-
-**Design.** Moods are states in `Otter.tsx`, each a few painted frames stepped by CSS (`steps()`), run once or on a slow loop, and paused under `data-asleep`. Main already sends `bubble:state` and `bubble:mood`. Add `sleepy` after idle (a timer reset on any event, not a poll) and `error`. New frames come from `tools/otty-art/source/` through `prepare.py`. Reduce motion turns them into still frames.
-
-**Done when.** Each mood shows on its trigger, and `OTTY_METRICS=1` shows idle under 0.5% of a core with the otter asleep and awake.
 
 ## D-71 · Otty's painted set 🔨 steps 1–4
 
@@ -812,3 +784,5 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 164. Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **Show all**; press it → the whole text; **Show less** folds it again. ⌘F a word near its end → it unfolds to the match.
 165. Drag a PDF from Finder onto the otter → it swells while over it; drop → the Otty window opens beside it on a new chat, the PDF's chip reads, and ↵ summarises it. With the roomy window open, it comes forward with the new chat. Drop six files → five chips and "Otty can take up to 5 files at a time". Drag text from Safari onto it → nothing happens. ✋ a real drop from Finder needs a file on disk behind it, which Playwright can't make (as step 30); `Bubble.test.tsx` covers the bubble's side.
 166. Ask "make a pie chart: rent 1200, food 400, fun 250" → slices in sea, coral and kelp with a thin gap between them, and the legend in grey text. Ask for a bar chart of a CSV → sea-blue bars with quiet axes. Ask "draw how a bill becomes a law" → rounded boxes and soft lines. Ask for 5 slides → the title slide sits on a soft wash with a straw sun, bullets are green dots, a quote slide has a large quote mark, and the page number is a small badge. Check light and dark. ✋ how it looks; `render.test.ts` and `slides.test.ts` cover the settings and the template, and `drawings.smoke.ts` that they still draw.
+167. Drag a few words from Notes onto the otter → its mouth opens while they're over it; drop → one munch, and the Otty window opens beside it with the words as a highlight from Notes. ✋ a drag between two apps is the system's, which Playwright can't make; `Bubble.test.tsx` covers the bubble's side.
+168. Leave Otty alone for 10 minutes → the otter dozes off; hover it → awake. Press and hold it → it catches; let go → one wiggle. Ask something → thinking, then a cheer when the answer lands; with the network off → a head tilt. `OTTY_METRICS=1` stays under 0.5% asleep and awake. ✋ the bubble is its own window, which the specs don't open, and the idle budget needs a real Mac; `Bubble.test.tsx` covers the faces.

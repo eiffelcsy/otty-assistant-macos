@@ -4,6 +4,11 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The otter's faces (D-37 step 2, D-38, 2026-11-20)
+
+- **Painted moods on the floating otter** (D-38): it dozes off after 10 minutes with nothing happening and wakes when the pointer comes near, catches when pressed and wiggles once when let go, thinks with its eyes up, cheers when an answer lands and tilts its head when one fails. Each face is one painted frame from D-71, swapped, never tweened, and the sleep is a timer reset by anything that happens, never a poll. Asleep, the otter doesn't float at all.
+- **Feed Otty, the munch** (D-37 step 2): its mouth opens while something is over it and it munches once on the drop. **Dragged text** now works too: it becomes a highlight from the app it was dragged from, in a new chat beside the otter.
+
 ### Charts and slides with taste (D-70, 2026-11-20)
 
 - **A chart palette:** six series colours in tokens (`--chart-1` to `--chart-6`: sea, coral, kelp, amber, dusk, meadow), each stepped separately for dark mode and checked for colour-blind separation between neighbours and 3:1 against the card. Pies and bar charts use them in order, with slices apart on a thin line of the card's colour, legends and axis labels in text colours, and quieter axes.

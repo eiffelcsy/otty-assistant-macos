@@ -12,7 +12,7 @@ const run = promisify(execFile)
 const isMac = process.platform === 'darwin'
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-const MAX_TEXT = 12_000
+export const MAX_TEXT = 12_000
 const MAX_IMAGE_SIDE = 1600
 /** A whole screen needs more pixels than a snip, so its text stays readable. */
 const MAX_SCREEN_SIDE = 2048

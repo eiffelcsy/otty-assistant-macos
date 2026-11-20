@@ -1,6 +1,6 @@
 import { BrowserWindow, Menu, shell } from 'electron'
 import type { PanelOpenPayload, QuickState } from '../../shared/types'
-import { captureScreenshot, captureSelection, frontmostApp } from '../capture'
+import { captureScreenshot, captureSelection, frontmostApp, MAX_TEXT } from '../capture'
 import { askAboutSelection } from '../captureRoute'
 import { menuTemplate } from '../controls'
 import { closeViewer, exportDrawing, showDrawing, viewerContent } from '../draw'
@@ -81,6 +81,11 @@ export function registerWindows(): void {
   handle('bubble:feed', (_e, ids: string[]) => {
     const files = pendingFiles(ids)
     if (files.length) openPanel({ context: null, files }, 'bubble')
+  })
+  // D-37 step 2: dragged text is a highlight. A drag doesn't bring the bubble forward, so the app it came from is still in front.
+  handle('bubble:feed-text', async (_e, dropped: string) => {
+    const text = dropped.trim().slice(0, MAX_TEXT)
+    if (text) openPanel({ context: { kind: 'text', text }, app: await frontmostApp() }, 'bubble')
   })
   on('bubble:menu', () => {
     const b = getBubble()

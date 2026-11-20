@@ -288,7 +288,8 @@ export interface Permissions {
 
 export type PermissionKind = 'accessibility' | 'screen'
 
-export type BubbleState = 'idle' | 'thinking' | 'happy'
+/** Main's say in the otter's face: `happy` when an answer lands, `oops` (a head tilt) when one fails (D-38). */
+export type BubbleState = 'idle' | 'thinking' | 'happy' | 'oops'
 
 /** What the otter shows about work it's doing on its own: busy, waiting for an OK, or paused by the user. */
 export type BubbleMood = 'working' | 'waiting' | 'paused' | null
@@ -830,6 +831,8 @@ export interface OttyApi {
   bubbleDrag(phase: 'start' | 'end'): void
   /** Files the bubble registered with `dropFiles`, by id: opens a new chat with them (D-37). */
   feedOtty(ids: string[]): Promise<void>
+  /** Text dragged onto the otter: a new chat with it as a highlight from the app it came from (D-37 step 2). */
+  feedOttyText(text: string): Promise<void>
 
   onChatEvent(cb: (e: ChatEvent) => void): () => void
   onPanelOpen(cb: (p: PanelOpenPayload) => void): () => void
