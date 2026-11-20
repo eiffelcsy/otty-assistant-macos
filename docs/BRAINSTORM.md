@@ -625,6 +625,7 @@ What makes Otty feel expensive and unlike a chat app with an avatar. The design 
 | **The living cove, step 1** (chosen as Otty's look, 20 Nov 2026): a painted cove behind Home and the empty chat, one picture per time of day (dawn, day, golden hour, night), cross-faded on the hour, with the otter floating in an unobstructed hero header above the headline. Painted through `tools/otty-art/`, never generated in CSS | H | M | chosen; drawn in `docs/design/otty-window-draft.html` (v0.6, vector stand-in, with Pebbles, the Pouch and a raft), needs painted sources |
 | **The living cove, step 2:** scroll-driven parallax (the far shore moves slower than the near water) and frosted-glass cards (`backdrop-filter`) that refract the cove as content scrolls over it. On touch only | H | M | chosen, after step 1; drawn in the design draft with a slider for how clear the glass is |
 | **The living cove, step 3:** the cove follows the weather and season, from the Mac's own time and, if allowed, a coarse location, never sent anywhere | M | M | idea, after step 2 |
+| **The pool:** the floating bubble reworked for the cove. A small lens of Liquid Glass lying on the desktop, holding the cove's water at the true hour, with Otty floating on its back in it; clicking grows the window out of the water and closing pours it back. State lives in Otty and the water (paddling, holding up sea glass, a Pebble bobbing beside it, still grey water, dozing), never in badges. Concept note: [The pool](#the-pool) | H | M | considering; drawn in `docs/design/otty-window-draft.html` (v0.8, with the painted float frames and cove water) |
 | Answer surfacing through the water line: a new answer rises from just under a soft horizon at the bottom of the chat, rather than appearing (one `--t-settle`, then still) | M | S | idea, pairs with the capsule; drawn in the design draft (v0.3) |
 | Ripples where you touch: a press on the cove or a Pebble sends one ring outwards (`--t-drift`, brief) | L | S | idea |
 | Light that follows the otter: the hero's highlight sits where the otter floats, so cards near it catch a little more light | L | S | idea, after step 1 |
@@ -932,6 +933,31 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 **The message box** (a rounded glass box whose outline ripples as you type) belongs to the same family: water that answers your touch and settles, never water that moves by itself. See DESIGN.md, "Signature moments".
 
 **Steps:** 1) painted cove and hero on Home (M, needs art); 2) parallax and glass (M); 3) weather and season (M).
+
+### The pool
+
+**Idea.** Once the window is a place, the thing on the desktop should be a piece of that place, not a picture of the otter in a circle. The floating bubble becomes a **pool**: a drop of Liquid Glass lying on its side (about 108 × 68), holding the cove's water at the true hour, with Otty floating on its back in it, head breaking the rim. Opening the window is leaning into the pool, not launching an app.
+
+**What it shows**, one thing at a time:
+
+| Otty is | The pool shows |
+| --- | --- |
+| Resting | Otty floats, still. Hover: one bob and one ring |
+| Working | Otty paddles (two painted frames, stepped) with a small wake, only while something runs |
+| Needs you | Otty holds up a piece of sea glass and the rim lights straw, Home's colour for Needs you |
+| Has an answer | A piece of sea glass bobs up beside Otty, in place of the badge dot |
+| Paused | The water goes still and grey, and a glass bead shows the pause |
+| Asleep (D-38) | The dozing frame; three z's rise once; hover wakes it |
+| Fed a file (D-37) | The pool swells and lights green while a file is over it; on the drop, two rings and a "Got it" label above |
+| Carried | It tilts towards where it's going and the water sloshes the other way; let go and it settles with a ring (B3, B4) |
+| Opened, closed | The pool dips under the click, then wells up into the window on springs (height leads, width follows, so it swells like a drop); Otty rides the swell to his place in the cove and lands with a ring, and the words surface in the order the water reaches them. Closing sinks the words, drains the water back (sides first, then height), Otty dives home and the pool takes the splash. Either can be interrupted and carries on from where the water is (W8, B14) |
+| By a screen edge | The pool flattens against the edge with Otty's face peeking out (edge tuck) |
+
+**Why not the others.** Otty loose on the desktop has no clear edge to aim at and is hard to see on busy wallpapers; a tab at the screen edge, or the menu bar alone, hides the otter, and the relationship with it is the point.
+
+**Rules.** The pool paints its own water, so it looks the same on every wallpaper and needs no desktop blur: the transparent window the bubble already lives in is enough, and only the rim is glass. It uses the painted set from `tools/otty-art/` (the `float*` frames and `cove-*-water`). A still picture while resting; hover, drag, drop and opening are one brief motion each; working is stepped and only while live (NFR-3). Reduced motion swaps states with a short fade. It stays a button to assistive tech, with the bubble's tooltips.
+
+**Steps:** 1) the pool with its resting, working, waiting, answer, paused and asleep states (S–M, the art exists); 2) carried, fed and edge tuck (S); 3) the window growing out of the pool and pouring back (M, main: W8 and B14).
 
 ### Pebbles and the Pouch
 

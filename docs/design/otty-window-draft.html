@@ -802,6 +802,150 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cv-o small { font-size: 11.5px; font-weight: 800; color: var(--muted); display: block; }
 .cv-o.is-theirs > .otter { transform: scaleX(-1); }
 .cv-swatch { --who: 99,124,66; }
+
+/* ---------- The pool: the floating bubble as a piece of the cove (v0.8) ----------
+   A small lens of Liquid Glass holding the cove's water at the true hour, with Otty floating on its back in it.
+   Its state lives in Otty and the water, not in badges. Clicking it grows the window out of the water. */
+.pl-stage { position: relative; height: 470px; border-radius: 22px; overflow: hidden; isolation: isolate; user-select: none;
+  background: radial-gradient(110% 80% at 18% 0%, var(--pl-wall-a), transparent 62%), linear-gradient(160deg, var(--pl-wall-b), var(--pl-wall-c)); }
+.pl-stage[data-tone="light"] { --pl-wall-a: #f4efe4; --pl-wall-b: #d6dfdf; --pl-wall-c: #bfcbd0; --pl-doc: #fdfcf9; --pl-line: rgba(58,49,50,.1); --pl-edge: rgba(58,49,50,.14);
+  --pl-rim: rgba(255,255,255,.95); --pl-rim-b: rgba(255,255,255,.3); --pl-shadow: rgba(28,38,48,.3); --pl-label: rgba(253,252,249,.74); --pl-label-ink: #3a3132; }
+.pl-stage[data-tone="dark"] { --pl-wall-a: #3b3e47; --pl-wall-b: #23262c; --pl-wall-c: #17191d; --pl-doc: #2a2526; --pl-line: rgba(255,248,235,.08); --pl-edge: rgba(255,248,235,.12);
+  --pl-rim: rgba(255,250,240,.6); --pl-rim-b: rgba(255,250,240,.1); --pl-shadow: rgba(0,0,0,.62); --pl-label: rgba(38,34,38,.72); --pl-label-ink: #f5f2ec; }
+.pl-stage[data-k="dawn"] { --pl-water: url(../../src/renderer/src/assets/cove/cove-dawn-water.webp); --pl-shore: url(../../src/renderer/src/assets/cove/cove-dawn-shore.webp); --pl-hello: #2b2224; --pl-dim: 1; }
+.pl-stage[data-k="day"] { --pl-water: url(../../src/renderer/src/assets/cove/cove-day-water.webp); --pl-shore: url(../../src/renderer/src/assets/cove/cove-day-shore.webp); --pl-hello: #2b2224; --pl-dim: 1; }
+.pl-stage[data-k="golden"] { --pl-water: url(../../src/renderer/src/assets/cove/cove-golden-water.webp); --pl-shore: url(../../src/renderer/src/assets/cove/cove-golden-shore.webp); --pl-hello: #2b2224; --pl-dim: 1; }
+.pl-stage[data-k="night"] { --pl-water: url(../../src/renderer/src/assets/cove/cove-night-water.webp); --pl-shore: url(../../src/renderer/src/assets/cove/cove-night-shore.webp); --pl-hello: #f5f2ec; --pl-dim: .78; }
+
+/* Something else open on the desktop, so the pool is seen where it lives */
+.pl-doc { position: absolute; left: 6%; top: 9%; width: 50%; height: 72%; background: var(--pl-doc); border-radius: 12px; padding: 44px 30px; display: grid; gap: 13px; align-content: start;
+  box-shadow: 0 22px 44px -18px var(--pl-shadow), 0 0 0 .5px var(--pl-edge); }
+.pl-doc::before { content: ""; position: absolute; left: 14px; top: 14px; width: 46px; height: 10px;
+  background: radial-gradient(circle at 5px 5px, #ec6a5e 4.5px, transparent 5px), radial-gradient(circle at 23px 5px, #f4bf4f 4.5px, transparent 5px), radial-gradient(circle at 41px 5px, #61c554 4.5px, transparent 5px); }
+.pl-doc i { display: block; height: 9px; border-radius: 5px; background: var(--pl-line); }
+.pl-doc i:nth-child(3n) { width: 72%; } .pl-doc i:nth-child(5n+1) { width: 88%; } .pl-doc i:first-child { height: 16px; width: 46%; margin-bottom: 8px; }
+@media (max-width: 640px) { .pl-doc { width: 70%; } }
+
+/* The pool: a drop lying on its side, wider than tall like the otter floating in it */
+.pl-pool { --x: 0px; --y: 0px; --tilt: 0deg; --slosh: 0px; --w: 108px; --h: 68px; position: absolute; right: 64px; bottom: 64px; width: var(--w); height: var(--h);
+  border: 0; padding: 0; background: none; border-radius: 50%; cursor: pointer; touch-action: none; z-index: 3;
+  transform: translate(var(--x), var(--y)) rotate(var(--tilt)); filter: drop-shadow(0 14px 16px var(--pl-shadow)) drop-shadow(0 2px 3px rgba(0,0,0,.14));
+  transition: transform var(--t-settle) var(--buoy), scale var(--t-tap) var(--glide), width var(--t-settle) var(--buoy), height var(--t-settle) var(--buoy), opacity var(--t-quick); }
+.pl-pool.is-held { cursor: grabbing; transition: scale var(--t-tap) var(--glide), width var(--t-settle) var(--buoy), height var(--t-settle) var(--buoy); }
+.pl-pool:focus-visible { outline: 2px solid var(--brand); outline-offset: 4px; }
+.pl-lens { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
+.pl-water { position: absolute; inset: -14px; background: var(--pl-water) calc(50% + var(--slosh)) 30% / cover; transition: background-position var(--t-settle) var(--buoy), filter var(--t-drift); }
+.pl-pool.is-held .pl-water { transition: none; }
+.pl-pool[data-state="paused"] .pl-water { filter: saturate(.3) brightness(.96); }
+/* Depth: the water darkens under the near rim and catches light along the far one */
+.pl-lens::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 7px 12px -5px rgba(0,20,30,.28), inset 0 -3px 8px -2px rgba(255,255,255,.35); }
+/* The rim, thick glass: a specular line on top, light caught inside the edge, a sheen top-left */
+.pl-pool::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  box-shadow: inset 0 1.5px 0 var(--pl-rim), inset 0 -1px 0 var(--pl-rim-b), inset 5px 6px 10px -7px var(--pl-rim), inset -5px -6px 12px -9px var(--pl-rim), 0 0 0 .5px rgba(0,0,0,.2);
+  background: radial-gradient(55% 34% at 30% 12%, rgba(255,255,255,.42), transparent 70%); transition: box-shadow var(--t-quick); }
+.pl-pool[data-state="waiting"]::after { box-shadow: inset 0 1.5px 0 var(--pl-rim), inset 0 -1px 0 var(--pl-rim-b), inset 5px 6px 10px -7px var(--pl-rim), inset -5px -6px 12px -9px var(--pl-rim), 0 0 0 2px rgba(214,170,84,.85), 0 0 16px 2px rgba(214,170,84,.45); }
+.pl-pool.is-feeding::after { box-shadow: inset 0 1.5px 0 var(--pl-rim), inset 0 -1px 0 var(--pl-rim-b), inset 5px 6px 10px -7px var(--pl-rim), inset -5px -6px 12px -9px var(--pl-rim), 0 0 0 2px rgba(140,170,96,.9), 0 0 18px 3px rgba(140,170,96,.5); }
+.pl-pool.is-feeding { --w: 124px; --h: 78px; }
+
+/* Otty, floating on its back; its head breaks the rim, the rest sinks into the water */
+.pl-otter { position: absolute; left: calc(5% + var(--slosh) * -.35); top: -4%; width: 90%; aspect-ratio: 768 / 447; pointer-events: none; z-index: 1; filter: brightness(var(--pl-dim));
+  -webkit-mask: linear-gradient(to bottom, #000 52%, rgba(0,0,0,.4) 62%, transparent 80%); mask: linear-gradient(to bottom, #000 52%, rgba(0,0,0,.4) 62%, transparent 80%);
+  transition: left var(--t-settle) var(--buoy); }
+/* The waterline across Otty's belly: a thin bright meniscus */
+.pl-meniscus { position: absolute; left: calc(14% + var(--slosh) * -.35); width: 74%; top: 40%; height: 12px; border-radius: 50%; z-index: 2; pointer-events: none;
+  border-top: 1.2px solid rgba(255,255,255,.62); border-bottom: 1px solid rgba(255,255,255,.18); transition: left var(--t-settle) var(--buoy); }
+.pl-pool.is-held .pl-meniscus { transition: none; }
+.pl-pool.is-held .pl-otter { transition: none; }
+.pl-otter i { position: absolute; inset: 0; background-position: center; background-size: contain; background-repeat: no-repeat; opacity: 0; }
+.pl-f--float { background-image: url(../../src/renderer/src/assets/otty/float.webp); }
+.pl-f--paddle { background-image: url(../../src/renderer/src/assets/otty/float-paddle.webp); }
+.pl-f--doze { background-image: url(../../src/renderer/src/assets/otty/float-doze.webp); }
+.pl-f--pebble { background-image: url(../../src/renderer/src/assets/otty/float-pebble.webp); }
+.pl-pool[data-face="float"] .pl-f--float, .pl-pool[data-face="doze"] .pl-f--doze, .pl-pool[data-face="pebble"] .pl-f--pebble, .pl-pool[data-face="paddle"] .pl-f--paddle { opacity: 1; }
+.pl-otter.is-bob { animation: plbob var(--t-travel) var(--buoy) 1; }
+@keyframes plbob { 30% { transform: translateY(3px); } 70% { transform: translateY(-1.5px); } }
+/* Working: two paddle frames, stepped, only while something runs */
+.pl-pool[data-state="working"] .pl-f--float { animation: plA 1.1s steps(1, end) infinite; opacity: 1; }
+.pl-pool[data-state="working"] .pl-f--paddle { animation: plB 1.1s steps(1, end) infinite; }
+@keyframes plA { 0% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes plB { 0% { opacity: 0; } 50%, 100% { opacity: 1; } }
+.pl-wake { position: absolute; left: 58%; top: 48%; width: 34%; height: 30%; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.7); opacity: 0; pointer-events: none; }
+.pl-pool[data-state="working"] .pl-wake { animation: plwake 2.2s var(--glide) infinite; }
+.pl-pool[data-state="working"] .pl-wake + .pl-wake { animation-delay: 1.1s; }
+@keyframes plwake { 0% { transform: translateX(0) scale(.5); opacity: .8; } 100% { transform: translateX(26px) scale(1.4); opacity: 0; } }
+
+/* An answer waiting: a piece of sea glass bobbing beside Otty */
+.pl-peb { position: absolute; right: 14%; top: 50%; width: 17px; height: 13px; border-radius: 48% 52% 46% 54% / 55% 50% 50% 45%; z-index: 2; opacity: 0; pointer-events: none;
+  background: linear-gradient(150deg, rgba(186,226,214,.95), rgba(120,184,170,.85)); box-shadow: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -2px 4px rgba(40,100,90,.4), 0 2px 4px rgba(0,30,40,.3); }
+.pl-pool[data-state="answer"] .pl-peb { opacity: 1; animation: plarrive var(--t-travel) var(--buoy) 1; }
+@keyframes plarrive { 0% { transform: translateY(12px) scale(.6); opacity: 0; } 60% { transform: translateY(-3px); opacity: 1; } }
+/* Paused: the water goes still and grey, and a glass bead shows the pause */
+.pl-bead { position: absolute; right: -6px; top: -8px; width: 24px; height: 24px; border-radius: 50%; z-index: 4; display: grid; place-items: center; opacity: 0; transform: scale(.6);
+  background: var(--pl-label); backdrop-filter: blur(6px) saturate(1.4); -webkit-backdrop-filter: blur(6px) saturate(1.4); color: var(--pl-label-ink);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 0 0 .5px var(--pl-edge), 0 4px 10px -3px var(--pl-shadow); transition: opacity var(--t-quick), transform var(--t-settle) var(--buoy); }
+.pl-bead svg { width: 11px; height: 11px; }
+.pl-pool[data-state="paused"] .pl-bead { opacity: 1; transform: none; }
+/* Asleep: three z's rise once, then the dozing frame holds */
+.pl-z { position: absolute; left: 22%; top: -14%; z-index: 4; font-weight: 800; font-size: 11px; color: var(--pl-label-ink); opacity: 0; pointer-events: none; }
+.pl-z.is-up { animation: plz 2.4s var(--glide) forwards; }
+@keyframes plz { 0% { transform: translate(0, 4px); opacity: 0; } 25% { opacity: .85; } 100% { transform: translate(14px, -30px) scale(1.3); opacity: 0; } }
+
+/* Rings where the water meets the air: on hover, on landing, on a drop, once */
+.pl-ring { position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--pl-rim); pointer-events: none;
+  opacity: 0; animation: plring var(--t-drift) var(--glide) forwards; }
+.pl-ring + .pl-ring { animation-delay: 200ms; }
+@keyframes plring { 0% { transform: scale(.92); opacity: .8; } 100% { transform: scale(1.55); opacity: 0; } }
+
+/* What Otty says without opening the window (B12): a glass label that surfaces above the pool, then ebbs */
+.pl-say { position: absolute; z-index: 5; padding: 7px 12px; border-radius: 14px; font-size: 13px; font-weight: 700; white-space: nowrap; pointer-events: none;
+  background: var(--pl-label); color: var(--pl-label-ink); backdrop-filter: blur(8px) saturate(1.5); -webkit-backdrop-filter: blur(8px) saturate(1.5);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 .5px var(--pl-edge), 0 10px 22px -10px var(--pl-shadow);
+  opacity: 0; transform: translateY(8px); transition: opacity var(--t-settle) var(--glide), transform var(--t-settle) var(--glide); }
+.pl-say.is-on { opacity: 1; transform: none; }
+
+/* The window, grown out of the pool: the same water, the same otter, the same hour */
+.pl-win { position: absolute; width: 330px; height: 386px; border-radius: 16px; overflow: hidden; z-index: 6; visibility: hidden;
+  box-shadow: 0 26px 54px -20px var(--pl-shadow), 0 0 0 .5px var(--pl-edge); background: #4f7a80; }
+.pl-win.is-open { visibility: visible; }
+/* The window's content keeps its size and sits in the corner nearest the pool, so growing reveals the cove instead of squeezing it */
+.pl-win__in { position: absolute; right: 0; bottom: 0; width: 330px; height: 386px; }
+/* The glass rim: bright while the window is still a drop, faint once it has opened */
+.pl-win::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 9; opacity: .35;
+  box-shadow: inset 0 1.5px 0 var(--pl-rim), inset 0 -1px 0 var(--pl-rim-b), inset 5px 6px 10px -7px var(--pl-rim), inset -5px -6px 12px -9px var(--pl-rim); }
+.pl-win.is-moving .pl-win__otter { visibility: hidden; }
+/* Otty on his way between the pool and the cove */
+.pl-fly { position: absolute; z-index: 7; pointer-events: none; visibility: hidden; transform-origin: 0 0; filter: brightness(var(--pl-dim));
+  background: url(../../src/renderer/src/assets/otty/float.webp) center / contain no-repeat;
+  -webkit-mask: linear-gradient(to bottom, #000 60%, rgba(0,0,0,.45) 72%, transparent 88%); mask: linear-gradient(to bottom, #000 60%, rgba(0,0,0,.45) 72%, transparent 88%); }
+.pl-fly.is-on { visibility: visible; }
+/* Where Otty lands in the cove, one ring */
+.pl-win__ring { position: absolute; left: 50%; top: 178px; width: 150px; height: 24px; margin-left: -75px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,.75); pointer-events: none;
+  opacity: 0; animation: plwring var(--t-drift) var(--glide) forwards; }
+@keyframes plwring { 0% { transform: scale(.45); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+.pl-win__shore { position: absolute; left: 0; right: 0; top: 0; height: 44%; background: var(--pl-shore) center bottom / cover; }
+.pl-win__water { position: absolute; left: 0; right: 0; top: 44%; bottom: 0; background: var(--pl-water) center top / cover; }
+.pl-win__tb { position: absolute; left: 12px; top: 12px; width: 46px; height: 10px;
+  background: radial-gradient(circle at 5px 5px, #ec6a5e 4.5px, transparent 5px), radial-gradient(circle at 23px 5px, #f4bf4f 4.5px, transparent 5px), radial-gradient(circle at 41px 5px, #61c554 4.5px, transparent 5px); }
+.pl-win__hi { position: absolute; left: 0; right: 0; top: 42px; text-align: center; display: grid; gap: 2px; color: var(--pl-hello); }
+.pl-win__hi b { font-size: 25px; font-weight: 800; letter-spacing: -.02em; }
+.pl-win__hi span { font-size: 12.5px; font-weight: 600; opacity: .8; }
+.pl-win__otter { position: absolute; left: 50%; top: 37%; width: 132px; margin-left: -66px; aspect-ratio: 768 / 447; background: url(../../src/renderer/src/assets/otty/float.webp) center / contain no-repeat; filter: brightness(var(--pl-dim));
+  -webkit-mask: linear-gradient(to bottom, #000 60%, rgba(0,0,0,.45) 72%, transparent 88%); mask: linear-gradient(to bottom, #000 60%, rgba(0,0,0,.45) 72%, transparent 88%); }
+.pl-win__card, .pl-win__box { position: absolute; left: 12px; right: 12px; border-radius: 14px; color: var(--pl-label-ink); font-size: 12.5px;
+  background: var(--pl-label); backdrop-filter: blur(6px) saturate(1.45); -webkit-backdrop-filter: blur(6px) saturate(1.45);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 .5px var(--pl-edge), 0 12px 24px -12px var(--pl-shadow); }
+.pl-win__card { bottom: 66px; padding: 11px 13px; display: grid; gap: 3px; }
+.pl-win__card small { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .75; }
+.pl-win__box { bottom: 12px; height: 42px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; opacity: .95; }
+.pl-win__box span { opacity: .7; }
+.pl-win__close { position: absolute; right: 10px; top: 8px; border: 0; background: none; color: var(--pl-hello); font-size: 12px; font-weight: 800; padding: 4px 6px; cursor: pointer; opacity: .8; }
+
+.pl-states { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+@media (max-width: 760px) { .pl-states { grid-template-columns: minmax(0,1fr); } }
+.pl-states div { background: var(--surface); border-radius: var(--r-md); padding: 12px 14px; box-shadow: var(--elev-1); display: grid; gap: 4px; }
+.pl-states b { color: var(--heading); font-size: 14px; }
+.pl-states span { color: var(--muted); font-size: 13px; line-height: 1.45; }
+@media (prefers-reduced-motion: reduce) { .pl-stage *, .pl-stage *::after { animation: none !important; } .pl-pool { transition: opacity var(--t-quick); } }
 </style>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -849,7 +993,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 <div class="page">
   <header class="hero">
     <div>
-      <div class="eyebrow">Design draft · v0.7 · 20 Nov 2026</div>
+      <div class="eyebrow">Design draft · v0.9 · 21 Nov 2026</div>
       <h1>The Otty window, compact and roomy</h1>
       <p class="lede" style="margin-top:14px">How the one Otty window looks and feels at every width, drawn from the plan in BRAINSTORM (“Quick view and the Otty window”) and UX_REVIEW A1 to A11. Then a review of every place Otty and the user meet today, and a catalogue of the micro-interactions that would make each one feel alive, trustworthy and calm.</p>
       <div class="hero__meta">
@@ -862,7 +1006,15 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   </header>
 
   <div class="changes" style="margin-top:28px">
-    <b>What changed in v0.7</b>
+    <b>What changed in v0.9</b>
+    <ul>
+      <li><a href="#pool"><b>The pool</b></a> opens and closes as one body of water: the pool dips under your finger and wells up on springs (height leads, width follows), Otty rides the swell to his place in the cove and lands with a ring, and the words surface in the order the water reaches them. Closing drains it back, Otty dives home and the pool takes the splash. Either can be interrupted mid-way.</li>
+    </ul>
+    <b>In v0.8</b>
+    <ul>
+      <li>New: <a href="#pool"><b>the pool</b></a>, the floating bubble reworked for the cove. A lens of Liquid Glass holding the cove’s water at the true hour, with Otty floating on its back in it; the window grows out of the water when you click it. Drawn with the real painted set.</li>
+    </ul>
+    <b>In v0.7</b>
     <ul>
       <li>The glass moves towards macOS Liquid Glass: a light blur (6 px, down from 18) with no grain, so shapes and colour come through, and an edge that catches light like thick glass. A new Blur slider tries anything from clear as water to frosted.</li>
       <li>The message box is a regular rounded box again. Typing sends a springy ripple running round its outline, with the rim lit while it moves; it settles and stops.</li>
@@ -1085,6 +1237,92 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
       </ul>
     </div>
   </section>
+
+  <section id="pool">
+    <div class="sec-head">
+      <div class="eyebrow">Signature concept · new in v0.8</div>
+      <h2>The pool</h2>
+      <p class="lede">The floating bubble becomes a small pool of the cove: a lens of Liquid Glass lying on the desktop, holding the cove’s water at the true hour, with Otty floating on its back in it. It isn’t a button with a picture on it; it’s a piece of the place. Click it and the window grows out of the water. Drag it and the water sloshes. Everything Otty is doing shows in Otty and the water, not in badges.</p>
+      <p class="small">Drawn with the real painted set (Otty floating, and the cove’s water and shore for each hour). Click or drag the pool, hover it, or try the states.</p>
+    </div>
+    <div class="cove-controls">
+      <span class="ctl-label">Otty is</span>
+      <div class="seg" id="plSegS" role="group" aria-label="What Otty is doing">
+        <span class="seg__pill"></span>
+        <button data-s="idle" aria-pressed="true">Resting</button>
+        <button data-s="working" aria-pressed="false">Working</button>
+        <button data-s="waiting" aria-pressed="false">Needs you</button>
+        <button data-s="answer" aria-pressed="false">Has an answer</button>
+        <button data-s="paused" aria-pressed="false">Paused</button>
+        <button data-s="asleep" aria-pressed="false">Asleep</button>
+      </div>
+      <span class="ctl-label">Time</span>
+      <div class="seg" id="plSegT" role="group" aria-label="Time of day">
+        <span class="seg__pill"></span>
+        <button data-t="dawn" aria-pressed="false">Dawn</button>
+        <button data-t="day" aria-pressed="true">Day</button>
+        <button data-t="golden" aria-pressed="false">Golden hour</button>
+        <button data-t="night" aria-pressed="false">Night</button>
+      </div>
+      <span class="ctl-label">Mode</span>
+      <div class="seg" id="plSegM" role="group" aria-label="Light or dark">
+        <span class="seg__pill"></span>
+        <button data-m="light" aria-pressed="true">Light</button>
+        <button data-m="dark" aria-pressed="false">Dark</button>
+      </div>
+      <button class="btn btn--soft" id="plFeed">Drop a file on Otty</button>
+    </div>
+
+    <div class="pl-stage" id="plStage" data-tone="light" data-k="day">
+      <div class="pl-doc" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <button class="pl-pool" id="plPool" data-state="idle" data-face="float" aria-label="Open Otty" title="Click to ask Otty · Right-click for more">
+        <span class="pl-lens" aria-hidden="true"><span class="pl-water"></span></span>
+        <span class="pl-wake" aria-hidden="true"></span><span class="pl-wake" aria-hidden="true"></span>
+        <span class="pl-otter" id="plOtter" aria-hidden="true"><i class="pl-f--float"></i><i class="pl-f--paddle"></i><i class="pl-f--doze"></i><i class="pl-f--pebble"></i></span>
+        <span class="pl-meniscus" aria-hidden="true"></span>
+        <span class="pl-peb" aria-hidden="true"></span>
+        <span class="pl-bead" aria-hidden="true"><svg><use href="#i-pause"/></svg></span>
+      </button>
+      <div class="pl-say" id="plSay" role="status"></div>
+      <div class="pl-win" id="plWin" aria-label="The Otty window, grown out of the pool">
+        <div class="pl-win__in">
+        <div class="pl-win__shore"></div><div class="pl-win__water"></div><div class="pl-win__tb"></div>
+        <button class="pl-win__close" id="plClose">Close</button>
+        <div class="pl-win__hi"><b id="plHello">Good afternoon</b><span>Two things need you.</span></div>
+        <div class="pl-win__otter"></div>
+        <div class="pl-win__card"><small>Needs you · 2</small><span>Read this page for the train times?</span></div>
+        <div class="pl-win__box"><span>Ask Otty anything…</span><svg width="14" height="14"><use href="#i-up"/></svg></div>
+        </div>
+      </div>
+      <span class="pl-fly" id="plFly" aria-hidden="true"></span>
+    </div>
+
+    <div class="sec-head" style="margin-top:12px">
+      <h3>What the pool shows</h3>
+      <p class="small">One thing at a time, in the order Otty would want you to notice it. Nothing moves while Otty is resting; working is two painted frames, stepped, only while something runs.</p>
+    </div>
+    <div class="pl-states">
+      <div><b>Resting</b><span>Otty floats, still. Hover and it bobs once and a ring spreads; it never drifts on its own (NFR-3).</span></div>
+      <div><b>Working</b><span>Otty paddles (two frames, stepped) and a small wake trails behind its feet, only while something runs.</span></div>
+      <div><b>Needs you</b><span>Otty holds up a piece of sea glass and the rim lights straw, the colour Home uses for Needs you.</span></div>
+      <div><b>Has an answer</b><span>A piece of sea glass bobs up beside Otty: the Pebble language, in place of a red dot.</span></div>
+      <div><b>Paused</b><span>The water goes still and grey and a glass bead shows the pause. Right-click to carry on.</span></div>
+      <div><b>Asleep</b><span>After ten quiet minutes Otty dozes; three z’s rise once. Hovering wakes it (D-38).</span></div>
+      <div><b>Fed a file</b><span>Drag a file over and the pool swells and lights green; drop it and two rings spread and “Got it” surfaces above (D-37).</span></div>
+      <div><b>Carried</b><span>Dragging tilts the pool towards where it’s going and the water sloshes the other way; let go and it settles with one ring.</span></div>
+      <div><b>Opened</b><span>The pool dips, then wells up into the window on springs, height first; Otty rides the swell into the cove and lands with a ring. Closing drains it back and the pool takes the splash. Esc or a click outside closes it (W8, B14).</span></div>
+    </div>
+    <div class="panel">
+      <ul class="rules">
+        <li><span><b>Why a pool and not a button.</b> The window is now a place, so the thing on the desktop should be a piece of that place, not a picture of the otter in a circle. The pool shows the same hour, the same water and the same otter as the cove, which makes opening the window feel like leaning in, not launching an app.</span></li>
+        <li><span><b>Why this shape.</b> Otty floating on its back is long, not round, so the pool is a drop lying on its side, 108 × 68: about as easy to hit as today’s circle, lower on the screen and easier to read at a glance. Otty’s head breaks the rim, so it never looks like a framed photo.</span></li>
+        <li><span><b>Liquid Glass, but painted water.</b> The pool holds its own water, so it looks the same on any wallpaper and needs no desktop blur: the transparent window it already lives in is enough. Only the rim is glass: a specular line, light caught in the edge, a soft shadow.</span></li>
+        <li><span><b>Considered and set aside.</b> Otty floating loose on the desktop (charming, but no clear edge to aim at, and hard to see on busy wallpapers); a tab tucked at the screen edge (tidy, but the otter disappears, and the relationship with it is the point); the menu bar only (the same). Tucking at the edge stays, as a state of the pool: near an edge it flattens against it with Otty’s face peeking out.</span></li>
+        <li><span><b>Same budget as today.</b> A still picture while resting; hover, drag, drop and opening are one brief motion each; working is stepped and runs only while something runs. With <code>data-asleep</code> or reduced motion, states change with a short fade.</span></li>
+      </ul>
+    </div>
+  </section>
+
 
   <section>
     <div class="sec-head">
@@ -2368,5 +2606,167 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   capGeom();
   addEventListener('resize', () => { [$('#cvSegT'), $('#cvSegM'), $('#cvSegW'), $('#cvSegV')].forEach(pill); capGeom(); });
   if (document.fonts) document.fonts.ready.then(() => { [$('#cvSegT'), $('#cvSegM'), $('#cvSegW'), $('#cvSegV')].forEach(pill); capGeom(); });
+})();
+</script>
+<script>
+/* The pool: the floating bubble as a piece of the cove */
+(() => {
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const stage = $('#plStage'), pool = $('#plPool'), otter = $('#plOtter'), say = $('#plSay'), win = $('#plWin');
+  if (!stage) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const pill = seg => { const b = seg.querySelector('[aria-pressed="true"]'), q = seg.querySelector('.seg__pill'); if (b && q) { q.style.left = b.offsetLeft + 'px'; q.style.width = b.offsetWidth + 'px'; } };
+  const press = (seg, attr, v) => { $$('button', seg).forEach(b => b.setAttribute('aria-pressed', b.dataset[attr] === v)); pill(seg); };
+
+  const FACE = { idle: 'float', working: 'float', waiting: 'pebble', answer: 'float', paused: 'float', asleep: 'doze' };
+  const TITLE = { idle: 'Click to ask Otty · Right-click for more', working: 'Otty is looking into something for you · Click to ask Otty', waiting: 'Otty needs your OK on something · Click to see it',
+    answer: 'Otty has an answer for you · Click to see it', paused: 'Otty is paused · Right-click to let it carry on', asleep: 'Otty is dozing · Hover to wake it' };
+  const HELLO = { dawn: 'Good morning', day: 'Good afternoon', golden: 'Good evening', night: 'Good night' };
+
+  const rings = (n = 1) => { if (reduce) return; for (let i = 0; i < n; i++) { const r = document.createElement('span'); r.className = 'pl-ring'; r.setAttribute('aria-hidden', 'true'); pool.append(r); setTimeout(() => r.remove(), 1700); } };
+  const bob = () => { if (reduce) return; otter.classList.remove('is-bob'); void otter.offsetWidth; otter.classList.add('is-bob'); };
+  let sayT = 0;
+  const speak = text => {
+    const sb = stage.getBoundingClientRect(), pb = pool.getBoundingClientRect();
+    say.textContent = text; say.style.left = Math.max(8, pb.left - sb.left + pb.width / 2 - say.offsetWidth / 2) + 'px'; say.style.top = (pb.top - sb.top - 44) + 'px';
+    say.classList.add('is-on'); clearTimeout(sayT); sayT = setTimeout(() => say.classList.remove('is-on'), 2400);
+  };
+
+  function setState(s) {
+    pool.dataset.state = s; pool.dataset.face = FACE[s]; pool.title = TITLE[s]; press($('#plSegS'), 's', s);
+    if (s === 'asleep' && !reduce) [0, 500, 1000].forEach((d, i) => { const z = document.createElement('span'); z.className = 'pl-z'; z.textContent = 'z'; z.style.left = (22 + i * 9) + '%'; z.style.animationDelay = d + 'ms'; z.classList.add('is-up'); pool.append(z); setTimeout(() => z.remove(), 2400 + d); });
+  }
+  $$('#plSegS button').forEach(b => b.onclick = () => setState(b.dataset.s));
+  const setTime = k => { stage.dataset.k = k; $('#plHello').textContent = HELLO[k]; press($('#plSegT'), 't', k); };
+  $$('#plSegT button').forEach(b => b.onclick = () => setTime(b.dataset.t));
+  const setTone = t => { stage.dataset.tone = t; press($('#plSegM'), 'm', t); };
+  $$('#plSegM button').forEach(b => b.onclick = () => setTone(b.dataset.m));
+  const dark = () => document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  const follow = () => setTone(dark() ? 'dark' : 'light');
+  new MutationObserver(follow).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', follow);
+
+  /* Hover: one bob and one ring; it wakes Otty if it was dozing */
+  pool.addEventListener('pointerenter', () => { if (held) return; if (pool.dataset.state === 'asleep') setState('idle'); bob(); rings(1); });
+
+  /* Feeding: the pool swells and lights while a file is over it; on the drop, two rings and a word */
+  $('#plFeed').onclick = () => {
+    const before = pool.dataset.face; pool.classList.add('is-feeding'); pool.dataset.face = 'paddle';
+    setTimeout(() => { pool.classList.remove('is-feeding'); pool.dataset.face = before; rings(2); bob(); speak('Got it · Trip notes.pdf'); }, 1300);
+  };
+
+  /* Dragging: the pool tilts towards where it's going and the water sloshes the other way; let go and it settles with a ring */
+  let held = false, moved = 0, sx = 0, sy = 0, ox = 0, oy = 0, lx = 0, vx = 0;
+  const px = v => parseFloat(getComputedStyle(pool).getPropertyValue(v)) || 0;
+  pool.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    held = true; moved = 0; sx = e.clientX; sy = e.clientY; lx = e.clientX; ox = px('--x'); oy = px('--y'); vx = 0;
+    pool.setPointerCapture(e.pointerId); pool.classList.add('is-held'); pool.style.scale = '.95'; // the water gives a little under your finger
+  });
+  pool.addEventListener('pointermove', e => {
+    if (!held) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy; moved = Math.max(moved, Math.hypot(dx, dy));
+    if (moved < 4) return;
+    pool.style.scale = '';
+    const sb = stage.getBoundingClientRect(), r0 = { right: 64, bottom: 64 }, w = pool.offsetWidth, h = pool.offsetHeight;
+    // keep it on the desktop
+    const x = Math.max(-(sb.width - r0.right - w - 8), Math.min(r0.right - 8, ox + dx)), y = Math.max(-(sb.height - r0.bottom - h - 8), Math.min(r0.bottom - 8, oy + dy));
+    vx = vx * .6 + (e.clientX - lx) * .4; lx = e.clientX;
+    pool.style.setProperty('--x', x + 'px'); pool.style.setProperty('--y', y + 'px');
+    if (!reduce) { pool.style.setProperty('--tilt', Math.max(-9, Math.min(9, vx * .9)) + 'deg'); pool.style.setProperty('--slosh', Math.max(-16, Math.min(16, -vx * 2.2)) + 'px'); }
+  });
+  const letGo = () => {
+    if (!held) return; held = false; pool.classList.remove('is-held'); pool.style.scale = '';
+    pool.style.setProperty('--tilt', '0deg'); pool.style.setProperty('--slosh', '0px');
+    if (moved >= 4) { rings(2); bob(); } else open();
+  };
+  pool.addEventListener('pointerup', letGo); pool.addEventListener('pointercancel', letGo);
+  pool.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+
+  /* Opening and closing, as one body of water.
+     Open: the pool dips under your finger, then wells up; height leads and width follows, each on its own spring, so it swells like a drop, not a box.
+     Otty rides the swell up to his place in the cove and lands with a ring; the shore settles into view, and the words surface in the order the water reaches them.
+     Close: the words sink first, the water drains back down (the sides fall in, then the height), Otty dives home, and the pool takes the splash.
+     Either one can be interrupted, and picks up from wherever the water is. */
+  const W = 330, H = 386, fly = $('#plFly'), wOtter = $('.pl-win__otter', win);
+  const curve = CSS.supports('transition-timing-function', 'linear(0, 1)');
+  function spring(k, c) { // stiffness and damping (mass 1): a linear() easing sampled from the real spring, and how long it takes to settle
+    let x = 0, v = 0, n = 0; const pts = [0];
+    while (n < 480) { v += (-k * (x - 1) - c * v) / 240; x += v / 240; n++; if (n % 4 === 0) pts.push(+x.toFixed(4)); if (n > 48 && Math.abs(x - 1) < .002 && Math.abs(v) < .02) break; }
+    pts.push(1);
+    return { easing: curve ? `linear(${pts.join(',')})` : 'cubic-bezier(.2,1.1,.4,1)', duration: Math.round(n / .24) };
+  }
+  const RISE = spring(260, 26), SPREAD = spring(170, 21), RIDE = spring(150, 17), SURFACE = spring(220, 25), SPLASH = spring(320, 13);
+  const DRAIN = 'cubic-bezier(.55,0,.25,1)', SINK = 'cubic-bezier(.4,0,1,1)';
+  const rel = el => { const sb = stage.getBoundingClientRect(), b = el.getBoundingClientRect(); return { x: b.left - sb.left, y: b.top - sb.top, w: b.width, h: b.height }; };
+  const drop = r => `${r.w / 2}px / ${r.h / 2}px`;
+  function geometry() {
+    const sb = stage.getBoundingClientRect(), pb = pool.getBoundingClientRect();
+    return { left: Math.max(12, Math.min(sb.width - W - 12, pb.right - sb.left - W + 14)), top: Math.max(12, Math.min(sb.height - H - 12, pb.bottom - sb.top - H + 14)) };
+  }
+  let isOpen = false, live = [], hide = null, ringT = 0;
+  const run = (el, kf, o) => { const a = el.animate(kf, { fill: 'both', ...o }); live.push(a); return a; };
+  const halt = () => { live.forEach(a => a.cancel()); live = []; clearTimeout(ringT); };
+  const flyTo = (to, from, lift, turn, o) => {
+    Object.assign(fly.style, { left: to.x + 'px', top: to.y + 'px', width: to.w + 'px', height: to.h + 'px' }); fly.classList.add('is-on');
+    const dx = from.x - to.x, dy = from.y - to.y, s = from.w / to.w;
+    return run(fly, [{ transform: `translate(${dx}px,${dy}px) scale(${s})` },
+      { transform: `translate(${dx * .5}px,${dy * .5 - lift}px) scale(${(s + 1) / 2}) rotate(${turn}deg)`, offset: .42 }, { transform: 'none' }], o);
+  };
+
+  function open() {
+    if (isOpen) return; isOpen = true;
+    if (['answer', 'waiting', 'asleep'].includes(pool.dataset.state)) setState('idle');
+    const mid = live.length > 0, a = mid ? rel(win) : rel(pool), oa = mid ? rel(fly) : rel(otter), r0 = mid ? getComputedStyle(win).borderRadius : drop(a);
+    halt(); pool.style.scale = '';
+    const g = geometry();
+    Object.assign(win.style, { left: g.left + 'px', top: g.top + 'px', width: W + 'px', height: H + 'px' }); win.classList.add('is-open');
+    hide?.cancel(); hide = pool.animate([{ opacity: getComputedStyle(pool).opacity }, { opacity: 0 }], { duration: reduce ? 200 : 140, fill: 'forwards' });
+    if (reduce) { run(win, [{ opacity: 0 }, { opacity: 1 }], { duration: 200 }); return; }
+    const ob = rel(wOtter); win.classList.add('is-moving');
+    run(win, [{ opacity: mid ? 1 : 0 }, { opacity: 1 }], { duration: 90 });
+    run(win, [{ top: a.y + 'px', height: a.h + 'px' }, { top: g.top + 'px', height: H + 'px' }], RISE);
+    run(win, [{ left: a.x + 'px', width: a.w + 'px' }, { left: g.left + 'px', width: W + 'px' }], SPREAD);
+    run(win, [{ borderRadius: r0 }, { borderRadius: '16px' }], { duration: 560, easing: 'cubic-bezier(.3,0,.2,1)' });
+    run(win, [{ boxShadow: '0 12px 16px -8px var(--pl-shadow), 0 0 0 .5px var(--pl-edge)' }, { boxShadow: '0 26px 54px -20px var(--pl-shadow), 0 0 0 .5px var(--pl-edge)' }], SPREAD);
+    run(win, [{ opacity: 1 }, { opacity: .35 }], { duration: 640, easing: 'ease-out', pseudoElement: '::after' });
+    // Leaning in: the water comes closer, and the horizon settles into place
+    run($('.pl-win__water', win), [{ transform: 'scale(1.14)', transformOrigin: '86% 88%' }, { transform: 'none', transformOrigin: '86% 88%' }], SPREAD);
+    run($('.pl-win__shore', win), [{ opacity: 0, transform: 'translateY(30px)' }, { opacity: 1, transform: 'none' }], { duration: 620, delay: 70, easing: 'cubic-bezier(.16,1,.3,1)' });
+    ['.pl-win__box', '.pl-win__card', '.pl-win__hi'].forEach((q, i) =>
+      run($(q, win), [{ opacity: 0, transform: 'translateY(14px) scale(.98)' }, { opacity: 1, transform: 'none' }], { ...SURFACE, delay: 170 + i * 75 }));
+    flyTo(ob, oa, 24, -7, RIDE).onfinish = () => { fly.classList.remove('is-on'); win.classList.remove('is-moving'); };
+    ringT = setTimeout(() => { const r = document.createElement('span'); r.className = 'pl-win__ring'; $('.pl-win__in', win).append(r); setTimeout(() => r.remove(), 1500); }, RIDE.duration * .32);
+  }
+
+  function close() {
+    if (!isOpen) return; isOpen = false;
+    const a = rel(win), oa = live.length ? rel(fly) : rel(wOtter), r0 = getComputedStyle(win).borderRadius;
+    halt();
+    const landed = () => { fly.classList.remove('is-on'); win.classList.remove('is-open', 'is-moving'); halt(); hide?.cancel(); hide = null;
+      if (reduce) return; pool.animate([{ scale: '1.08 .88' }, { scale: '1 1' }], SPLASH); bob(); rings(2); };
+    if (reduce) { hide?.cancel(); hide = null; run(win, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 }).onfinish = landed; return; }
+    const p = rel(pool), po = rel(otter); win.classList.add('is-moving');
+    ['.pl-win__hi', '.pl-win__card', '.pl-win__box'].forEach((q, i) =>
+      run($(q, win), [{ opacity: getComputedStyle($(q, win)).opacity }, { opacity: 0, transform: 'translateY(8px)' }], { duration: 150, delay: i * 30, easing: SINK }));
+    run($('.pl-win__shore', win), [{ opacity: 1 }, { opacity: 0, transform: 'translateY(22px)' }], { duration: 260, easing: SINK });
+    run($('.pl-win__water', win), [{ transform: 'none', transformOrigin: '86% 88%' }, { transform: 'scale(1.12)', transformOrigin: '86% 88%' }], { duration: 480, delay: 60, easing: DRAIN });
+    run(win, [{ left: a.x + 'px', width: a.w + 'px' }, { left: p.x + 'px', width: p.w + 'px' }], { duration: 400, delay: 60, easing: DRAIN });
+    run(win, [{ top: a.y + 'px', height: a.h + 'px' }, { top: p.y + 'px', height: p.h + 'px' }], { duration: 470, delay: 60, easing: DRAIN });
+    run(win, [{ borderRadius: r0 }, { borderRadius: drop(p) }], { duration: 400, delay: 120, easing: 'cubic-bezier(.5,0,.6,1)' });
+    run(win, [{ boxShadow: '0 26px 54px -20px var(--pl-shadow), 0 0 0 .5px var(--pl-edge)' }, { boxShadow: '0 12px 16px -8px var(--pl-shadow), 0 0 0 .5px var(--pl-edge)' }], { duration: 470, delay: 60, easing: DRAIN });
+    run(win, [{ opacity: .35 }, { opacity: 1 }], { duration: 420, delay: 60, easing: 'ease-in', pseudoElement: '::after' });
+    // The pool is back just before the water reaches it, so the hand-over can't be seen
+    setTimeout(() => { if (!isOpen) { hide?.cancel(); hide = null; } }, 440);
+    run(win, [{ opacity: 1 }, { opacity: 0 }], { duration: 110, delay: 440 });
+    flyTo(po, oa, 16, 8, { duration: 500, delay: 30, easing: 'cubic-bezier(.45,0,.3,1)' }).onfinish = landed;
+  }
+  $('#plClose').onclick = close;
+  stage.addEventListener('pointerdown', e => { if (isOpen && !win.contains(e.target) && !pool.contains(e.target)) close(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && isOpen) close(); });
+
+  follow(); setTime('day'); setState('idle');
+  const pills = () => ['#plSegS', '#plSegT', '#plSegM'].forEach(s => pill($(s)));
+  pills(); addEventListener('resize', pills); if (document.fonts) document.fonts.ready.then(pills);
 })();
 </script>
