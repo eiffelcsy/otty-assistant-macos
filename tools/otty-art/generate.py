@@ -53,6 +53,18 @@ SAME_COVE = (
     'the lily pads and the brush style identical; change only the time of day, light and colour: '
 )
 
+FLOAT = (
+    'Paint Otty\'s whole body, floating on its back on calm water, the way real sea otters rest, seen from the side. '
+    'Keep the SAME face, fur colours and soft dry-brush style as the reference portrait. Head on the left, raised '
+    'a little and facing the viewer three-quarters so the face reads clearly; belly up; hind feet and the tip of the '
+    'tail sticking up on the right. Show the whole otter with nothing cut off, centred, filling about 70% of the '
+    'width, on a plain pure white background: no water, no ripples, no shadow, no other objects. '
+)
+SAME_FLOAT = (
+    'This is Otty floating on its back. Repaint this EXACT picture, keeping the size, position, angle, body, head, '
+    'fur and brush style identical, and a plain pure white background; change only: '
+)
+
 # name: (prompt, size, reference). Bust expressions keep the reference's face; only what the expression needs changes.
 # The cove's other times of day are repainted from the kept day picture, so all four share one composition.
 RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
@@ -88,6 +100,15 @@ RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
     'cove-night': (SAME_COVE + 'a calm night. Deep navy sky with small soft stars, a pale moon high on the right with a '
                    'gentle glow, hills as dark blue silhouettes, water dark blue-black with a soft silver moon path. '
                    'Calm and cosy, not scary.', '1536x1024', 'cove-day.webp'),
+    'float': (FLOAT + 'Pose: relaxed and happy, eyes open with the same smile as the reference, both small front paws '
+              'resting together on its chest.', '1536x1024'),
+    'float-paddle': (SAME_FLOAT + 'the two raised hind feet, mid-paddle: both still sticking up above the belly, '
+                     'but tipped a little towards the head, and the tail tip flicked up. Exactly two hind feet and '
+                     'two front paws, nothing below the body. Same smile.', '1536x1024', 'float.webp'),
+    'float-pebble': (SAME_FLOAT + 'holding a small smooth piece of soft teal frosted sea glass on its chest with both '
+                     'front paws, looking at it with delight.', '1536x1024', 'float.webp'),
+    'float-doze': (SAME_FLOAT + 'dozing: eyes gently closed as soft downward curves, a tiny content smile, front paws '
+                   'folded on its chest.', '1536x1024', 'float.webp'),
 }
 
 

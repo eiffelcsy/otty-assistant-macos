@@ -34,6 +34,7 @@ OTTER = 790  # width of Otty on the tile; the shoulders run off its bottom edge
 # The cove: every time of day is repainted from cove-day, so all four share one horizon (measured: row 506 of 1024).
 COVE_OUT = ROOT / 'src/renderer/src/assets/cove'
 HORIZON, FEATHER = 506, 8
+FLOAT_W = 768  # width of the floating Otty frames
 
 
 def load(name: str) -> np.ndarray:
@@ -48,12 +49,13 @@ def eye_mask(shape: tuple[int, int]) -> np.ndarray:
     return np.asarray(m.filter(ImageFilter.GaussianBlur(18))).astype(np.float32)[..., None] / 255
 
 
-def background(rgb: np.ndarray) -> np.ndarray:
-    """Near-white pixels connected to the top/side borders (the bottom edge is Otty's body)."""
+def background(rgb: np.ndarray, bottom: bool = False) -> np.ndarray:
+    """Near-white pixels connected to the top/side borders (the bottom edge is a bust's body, unless `bottom`)."""
     bright = rgb.min(axis=2) > 243
     h, w = bright.shape
     seen = np.zeros_like(bright)
     stack = [(0, x) for x in range(w)] + [(y, 0) for y in range(h)] + [(y, w - 1) for y in range(h)]
+    stack += [(h - 1, x) for x in range(w)] if bottom else []
     while stack:
         y, x = stack.pop()
         if 0 <= y < h and 0 <= x < w and bright[y, x] and not seen[y, x]:
@@ -62,14 +64,18 @@ def background(rgb: np.ndarray) -> np.ndarray:
     return seen
 
 
-def cutout(rgb: np.ndarray, bg: np.ndarray, fade_out: bool = True, size: int = SIZE) -> Image.Image:
+def matte(rgb: np.ndarray, bg: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     # Soft matte: fully opaque away from the background; near it, opacity follows how far a pixel is from white.
     near = np.asarray(Image.fromarray((bg * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))) > 0
     whiteness = (255 - rgb.min(axis=2)) / 45
     alpha = np.where(bg, 0, np.where(near, np.clip(whiteness, 0, 1), 1))
     # Un-mix the white the edge pixels were painted over.
     a = np.maximum(alpha, 1e-3)[..., None]
-    color = np.clip((rgb - 255 * (1 - a)) / a, 0, 255)
+    return np.clip((rgb - 255 * (1 - a)) / a, 0, 255), alpha
+
+
+def cutout(rgb: np.ndarray, bg: np.ndarray, fade_out: bool = True, size: int = SIZE) -> Image.Image:
+    color, alpha = matte(rgb, bg)
     h = rgb.shape[0]
     top = CROP[3] - (CROP[3] - CROP[1]) * FADE
     fade = np.clip((CROP[3] - np.arange(h)) / (CROP[3] - top), 0, 1)[:, None]
@@ -126,7 +132,7 @@ def main() -> None:
         frames['idle-blink'] = idle * (1 - m) + load(closed.name) * m
     # Every other source but the cove is a bust expression in the same framing (generate.py), cut against its own background.
     for f in sorted(SRC.glob('*.webp')):
-        if f.stem not in ('idle', 'idle-eyes-closed') and not f.stem.startswith('cove-'):
+        if f.stem not in ('idle', 'idle-eyes-closed') and not f.stem.startswith(('cove-', 'float')):
             frames[f.stem] = load(f.name)
     for name, rgb in frames.items():
         cutout(rgb, bg if name.startswith('idle') else background(rgb)).save(OUT / f'{name}.webp', quality=88, method=6)
@@ -134,6 +140,39 @@ def main() -> None:
     write_icns(app_icon(cutout(idle, bg, fade_out=False, size=OTTER)))
     for f in sorted(SRC.glob('cove-*.webp')):
         cove(f)
+    floating()
+
+
+def floating() -> None:
+    """The full-body Otty floating on its back (D-71 step 3). Variants are repainted from float.webp but drift a few
+    pixels, so each is moved to where its body best overlaps the base before all are cut with the base's box."""
+    base = load('float.webp')
+    base_a = matte(base, background(base, bottom=True))[1]
+    ys, xs = np.nonzero(base_a > 0.5)
+    m = 40  # room for a variant's paw or tail that reaches past the base
+    box = (xs.min() - m, ys.min() - m, xs.max() + m, ys.max() + m)
+    for f in sorted(SRC.glob('float*.webp')):
+        rgb = load(f.name)
+        color, alpha = matte(rgb, background(rgb, bottom=True))
+        # The model paints a faint pale haze round a whole figure, which shows as a halo on night water: pull the edge in.
+        alpha = np.asarray(Image.fromarray((alpha * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(5))
+                           .filter(ImageFilter.GaussianBlur(1))).astype(np.float32) / 255
+        dy, dx = (0, 0) if f.stem == 'float' else best_shift(base_a, alpha)
+        img = Image.fromarray(np.dstack([color, alpha * 255]).astype(np.uint8), 'RGBA')
+        moved = Image.new('RGBA', img.size)
+        moved.paste(img, (dx, dy))
+        out = moved.crop(box)
+        out = out.resize((FLOAT_W, round(out.height * FLOAT_W / out.width)), Image.LANCZOS)
+        out.save(OUT / f'{f.stem}.webp', quality=88, method=6)
+        print('wrote', (OUT / f'{f.stem}.webp').relative_to(ROOT), f'(moved {dx}, {dy})')
+
+
+def best_shift(a: np.ndarray, b: np.ndarray) -> tuple[int, int]:
+    """The (dy, dx) that moves mask b onto mask a, by cross-correlation."""
+    c = np.fft.irfft2(np.fft.rfft2(a) * np.conj(np.fft.rfft2(b)), a.shape)
+    dy, dx = np.unravel_index(c.argmax(), c.shape)
+    h, w = a.shape
+    return (int(dy - h) if dy > h // 2 else int(dy)), (int(dx - w) if dx > w // 2 else int(dx))
 
 
 def cove(f: Path) -> None:
