@@ -31,6 +31,10 @@ CANVAS, TILE, RADIUS = 1024, 824, 186
 TILE_TOP, TILE_BOTTOM = (163, 184, 124), (99, 124, 66)  # lighter meadow to --meadow
 OTTER = 790  # width of Otty on the tile; the shoulders run off its bottom edge
 
+# The cove: every time of day is repainted from cove-day, so all four share one horizon (measured: row 506 of 1024).
+COVE_OUT = ROOT / 'src/renderer/src/assets/cove'
+HORIZON, FEATHER = 506, 8
+
 
 def load(name: str) -> np.ndarray:
     return np.asarray(Image.open(SRC / name).convert('RGB')).astype(np.float32)
@@ -120,14 +124,32 @@ def main() -> None:
     if closed.exists():
         m = eye_mask(idle.shape[:2])
         frames['idle-blink'] = idle * (1 - m) + load(closed.name) * m
-    # Every other source is a bust expression in the same framing (generate.py), cut out against its own background.
+    # Every other source but the cove is a bust expression in the same framing (generate.py), cut against its own background.
     for f in sorted(SRC.glob('*.webp')):
-        if f.stem not in ('idle', 'idle-eyes-closed'):
+        if f.stem not in ('idle', 'idle-eyes-closed') and not f.stem.startswith('cove-'):
             frames[f.stem] = load(f.name)
     for name, rgb in frames.items():
         cutout(rgb, bg if name.startswith('idle') else background(rgb)).save(OUT / f'{name}.webp', quality=88, method=6)
         print('wrote', (OUT / f'{name}.webp').relative_to(ROOT))
     write_icns(app_icon(cutout(idle, bg, fade_out=False, size=OTTER)))
+    for f in sorted(SRC.glob('cove-*.webp')):
+        cove(f)
+
+
+def cove(f: Path) -> None:
+    """Splits a cove picture at its horizon into the two parallax layers (BRAINSTORM, "The living cove").
+    The shore is the sky and hills down to just past the horizon; the water is everything below, with a soft top edge,
+    so it can slide up over the shore while scrolling without a seam."""
+    img = Image.open(f).convert('RGB')
+    w, h = img.size
+    assert (w, h) == (1536, 1024), f'{f.name} is {w}x{h}; the cove recipes paint 1536x1024'
+    COVE_OUT.mkdir(parents=True, exist_ok=True)
+    img.crop((0, 0, w, HORIZON + FEATHER)).save(COVE_OUT / f'{f.stem}-shore.webp', quality=80, method=6)
+    water = img.crop((0, HORIZON - FEATHER, w, h)).convert('RGBA')
+    ramp = np.clip(np.arange(h - HORIZON + FEATHER) / (2 * FEATHER), 0, 1)
+    water.putalpha(Image.fromarray((np.repeat(ramp[:, None], w, axis=1) * 255).astype(np.uint8)))
+    water.save(COVE_OUT / f'{f.stem}-water.webp', quality=80, method=6)
+    print('wrote', (COVE_OUT / f'{f.stem}-shore.webp').relative_to(ROOT), 'and -water')
 
 
 if __name__ == '__main__':

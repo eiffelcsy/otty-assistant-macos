@@ -35,8 +35,27 @@ BUST = (
     'at the same size and height, shoulders running off the bottom edge, nothing touching the top or sides. '
 )
 
-# name: (prompt, size). Bust expressions keep the reference's face; only what the expression needs changes.
-RECIPES: dict[str, tuple[str, str]] = {
+COVE = (
+    'Paint Otty\'s home: a quiet lake cove, as a wide landscape in the SAME soft dry-brush children\'s-book style as '
+    'the reference (visible brush strokes, soft edges, no outlines), but with no otter and no animals or people. '
+    'A gentle storybook illustration, not a realistic painting: simple rounded shapes, soft muted warm colours that sit '
+    'with the otter\'s browns and creams (sage and meadow greens, soft teal, warm cream light), low contrast, cosy. '
+    'Composition, exactly: a perfectly straight, level horizon line across the whole picture at 37% of the height '
+    'from the top. Above it, the sky, and low far hills along the horizon, with a gentle wooded hill rising on the left '
+    'third and another on the right third, leaving a wide open gap in the centre where the sky meets the water. '
+    'The centre of the sky, top middle, stays calm and simple with only a few soft clouds, because text will sit there. '
+    'Below the horizon, calm open water with the sky and hills softly reflected and a few soft ripples, getting deeper '
+    'in colour towards the bottom. A few small clumps of reeds only in the bottom-left and bottom-right corners, kept '
+    'well below the horizon, and two or three small lily pads on the water. Nothing tall crosses the horizon line. '
+)
+SAME_COVE = (
+    'This is Otty\'s cove. Repaint this EXACT picture, keeping every shape, the horizon height, the hills, the reeds, '
+    'the lily pads and the brush style identical; change only the time of day, light and colour: '
+)
+
+# name: (prompt, size, reference). Bust expressions keep the reference's face; only what the expression needs changes.
+# The cove's other times of day are repainted from the kept day picture, so all four share one composition.
+RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
     'thinking': (BUST + 'Expression: thinking. Eyes looking up and to one side, mouth a small closed line, one small '
                  'paw raised to touch its chin.', '1024x1024'),
     'oops': (BUST + 'Expression: a gentle, sheepish "oops". Eyebrows raised and tilted, a small wobbly smile, one small '
@@ -58,6 +77,17 @@ RECIPES: dict[str, tuple[str, str]] = {
               'chewing.', '1024x1024'),
     'catch': (BUST + 'Pose: ready to catch. Both small paws raised in front of its chest, palms up and open, eyes '
               'wide and excited, smiling.', '1024x1024'),
+    'cove-day': (COVE + 'Time: a clear bright afternoon. Soft blue sky fading to pale near the horizon, a small white '
+                 'sun high on the right, fresh greens on the hills, teal water with white glints.', '1536x1024'),
+    'cove-dawn': (SAME_COVE + 'dawn. Lavender-blue sky fading to peach and rose at the horizon, a low pale sun just above '
+                  'the horizon a little right of centre, soft mist along the hills, hills in hazy violet-grey, water '
+                  'pink near the horizon and slate blue below, with a soft sun path.', '1536x1024', 'cove-day.webp'),
+    'cove-golden': (SAME_COVE + 'golden hour before sunset. Warm amber and apricot sky, a big low golden sun just above '
+                    'the horizon in the centre gap, hills in warm umber, water glowing gold near the horizon with a '
+                    'bright sun path, deepening to brown-plum below.', '1536x1024', 'cove-day.webp'),
+    'cove-night': (SAME_COVE + 'a calm night. Deep navy sky with small soft stars, a pale moon high on the right with a '
+                   'gentle glow, hills as dark blue silhouettes, water dark blue-black with a soft silver moon path. '
+                   'Calm and cosy, not scary.', '1536x1024', 'cove-day.webp'),
 }
 
 
@@ -81,9 +111,9 @@ def multipart(fields: dict[str, str], files: dict[str, tuple[str, bytes, str]]) 
     return out.getvalue(), f'multipart/form-data; boundary={b}'
 
 
-def paint(prompt: str, size: str) -> Image.Image:
+def paint(prompt: str, size: str, reference: str = 'idle.webp') -> Image.Image:
     ref = io.BytesIO()
-    Image.open(SRC / 'idle.webp').convert('RGB').save(ref, 'PNG')
+    Image.open(SRC / reference).convert('RGB').save(ref, 'PNG')
     body, ctype = multipart({'model': MODEL, 'prompt': STYLE + prompt, 'size': size, 'quality': 'high', 'n': '1'},
                             {'image[]': ('idle.png', ref.getvalue(), 'image/png')})
     req = urllib.request.Request('https://api.openai.com/v1/images/edits', body,
@@ -110,9 +140,8 @@ def main(args: list[str]) -> None:
         if out.exists() and not force:
             print(f'{out.name} is kept already; --force to replace it')
             continue
-        prompt, size = RECIPES[name]
-        img = paint(prompt, size)
-        if size == '1024x1024':
+        img = paint(*RECIPES[name])
+        if img.size == (1024, 1024):
             img = img.resize((SOURCE_SIZE, SOURCE_SIZE), Image.LANCZOS)
         n = len(list(TRIES.glob(f'{name}-*.webp'))) + 1
         img.save(TRIES / f'{name}-{n}.webp', quality=95)

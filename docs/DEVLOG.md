@@ -96,7 +96,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
 | D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 built; step 2 waits for art | step 2: two painted frames (mouth open, munch) | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
-| D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 step 1 built | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
+| D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 steps 1–2 built (art) | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
@@ -419,6 +419,8 @@ Steps 2 and 3 are next when a spec or a bug needs them.
 
 **Where it stands (2026-11-20).** Step 1 is built: the ten expressions are kept in `source/` and cut to `src/renderer/src/assets/otty/` (not wired yet; `Otter.tsx` takes them in D-37 step 2 and D-38). Idle, blink and the icon came out unchanged. Listening took three tries and oops and sleepy two; the tries stay in `tools/otty-art/tries/`, ignored by git.
 
+Step 2's art is painted too: `cove-day` (the second try, softer and warmer than a realistic first one), then dawn, golden hour and night repainted from it, so all four share one horizon (row 506 of 1024, 49% down, lower than the draft's 37%, which leaves more sky for the greeting). `prepare.py` splits each at the horizon into `assets/cove/cove-*-shore.webp` and `-water.webp` (a soft 16px seam, 384 KB for all eight). One 1536px size, not 1× and 2×: painterly art holds up on a retina roomy window. Mid-scroll the water slides over the hills' foot and the low dawn and golden sun, which reads as the sun meeting the lake. Not wired: Home's cove is the living cove's step 1. Below 1024px the water ends, so the window's own `--cv-deep` colour must carry on under it.
+
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
 
 
@@ -520,7 +522,7 @@ Steps 2 and 3 are next when a spec or a bug needs them.
 
 **Done when.** Each mood shows on its trigger, and `OTTY_METRICS=1` shows idle under 0.5% of a core with the otter asleep and awake.
 
-## D-71 · Otty's painted set 🔨 step 1
+## D-71 · Otty's painted set 🔨 steps 1–2
 
 **Goal.** Every picture Otty needs, now and planned, painted in the same hand as today's portrait, so D-37 step 2, D-38 and the living cove stop waiting for art.
 
