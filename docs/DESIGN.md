@@ -434,7 +434,7 @@ Everything inside an answer.
 | V10 | Export lands | Saving a drawing or deck | Progress, then “Saved to Downloads” with Show. | Closes the loop on files. | Next | brief |
 | V11 | Link host on hover | Hovering a link | A tooltip shows the host in bold, then the path. | Lookalike domains spotted where they’re clicked. | Now | on touch |
 | V12 | Notebook used, quietly | An answer used a note | A small bookmark; hover shows “Used: prefers short answers”. | Folds the usual case away (UX #6). | Next | on touch |
-| V13 | Tip after the answer | A 💡 tip | Surfaces after streaming ends. | Tips never push the answer. | Later | brief |
+| V13 | Tip after the answer | An older chat's 💡 tip | Surfaces after streaming ends. | Tips never push the answer. (New answers have none, D-69.) | Later | brief |
 | V14 | Math result copy | A calculation card | Hover reveals Copy; clicking the sum reveals the steps. | Detail on request. | Later | on touch |
 
 ### K. Confirm cards and safety

@@ -43,6 +43,7 @@ Everything here is built, unless it says *Planned*. Priority: **P0** = core to O
 - FR-1.4 **Right-click**: a menu with *Ask about highlighted text*, *Snap part of my screen*, *Open chat*, *Hide floating Otty*, *Settings…*, *Quit Otty*.
 - FR-1.5 The otter is animated: it blinks while idle, bobs while thinking and smiles when an answer is ready.
 - FR-1.6 Clicking the otter does not steal focus from the current app (a non-activating panel), so the highlight is kept.
+- FR-1.7 **Drop files on the otter** (up to 5): it swells while they're over it, and a new chat opens beside it with them in the tray (D-37, step 1). Main opens only files it registered.
 
 ### FR-2 Lives at the cursor (P0)
 - FR-2.1 The global shortcut **⌥ Space** grabs the highlighted text and opens the small **quick view** at the mouse cursor.
@@ -82,7 +83,7 @@ Everything here is built, unless it says *Planned*. Priority: **P0** = core to O
 - FR-6.1 The model marks up to three jargon terms per answer. These render as dotted-underlined **explain terms**.
 - FR-6.2 Clicking a term opens a small pop-up card with a 2–3 sentence beginner explanation and an everyday analogy. Explanations are fetched on demand and cached.
 - FR-6.3 The card has an **Ask more about this** button that sends a follow-up question.
-- FR-6.4 The model can add a **💡 tip card** (rendered from a `> 💡` blockquote) for extra context.
+- FR-6.4 Answers no longer end with a **💡 Good to know** card (D-69), because it made most answers longer; explain terms and **In more detail** teach on demand. Older chats keep their cards, still drawn from the `> 💡` blockquote.
 - FR-6.5 The answer style is short paragraphs, plain words, steps for how-to questions, and no walls of text.
 - FR-6.6 Explain cards open without a wait: the first three terms are fetched when an answer ends, and failures aren't remembered.
 
