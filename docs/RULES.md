@@ -58,6 +58,9 @@ Where the checks live:
 | Repeating jobs | Test `repeat.test.ts` "repeating jobs"; `trust.test.ts` "repeats (D-34)". |
 | Charts | Test `chart.test.ts` "hands the model the same numbers the chart shows" and "keeps what the data says out of the diagram's code"; `eval.test.ts` "the chart scorer". |
 | Usage meter | Test `usage.test.ts`; `trust.test.ts` "says so in friendly words, never money". |
+| My own tiles | Test `ipc.test.ts` "%s refuses what isn’t one, and takes what is" for myTiles (too long, odd icon or kind, over 12); `tiles.test.ts`; `tileCard.test.tsx` "saves only from the button"; smoke `@step-169`, `@step-170`. |
+| Pebbles | Test `pebbles.test.ts` (shared: one order for main and the window; main: each store forgets with its chat); `keep.test.tsx`; smoke `@step-171`. Prose only for *main looks it up in the chat on show* beyond the IPC guard. |
+| Tooltips | Test `tooltips.test.ts`; `MessageBox.test.tsx` "the liquid capsule"; smoke `@step-172`. |
 | Health | Test `health.test.ts`, `suggestions.test.ts`. Prose only for *a chip never sends* until renderer tests (D-48 phase 2). |
 | Confirm cards | Tests `receipts.test.ts` (a receipt however the card ends, Undo only when recorded, a skip on a new question), `cards.test.tsx` "ignores a click in its first 400 ms…" and "approves nothing on Enter on the card itself". Rule test `ipc.test.ts` (each `SETTABLE` key refuses what isn't one). Test `drafts.test.ts` and `MessageBox.test.tsx` for the one message box and drafts kept in main. |
 | Step cards | Rule test `osascript.test.ts` (model text reaches `osascript` only through argv; no shell). Test `act.test.ts`; `chatLearning.test.ts` "shows a card with no chip, flags risky steps and acts only in the asking app". |

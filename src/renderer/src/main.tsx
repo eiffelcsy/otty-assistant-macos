@@ -5,10 +5,14 @@ import { Panel } from './panel/Panel'
 import { Pickup } from './pickup/Pickup'
 import { Quick } from './quick/Quick'
 import { Viewer } from './viewer/Viewer'
+import { installTooltips } from './lib/tooltips'
 import './styles.css'
 
 const view = new URLSearchParams(location.search).get('view') ?? 'panel'
 document.documentElement.dataset.view = view
+
+// The bubble's window is the otter's size, too small for a tooltip of Otty's own.
+if (view !== 'bubble') installTooltips()
 
 window.otty.onWindowVisible((visible) => document.documentElement.toggleAttribute('data-asleep', !visible))
 

@@ -1,3 +1,4 @@
+import { pebblesOf, type Pebble } from '../shared/pebbles'
 import { randomUUID } from 'crypto'
 import { nativeImage } from 'electron'
 import type {
@@ -1002,6 +1003,13 @@ export class ChatSession {
     this.tell(thread, { type: 'steps', id: target.id, card })
     if (target !== answer) this.persist(thread, { messages: thread.messages.indexOf(target), history: thread.history.length })
     return { result: 'Shown to the user.', status: 'done' }
+  }
+
+  /** A Pebble in an answer of the chat on show (charts, then drawings), for Keep. */
+  pebbleAt(answerId: string, index: number): { chatId: string; pebble: Pebble } | null {
+    const answer = this.thread.messages.find((m) => m.id === answerId)
+    const pebble = answer?.role === 'assistant' ? pebblesOf(answer)[index] : undefined
+    return pebble ? { chatId: this.thread.id, pebble } : null
   }
 
   private card(answerId: string, index: number): { at: number; card: StepCard } | null {

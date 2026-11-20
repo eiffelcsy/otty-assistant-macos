@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### My own tiles, Keep, the capsule and tooltips (2026-11-20)
+
+- **My own tiles** (D-56): Settings › **My tiles** adds up to 12 one-tap questions, each a name, an icon, the words Otty is asked and what it shows for (anything, highlighted text, code, a picture, a table, a file or a web page). They come after the built-in tiles and send their words exactly as if typed, so a tile can do nothing a typed question can't. Ask Otty to "make me a tile for…" and it drafts one on a card; nothing is saved until **Save tile**. Main checks every field (`validTiles`) before saving.
+- **Keep a chart or drawing** (Pebbles, step 1): each drawing and chart card has **Keep**. Main finds it by the answer's id and its place in that answer, in the chat on show, and keeps it in `otty.db` (schema v11). Until the Pouch (step 2) gives kept Pebbles a screen, they go with their chats. **Show big** and **Present** already open them big.
+- **The liquid capsule:** typing ripples the message box's edge a few pixels, which settles over `--t-settle` and is invisible at rest; a send lets a small drop rise. One animation frame loop runs only while it settles, and reduced motion keeps it still.
+- **Otty's own tooltips** for every button's title, after half a second and then at once while moving along a row (W11); the header's line shows only once its content has scrolled (W6); and with Reduce motion on, what changes fades over 200 ms and nothing moves (D-59).
+
 ### The otter's faces (D-37 step 2, D-38, 2026-11-20)
 
 - **Painted moods on the floating otter** (D-38): it dozes off after 10 minutes with nothing happening and wakes when the pointer comes near, catches when pressed and wiggles once when let go, thinks with its eyes up, cheers when an answer lands and tilts its head when one fails. Each face is one painted frame from D-71, swapped, never tweened, and the sleep is a timer reset by anything that happens, never a poll. Asleep, the otter doesn't float at all.

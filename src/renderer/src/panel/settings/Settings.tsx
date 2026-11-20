@@ -5,16 +5,18 @@ import { findRanges, parseQuery } from '../../../../shared/match'
 import { connectionReady, ConnectionFields } from '../../components/ConnectionFields'
 import { Icon } from '../../components/Icon'
 import { prettyKey } from '../../lib/keys'
+import { MyTiles } from './Tiles'
 import { ChoiceRow, CustomRow, Group, HoldButton, HoldRow, KeysRow, LinkRow, SwitchRow, ValueRow } from './rows'
 
 // Settings in six sections that apply as you go (D-61, docs/design/specs/02-settings.md). There's no Save button and
 // no draft: each control saves itself through `setSetting`, and what main sends back is what's shown. Forgetting is
 // always behind a hold, with the real count from main.
 
-export type SectionId = 'you' | 'keys' | 'privacy' | 'usage' | 'conn' | 'help'
+export type SectionId = 'you' | 'tiles' | 'keys' | 'privacy' | 'usage' | 'conn' | 'help'
 
 const SECTIONS: { id: SectionId; title: string; icon: string }[] = [
   { id: 'you', title: 'You & Otty', icon: 'paw' },
+  { id: 'tiles', title: 'My tiles', icon: 'apps' },
   { id: 'keys', title: 'Shortcuts', icon: 'keyboard' },
   { id: 'privacy', title: 'Privacy', icon: 'shield-check' },
   { id: 'usage', title: 'Usage & limit', icon: 'stats' },
@@ -28,6 +30,7 @@ const FINDABLE: { id: string; section: SectionId; title: string; words?: string 
   { id: 'notifyDone', section: 'you', title: 'Tell me when something is ready', words: 'notification alert' },
   { id: 'openAtLogin', section: 'you', title: 'Open Otty when I log in', words: 'startup launch restart' },
   { id: 'homeLanguage', section: 'you', title: 'Help in my own language', words: 'chinese 中文 language' },
+  { id: 'tiles', section: 'tiles', title: 'Add a tile', words: 'button action shortcut prompt my own' },
   { id: 'askHotkey', section: 'keys', title: 'Ask about highlighted text', words: 'hotkey shortcut key' },
   { id: 'snapHotkey', section: 'keys', title: 'Snip part of the screen', words: 'hotkey shortcut screenshot' },
   { id: 'screenHotkey', section: 'keys', title: 'The whole screen', words: 'hotkey shortcut screenshot' },
@@ -74,6 +77,8 @@ function summary(id: SectionId, s: PublicSettings, usage: UsageReport | null): {
   switch (id) {
     case 'you':
       return { text: [`Otter ${s.showBubble ? 'on' : 'off'}`, `notifications ${s.notifyDone ? 'on' : 'off'}`, ...(s.openAtLogin ? ['opens at login'] : [])].join(' · ') }
+    case 'tiles':
+      return { text: s.myTiles.length ? s.myTiles.map((t) => t.name).join(' · ') : 'Your own one-tap questions' }
     case 'keys': {
       const taken = [s.askHotkey, s.snapHotkey, s.screenHotkey].filter((k) => s.takenHotkeys.includes(k)).length
       return taken ? { text: `${plural(taken, 'shortcut needs', 'shortcuts need')} a change`, warn: true } : { text: `${prettyKey(s.askHotkey)} to ask about highlighted text` }
@@ -224,6 +229,7 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
           </Group>
         </>
       )}
+      {section === 'tiles' && <MyTiles tiles={shown.myTiles} save={(t) => void save('myTiles', t)} />}
       {section === 'keys' && (
         <Group label="Shortcuts">
           {(

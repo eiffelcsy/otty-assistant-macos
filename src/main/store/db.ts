@@ -238,6 +238,23 @@ const MIGRATIONS: string[] = [
   // v10. D-63: the user's latest steering note on a look-up, in their own typed words. It can only narrow the job.
   `
   alter table jobs add column note text;
+  `,
+  // v11. Pebbles, step 1: a chart or drawing the user kept from an answer. Text only, cleared with its chat by hand.
+  `
+  create table pebbles(
+    chat_id text not null,
+    answer_id text not null,
+    idx integer not null,
+    -- 'chart' | 'deck' | 'diagram' | 'picture'
+    kind text not null,
+    title text not null,
+    -- the fence language: 'mermaid' | 'svg' | 'slides'
+    drawing text not null,
+    code text not null,
+    kept integer not null,
+    primary key (answer_id, idx)
+  ) without rowid;
+  create index pebbles_chat on pebbles(chat_id);
   `
 ]
 

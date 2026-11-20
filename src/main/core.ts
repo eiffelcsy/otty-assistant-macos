@@ -15,6 +15,7 @@ import { setLocalOnly } from './net'
 import { activeProfile } from './providers'
 import { MemoryLedger, setLedger, SqliteLedger } from './ledger'
 import { forgetHidden } from './hiddenLines'
+import { MemoryPebbles, SqlitePebbles } from './pebbles'
 import { capStatus } from '../shared/cap'
 import { retentionCutoff } from './store/retention'
 import { forward, tellActivity, tellLogbook, tellSettings } from './notify'
@@ -75,6 +76,28 @@ export function ledger() {
   }
 }
 setLedger(ledger, () => logged())
+
+/** Kept Pebbles, kept like the chats they came from. */
+let savedPebbles: SqlitePebbles | null = null
+const unsavedPebbles = new MemoryPebbles()
+export function pebbles() {
+  if (!settings.getStored().rememberChats) return unsavedPebbles
+  try {
+    return (savedPebbles ??= new SqlitePebbles(database()))
+  } catch (err) {
+    console.error('Could not open kept Pebbles', err)
+    return unsavedPebbles
+  }
+}
+
+/** Keep or put back a Pebble from an answer in the chat on show. Main looks it up, so a window keeps only what's there. */
+export function keepPebble(answerId: string, index: number, keep: boolean): boolean {
+  const found = chat.pebbleAt(answerId, index)
+  if (!found) return false
+  if (keep) pebbles().keep({ ...found.pebble, chatId: found.chatId, answerId, index, kept: Date.now() })
+  else pebbles().drop(answerId, index)
+  return true
+}
 
 /** What Home reads (D-66): the Logbook's sources, and what Home's sentences need besides. */
 export async function homeSources(): Promise<HomeSources> {
@@ -160,6 +183,8 @@ export async function forgetAllChats(): Promise<void> {
   unsavedSent.clear()
   ledger().clear()
   unsavedLedger.clear()
+  pebbles().clear()
+  unsavedPebbles.clear()
   forgetHidden()
 }
 
@@ -171,6 +196,7 @@ export async function deleteChat(id: string): Promise<void> {
   await chatStore().delete(id)
   sentLog().forgetChat(id)
   ledger().forgetChat(id)
+  pebbles().forgetChat(id)
   if (open) forward({ type: 'reset' })
 }
 
@@ -193,6 +219,7 @@ export async function tidyOldChats(): Promise<void> {
     await jobs.prune(cutoff)
     sentLog().prune(cutoff)
     ledger().prune(cutoff)
+    pebbles().prune(cutoff)
   }
 }
 

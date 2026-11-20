@@ -9,7 +9,7 @@ import { Otter } from '../components/Otter'
 import { LanguagePill } from '../components/LanguagePill'
 import { MessageBox } from '../components/MessageBox'
 import { useDraft } from '../lib/useDraft'
-import { actionsForTray, QuickActions, type ActionItem } from '../components/QuickActions'
+import { actionsForTray, QuickActions, withMyTiles, type ActionItem } from '../components/QuickActions'
 import { againOffer } from '../lib/again'
 import { prettyKey } from '../lib/keys'
 import { useAttachments } from '../lib/useAttachments'
@@ -384,17 +384,14 @@ export function Panel() {
 
   const actions =
     settings && !att.reading
-      ? actionsForTray(captures, att.ready, settings.homeLanguage, {
-          app,
-          readsPages: settings.readsPages
-        })
+      ? withMyTiles(actionsForTray(captures, att.ready, settings.homeLanguage, { app, readsPages: settings.readsPages }), settings.myTiles, captures, att.ready, app)
       : []
 
   /** An empty box with captures or attached files runs the first quick action. `tray` false sends the text alone. */
   const send = useCallback(
     (raw: string, tray = true, picked?: ActionItem) => {
       const item = picked ?? (!raw.trim() && tray ? actions[0] : undefined)
-      const text = item ? item.label : raw.trim()
+      const text = item ? (item.prompt ?? item.label) : raw.trim()
       if (!text || busy || att.reading) return
       const files = tray ? att.take().map((f) => f.id) : []
       const sent = tray ? captures : []

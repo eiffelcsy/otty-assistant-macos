@@ -5,7 +5,7 @@ import { explainTerm } from '../llm'
 import { hiddenLines } from '../hiddenLines'
 import { memoryStore } from '../memory'
 import { isSecret } from '../memory/guard'
-import { chat, deleteChat, forgetAllChats, resetChat, stuckOnStep } from '../core'
+import { chat, deleteChat, forgetAllChats, keepPebble, pebbles, resetChat, stuckOnStep } from '../core'
 import { getPanel, getQuick, showPanelByBubble } from '../windows'
 import { BrowserWindow } from 'electron'
 import { handle, on } from './check'
@@ -38,6 +38,9 @@ export function registerChat(): void {
   handle('steps:tick', (_e, answerId: string, index: number, done: boolean) => chat.tickStep(answerId, index, done))
   handle('steps:check', (_e, answerId: string, index: number) => stuckOnStep(answerId, index, true))
   handle('steps:stuck', (_e, answerId: string, index: number) => stuckOnStep(answerId, index))
+
+  handle('pebbles:keep', (_e, answerId: string, index: number, keep: boolean) => keepPebble(answerId, index, keep))
+  handle('pebbles:kept', (_e, answerId: string) => pebbles().keptIn(answerId))
 
   handle('memory:list', () => memoryStore().list())
   handle('memory:add', (_e, text: string) => {

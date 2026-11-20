@@ -88,11 +88,10 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M |
+| D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
 | D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
 | D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
-| D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
 | D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 steps 1–4 built (art) | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
@@ -106,7 +105,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 4. ✅ **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
 5. ✅ **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
 
-Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M, wants its composer spec) and Pebbles step 1 (H, M). D-54 still waits for the OAuth client, and the eval in CI for the key.
+Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M) and Pebbles step 1 (H, M). ✅ All three are built (CHANGELOG, 2026-11-20), with D-37 step 2 and D-38 now that D-71 painted their frames. Next: the Pouch (Pebbles step 2) and the living cove on Home, which has its art. D-54 still waits for the OAuth client, and the eval in CI for the key.
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
@@ -195,7 +194,7 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Smoke test (add to the checklist when it ships).** ✋ A person compares each window at 420 × 580, light and dark, with DESIGN.md's component specs, because pixel fidelity isn't something a spec can assert.
 
 **Where it stands (2026-11-18).** Built: every token, `--muted` renamed to `--text-2` everywhere and gone (no alias was needed), and the components in `styles.css`: button (primary, soft, quiet-style `copy-btn`, warn; small and large), icon button (32 and `--sm` 28, 25% corners), small × (20 visible in a 28 target), switch (Settings toggles), field, row (Recent chats), group (Settings sections), card, header, composer box and keycap. Measured at 420 × 580: header 44, composer 64 (box 44), health line 40, so chrome is 108 px (19%). Answers have no bubble and use the full width; question to answer 8, turn to turn 20. Both tests are in `rules/renderer.test.ts`, with 5 off-scale entries, and fail on a planted bad value. Dark `--text-2` on `--brand-soft` was 4.35:1, so a selected radio row uses `--text`. Smoke passes (137): the new spacing exposed a race in `FindBar`, where an earlier match's wait for the chat to stop gliding pulled the view back after a quick ↵, so a newer jump now cancels it; and the health specs match Allow and Reopen Otty exactly, because the banner's words are now a button that contains them.
-**Not done yet:** tooltip and toast (tooltips are still native `title`s), the header hairline that appears only on scroll, and the reduced-motion fade. D-60 built the *unusual* card, the receipt and a first menu (the used marker); D-61 the group label above its box and rows with inset hairlines. **Checks waiting:** idle CPU with `OTTY_METRICS=1` on a Mac (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8). The baselines landed in their own PR (#65), and the smoke harness's idle spec passes.
+**Since (2026-11-20):** Otty's own tooltip for every `title` (`lib/tooltips.ts`, after 500 ms, then instant for 1.5 s; W11), the header hairline only once scrolled (W6) and the reduced-motion fade (200 ms, nothing moves). **Not done yet:** the toast, left until its first caller (K9's undo toast), so it isn't code nothing uses. D-60 built the *unusual* card, the receipt and a first menu (the used marker); D-61 the group label above its box and rows with inset hairlines. **Checks waiting:** idle CPU with `OTTY_METRICS=1` on a Mac (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8). The baselines landed in their own PR (#65), and the smoke harness's idle spec passes.
 
 ## D-48 · Agents check their own work 🔨 phases 1–2 built
 
@@ -372,20 +371,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - A scaffold command only if two features in a row would have used it.
 
 **Done when.** A fresh agent given only "build D-57 with the feature skill" produces an entry, code and a PR whose every "Done when" line has evidence; `docs/RULES.md` names `EXTENDING.md`'s checklists where they're enforced; the drift test fails on a "Done when" line with no proof.
-
-## D-56 · My own tiles ⏳
-
-**Goal.** People can add their own one-tap actions beside Explain and Summarize: "Make flashcards", "Explain like I'm new to finance", "Reply politely". The first, safest step of building your own feature: a tile is a saved question, so it can do nothing a typed question can't.
-
-**Design.**
-- A tile: `name` (≤ 30 characters), `icon` (from a short list of UIcons), `prompt` (≤ 1,000 characters), and `when` (any capture, text, code, a picture, a table, a file, a page with nothing highlighted; from `shared/captures.ts`'s kinds). At most 12. Saved in `settings.json`, shown after the built-in tiles in the panel and the quick view's tiles.
-- **Make one:** Settings › **My tiles** › Add, or "make me a tile that turns this into flashcards" in a chat, which shows a card with the drafted tile to edit and save. The model drafts; nothing is saved without the user's click.
-- Pressing a tile sends its prompt as the visible question, exactly as if typed: the same `turnNote`, tools and cache rule. No new tool, so no new row in `toolSafety.ts`.
-- Edit, reorder and delete in Settings. Built to work wide.
-
-**Done when.** A saved tile shows only for its kinds of capture and sends its prompt as typed (renderer test and `@step-N`); a drafted tile is saved only from the card's button; 12 is the most, and a too-long name or prompt is refused in main (`settings.test.ts`).
-
----
 
 ## D-67 · Tests that find what people find 🔨 step 1
 
@@ -786,3 +771,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 166. Ask "make a pie chart: rent 1200, food 400, fun 250" → slices in sea, coral and kelp with a thin gap between them, and the legend in grey text. Ask for a bar chart of a CSV → sea-blue bars with quiet axes. Ask "draw how a bill becomes a law" → rounded boxes and soft lines. Ask for 5 slides → the title slide sits on a soft wash with a straw sun, bullets are green dots, a quote slide has a large quote mark, and the page number is a small badge. Check light and dark. ✋ how it looks; `render.test.ts` and `slides.test.ts` cover the settings and the template, and `drawings.smoke.ts` that they still draw.
 167. Drag a few words from Notes onto the otter → its mouth opens while they're over it; drop → one munch, and the Otty window opens beside it with the words as a highlight from Notes. ✋ a drag between two apps is the system's, which Playwright can't make; `Bubble.test.tsx` covers the bubble's side.
 168. Leave Otty alone for 10 minutes → the otter dozes off; hover it → awake. Press and hold it → it catches; let go → one wiggle. Ask something → thinking, then a cheer when the answer lands; with the network off → a head tilt. `OTTY_METRICS=1` stays under 0.5% asleep and awake. ✋ the bubble is its own window, which the specs don't open, and the idle budget needs a real Mac; `Bubble.test.tsx` covers the faces.
+169. Settings › **My tiles** › **Add a tile** → "Flashcards", "Turn this into five flashcards.", Shows for **A file** → Save. The chat's empty box has no Flashcards tile; attach a text file → **Flashcards** shows after the built-in tiles; press it → the question reads "Turn this into five flashcards." and the answer comes.
+170. Ask "make me a tile for polite replies" → the answer ends with a tile card, filled in. Settings › My tiles doesn't have it yet; **Save tile** on the card → "Saved “Reply politely” to My tiles", and it's in Settings, for highlighted text.
+171. Ask "make a pie chart of my month" → the chart's card has **Keep**; press it → **Kept**. Quit and reopen the chat → still Kept; press it → Keep again.
+172. Hover **New chat** in the header → after a moment, Otty's own tooltip "New chat ⌘N" (no system tooltip); move along to the next button → its tooltip shows at once. The line under the header shows only once the chat is scrolled.
+173. Type in the message box → its edge ripples a few pixels and settles; send → a small drop rises from it. With Reduce motion on (System Settings › Accessibility › Display) → nothing moves, and what changes fades. ✋ motion and its feel can't be asserted; `MessageBox.test.tsx` covers the settling and the drop, and the reduced-motion rule is in `styles.css`.
