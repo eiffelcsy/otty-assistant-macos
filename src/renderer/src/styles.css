@@ -51,8 +51,10 @@
   --knob: var(--surface);
 
   --otter-bubble: var(--silver);
-  /* Decoration only, never information: the water the otter floats in on Home (D-66). */
+  /* Decoration only, never information: Today's river line on Home (D-66). */
   --water: rgba(99, 124, 66, 0.12);
+  /* Frosted glass over the cove (D-72): opaque enough that every text role passes 4.5:1 over its darkest patch. */
+  --glass: rgba(253, 252, 249, 0.9);
 
   /* Spacing: a 4px grid. --s-1h is only for the gap between an inline icon and its text. */
   --s-0: 2px;
@@ -150,6 +152,7 @@
     --ok-soft: rgba(140, 155, 106, 0.16);
     --knob: var(--text);
     --water: rgba(140, 155, 106, 0.16);
+    --glass: rgba(42, 37, 38, 0.93);
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3);
     --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 18px -4px rgba(0, 0, 0, 0.45);
     --elev-3: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 40px -8px rgba(0, 0, 0, 0.6);
@@ -792,9 +795,10 @@ html[data-view='bubble'] body {
   overflow-y: auto;
 }
 .home__column {
+  position: relative;
   max-width: 720px;
-  margin: 0 auto;
-  padding: var(--s-6) var(--s-4) var(--s-4);
+  margin: calc(-1 * var(--s-6)) auto 0;
+  padding: 0 var(--s-4) var(--s-4);
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
@@ -806,23 +810,39 @@ html[data-view='bubble'] body {
   text-align: center;
 }
 .home-greeting__otter {
-  position: relative;
-  z-index: 1;
+  display: block;
   padding: 0;
   border: none;
-  border-radius: 50%;
   background: none;
   animation: squish var(--t-settle) var(--buoy);
 }
-.home-greeting__water {
-  width: 220px;
-  height: 22px;
-  margin-top: -18px;
-  border-radius: 50%;
-  background: var(--water);
+/* The cove stays put while Home scrolls over it on glass, easing back as it goes (D-72). */
+.cove.home__cove {
+  position: sticky;
+  top: 0;
+}
+@supports (animation-timeline: scroll()) {
+  /* It has dimmed by the time the greeting reaches the water, so the words stay readable as they cross it. */
+  .home__cove {
+    animation: cove-ease linear both;
+    animation-timeline: scroll();
+    animation-range: 0 calc(var(--cove-h) / 2);
+  }
+  .home__cove .cove__far {
+    animation: cove-far linear both;
+    animation-timeline: scroll();
+    animation-range: 0 var(--cove-h);
+  }
+  .home__cove .cove__near,
+  .home__cove .cove__front,
+  .home__cove .cove__float {
+    animation: cove-near linear both;
+    animation-timeline: scroll();
+    animation-range: 0 var(--cove-h);
+  }
 }
 .home-greeting__hello {
-  margin: var(--s-2) 0 0;
+  margin: 0;
   font-size: var(--fs-heading);
   line-height: var(--lh-heading);
   font-weight: 800;
@@ -842,7 +862,8 @@ html[data-view='bubble'] body {
   padding: 0 var(--s-3) 0 var(--s-2);
   border: none;
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(1.4);
   box-shadow: var(--elev-1);
   display: inline-flex;
   align-items: center;
@@ -881,14 +902,19 @@ html[data-view='bubble'] body {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
   }
-  .home__column {
-    padding-top: var(--s-8);
+  .home .cove {
+    --cove-h: 300px;
+    --horizon: 172px;
+  }
+  .home .cove__otty {
+    width: 200px;
   }
 }
 .home-block {
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: var(--glass);
+  backdrop-filter: blur(24px) saturate(1.4);
   box-shadow: var(--elev-1);
   display: flex;
   flex-direction: column;
@@ -1139,6 +1165,114 @@ html[data-view='bubble'] body {
   100% { transform: none; }
 }
 /* ---------- end Home ---------- */
+
+/* ---------- The living cove (D-72; BRAINSTORM, "The living cove") ----------
+   Painted layers, back to front: the sky and shore, the water, the foreground pieces, then Otty. Shore and water are
+   one painting cut at its horizon (prepare.py), so both are drawn at one width and meet at --horizon. Nothing moves on
+   its own: the otter's float is stepped, and only a scroll moves the layers (Home). Reduced motion holds it all still. */
+.cove {
+  --cove-h: 232px;
+  --horizon: 132px;
+  --paint-w: max(100%, 760px);
+  position: relative;
+  flex: none;
+  height: var(--cove-h);
+  overflow: hidden;
+  isolation: isolate;
+}
+.cove__scene,
+.cove__far,
+.cove__near,
+.cove__front {
+  position: absolute;
+  inset: 0;
+}
+.cove__scene--in {
+  animation: cove-in var(--t-drift) var(--glide) both;
+}
+.cove__shore,
+.cove__water {
+  position: absolute;
+  left: 50%;
+  width: var(--paint-w);
+  max-width: none;
+}
+/* The horizon is 8 px into each half at 1536 wide (prepare.py's FEATHER). */
+.cove__shore {
+  bottom: calc(100% - var(--horizon));
+  transform: translate(-50%, 1.56%);
+}
+.cove__water {
+  top: var(--horizon);
+  transform: translate(-50%, -1.52%);
+}
+.cove__cloud {
+  position: absolute;
+  top: 10%;
+  left: 6%;
+  width: min(44%, 360px);
+  opacity: 0.85;
+}
+.cove__reeds {
+  position: absolute;
+  left: -20px;
+  top: calc(var(--horizon) - 30px);
+  width: 128px;
+}
+.cove__lilypad {
+  position: absolute;
+  right: 12%;
+  top: calc(var(--horizon) + 40px);
+  width: 72px;
+}
+.cove__float {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: calc(var(--horizon) - 48px);
+  translate: -50% 0;
+}
+.cove__otty {
+  display: block;
+  width: 156px;
+  animation: float 6s steps(10) infinite;
+}
+/* The pieces were painted in daylight, so they take the light of the hour they're in. */
+.cove[data-time='night'] :is(.cove__front, .cove__otty) {
+  filter: brightness(0.62) saturate(0.75);
+}
+.cove[data-time='night'] .cove__cloud {
+  opacity: 0.3;
+}
+.cove[data-time='golden'] :is(.cove__front, .cove__otty) {
+  filter: sepia(0.18) saturate(1.1);
+}
+.cove[data-time='dawn'] :is(.cove__front, .cove__otty) {
+  filter: sepia(0.1) hue-rotate(-8deg);
+}
+/* The water ends in the window's own paper, so what comes after sits on plain ground. */
+.cove::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 1;
+  height: 88px;
+  background: linear-gradient(transparent, var(--bg) 80%);
+  pointer-events: none;
+}
+@keyframes cove-in {
+  from { opacity: 0; }
+}
+@keyframes cove-ease {
+  to { opacity: 0.25; }
+}
+@keyframes cove-far {
+  to { transform: translateY(-12px); }
+}
+@keyframes cove-near {
+  to { transform: translateY(-36px); }
+}
+/* ---------- end cove ---------- */
 
 /* Icon button: 32 in the header and composer, 28 (--sm) in rows and answers. */
 .icon-btn {
@@ -1750,14 +1884,19 @@ html[data-view='bubble'] body {
 
 /* empty state */
 .empty {
-  margin: var(--s-6) 0 auto;
+  margin: 0 0 auto;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
+.empty__cove {
+  align-self: stretch;
+  margin: calc(-1 * var(--s-4)) calc(-1 * var(--s-4)) calc(-1 * var(--s-6));
+}
 .empty h2 {
-  margin: var(--s-3) 0 0;
+  position: relative;
+  margin: 0;
   font-size: var(--fs-heading);
   font-weight: 800;
   line-height: var(--lh-heading);

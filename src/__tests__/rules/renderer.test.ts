@@ -23,7 +23,9 @@ describe('CLAUDE.md "Web safety": the renderer never loads anything remote', () 
 
   it('shows only our own pictures: every <img src> is a data: URL or a bundled frame', () => {
     // Reviewed: each of these is a data: URL made in main (snips, thumbnails, drawings) or an imported asset.
-    const OK = new Set(['dataUrl', 'picture.dataUrl', 'file.thumb', 'FRAMES[state]', 'idleBlink', 'view.dataUrl', 'drawn.dataUrl'])
+    const OK = new Set(['dataUrl', 'picture.dataUrl', 'file.thumb', 'FRAMES[state]', 'idleBlink', 'view.dataUrl', 'drawn.dataUrl',
+      // the cove's imported paintings (D-72)
+      'PAINTINGS[t][0]', 'PAINTINGS[t][1]', 'cloud', 'reeds', 'lilypad', 'float'])
     const found = CODE.flatMap((f) =>
       [...withoutComments(read(f)).matchAll(/<img\b[^>]*\bsrc=\{([^}]+)\}/g)].filter((m) => !OK.has(m[1].trim())).map((m) => `${f}  src={${m[1]}}`)
     )
@@ -212,6 +214,25 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
         const ratio = contrast(colour(t[fg], back), back)
         return ratio < 4.5 ? [`${fg} on ${bg}: ${ratio.toFixed(2)}:1`] : []
       })
+      expect(low).toEqual([])
+    })
+  }
+
+  // D-72: the darkest and lightest 32 px patch of each cove painting (measured 2026-11-21 from assets/cove). Light mode
+  // can show any of them; dark mode only the night.
+  const COVE: Record<keyof typeof themes, RGB[]> = {
+    light: [[1, 24, 53], [30, 80, 132], [40, 42, 55], [25, 111, 129], [254, 251, 240], [253, 227, 82]],
+    dark: [[1, 24, 53], [2, 21, 47], [237, 231, 218], [187, 191, 193]]
+  }
+  for (const [name, t] of Object.entries(themes)) {
+    it(`${name}: every text role reaches 4.5:1 on glass over any patch of the cove`, () => {
+      const low = TEXT.flatMap((fg) =>
+        COVE[name as keyof typeof themes].flatMap((under) => {
+          const back = colour(t['--glass'], under)
+          const ratio = contrast(colour(t[fg], back), back)
+          return ratio < 4.5 ? [`${fg} on glass over ${under.join(',')}: ${ratio.toFixed(2)}:1`] : []
+        })
+      )
       expect(low).toEqual([])
     })
   }

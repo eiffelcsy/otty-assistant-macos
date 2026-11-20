@@ -11,8 +11,9 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   reporter: [['list']],
+  // The cove paints the hour (D-72), so the clock's zone is fixed too: every Mac, CI's included, sees the same picture.
   // Small rendering differences between Macs (font hinting, GPU) shouldn't fail; a moved or recoloured card will.
   expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.002, animations: 'disabled', caret: 'hide', scale: 'css' } },
-  use: { baseURL: 'http://localhost:5199', browserName: 'chromium', viewport: { width: 700, height: 760 } },
+  use: { baseURL: 'http://localhost:5199', browserName: 'chromium', viewport: { width: 700, height: 760 }, timezoneId: 'Asia/Singapore' },
   webServer: { command: 'npx vite --config tools/ui-preview/vite.config.mts', cwd: '../../..', url: 'http://localhost:5199', reuseExistingServer: !process.env['CI'] }
 })

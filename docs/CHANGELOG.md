@@ -4,6 +4,12 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The living cove (D-72, 2026-11-21)
+
+- **Otty lives somewhere now.** Home and the empty chat open on a painted cove, one painting for each time of day (dawn from 5, day from 8, golden hour from 17, night from 19), with the full-body Otty floating on its back in the water, a cloud, reeds and a lily pad. Dark mode is the night picture, never an inverted day. One timer waits for the next painting and cross-fades it in; nothing polls and nothing moves on its own but the otter's stepped float.
+- **Glass and parallax on Home:** the cove stays put while Home scrolls over it; the far shore, the water and Otty move at different speeds and the cove dims as the greeting reaches it, all on the scroll's own timeline (no script, nothing while still). Home's blocks are frosted glass the cove shows through, opaque enough that every text role passes 4.5:1 over the darkest and lightest patch of every painting (`rules/renderer.test.ts`). Reduced motion holds it all still.
+- The screenshots' clock is pinned to one time zone, so every Mac sees the same painting.
+
 ### My own tiles, Keep, the capsule and tooltips (2026-11-20)
 
 - **My own tiles** (D-56): Settings › **My tiles** adds up to 12 one-tap questions, each a name, an icon, the words Otty is asked and what it shows for (anything, highlighted text, code, a picture, a table, a file or a web page). They come after the built-in tiles and send their words exactly as if typed, so a tile can do nothing a typed question can't. Ask Otty to "make me a tile for…" and it drafts one on a card; nothing is saved until **Save tile**. Main checks every field (`validTiles`) before saving.

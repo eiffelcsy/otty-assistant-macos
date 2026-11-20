@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { HomeNeed, HomePage, LogControl, Words } from '../../../shared/types'
 import { Icon } from '../components/Icon'
-import { Otter } from '../components/Otter'
+import { Cove, FloatingOtty } from '../components/Cove'
 
 // Home (D-66, Spec 06): the otter, how things stand in one sentence, then only the blocks with something in them.
 // Every word comes from main (`main/home/`); deciding an item sends its Logbook id through the same channels as the
@@ -160,12 +160,13 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
   if (!page) return <div className="home" />
   return (
     <div className="home" role="main" aria-label="Home">
+      <Cove className="home__cove">
+        <button key={squish} className="home-greeting__otter" aria-label="Otty" onClick={() => setSquish((n) => n + 1)}>
+          <FloatingOtty />
+        </button>
+      </Cove>
       <div className="home__column">
         <div className="home-greeting">
-          <button key={squish} className="home-greeting__otter" aria-label="Otty" onClick={() => setSquish((n) => n + 1)}>
-            <Otter state="idle" size={96} />
-          </button>
-          <div className="home-greeting__water" aria-hidden="true" />
           <h1 className="home-greeting__hello">{page.greeting}</h1>
           <p className="home-greeting__status" aria-live="polite">
             {page.status}
