@@ -597,6 +597,22 @@ The plumbing that AUTONOMY.md's "shape to build towards" needs. The pillar for e
 | One core, two shells: everything that isn't the Mac (the loop, tools, jobs, stores, providers, memory, the ledger, `shared/`) as a package with no electron import, behind interfaces the Mac shell and later an iOS shell each implement | H | L (step 1: M) | considering ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)); D-45 did the loop and jobs |
 | Agent-to-agent hand-offs as typed data: a run's result is a Pebble-shaped record with its source attached, so another run, another Otty or an outside agent reads fields, never instructions | H | M | considering, with sub-runs and Pebbles ([Agentic collaboration](#agentic-collaboration-runs-that-work-together)) |
 
+## Efficiency: spending fewer tokens
+
+Research and reasoning in [EFFICIENCY.md](EFFICIENCY.md) (2026-11-20). The bill is mostly cache economics, so measure billed cost and cache rate, never tokens alone, and keep every saving inside the cache rule and AUTONOMY.md's checklist. Numbers in brackets are EFFICIENCY.md's items.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| Cost beside score: keep cached, uncached, cache-write and output tokens apart in `Usage`, per job and per eval case, with the cache hit rate, compared with the baseline (1). Step 0 for everything else here | H | S | considering |
+| Fewer turns: a progress check in `Supervisor` that ends tools after rounds with nothing new, a stub for a page the job already holds, and asking for pages together (3) | H | S | idea, after the cost columns |
+| Thinking per step: `normal` for a job's first round and report, `least` for reading rounds, decided in the runner; check each service's cache hit rate first (5) | M | S | idea, after the cost columns |
+| Recover from "too long": compact once and retry, instead of failing the chat or job (13) | M | S | idea, after the job history view |
+| Job history view: when a job passes a share of `contextTokens`, hide old page bodies behind code-written stubs in one step, keep `JobStore` complete, and keep `isKnownUrl` reading the full steps. Today a job can overflow after about a dozen long pages (2, 8) | H | M | considering, the fix for long jobs |
+| Lighter pages: strip boilerplate in `web.ts` before the 24,000-character cut, and maybe a smaller first read with `from` if the eval shows fewer total tokens (4) | M | S–M | idea |
+| Series remember: a series run starts with a code-written note of the last run's useful addresses and headline, known only because the same series found them (7) | M | S–M | idea, with Look after me |
+| Off-peak looks: scheduled looks with a loose due time prefer a service's cheaper hours, from a dated price fact (9) | M | S–M | idea |
+| A worker model: a cheaper model on the same service for a job's reading rounds, the main one for plan and report, switched only between phases (6) | M | M | idea |
+
 ## Otty's look: a place, not a chat clone
 
 What makes Otty feel expensive and unlike a chat app with an avatar. The design is in DESIGN.md ("Signature moments") and the concept note [The living cove](#the-living-cove). Every row keeps the motion rules: touch is instant, Otty's motion is water, nothing smooth runs while idle (NFR-3), and reduced motion gets a fade.
