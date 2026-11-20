@@ -427,10 +427,10 @@ Otty can only help with what it can see, and most of a person's week lives in ot
 | --- | --- | --- | --- |
 | The connection layer: one `Connection` interface, its token in the Keychain, a sign-in through the browser, its tools in `toolSafety.ts`, and its content tainting the run as private and outside at once | H | M–L | → D-54 (with Google Calendar) |
 | **Google Calendar**, read-only: "what's on tomorrow?", "when am I free on Thursday?", and the material for Look after me's focus list | H | M | → D-54 |
-| **Canvas** (NUS's Canvas first): assignments, due dates and announcements, so "what's due this week?" works and deadlines can feed the focus list. Needs a token or an OAuth developer key from the school (**verify** what NUS allows) | H | M | idea, after D-54 |
-| **Notion**, read-only: search and read pages and databases the user shares with Otty's integration (Notion only shows an integration the pages it's added to) | M | M | idea, after D-54 |
+| **Canvas** (NUS's Canvas first): assignments, due dates and announcements, so "what's due this week?" works and deadlines can feed the focus list. Needs a token or an OAuth developer key from the school (**verify** what NUS allows) | H | M | → D-54 (step 1, pasted token) |
+| **Notion**, read-only: search and read pages and databases the user shares with Otty's integration (Notion only shows an integration the pages it's added to) | M | M | → D-54 (step 2, pasted token) |
 | Apple Calendar and Reminders through EventKit, on the Mac with no account: the same `Connection` shape with a local source. Reminders can already be added | M | M | idea, after D-54; needs the Swift helper |
-| An MCP client for everything else: add a remote MCP server (or a local one) as a connection, with every tool off until the user turns it on, its descriptions treated as outside text, and a changed tool asked about again | H | M–L | idea, after D-54; advanced, off by default |
+| An MCP client for everything else: add a remote MCP server (or a local one) as a connection, with every tool off until the user turns it on, its descriptions treated as outside text, and a changed tool asked about again | H | M–L | → D-54 (step 5); advanced, off by default |
 | Writes, one tool at a time: "add this to my calendar", "append to my Notion page", each behind a card, with the ledger's undo where the service allows it (delete the event Otty made) | H | M | idea, after reads have a record |
 | Connections in What left your Mac: "Sent 4 calendar events to DeepSeek", so moving data from one service to another is as visible as a search | H | S | idea, ships with D-54 |
 | A connection's own limits: which calendars or Notion pages, how far ahead, and a "never send this one to the model" list | M | S | idea, with the second connection |
@@ -483,7 +483,7 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | shipped as D-64 (frame), D-65 (roomy window) and D-66 (Home); goals, Otty noticed and the den later |
 | Phone app: Otty goes with you, one relationship across devices | H | L | considering, after the core split ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)); reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
-| **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | idea; step 1 needs no account, sharing needs the hosted service and sign-in |
+| **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | → D-73 (step 1, local, no account); sharing needs the hosted service and sign-in |
 | Otties that talk to each other: yours finds a meeting time with a colleague's | M | L | idea, the last step of [Otty's own calendar](#ottys-own-calendar-shared-and-multi-person), and an otter-to-otter part of [Raft](#raft-otty-together) |
 
 ## The far horizon: the dream, unconstrained
@@ -606,8 +606,8 @@ What makes Otty feel expensive and unlike a chat app with an avatar. The design 
 | Charts and slides with taste: a categorical palette from the tokens for pies and bars, soft gridlines and rounded bars, a title slide with a wash of the cove, a kicker line, brand-coloured bullets and quote marks, number badges, and two themes (Otty, high contrast) | H | S–M | shipped (D-70), but for the high-contrast theme (next row) |
 | A high-contrast deck theme, picked on the slides card, for projectors and low vision: the same template with `--text` on white and the series at their darkest steps | M | S | idea, from D-70 |
 | **The liquid capsule:** the message box as a drop of water. Its outline is an SVG path whose control points ease towards a resting shape; each key press nudges them (a few px, on touch only), and it settles in `--t-settle`. On send, a drop separates and travels up to the chat. Nothing moves while idle | M | S–M | shipped (2026-11-20); a ✋ check of idle with `OTTY_METRICS=1` still to do |
-| **The living cove, step 1:** a painted cove behind Home and the empty chat, one picture per time of day (dawn, day, golden hour, night), cross-faded on the hour, with the otter floating in an unobstructed hero header above the headline. Painted through `tools/otty-art/`, never generated in CSS | H | M | considering; needs painted sources |
-| **The living cove, step 2:** scroll-driven parallax (the far shore moves slower than the near water) and frosted-glass cards (`backdrop-filter`) that refract the cove as content scrolls over it. On touch only | H | M | idea, after step 1 |
+| **The living cove, step 1:** a painted cove behind Home and the empty chat, one picture per time of day (dawn, day, golden hour, night), cross-faded on the hour, with the otter floating in an unobstructed hero header above the headline. Painted through `tools/otty-art/`, never generated in CSS | H | M | shipped (D-72) |
+| **The living cove, step 2:** scroll-driven parallax (the far shore moves slower than the near water) and frosted-glass cards (`backdrop-filter`) that refract the cove as content scrolls over it. On touch only | H | M | shipped (D-72) |
 | **The living cove, step 3:** the cove follows the weather and season, from the Mac's own time and, if allowed, a coarse location, never sent anywhere | M | M | idea, after step 2 |
 | Answer surfacing through the water line: a new answer rises from just under a soft horizon at the bottom of the chat, rather than appearing (one `--t-settle`, then still) | M | S | idea, pairs with the capsule |
 | Ripples where you touch: a press on the cove or a Pebble sends one ring outwards (`--t-drift`, brief) | L | S | idea |
@@ -891,7 +891,9 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 - Sharing shows exactly who sees what, and stops in one tap.
 - What leaves for sharing is listed in What left your Mac, like everything else.
 
-**Open questions:** end-to-end encryption for shared calendars from the start, or only once there's demand? And should step 1 wait for the roomy Otty window, since a calendar wants room?
+Step 1 is D-73 (2026-11-21), in the roomy window, which now exists.
+
+**Open questions:** end-to-end encryption for shared calendars from the start, or only once there's demand?
 
 ### The living cove
 
@@ -915,7 +917,7 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 
 **The capsule** (the message box as a drop) belongs to the same family: water that answers your touch and settles, never water that moves by itself. See DESIGN.md, "Signature moments".
 
-**Steps:** 1) painted cove and hero on Home (M, needs art); 2) parallax and glass (M); 3) weather and season (M).
+**Steps:** 1) painted cove and hero on Home (M) and 2) parallax and glass (M), ✅ shipped together as D-72; 3) weather and season (M).
 
 ### Pebbles and the Pouch
 
@@ -1027,3 +1029,13 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 | Drag to reorder tiles, beside the up and down buttons | L | S | idea |
 | Kept Pebbles get their title edited on Keep, since the sentence before a drawing isn't always a good name | M | S | idea, with the Pouch |
 | The toast (D-59) arrives with its first caller: Undo after a tile is deleted is a good one | M | S | idea |
+
+## Ideas from building the living cove (2026-11-21)
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| The quiet wash: a chat with content keeps a faint band of the hour's sky at its top, so the cove is still there without costing answers their contrast | M | S | idea, the rest of D-72's concept |
+| The cove as a thin strip in the empty quick view, and behind onboarding's first screen | M | S | idea |
+| Otty paddles when pressed: the float swaps to `float-paddle` for one beat instead of a squish, and dozes (`float-doze`) when Otty is asleep | M | S | idea, art ready |
+| A painted night set for the foreground pieces, instead of dimming the daylight reeds and lily pad with a filter | L | S | idea, through `generate.py` |
+| The greeting crosses the otter while Home scrolls: carry the greeting on the cove (so they leave together) once the hero has its own spec | L | S | idea |
