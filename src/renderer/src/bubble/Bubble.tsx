@@ -26,19 +26,21 @@ export function Bubble() {
   /** Pressed: caught by the pointer, then a wiggle when let go (D-38). */
   const [held, setHeld] = useState(false)
   const [landed, setLanded] = useState(false)
-  const [asleep, setAsleep] = useState(false)
   const [nudged, setNudged] = useState(0)
+  /** What was going on when Otty dozed off: anything new since (a hover, a state) wakes it. */
+  const [sleptAt, setSleptAt] = useState<string | null>(null)
+  const moment = `${state}|${mood}|${held}|${feeding}|${nudged}`
+  const asleep = sleptAt === moment
 
   useEffect(() => window.otty.onBubbleState(setState), [])
   useEffect(() => window.otty.onBubbleBadge(setBadge), [])
   useEffect(() => window.otty.onBubbleMood(setMood), [])
   // A timer reset by anything that happens, never a poll.
   useEffect(() => {
-    setAsleep(false)
     if (state !== 'idle' || mood || held || feeding) return
-    const t = setTimeout(() => setAsleep(true), SLEEP_MS)
+    const t = setTimeout(() => setSleptAt(moment), SLEEP_MS)
     return () => clearTimeout(t)
-  }, [state, mood, held, feeding, nudged])
+  }, [moment, state, mood, held, feeding])
   useEffect(() => {
     if (!munching) return
     const t = setTimeout(() => setMunching(false), MUNCH_MS)

@@ -69,7 +69,7 @@ describe('otter moods (D-38)', () => {
     vi.useFakeTimers()
     const { container } = render(<Bubble />)
     expect(face(container)).toBe('otter--idle')
-    act(() => vi.advanceTimersByTime(SLEEP_MS))
+    act(() => void vi.advanceTimersByTime(SLEEP_MS))
     expect(face(container)).toBe('otter--sleepy')
     fireEvent.pointerEnter(container.querySelector('.bubble')!)
     expect(face(container)).toBe('otter--idle')
