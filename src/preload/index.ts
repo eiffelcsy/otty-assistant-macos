@@ -123,6 +123,7 @@ const api: OttyApi = {
   bubbleMenu: () => ipcRenderer.send('bubble:menu'),
   bubbleDrag: (phase) => ipcRenderer.send('bubble:drag', phase),
   feedOtty: (ids) => ipcRenderer.invoke('bubble:feed', ids),
+  feedOttyText: (text) => ipcRenderer.invoke('bubble:feed-text', text),
 
   // A draft this window typed comes back to every window; this one already has it (D-62).
   onChatEvent: (cb) => listen<ChatEvent>('chat:event', (e) => (e.type === 'draft' && e.from === DRAFTS_FROM ? undefined : cb(e))),

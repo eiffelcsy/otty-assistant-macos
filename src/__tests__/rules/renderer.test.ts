@@ -23,7 +23,7 @@ describe('CLAUDE.md "Web safety": the renderer never loads anything remote', () 
 
   it('shows only our own pictures: every <img src> is a data: URL or a bundled frame', () => {
     // Reviewed: each of these is a data: URL made in main (snips, thumbnails, drawings) or an imported asset.
-    const OK = new Set(['dataUrl', 'picture.dataUrl', 'file.thumb', 'idle', 'idleBlink', 'view.dataUrl', 'drawn.dataUrl'])
+    const OK = new Set(['dataUrl', 'picture.dataUrl', 'file.thumb', 'FRAMES[state]', 'idleBlink', 'view.dataUrl', 'drawn.dataUrl'])
     const found = CODE.flatMap((f) =>
       [...withoutComments(read(f)).matchAll(/<img\b[^>]*\bsrc=\{([^}]+)\}/g)].filter((m) => !OK.has(m[1].trim())).map((m) => `${f}  src={${m[1]}}`)
     )

@@ -160,7 +160,8 @@ export const CHANNELS = {
   'quick:state': { views: ['quick'], args: [record] },
   'bubble:menu': { views: ['bubble'], args: [] },
   'bubble:drag': { views: ['bubble'], args: [oneOf('start', 'end')] },
-  'bubble:feed': { views: ['bubble'], args: [list(id, 5)] }
+  'bubble:feed': { views: ['bubble'], args: [list(id, 5)] },
+  'bubble:feed-text': { views: ['bubble'], args: [text(200_000)] }
 } as const satisfies Record<string, { views: readonly View[]; args: readonly Guard[] }>
 
 export type Channel = keyof typeof CHANNELS

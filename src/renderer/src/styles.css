@@ -262,14 +262,10 @@ kbd {
   user-select: none;
   pointer-events: none;
 }
-/* The eyes-closed frame: flashed for a blink, held for the happy face. */
+/* The eyes-closed frame, flashed for a blink. Every other face is its own painted frame (D-38). */
 .otter-frame--blink {
   opacity: 0;
   animation: blink 5s steps(1, end) infinite;
-}
-.otter--happy .otter-frame--blink {
-  opacity: 1;
-  animation: none;
 }
 .otter-bubbles {
   position: absolute;
@@ -292,9 +288,14 @@ kbd {
   opacity: 1;
   animation: rise 1.6s ease-in-out infinite;
 }
-.otter--happy .otter-body {
+.otter--happy .otter-body,
+.bubble--landed .otter-body {
   animation: wiggle 0.6s ease-in-out 2;
   transform-origin: 50% 90%;
+}
+/* Let go after a drag: one wiggle, not a cheer. */
+.bubble--landed .otter-body {
+  animation-iteration-count: 1;
 }
 
 @keyframes blink {

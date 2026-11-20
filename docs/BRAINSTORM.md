@@ -48,10 +48,10 @@ The five promoted on value per effort are in DEVLOG ("Priority, 2026-11-20").
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | M | considering, part of Otty's den; keepsakes need painted art (re-sized 2026-11-20) |
-| Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | → D-38 |
+| Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | shipped (D-38) |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering, Look after me needs it to speak |
-| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | → D-37 (step 1 shipped; the munch waits for art) |
-| More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
+| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | shipped (D-37) |
+| More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | art ready (D-71 step 1: thinking, oops, listening, wink, cheer, tilt, sleepy, mouth open, munch, catch); thinking, cheer, tilt, sleepy, mouth open, munch and catch are wired (D-38); oops, listening and wink wait for a place to show |
 | A simplified small-size head for the 34px header and quick view, where painted fur gets soft | M | S | idea |
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
 | **Otty's den**: a pet home in the panel with shells, a collection and gentle stats, built on the local `counters` table. See the concept note below | H | M | considering |
@@ -611,6 +611,8 @@ What makes Otty feel expensive and unlike a chat app with an avatar. The design 
 | **The living cove, step 3:** the cove follows the weather and season, from the Mac's own time and, if allowed, a coarse location, never sent anywhere | M | M | idea, after step 2 |
 | Answer surfacing through the water line: a new answer rises from just under a soft horizon at the bottom of the chat, rather than appearing (one `--t-settle`, then still) | M | S | idea, pairs with the capsule |
 | Ripples where you touch: a press on the cove or a Pebble sends one ring outwards (`--t-drift`, brief) | L | S | idea |
+| Reeds that sway as the otter drifts past, and a lily pad that bobs when pressed: the painted pieces (D-71 step 4) moved once, from their base, never while idle | M | S | idea, art ready |
+| Small visitors in the cove, painted through `tools/otty-art/`: a dragonfly at day, fireflies at dusk, a fish ring on the water, each brief and rare, never on a loop | M | S–M | idea |
 | Light that follows the otter: the hero's highlight sits where the otter floats, so cards near it catch a little more light | L | S | idea, after step 1 |
 | The window's edge as a water meniscus: a 1 px inner highlight that thickens slightly at the top, so the floating window reads as a drop of the cove | L | S | idea |
 | Trackpad haptics on armed buttons and a Pebble landing in the Pouch, through the Swift helper (`NSHapticFeedbackManager`) | M | M | idea, after the long-lived Swift helper |

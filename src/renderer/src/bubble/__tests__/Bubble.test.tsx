@@ -2,14 +2,17 @@
 // D-37: files dropped on the otter go to main as ids, which opens a new chat with them.
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Bubble } from '../Bubble'
+import { act } from 'react'
+import { Bubble, SLEEP_MS } from '../Bubble'
 
 const otty = {
   onBubbleState: () => () => {},
   onBubbleBadge: () => () => {},
   onBubbleMood: () => () => {},
   dropFiles: vi.fn(async (files: File[]) => files.map((f, i) => ({ id: `id${i}`, name: f.name }))),
-  feedOtty: vi.fn(async () => {})
+  feedOtty: vi.fn(async () => {}),
+  feedOttyText: vi.fn(async () => {}),
+  bubbleDrag: vi.fn()
 }
 
 beforeEach(() => {
@@ -18,7 +21,10 @@ beforeEach(() => {
 })
 afterEach(cleanup)
 
-const drag = (files: File[]) => ({ dataTransfer: { types: files.length ? ['Files'] : ['text/plain'], files, dropEffect: '' } })
+const drag = (files: File[], text = '') => ({
+  dataTransfer: { types: files.length ? ['Files'] : text ? ['text/plain'] : [], files, dropEffect: '', getData: () => text }
+})
+const face = (c: HTMLElement) => [...c.querySelector('.otter')!.classList].find((n) => n.startsWith('otter--'))
 
 describe('feeding Otty (D-37)', () => {
   it('swells while files are over it, and hands them to main by id on drop', async () => {
@@ -33,7 +39,18 @@ describe('feeding Otty (D-37)', () => {
     expect(otty.dropFiles).toHaveBeenCalledWith([pdf])
   })
 
-  it('ignores dragged text, and a drop main turned away', async () => {
+  it('opens its mouth while something is over it, and munches on the drop', () => {
+    const { container } = render(<Bubble />)
+    const bubble = container.querySelector('.bubble')!
+    fireEvent.dragOver(bubble, drag([], 'a line'))
+    expect(face(container)).toBe('otter--hungry')
+    fireEvent.drop(bubble, drag([], '  a line  '))
+    expect(face(container)).toBe('otter--munch')
+    expect(otty.feedOttyText).toHaveBeenCalledWith('a line')
+    expect(otty.dropFiles).not.toHaveBeenCalled()
+  })
+
+  it('ignores a drag with neither files nor text, and a drop main turned away', async () => {
     const { container } = render(<Bubble />)
     const bubble = container.querySelector('.bubble')!
     fireEvent.dragOver(bubble, drag([]))
@@ -42,5 +59,38 @@ describe('feeding Otty (D-37)', () => {
     fireEvent.drop(bubble, drag([new File(['x'], 'a.txt')]))
     await waitFor(() => expect(otty.dropFiles).toHaveBeenCalled())
     expect(otty.feedOtty).not.toHaveBeenCalled()
+  })
+})
+
+describe('otter moods (D-38)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('dozes off after a quiet spell, and a hover wakes it', () => {
+    vi.useFakeTimers()
+    const { container } = render(<Bubble />)
+    expect(face(container)).toBe('otter--idle')
+    act(() => void vi.advanceTimersByTime(SLEEP_MS))
+    expect(face(container)).toBe('otter--sleepy')
+    fireEvent.pointerEnter(container.querySelector('.bubble')!)
+    expect(face(container)).toBe('otter--idle')
+  })
+
+  it('is caught while pressed, and wiggles once let go', () => {
+    const { container } = render(<Bubble />)
+    const bubble = container.querySelector('.bubble')!
+    bubble.setPointerCapture = () => {}
+    fireEvent.pointerDown(bubble, { button: 0, pointerId: 1 })
+    expect(face(container)).toBe('otter--caught')
+    fireEvent.pointerUp(bubble, { button: 0, pointerId: 1 })
+    expect(face(container)).toBe('otter--idle')
+    expect(bubble.classList.contains('bubble--landed')).toBe(true)
+  })
+
+  it('shows main’s face over its own: a head tilt when an answer fails', () => {
+    let tell: (s: string) => void = () => {}
+    Object.assign(window.otty, { onBubbleState: (cb: (s: string) => void) => ((tell = cb), () => {}) })
+    const { container } = render(<Bubble />)
+    act(() => tell('oops'))
+    expect(face(container)).toBe('otter--oops')
   })
 })

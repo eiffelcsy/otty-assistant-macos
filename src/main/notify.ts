@@ -16,10 +16,10 @@ export function setBadge(on: boolean): void {
   getBubble()?.webContents.send('bubble:badge', on)
 }
 
-/** A short cheer from the otter. */
-export function celebrate(): void {
+/** A short face from the otter, then back to idle: a cheer, or a head tilt when something failed (D-38). */
+export function celebrate(face: 'happy' | 'oops' = 'happy'): void {
   if (happyTimer) clearTimeout(happyTimer)
-  setBubbleState('happy')
+  setBubbleState(face)
   happyTimer = setTimeout(() => setBubbleState('idle'), 2500)
 }
 
@@ -29,12 +29,13 @@ export function forward(e: ChatEvent): void {
   getQuick()?.webContents.send('chat:event', e)
   if (happyTimer) clearTimeout(happyTimer)
   if (e.type === 'start') setBubbleState('thinking')
-  if (e.type === 'error' || e.type === 'reset') setBubbleState('idle')
+  if (e.type === 'reset') setBubbleState('idle')
   if (e.type === 'load') setBubbleState(e.streaming ? 'thinking' : 'idle')
   // The quick view hides when it loses focus, so an answer can finish with nobody looking.
   const seen = getPanel()?.isVisible() || getQuick()?.isVisible()
   if ((e.type === 'done' || e.type === 'error') && !seen) setBadge(true)
   if (e.type === 'done') celebrate()
+  if (e.type === 'error') celebrate('oops')
 }
 
 /** What each job was last time, so a notification fires once, on the change. Null until the first look. */
