@@ -30,7 +30,7 @@ const FINDABLE: { id: string; section: SectionId; title: string; words?: string 
   { id: 'notifyDone', section: 'you', title: 'Tell me when something is ready', words: 'notification alert' },
   { id: 'openAtLogin', section: 'you', title: 'Open Otty when I log in', words: 'startup launch restart' },
   { id: 'homeLanguage', section: 'you', title: 'Help in my own language', words: 'chinese 中文 language' },
-  { id: 'tiles', section: 'tiles', title: 'Add a tile', words: 'button action shortcut prompt my own' },
+  { id: 'tiles', section: 'tiles', title: 'Add a tile', words: 'button action prompt my own' },
   { id: 'askHotkey', section: 'keys', title: 'Ask about highlighted text', words: 'hotkey shortcut key' },
   { id: 'snapHotkey', section: 'keys', title: 'Snip part of the screen', words: 'hotkey shortcut screenshot' },
   { id: 'screenHotkey', section: 'keys', title: 'The whole screen', words: 'hotkey shortcut screenshot' },
