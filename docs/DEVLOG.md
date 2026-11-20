@@ -96,6 +96,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
 | D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 built; step 2 waits for art | step 2: two painted frames (mouth open, munch) | S–M |
 | D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
+| D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 step 1 built | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
@@ -416,6 +417,8 @@ The pattern: specs are written from the feature's happy path, so they test **one
 - **The preview's mock kept only the last chat listener**, so the chat never heard its own reset in the preview, unlike the real preload. Fixed in `mock.ts`; it's the "one fake world" row in BRAINSTORM in miniature.
 Steps 2 and 3 are next when a spec or a bug needs them.
 
+**Where it stands (2026-11-20).** Step 1 is built: the ten expressions are kept in `source/` and cut to `src/renderer/src/assets/otty/` (not wired yet; `Otter.tsx` takes them in D-37 step 2 and D-38). Idle, blink and the icon came out unchanged. Listening took three tries and oops and sleepy two; the tries stay in `tools/otty-art/tries/`, ignored by git.
+
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
 
 
@@ -516,6 +519,23 @@ Steps 2 and 3 are next when a spec or a bug needs them.
 **Design.** Moods are states in `Otter.tsx`, each a few painted frames stepped by CSS (`steps()`), run once or on a slow loop, and paused under `data-asleep`. Main already sends `bubble:state` and `bubble:mood`. Add `sleepy` after idle (a timer reset on any event, not a poll) and `error`. New frames come from `tools/otty-art/source/` through `prepare.py`. Reduce motion turns them into still frames.
 
 **Done when.** Each mood shows on its trigger, and `OTTY_METRICS=1` shows idle under 0.5% of a core with the otter asleep and awake.
+
+## D-71 · Otty's painted set 🔨 step 1
+
+**Goal.** Every picture Otty needs, now and planned, painted in the same hand as today's portrait, so D-37 step 2, D-38 and the living cove stop waiting for art.
+
+**Design.**
+- `tools/otty-art/generate.py` (not shipped) asks OpenAI's image model for new sources, always sending `source/idle.webp` as the style reference, and writes them to `tools/otty-art/source/`. The key comes only from the Keychain (`security find-generic-password -s otty-art-openai`), never a file or the repo. Each asset is a named recipe (prompt, size, references); it never overwrites a source without `--force`, so a kept picture stays kept.
+- Bust frames keep the source framing (1254px square, white background, head centred), so `prepare.py`'s crop, cut-out and blink work unchanged. Every result is reviewed by eye against the idle portrait (same face, fur, palette, framing) and regenerated until it matches.
+- Wider subjects (the cove, the full body) get their own recipe in `prepare.py` when they land.
+
+**Steps.**
+1. The generator, and the bust expressions: thinking, oops, listening, wink, cheer, head tilt, sleepy, mouth open and munch (D-37), catch (W9). (S)
+2. The living cove: dawn, day, golden hour and night, each a sky-and-shore layer and a water layer, under 1.5 MB together. (M)
+3. A full-body Otty floating on its back, painted once and cut into parts (body, head, paws, tail, ripple) that CSS bobs and paddles, plus a few held poses (rolling over, a Pebble on its chest, dozing). Inside the idle budget: brief or stepped motion only. (M)
+4. Later: a simplified small head for 34px, keepsakes, accessories, shells, the paw cursor (D-14).
+
+**Done when (step 1).** `generate.py` makes a named asset from the Keychain key and refuses to overwrite a kept source; each expression is in `source/`, passes review against the idle portrait, and comes out of `prepare.py` as a 512px WebP; LAUNCH_READINESS 12.7 notes the generator's terms.
 
 ## D-25 · Fast and Best: two model slots ⏸ (much later)
 

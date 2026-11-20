@@ -120,8 +120,12 @@ def main() -> None:
     if closed.exists():
         m = eye_mask(idle.shape[:2])
         frames['idle-blink'] = idle * (1 - m) + load(closed.name) * m
+    # Every other source is a bust expression in the same framing (generate.py), cut out against its own background.
+    for f in sorted(SRC.glob('*.webp')):
+        if f.stem not in ('idle', 'idle-eyes-closed'):
+            frames[f.stem] = load(f.name)
     for name, rgb in frames.items():
-        cutout(rgb, bg).save(OUT / f'{name}.webp', quality=88, method=6)
+        cutout(rgb, bg if name.startswith('idle') else background(rgb)).save(OUT / f'{name}.webp', quality=88, method=6)
         print('wrote', (OUT / f'{name}.webp').relative_to(ROOT))
     write_icns(app_icon(cutout(idle, bg, fade_out=False, size=OTTER)))
 
