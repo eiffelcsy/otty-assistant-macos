@@ -75,7 +75,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Key decisions (still true)**
 - Main owns the conversation and the API key. Renderers only see `ChatEvent`s.
-- Explain terms are `[term](#explain)` and tips are `> 💡` blockquotes (see `Markdown.tsx` and `prompts.ts`).
+- Explain terms are `[term](#explain)` and old tips are `> 💡` blockquotes, no longer asked for (D-69; see `Markdown.tsx` and `prompts.ts`).
 - The bubble is a non-activating `type: 'panel'` window, so clicking it keeps the other app's selection.
 - Pictures never touch disk beyond the moment of encoding.
 - **Each request is the previous request, plus its output, plus new messages.** DeepSeek only reuses its cache for an exact match from the first token, so the system prompt depends only on settings, per-turn context goes in `turnNote` at the end of the user message and stays in the history, and `llm.test.ts` guards it byte for byte. The chat shows only the user's words. The one exception is the model's thinking, dropped from earlier replies between turns, which costs little.
@@ -501,13 +501,12 @@ Steps 2 and 3 are next when a spec or a bug needs them.
 - The panel starts a new chat (the same `newChat` as ⌘N), adds the files to the tray (`useAttachments.adopt`), and focuses the box. While the roomy window is open, it comes forward instead.
 - Dragged text is left for step 2: it needs the frontmost app at drop time, which the bubble's drop doesn't know.
 
-**Where it stands (2026-11-20).** Step 1 is built (CHANGELOG, "Feed Otty files"): `Bubble.test.tsx`, `pending.test.ts` and the IPC table cover it, and a real drop from Finder is smoke step 162 (✋).
+**Where it stands (2026-11-20).** Step 1 is built (CHANGELOG, "Feed Otty files"): `Bubble.test.tsx`, `pending.test.ts` and the IPC table cover it, and a real drop from Finder is smoke step 165 (✋).
 
 **Step 2 (needs art).** Two painted frames from `tools/otty-art/` (mouth open while something is over it, one munch on drop), stepped, never looping; dragged text becomes a text capture.
 
 **Done when (step 1).** Dropping a file on the otter calls `dropFiles` then `feedOtty` with the ids (`Bubble.test.tsx`); `bubble:feed` is bubble-only and refuses anything but a short list of ids (`rules/ipc.test.ts` and `check.ts`'s table); unknown ids open nothing (`files.test.ts › pendingFiles`); ✋ a real drop from Finder opens a new chat with the chip, because Playwright can't make a file on disk behind a drop (as step 30).
 
-**Smoke test (add to the checklist when it ships).** ✋ Drag a PDF from Finder onto the otter → it swells while over it; drop → the Otty window opens beside it on a new chat, the PDF's chip reads, and ↵ summarises it. With the roomy window open, it comes forward with the new chat. A drop of six files → five chips and "Otty can take up to 5 files at a time".
 
 ## D-38 · Otter moods ⏳
 

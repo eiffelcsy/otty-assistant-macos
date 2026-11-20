@@ -83,7 +83,7 @@ Don't re-triage what's already assigned.
 
 Keep a short summary and ids in context, and fetch the rest when needed. Give everything an id, and link it to what caused it.
 
-**For Otty:** this suits the cache rule well: recalled content arrives as a tool result, which appends, so nothing already sent changes. D-13's history budget, D-10's `forPrompt` and a `recall` tool over `chat_search` are all this idea. Links also pay off for trust, because they answer **"why did you do that?"**: note → job → trigger → recipe → the chat where you agreed.
+**For Otty:** this suits the cache rule well: recalled content arrives as a tool result, which appends, so nothing already sent changes. D-13's history budget, D-10's `forPrompt` and a `recall` tool over `chat_search` are all this idea. [EFFICIENCY.md](EFFICIENCY.md) covers how to keep a long job's context small without breaking the cache or what Otty counts as known. Links also pay off for trust, because they answer **"why did you do that?"**: note → job → trigger → recipe → the chat where you agreed.
 
 Scope memory by job, too:
 

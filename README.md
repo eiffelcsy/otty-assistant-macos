@@ -8,6 +8,7 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 - **⌥ ⇧ Space** to snap part of your screen and ask about it
 - **⌘ ⌥ ⇧ Space** to capture the whole screen in one press
 - Collect several highlights and snips from different apps into one question ("compare these")
+- **Drop files on the otter** and a new chat opens with them attached
 - Attach PDFs, Word documents, pictures, text files, code and Jupyter notebooks. Keys and passwords in files, highlights and pages are hidden before sending
 - Ask for a diagram, a picture or slides: drawn on your Mac, ready to copy, save as PNG or PDF, or present
 - **Charts from your data:** "chart sales by month" on a CSV or a highlighted table, with every number worked out by Otty, not guessed
@@ -25,7 +26,7 @@ A cute otter AI assistant for macOS. It lives in a floating bubble and at your c
 - Works with DeepSeek, Claude, OpenAI or any OpenAI-style or Anthropic-style server. Models on your Mac are experimental
 - Tools: search the web, read a web page, open links, copy text, add Apple Reminders (side effects always ask first)
 
-Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Dev log](docs/DEVLOG.md) · [Changelog](docs/CHANGELOG.md) · [Brainstorm](docs/BRAINSTORM.md) · [Autonomy direction](docs/AUTONOMY.md) · [Launch readiness](docs/LAUNCH_READINESS.md)
+Docs: [Functional requirements](docs/REQUIREMENTS.md) · [Dev log](docs/DEVLOG.md) · [Changelog](docs/CHANGELOG.md) · [Brainstorm](docs/BRAINSTORM.md) · [Autonomy direction](docs/AUTONOMY.md) · [Launch readiness](docs/LAUNCH_READINESS.md) · [Design](docs/DESIGN.md) · [UX review](docs/UX_REVIEW.md) · [Rules and their checks](docs/RULES.md)
 
 ## Run it (on a Mac)
 
@@ -81,6 +82,6 @@ src/
   main/files/          attachments, read in a utility process
   main/net.ts          the one door out: every request, and "nothing leaves" with a local model
   preload/             window.otty bridge (contextIsolation, sandboxed)
-  renderer/src/        React UI: bubble/, quick/ (ask at the cursor), panel/ (chat, onboarding, settings), pickup/
+  renderer/src/        React UI: bubble/, quick/ (ask at the cursor), frame/ (the window's layout), home/, panel/ (chat, onboarding, settings), pickup/, viewer/, draw/
 tools/                 ui-preview (renderer in a browser), otty-art (painted frames), otty-ocr (text reader)
 ```

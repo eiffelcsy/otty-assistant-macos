@@ -274,9 +274,10 @@ What makes Otty look like Otty and not a chat app with an avatar (BRAINSTORM, "O
 
 | Moment | What the user sees | Rules | Status |
 | --- | --- | --- | --- |
-| **The living cove** | A painted cove behind Home and the empty chat, one picture per time of day, the otter floating in a clear hero header with the greeting, content on frosted glass that the cove shows through, and parallax when scrolling | Painted through `tools/otty-art/`; parallax on `animation-timeline: scroll()` (transforms only, so nothing runs until a scroll); still under `data-asleep` and reduced motion; text 4.5:1 over the brightest picture; a quiet wash, not the full picture, behind a chat with content | Concept note in BRAINSTORM; needs painted sources |
-| **The liquid capsule** | The message box is a drop: typing nudges its outline a few pixels, which settles back over `--t-settle`; sending lets a small drop rise towards the chat and the box settles | An SVG path over the box, eased by one `requestAnimationFrame` loop that runs only while it's settling and stops at rest; no change to the box's layout or hit area; reduced motion keeps a still outline | Idea |
-| **Pebbles landing** | A kept Pebble sinks into the Pouch with `--buoy` and settles among the others | One brief motion per keep; the Pouch never animates on its own | Concept note in BRAINSTORM |
+| **The living cove** | A painted cove behind Home and the empty chat, one picture per time of day, the otter floating in a clear hero header with the greeting, content on frosted glass that the cove shows through, and parallax when scrolling | Painted through `tools/otty-art/`; parallax on `animation-timeline: scroll()` (transforms only, so nothing runs until a scroll); still under `data-asleep` and reduced motion; text 4.5:1 over the brightest picture; a quiet wash, not the full picture, behind a chat with content | Chosen as Otty's look (20 Nov 2026); concept note in BRAINSTORM, drawn in `docs/design/` (v0.6, vector stand-in, with Pebbles as sea glass, the Pouch and a raft); needs painted sources |
+| **The rippling message box** | The message box is a regular rounded glass box: each key press sends a springy ripple round its outline, with the rim lit while it moves; sending lets a small drop rise towards the chat | An SVG path of coupled springs over the box, run by one `requestAnimationFrame` loop only while it moves and stopped at rest; no change to the box's layout or hit area; reduced motion keeps a still outline | Idea |
+| **The pool** | The floating bubble as a small lens of Liquid Glass holding the cove's water at the true hour, Otty floating on its back in it; the window wells up out of the water on springs, with Otty riding the swell to his place in the cove, and drains back as he dives home; state shown by Otty and the water, not badges | A still picture while resting; paddling stepped and only while live; hover, drag, drop and opening one brief motion each; painted water, so no desktop blur; reduced motion fades between states | Concept note in BRAINSTORM, drawn in `docs/design/` (v0.8, with the painted set) |
+| **Pebbles landing** | A kept Pebble, a piece of sea glass, drifts up into the Pouch in the title bar, which takes it with one `--buoy` bob | One brief motion per keep; the Pouch never animates on its own | Concept note in BRAINSTORM |
 | **Charts and slides with taste** | Pies and bars in a calm categorical palette, soft gridlines, rounded bars, a title slide washed with the brand, a kicker line, coloured bullets and big quote marks, number badges | Colours from the tokens (`--chart-1` to `--chart-6`, checked for contrast in both themes); the deck stays self-contained HTML with no scripts and `img-src data:` | D-70 |
 
 The cove and the capsule are the two the owner named first; build the capsule's spec alongside the composer's (M row) and the cove's alongside Home's (L row), so each gets its pixel-level spec first.
@@ -302,7 +303,7 @@ Each row: what triggers it, what the user sees, and why. **Build:** Now (cheap, 
 
 ### B. The floating otter
 
-On screen all day: rich on touch, silent at rest.
+On screen all day: rich on touch, silent at rest. With the living cove, the bubble becomes **the pool** (Signature moments): these rows carry over, shown through Otty and the water instead of a circle.
 
 | ID | Interaction | When | Then | Why | Build | Cost |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -434,7 +435,7 @@ Everything inside an answer.
 | V10 | Export lands | Saving a drawing or deck | Progress, then “Saved to Downloads” with Show. | Closes the loop on files. | Next | brief |
 | V11 | Link host on hover | Hovering a link | A tooltip shows the host in bold, then the path. | Lookalike domains spotted where they’re clicked. | Now | on touch |
 | V12 | Notebook used, quietly | An answer used a note | A small bookmark; hover shows “Used: prefers short answers”. | Folds the usual case away (UX #6). | Next | on touch |
-| V13 | Tip after the answer | A 💡 tip | Surfaces after streaming ends. | Tips never push the answer. | Later | brief |
+| V13 | Tip after the answer | An older chat's 💡 tip | Surfaces after streaming ends. | Tips never push the answer. (New answers have none, D-69.) | Later | brief |
 | V14 | Math result copy | A calculation card | Hover reveals Copy; clicking the sum reveals the steps. | Detail on request. | Later | on touch |
 
 ### K. Confirm cards and safety
