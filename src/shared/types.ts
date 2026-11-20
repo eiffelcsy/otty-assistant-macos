@@ -1,4 +1,5 @@
 import type { ServiceId } from './services'
+import type { MyTile } from './tiles'
 
 // Types shared by main, preload and renderer. Type-only: no runtime code here.
 
@@ -196,6 +197,8 @@ export interface PublicSettings {
   homeUsed: boolean
   /** Only the installed app can be a login item; a development build can't. */
   canOpenAtLogin: boolean
+  /** The user's own tiles (D-56), after the built-in ones. */
+  myTiles: MyTile[]
 }
 
 /** Questions or tokens, never money: a price needs a dated table to be true. */
@@ -279,6 +282,7 @@ export type SettableKey =
   | 'screenHotkey'
   | 'monthlyCap'
   | 'capNoticed'
+  | 'myTiles'
 
 export interface Permissions {
   platform: string
@@ -815,6 +819,10 @@ export interface OttyApi {
   exportDrawing(d: DrawingExport, how: 'copy' | 'png' | 'pdf'): Promise<DrawingResult>
   /** Opens the bigger view: a picture, or slides (full screen when `present`). */
   showDrawing(v: DrawingView): Promise<void>
+  /** Keep (or put back) a chart or drawing from an answer in the chat on show, by its place (Pebbles, step 1). */
+  keepPebble(answerId: string, index: number, keep: boolean): Promise<boolean>
+  /** Which of an answer's Pebbles are kept. */
+  keptPebbles(answerId: string): Promise<number[]>
   /** What the bigger view shows. */
   viewerContent(): Promise<DrawingView | null>
   closeViewer(): Promise<void>

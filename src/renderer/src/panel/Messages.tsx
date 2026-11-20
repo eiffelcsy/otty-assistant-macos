@@ -434,13 +434,13 @@ export function AssistantMessage({
       {m.calc && <CalcCard calc={m.calc} />}
       {m.text && !m.calc && (
         <div className="msg__bubble">
-          <ProofreadContext.Provider value={{ source, done: !m.streaming }}>
+          <ProofreadContext.Provider value={{ source, done: !m.streaming, answer: { id: m.id, charts: m.charts } }}>
             <Markdown text={m.text} language={m.language} />
           </ProofreadContext.Provider>
         </div>
       )}
       {m.charts?.map((c, i) => (
-        <DrawingCard key={i} kind="mermaid" code={c.code} chart={{ table: c.table }} host={{ done: !m.streaming, ask: (text) => ask(text) }} />
+        <DrawingCard key={i} kind="mermaid" code={c.code} chart={{ table: c.table }} host={{ done: !m.streaming, ask: (text) => ask(text) }} pebble={{ answerId: m.id, index: i }} />
       ))}
       {m.steps && <StepCard answerId={m.id} card={m.steps} stuck={!m.streaming} />}
       {m.confirm && <ConfirmCard key={m.confirm.confirmId} {...m.confirm} />}

@@ -89,7 +89,15 @@ describe('one setting at a time (D-61)', () => {
     snapHotkey: ['Alt Shift Space', null],
     screenHotkey: ['Command+Alt+⌘'],
     monthlyCap: [],
-    capNoticed: ['2026-1', 'November', null, 202611]
+    capNoticed: ['2026-1', 'November', null, 202611],
+    myTiles: [
+      null,
+      [{ id: 'a', name: 'x'.repeat(31), icon: 'star', prompt: 'p', when: 'any' }],
+      [{ id: 'a', name: 'Flashcards', icon: 'star', prompt: 'p'.repeat(1001), when: 'any' }],
+      [{ id: 'a', name: 'Flashcards', icon: 'https://x', prompt: 'p', when: 'any' }],
+      [{ id: 'a', name: 'Flashcards', icon: 'star', prompt: 'p', when: 'email' }],
+      Array.from({ length: 13 }, (_, i) => ({ id: `t${i}`, name: 'n', icon: 'star', prompt: 'p', when: 'any' }))
+    ]
   }
   const GOOD: Record<keyof typeof SETTABLE, unknown> = {
     showBubble: false,
@@ -105,7 +113,8 @@ describe('one setting at a time (D-61)', () => {
     snapHotkey: 'Command+4',
     screenHotkey: 'Control+F5',
     monthlyCap: { unit: 'questions', limit: 300 },
-    capNoticed: '2026-11'
+    capNoticed: '2026-11',
+    myTiles: [{ id: 'a', name: 'Make flashcards', icon: 'layers', prompt: 'Turn this into flashcards.', when: 'text' }]
   }
 
   it.each(Object.keys(SETTABLE) as (keyof typeof SETTABLE)[])('%s refuses what isn’t one, and takes what is', (key) => {

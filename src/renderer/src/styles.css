@@ -329,10 +329,12 @@ html[data-asleep] *::after {
   animation-play-state: paused !important;
 }
 
+/* Reduced motion: nothing moves and the otter holds still; what changes fades over 200 ms instead. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
-    transition: none !important;
+    transition-property: opacity, color, background-color, border-color !important;
+    transition-duration: 200ms !important;
   }
 }
 
@@ -412,8 +414,28 @@ html[data-view='bubble'] body {
   gap: var(--s-2);
   height: 44px;
   padding: 0 var(--s-2) 0 var(--s-3);
-  border-bottom: 1px solid var(--hairline);
+  /* W6: the hairline shows only once the content under it has scrolled. */
+  border-bottom: 1px solid transparent;
   background: var(--surface);
+  transition: border-color var(--t-quick) var(--glide);
+}
+.panel__header--scrolled {
+  border-bottom-color: var(--hairline);
+}
+/* Otty's own tooltip (lib/tooltips.ts), for every title. */
+.tooltip {
+  position: fixed;
+  z-index: 100;
+  max-width: 240px;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-xs);
+  background: var(--fur);
+  color: var(--silver);
+  box-shadow: var(--elev-3);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  font-weight: 600;
+  pointer-events: none;
 }
 .panel__title {
   flex: 1;
@@ -1765,11 +1787,45 @@ html[data-view='bubble'] body {
   gap: var(--s-1h);
 }
 .message-box:not(.message-box--bare) {
+  position: relative;
   padding: var(--s-1h);
   border-radius: calc(var(--radius) - var(--s-3));
   background: var(--surface);
   box-shadow: var(--elev-2);
   transition: box-shadow var(--t-quick) var(--glide);
+}
+/* The liquid capsule: an outline over the box's edge, seen only while it settles after a key press. */
+.capsule {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.capsule__line {
+  fill: none;
+  stroke: var(--brand-line);
+  stroke-width: 1.5;
+  opacity: 0;
+}
+/* On send, one drop rises from the top of the box and clears. */
+.capsule__drop {
+  position: absolute;
+  top: calc(-1 * var(--s-1));
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--brand-line);
+  opacity: 0;
+  pointer-events: none;
+  animation: drop-rise var(--t-settle) var(--glide);
+}
+@keyframes drop-rise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0.9; }
+  100% { transform: translateY(-18px) scale(1); opacity: 0; }
 }
 .message-box:not(.message-box--bare):focus-within {
   box-shadow: var(--elev-2), var(--ring);
@@ -2595,6 +2651,29 @@ html[data-view='bubble'] body {
   padding-top: var(--s-2);
   padding-bottom: var(--s-2);
 }
+/* D-56: one tile being written, inside the My tiles group. */
+.tile-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+}
+.tile-edit__icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+.tile-edit__prompt {
+  height: auto;
+  padding: var(--s-2) var(--s-3);
+  resize: vertical;
+}
+.tile-edit__buttons,
+.tile-row__tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-1);
+}
 .set-row__glyph {
   flex: none;
   font-size: var(--i-lg);
@@ -3361,6 +3440,17 @@ html[data-view='pickup'] #root {
 }
 
 /* Proofread card: what changed, marked up by Otty rather than the model. */
+/* D-56: a tile the model drafted, kept only from its Save button. */
+.tile-card {
+  margin: var(--s-1) 0 var(--s-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--r-md);
+  background: var(--bg);
+}
+.tile-card--said {
+  padding: var(--s-3) var(--s-4);
+  color: var(--text-2);
+}
 .fixed-card {
   display: flex;
   flex-direction: column;
@@ -4506,6 +4596,10 @@ button.menu__item:hover {
 }
 .drawing-card__text-btn {
   margin-left: auto;
+}
+/* Pebbles, step 1: a kept drawing says so in the brand colour. */
+.drawing-card__keep--on {
+  color: var(--brand-text);
 }
 .drawing-card__said {
   font-size: var(--fs-meta);

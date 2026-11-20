@@ -201,7 +201,8 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
     ['--text', '--brand-soft', '--surface'],
     ['--brand-text', '--brand-soft', '--bg'],
     ['--brand-ink', '--brand-fill'],
-    ['--danger-ink', '--danger-soft']
+    ['--danger-ink', '--danger-soft'],
+    ['--silver', '--fur']
   ]
 
   for (const [name, t] of Object.entries(themes)) {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Capture, FileAttachment } from '../../../../shared/types'
-import { actionsFor, actionsForTray } from '../QuickActions'
+import { actionsFor, actionsForTray, withMyTiles } from '../QuickActions'
 
 const article = { name: 'Safari', url: 'https://example.com/story' }
 const offered = (page: Parameters<typeof actionsForTray>[3], captures: Capture[] = [], files: FileAttachment[] = []) =>
@@ -62,5 +62,19 @@ describe('code', () => {
     const pdf = { id: 'c', name: 'c.pdf', kind: 'pdf' } as FileAttachment
     expect(actionsForTray([], [py, nb], null).map((a) => a.action)[0]).toBe('explain-code')
     expect(actionsForTray([], [py, pdf], null).map((a) => a.action)[0]).toBe('summarize')
+  })
+})
+
+describe('my own tiles (D-56)', () => {
+  it('come after the built-in ones, and carry their prompt to send as typed', () => {
+    const captures: Capture[] = [{ id: 'c', context: { kind: 'text', text: 'A sentence about otters and rivers.' }, app: null }]
+    const mine = [
+      { id: 'a', name: 'Flashcards', icon: 'layers', prompt: 'Turn this into flashcards.', when: 'text' as const },
+      { id: 'b', name: 'Fix my code', icon: 'bulb', prompt: 'Fix it.', when: 'code' as const }
+    ]
+    const items = withMyTiles(actionsForTray(captures, [], null), mine, captures, [])
+    expect(items[0].action).toBe('explain')
+    expect(items.at(-1)).toEqual({ label: 'Flashcards', icon: 'layers', prompt: 'Turn this into flashcards.' })
+    expect(items.some((i) => i.label === 'Fix my code')).toBe(false)
   })
 })

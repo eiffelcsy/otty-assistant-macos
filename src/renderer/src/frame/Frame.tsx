@@ -75,7 +75,16 @@ export interface FrameProps {
   children: ReactNode
 }
 
+/** W6: whether what's under a header has scrolled, from any scroller inside (scroll events don't bubble, so capture). */
+function useScrolled(screen: unknown): [boolean, (e: React.UIEvent) => void] {
+  // Kept per screen, so a new one starts with no line.
+  const [at, setAt] = useState<{ screen: unknown; scrolled: boolean }>({ screen, scrolled: false })
+  return [at.screen === screen && at.scrolled, (e) => setAt({ screen, scrolled: (e.target as HTMLElement).scrollTop > 0 })]
+}
+
 export function Frame(p: FrameProps) {
+  const [mainScrolled, onMainScroll] = useScrolled(p.place)
+  const [listScrolled, onListScroll] = useScrolled(null)
   const band: Band = bandFor(p.width)
   const cols = columns(p.width, Boolean(p.list))
   const nav = cols.nav === 'sidebar' && p.sidebarHidden ? 'rail' : cols.nav
@@ -83,9 +92,9 @@ export function Frame(p: FrameProps) {
     <div className={`frame frame--${band}${p.roomy ? ' frame--roomy' : ''}`} data-band={band}>
       {nav !== 'none' && <Nav kind={nav} {...p} />}
       {cols.list && p.list && (
-        <section className="frame__list" data-column aria-label="Chats" tabIndex={-1}>
+        <section className="frame__list" data-column aria-label="Chats" tabIndex={-1} onScrollCapture={onListScroll}>
           {/* The header splits at the column line: the list's own title and its one action over it (Spec 05). */}
-          <header className="panel__header frame__list-head">
+          <header className={`panel__header frame__list-head${listScrolled ? ' panel__header--scrolled' : ''}`}>
             <h2 className="panel__title">Chats</h2>
             <button className="icon-btn" title="New chat ⌘N" aria-label="New chat" onClick={p.onNewChat}>
               <Icon name="comment-medical" />
@@ -94,8 +103,8 @@ export function Frame(p: FrameProps) {
           {p.list}
         </section>
       )}
-      <main className="frame__main" data-column tabIndex={-1}>
-        <Header {...p} compact={nav === 'none'} />
+      <main className="frame__main" data-column tabIndex={-1} onScrollCapture={onMainScroll}>
+        <Header {...p} compact={nav === 'none'} scrolled={mainScrolled} />
         {p.notices}
         {p.children}
       </main>
@@ -103,9 +112,9 @@ export function Frame(p: FrameProps) {
   )
 }
 
-function Header(p: FrameProps & { compact: boolean }) {
+function Header(p: FrameProps & { compact: boolean; scrolled: boolean }) {
   return (
-    <header className="panel__header">
+    <header className={`panel__header${p.scrolled ? ' panel__header--scrolled' : ''}`}>
       {p.pushed ? (
         <>
           <button className="icon-btn frame__back" title="Back ⌘[" aria-label="Back" onClick={p.onBack}>

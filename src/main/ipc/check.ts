@@ -1,4 +1,5 @@
 import type { SettableKey, SettingsUpdate } from '../../shared/types'
+import { validTiles } from '../../shared/tiles'
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron'
 
 // D-44: a compromised renderer is what the sandbox is for, so main checks everything a window sends. Each channel
@@ -60,7 +61,8 @@ export const SETTABLE = {
   snapHotkey: hotkey,
   screenHotkey: hotkey,
   monthlyCap: checkedLater,
-  capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x)
+  capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x),
+  myTiles: validTiles
 } as const satisfies Record<SettableKey, Guard>
 
 /**
@@ -113,6 +115,8 @@ export const CHANNELS = {
   'steps:tick': { views: CHAT, args: [id, int(0, 100), bool] },
   'steps:check': { views: CHAT, args: [id, int(0, 100)] },
   'steps:stuck': { views: CHAT, args: [id, int(0, 100)] },
+  'pebbles:keep': { views: CHAT, args: [id, int(0, 100), bool] },
+  'pebbles:kept': { views: CHAT, args: [id] },
   'activity:list': { views: PANEL, args: [] },
   'activity:stop': { views: PANEL, args: [id] },
   'activity:answer': { views: PANEL, args: [id, bool] },

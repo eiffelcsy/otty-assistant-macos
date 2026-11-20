@@ -112,6 +112,8 @@ const api: OttyApi = {
   closePickup: () => ipcRenderer.invoke('pickup:close'),
   exportDrawing: (d, how) => ipcRenderer.invoke('drawing:export', d, how),
   showDrawing: (v) => ipcRenderer.invoke('drawing:show', v),
+  keepPebble: (answerId, index, keep) => ipcRenderer.invoke('pebbles:keep', answerId, index, keep),
+  keptPebbles: (answerId) => ipcRenderer.invoke('pebbles:kept', answerId),
   viewerContent: () => ipcRenderer.invoke('viewer:content'),
   closeViewer: () => ipcRenderer.invoke('viewer:close'),
 

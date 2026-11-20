@@ -1,4 +1,5 @@
-import type { ClipboardEvent, ReactNode, Ref } from 'react'
+import { useState, type ClipboardEvent, type ReactNode, type Ref } from 'react'
+import { Capsule } from './Capsule'
 import { Icon } from './Icon'
 
 // The one message box (D-62, docs/design/specs/03-chat.md): the panel's composer, the quick view's first question and
@@ -36,8 +37,16 @@ interface Props {
 }
 
 export function MessageBox({ value, onChange, onSend, placeholder, label, canSend, busy = false, onStop, tools, extra, noSend, bare, onPaste, onBlur, onArrowUp, paused = false, tray, inputRef }: Props) {
+  // The liquid capsule: key presses nudge the outline, a send lets a drop go. A bare box has no outline of its own.
+  const [nudges, setNudges] = useState(0)
+  const [sends, setSends] = useState(0)
+  const send = () => {
+    if (canSend && !busy) setSends((n) => n + 1)
+    onSend()
+  }
   return (
     <div className={`message-box${bare ? ' message-box--bare' : ''}`}>
+      {!bare && <Capsule nudges={nudges} sends={sends} />}
       {tray}
       <div className="composer__row">
         {tools && (
@@ -61,13 +70,14 @@ export function MessageBox({ value, onChange, onSend, placeholder, label, canSen
           onPaste={onPaste}
           onBlur={onBlur}
           onKeyDown={(e) => {
+            if (e.key.length === 1 || e.key === 'Backspace') setNudges((n) => n + 1)
             if (e.key === 'ArrowUp' && !value && onArrowUp) {
               e.preventDefault()
               onArrowUp()
             }
             if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault()
-              if (!paused) onSend()
+              if (!paused) send()
             }
           }}
         />
@@ -82,7 +92,7 @@ export function MessageBox({ value, onChange, onSend, placeholder, label, canSen
               <Icon name="stop" solid />
             </button>
           ) : (
-            <button className="send-btn" title="Send" aria-label="Send" disabled={!canSend || busy} onClick={onSend}>
+            <button className="send-btn" title="Send" aria-label="Send" disabled={!canSend || busy} onClick={send}>
               <Icon name="arrow-small-up" />
             </button>
           ))}

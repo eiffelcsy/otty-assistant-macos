@@ -4,13 +4,16 @@ import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import 'katex/dist/katex.min.css'
-import type { AnswerLanguage, HomeLanguage, QuickAction } from '../../../shared/types'
+import type { AnswerLanguage, ChartCard, HomeLanguage, QuickAction } from '../../../shared/types'
+import { pebbleIndex } from '../../../shared/pebbles'
 import { stripLineNumbers } from '../../../shared/code'
 import { drawingKind, type DrawingKind } from '../../../shared/drawing'
 import { DrawingCard } from '../draw/DrawingCard'
 import { wordDiff } from '../../../shared/diff'
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { Icon } from '../components/Icon'
+import { draftTile, WHEN_LABELS, type MyTile } from '../../../shared/tiles'
+import { TileEditor } from './settings/Tiles'
 import { closedMath } from '../lib/closedMath'
 import { tidyMath } from '../lib/mathText'
 
@@ -255,7 +258,8 @@ const NUMBER = /^[\s$€£¥+\-−]*[\d.,]+\s*[%kKmM]?$/
 const Cell = ({ children }: { children?: ReactNode }) => <td className={NUMBER.test(textOf(children)) ? 'md-num' : undefined}>{children}</td>
 
 /** What the proofread card compares against: the text the user highlighted, and whether the answer has finished (drawings wait for that too). */
-export const ProofreadContext = createContext<{ source: string; done: boolean }>({ source: '', done: true })
+/** The answer around the text: whether it's finished, the highlight a proofread compares against, and which answer it is (for Pebbles). */
+export const ProofreadContext = createContext<{ source: string; done: boolean; answer?: { id: string; charts?: ChartCard[] } }>({ source: '', done: true })
 
 /** The corrected text from a proofread answer, marked up here so the marks are always true to what changed. */
 function FixedCard({ text }: { text: string }) {
@@ -319,14 +323,36 @@ function CopyableCode({ label, children }: { label: string | null; children?: Re
 
 /** A ```mermaid, ```svg or ```slides block becomes a drawing once the answer has finished. */
 function Drawing({ kind, code }: { kind: DrawingKind; code: string }) {
-  const { done } = useContext(ProofreadContext)
+  const { done, answer } = useContext(ProofreadContext)
+  const { text } = useContext(AnswerContext)
   const ask = useContext(AskContext)
-  return <DrawingCard kind={kind} code={code} host={{ done, ask: (text) => ask(text) }} />
+  const index = answer ? pebbleIndex({ text, charts: answer.charts }, code) : -1
+  return <DrawingCard kind={kind} code={code} host={{ done, ask: (text) => ask(text) }} pebble={answer && index >= 0 ? { answerId: answer.id, index } : undefined} />
+}
+
+/** A ```tile block (D-56): the model's draft of a tile, kept only when the user presses Save. */
+function TileCard({ code }: { code: string }) {
+  const { done } = useContext(ProofreadContext)
+  const [said, setSaid] = useState<string | null>(null)
+  const tile = draftTile(code)
+  if (!done || !tile) return null
+  if (said) return <p className="tile-card tile-card--said">{said}</p>
+  const save = async (t: MyTile) => {
+    const now = await window.otty.getSettings()
+    const next = await window.otty.setSetting('myTiles', [...now.myTiles, t]).catch(() => null)
+    setSaid(next ? `Saved “${t.name}” to My tiles. It shows under ${WHEN_LABELS[t.when].toLowerCase()} you send.` : 'Couldn’t save that tile. Add it in Settings › My tiles.')
+  }
+  return (
+    <div className="tile-card">
+      <TileEditor tile={tile} saveLabel="Save tile" onSave={(t) => void save(t)} />
+    </div>
+  )
 }
 
 function CodeBlock({ children }: { children?: ReactNode }) {
   const code = children as { props?: { className?: string } } | undefined
   if (code?.props?.className === 'language-fixed') return <FixedCard text={textOf(children).replace(/\n$/, '')} />
+  if (code?.props?.className === 'language-tile') return <TileCard code={textOf(children)} />
   const drawing = drawingKind(codeLabel(code?.props?.className))
   if (drawing) return <Drawing kind={drawing} code={textOf(children).replace(/\n$/, '')} />
   return <CopyableCode label={codeLabel(code?.props?.className)}>{children}</CopyableCode>
