@@ -223,6 +223,7 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
 
   // --text-3 is left out on purpose: placeholders and disabled only, never information.
   const TEXT = ['--text', '--heading', '--text-2', '--brand-text', '--straw-ink']
+  const MIST = ['dawn', 'day', 'golden', 'night'].flatMap((h) => [`--mist-top-${h}`, `--mist-bottom-${h}`, `--mist-side-${h}`])
   const PAIRS: [string, string, string?][] = [
     ...TEXT.flatMap((t) => ['--bg', '--surface', '--surface-2'].map((s): [string, string] => [t, s])),
     ...TEXT.map((t): [string, string, string] => [t, '--straw-soft', '--bg']),
@@ -230,7 +231,9 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
     ['--brand-text', '--brand-soft', '--bg'],
     ['--brand-ink', '--brand-fill'],
     ['--danger-ink', '--danger-soft'],
-    ['--silver', '--fur']
+    ['--silver', '--fur'],
+    // Spec 08: the hour's mist under every window, and paper glass over it.
+    ...MIST.flatMap((m) => TEXT.flatMap((t): [string, string, string?][] => [[t, m], [t, '--mist-card', m]]))
   ]
 
   for (const [name, t] of Object.entries(themes)) {

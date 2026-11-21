@@ -25,10 +25,10 @@
      information. Meadow (--brand) is for rings, dots, icons and progress, never text. */
   --text: var(--shadow-ink);
   --heading: var(--fur);
-  --text-2: #6f6458;
+  --text-2: #50473d;
   --text-3: #958a7b;
-  --brand-text: #566d38;
-  --straw-ink: #74613a;
+  --brand-text: #4a5e30;
+  --straw-ink: #5f4c22;
 
   --brand: var(--meadow);
   --brand-fill: #5a7339;
@@ -113,6 +113,32 @@
   --cv-night-hairline: rgba(255, 248, 235, 0.08);
   --cv-night-hairline-strong: rgba(255, 248, 235, 0.14);
   --cv-night-brand-soft: rgba(140, 155, 106, 0.16);
+  /* One cove (Spec 08): every window takes the hour's colours. The mist is paper with a little of the painting in it
+     (sky at the top, water at the bottom, sky at half strength for the nav and list column), averaged from the
+     painting by Spec 08's script; `data-time` on the root picks the hour (main.tsx). Text roles pass 4.5:1 on each,
+     and on --mist-card over each (rules/renderer.test.ts). */
+  --mist-top-dawn: #ebe7e5;
+  --mist-bottom-dawn: #e6e3e0;
+  --mist-side-dawn: #efece8;
+  --mist-top-day: #e8ece9;
+  --mist-bottom-day: #e3e7e1;
+  --mist-side-day: #eeefe9;
+  --mist-top-golden: #f1e5d7;
+  --mist-bottom-golden: #e5dcd1;
+  --mist-side-golden: #f3ebe0;
+  --mist-top-night: #dddedc;
+  --mist-bottom-night: #dededc;
+  --mist-side-night: #e9e7e3;
+  --mist-top: var(--mist-top-day);
+  --mist-bottom: var(--mist-bottom-day);
+  --mist-side: var(--mist-side-day);
+  /* Paper glass: cards, groups, fields and the message box on the mist. Its fill, a field's, and its edge (a lit
+     rim and a soft lift in one shadow, so no ::before is needed); floating things (menus, popovers) are solid
+     --surface with the float lift. */
+  --mist-card: rgba(255, 255, 255, 0.62);
+  --mist-field: rgba(255, 255, 255, 0.5);
+  --glass-lift: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 0.5px rgba(58, 49, 50, 0.08), 0 2px 6px -2px rgba(30, 34, 40, 0.14), 0 12px 28px -14px rgba(30, 34, 40, 0.18);
+  --glass-lift-float: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 0 0.5px rgba(58, 49, 50, 0.1), 0 4px 12px -4px rgba(30, 34, 40, 0.18), 0 24px 48px -16px rgba(30, 34, 40, 0.3);
 
   /* Spacing: a 4px grid. --s-1h is only for the gap between an inline icon and its text. */
   --s-0: 2px;
@@ -191,10 +217,10 @@
     --hairline-strong: rgba(255, 248, 235, 0.14);
     --text: #e6e3dc;
     --heading: #f5f2ec;
-    --text-2: #a89c86;
+    --text-2: #bcb29c;
     --text-3: #857a68;
-    --brand-text: #a3b37f;
-    --straw-ink: #d4c49c;
+    --brand-text: #b0bf8c;
+    --straw-ink: #d9caa2;
     --brand: #a3b37f;
     --brand-fill: #a3b37f;
     --chart-1: #3f8cc4;
@@ -217,6 +243,46 @@
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3);
     --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 18px -4px rgba(0, 0, 0, 0.45);
     --elev-3: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 40px -8px rgba(0, 0, 0, 0.6);
+    --mist-top-dawn: #39353c;
+    --mist-bottom-dawn: #333035;
+    --mist-side-dawn: #2c292c;
+    --mist-top-day: #363c40;
+    --mist-bottom-day: #2f3636;
+    --mist-side-day: #2b2c2f;
+    --mist-top-golden: #423329;
+    --mist-bottom-golden: #322822;
+    --mist-side-golden: #302823;
+    --mist-top-night: #1c2029;
+    --mist-bottom-night: #1d2129;
+    --mist-side-night: #1e1e23;
+    --mist-card: rgba(255, 248, 235, 0.05);
+    --mist-field: rgba(0, 0, 0, 0.16);
+    --glass-lift: inset 0 1px 0 rgba(255, 250, 240, 0.1), inset 0 0 0 1px rgba(255, 250, 240, 0.05), 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 2px 6px -2px rgba(0, 0, 0, 0.45), 0 12px 28px -14px rgba(0, 0, 0, 0.5);
+    --glass-lift-float: inset 0 1px 0 rgba(255, 250, 240, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.4), 0 4px 12px -4px rgba(0, 0, 0, 0.5), 0 24px 48px -16px rgba(0, 0, 0, 0.65);
+  }
+}
+
+/* One cove (Spec 08): the hour's mist, picked by `data-time` on the root (main.tsx sets it from the cove's clock). */
+:root[data-time='dawn'] {
+  --mist-top: var(--mist-top-dawn);
+  --mist-bottom: var(--mist-bottom-dawn);
+  --mist-side: var(--mist-side-dawn);
+}
+:root[data-time='golden'] {
+  --mist-top: var(--mist-top-golden);
+  --mist-bottom: var(--mist-bottom-golden);
+  --mist-side: var(--mist-side-golden);
+}
+:root[data-time='night'] {
+  --mist-top: var(--mist-top-night);
+  --mist-bottom: var(--mist-bottom-night);
+  --mist-side: var(--mist-side-night);
+}
+/* Reduce transparency and Increase contrast: paper glass turns solid, as the cove's glass does (Spec 07, Part 5). */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root {
+    --mist-card: var(--surface);
+    --mist-field: var(--bg);
   }
 }
 
