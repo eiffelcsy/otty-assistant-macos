@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, Memory, PanelOpenPayload, PendingFile, PublicSettings } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
+import { Cove } from '../components/Cove'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { LanguagePill } from '../components/LanguagePill'
@@ -792,7 +793,7 @@ function EmptyState({ settings, known, app, onSuggest }: { settings: PublicSetti
   const suggestions = suggestionsFor(app, settings.learn, settings.readsPages, known).slice(0, 3)
   return (
     <div className="empty">
-      <Otter state="idle" size={88} />
+      <Cove className="empty__cove" />
       <h2>Hi, I’m Otty</h2>
       <p>
         Highlight anything and press <kbd>{prettyKey(settings.askHotkey)}</kbd>, or just ask below.

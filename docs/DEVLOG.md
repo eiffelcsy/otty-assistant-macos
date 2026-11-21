@@ -88,15 +88,24 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
+| D-55 | The dev harness: `EXTENDING.md`, a `feature` skill and protocol for any scope, checkable "Done when" lines, and the extension points "build your own feature" reuses | ⏳ next | D-48 | M |
+| D-54 | Connections: one layer for APIs and MCP; Canvas and Notion by pasted token, Google Calendar by OAuth, then the MCP client | ⏳ next (step 1 needs no owner decision) | D-52; an OAuth client for Google (owner) | L (step 1: M) |
+| D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ planned | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
-| D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
-| D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
 | D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 steps 1–4 built (art) | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
+
+**Priority (2026-11-21): the place, the reach, the kit, the calendar.** The owner named four next, ahead of the BRAINSTORM score. Each was checked against the vision (alive, a place not a chat clone, trust as the ceiling, autonomy grown with undo) and the rest of the roadmap re-ordered around them:
+1. ✅ **D-72 The living cove** (H, M; CHANGELOG). The art was painted (D-71), so nothing blocked it, and it's the clearest answer to "a place, not a chat clone". Steps 1–2 (cove, hero, glass, parallax) shipped together; step 3, weather and season, and the quiet wash behind a chat with content stay in BRAINSTORM.
+2. **D-55 The dev harness** (H, M). Moved ahead of connections because both later items are built with it: a connection, a calendar and a user's own feature are each a set of extension points. Its scope widens from "the feature kit" to any feature (skills, the protocol, the checklists), and its extension-point map is the one "build your own feature" will expose in its safe subset.
+3. **D-54 Connections** (H, L). Re-planned so step 1 needs no owner decision: the layer, then **Canvas** (NUS) and **Notion** with a pasted token (both allow personal tokens; **verify** NUS's Canvas policy), read-only. Google Calendar follows once the OAuth client exists, then the MCP client for the long tail, every tool off until turned on. Fits AUTONOMY: reads first, taint both ways, every read in What left your Mac.
+4. **D-73 Otty's calendar, step 1** (H, M). Local only, in `otty.db`, nothing leaves the Mac; the first place Otty can *do, with undo* for real. UI and UX first: it's a screen in the roomy window, specced to DESIGN's polish bar before it's built. Overlaying Google Calendar waits for D-54.
+
+**Re-assessed around them.** Kept next, after the four: the Pouch (Pebbles step 2, H/M; it sits on the cove's sand, so it follows D-72), D-67 steps 2–3 when a spec needs them, the toast with its first caller. Moved later: D-48 phase 3 (near the beta, unchanged), recipes (wait for D-54 and D-55, which they combine), Raft and agentic collaboration (need the hosted service). Unchanged: D-1 later, D-14 and D-25 parked. Blocked, still high: the eval in CI (the owner's key).
 
 **Priority (2026-11-20): Otty, not a chat clone.** The owner's new list (BRAINSTORM: "Otty's look", "Making things", "Together", TOON, the iOS core, and smaller fixes from use) is planned in BRAINSTORM, and every row in BRAINSTORM and this roadmap was re-scored against the updated vision (BRAINSTORM, "Re-score, 2026-11-20"). The best value per effort, among what nothing blocks:
 1. ✅ (step 1) **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
@@ -342,9 +351,25 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
-## D-54 · Connections v1: the layer, and Google Calendar ⏳
+## D-73 · Otty's calendar, step 1: a local calendar, UI first ⏳
 
-**Goal.** Otty can read the user's Google Calendar when asked ("what's on tomorrow?", "when am I free Thursday afternoon?"), through a connection layer that Canvas, Notion, EventKit and MCP servers will reuse. Read-only. The design and its reasons are in BRAINSTORM's concept note, [Connections](BRAINSTORM.md#connections-apis-and-mcp-behind-one-door).
+**Goal.** A calendar that belongs to Otty, in the roomy window: the user sees their week, adds and moves events, and asks Otty to plan ("block two hours for the essay before Thursday"), every change Otty makes undoable from the Logbook. Nothing leaves the Mac. The concept, and the later steps (overlay, sharing, otters agreeing a time), are in BRAINSTORM's [Otty's own calendar](BRAINSTORM.md#ottys-own-calendar-shared-and-multi-person).
+
+**Spec first (UI/UX is the point).** A screen spec, `docs/design/specs/07-calendar.md`, to DESIGN's polish bar before any code: a week view at wide and roomy widths, a day list at the floating window's width (the frame's bands decide, never a measurement), the empty week, an event's card, adding by typing a time into the row, moving by drag with a keyboard path, today's line, and how an event Otty proposed looks before it's accepted. The cove's quiet wash or a time-of-day tint in its header, so it reads as Otty's place. Every state gets a ui-preview scene.
+
+**Design.**
+- Data: an `events` table in `otty.db` (a new migration): id, title, start, end, all-day, notes, `made_by` (`you` or `otty`), and the chat it came from. Main owns it behind an `EventStore` (SQLite and memory, as `ChatStore`).
+- IPC: `calendar:week`, `calendar:save`, `calendar:remove`, each in `CHANNELS` with guards; the renderer sends ids and fields, never SQL.
+- A tool, `plan_event` (row in `toolSafety.ts` first: changes something, sends nothing), behind a confirm card, writing a ledger row whose undo removes the event. Not in `JOB_TOOLS` in step 1.
+- A screen in the frame (`NAV` gains Calendar, `⌘4`), and Home's Today shows today's events.
+
+**Steps.** 1) The spec and its preview scenes (S–M). 2) The store, migration and IPC (S–M). 3) The screen (M). 4) `plan_event` with its card, ledger and an eval case (S–M).
+
+**Done when.** The spec's every state has a scene in `npm run screens`; adding, moving and removing an event persist across a relaunch (smoke); "block two hours before Thursday" shows a card and, once accepted, the event, and Undo in the Logbook removes it (smoke, `ledger` test); nothing about events reaches What left your Mac unless a question carried them (`sent` test).
+
+## D-54 · Connections: one layer, then Canvas, Notion, Google Calendar and MCP ⏳
+
+**Goal.** Otty can read the user's other apps when asked ("what's due this week?" from Canvas, "what did I write about X?" from Notion, "what's on tomorrow?" from Google Calendar), through one connection layer that EventKit and MCP servers reuse. Read-only first; writes come one tool at a time behind cards. **Re-planned 2026-11-21:** Canvas and Notion go first, by pasted token, so step 1 waits on no owner decision; Google Calendar follows when the OAuth client exists. The design and its reasons are in BRAINSTORM's concept note, [Connections](BRAINSTORM.md#connections-apis-and-mcp-behind-one-door).
 
 **Owner decisions first:** a Google Cloud project with an OAuth client for a desktop app; whether to go through Google's verification for the `calendar.readonly` scope now or stay in testing mode (up to 100 named test users, **verify**) for the beta.
 
@@ -356,18 +381,23 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - **UI:** Settings › **Connections**: Connect Google Calendar → browser → back to a card that says what Otty can read and that it can't change anything. Per connection: which calendars, and **Disconnect** (revokes at Google, deletes the token). Built to work wide, for the roomy Otty window later.
 - **Attack tests first:** eval cases with an invite whose title or location gives instructions (search for something private, open a link, remember something), and `runGuards` tests for the taint. The smoke world fakes Google's OAuth and Calendar endpoints.
 
-**Steps.** 1) The layer, the Keychain store, OAuth and the fake world (M). 2) Google Calendar's two tools, taint and sent rows (S–M). 3) Settings › Connections (S–M). 4) Eval cases and smoke steps (S).
+- **Pasted tokens** (Canvas personal access token with its school's address, Notion internal integration token): kept in the Keychain like OAuth tokens, shown once as dots, and checked with one read before they're saved. Canvas tools: `canvas_due` (assignments due in a range, at most 30) and `canvas_announcements` (latest, at most 10). Notion: `notion_search` and `notion_page` (text only, at most a page's first 4,000 words), reading only what the user shared with the integration.
+- **MCP client** (last): a server is a connection whose tools come from it; each starts off, its description is outside text, and its schema is pinned when turned on, so a change asks again.
+
+**Steps.** 1) The layer, the Keychain store and the fake world, with Canvas by pasted token (M). 2) Notion by pasted token (S–M). 3) Settings › Connections (S–M). 4) OAuth and Google Calendar's two tools, when the owner's client exists (S–M). 5) The MCP client (M–L). Eval cases and smoke steps ship with each step.
 
 **Done when.** Connecting, asking "what's on tomorrow?" and disconnecting work against the fake world in smoke; an invite with instructions in its title is answered as data (eval); a search after reading the calendar shows the card (`runGuards.test.ts`); the token is never in `settings.json` or the renderer (`preload.test.ts`, `settings.test.ts`); with a model on this Mac the tools aren't offered.
 
-## D-55 · The feature kit ⏳
+## D-55 · The dev harness ⏳
 
-**Goal.** Any new feature, from BRAINSTORM row to green PR, starts right: an entry with checkable "Done when" lines, every extension point it touches named with its checklist, and the rules met before the logic is written. The owner's "dev harness"; it's also the map that "build your own feature" (D-56, then recipes) reuses for its safe subset.
+**Goal.** Any new feature, of any size, from BRAINSTORM row to green PR, starts right and follows one protocol: an entry with checkable "Done when" lines, every extension point it touches named with its checklist, and the rules met before the logic is written. The owner's "dev harness"; it's also the map that "build your own feature" (D-56, then recipes) reuses for its safe subset.
 
 **Design.**
 - `docs/EXTENDING.md`: one section per extension point, each with where it lives, what must come first and its test. Tools (the `toolSafety.ts` row, a card if it changes anything, ledger, `SentTag`, an eval case), IPC channels (`CHANNELS` and guards, the preload, `api.d.ts`), cards in answers (`Markdown.tsx`, `prompts.ts`, a UI preview scene), settings (`settings.ts`, `PublicSettings`, the Settings view), migrations (`store/db.ts`), jobs, connections (D-54), smoke steps and specs.
 - A `feature` skill (`.claude/skills/feature/`): take a named BRAINSTORM row, or the top unblocked one, write the DEVLOG entry, list the extension points, then build with `verify:quick` as it goes, and hand over to `ship`. Each "Done when" line names its proof: a test name, `@step-N` or ✋ with a reason.
 - A check in `rules/docsDrift.test.ts`: every "Done when" of a 🔨 entry names a test, a smoke tag or a ✋.
+- **The protocol**, written once in the skill: plan (entry, extension points, Done-when proofs) → spec (DESIGN's polish bar for anything on screen, a ui-preview scene per state) → build in small commits with `verify:quick` → `verify` and smoke → `ship`. A feature too big for one PR splits into steps, each with its own Done when.
+- **Room for later:** each extension point in `EXTENDING.md` says whether a person's own feature may use it (tiles yes; recipes with read-only job tools; anything that runs code, no), so "build your own feature" reads its safe subset from the same map.
 - A scaffold command only if two features in a row would have used it.
 
 **Done when.** A fresh agent given only "build D-57 with the feature skill" produces an entry, code and a PR whose every "Done when" line has evidence; `docs/RULES.md` names `EXTENDING.md`'s checklists where they're enforced; the drift test fails on a "Done when" line with no proof.
@@ -776,3 +806,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 171. Ask "make a pie chart of my month" → the chart's card has **Keep**; press it → **Kept**. Quit and reopen the chat → still Kept; press it → Keep again.
 172. Hover **New chat** in the header → after a moment, Otty's own tooltip "New chat ⌘N" (no system tooltip); move along to the next button → its tooltip shows at once. The line under the header shows only once the chat is scrolled.
 173. Type in the message box → its edge ripples a few pixels and settles; send → a small drop rises from it. With Reduce motion on (System Settings › Accessibility › Display) → nothing moves, and what changes fades. ✋ motion and its feel can't be asserted; `MessageBox.test.tsx` covers the settling and the drop, and the reduced-motion rule is in `styles.css`.
+174. Open the empty chat, then Home (**⌘1**) → a painted cove with Otty floating on its back: the morning, day, golden-hour or night painting by the Mac's clock, and night whenever the Mac is in dark mode. Scroll Home → the cards slide over the cove on frosted glass and the cove dims and eases back. ✋ also by hand: the cross-fade on the hour, the parallax's feel, and still under Reduce motion.
