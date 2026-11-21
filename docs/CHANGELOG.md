@@ -4,6 +4,35 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The cove keeps the hour, a smoother Expand, a calmer click (2026-11-21)
+
+- **Dark glass you can see through:** a lighter frost (6 px blur, the painting's own colour) and a tint close to the moving panel's look, so the cove shows through instead of grey. Both glasses are now held to 3.5:1 contrast instead of 4.5:1, so light glass is thinner too (day 17% white, from 46%).
+- **Fixed: the floating panel could ignore clicks after Shrink**, letting them through to the app behind. The move no longer switches the window's click-through.
+- **Fixed: with Reduce transparency or Increase contrast in dark mode by day, the greeting sat on a dark disc** in dark words. Its solid halo now follows the painting, as the words do. The screenshots also pin those settings off, since CI's Mac has one on.
+- **Fixed: the warning banner above the empty chat lost its words in dark mode by day** (light text on the bright sky): on the cove it's glass now, like the cards.
+- **Fixed: a sideways scrollbar on the empty chat and Home** at the floating window's own width: the greeting's halo reached past the window. It's clipped at the screen's edge now.
+- **Double-clicking the floating window's header no longer zooms it** (macOS's own resize, which left it floating over everything); Expand is the way to grow it. The roomy window zooms as any Mac window does.
+- **Fixed: Expand could stop working after a Shrink**, leaving the glass unfrosted: the stand-in picture waited for a frame in a hidden window, which never comes. It no longer waits on frames, and gets 250 ms before the move goes on without it.
+- **Dark mode no longer means night.** The cove paints the hour on the Mac's clock in either appearance; dark mode gives its cards dark glass, while the greeting keeps the painting's own ink and halo (a white halo on a day sky), and the night is dark glass in light mode too. Each dark-mode painting's glass is measured like the rest (`rules/renderer.test.ts`).
+- **Expand and Shrink glide without the wobble.** Resizing the window on every frame made its edges shake, so now the window resizes only twice: it jumps once to an invisible area covering both places, the panel grows from one place to the other over 720 ms with its content reflowing as it goes, and the window lands. Where the window's corner has to move, a picture of the panel stands in for the few frames it's hidden, so it never blinks; the picture's window is ready before the first move, and a late picture is dropped rather than flashed. The window is no longer hidden by turning it transparent, which made macOS show it for a frame at its old corner (a second panel at the screen's corner). The window re-renders only when its layout changes. **No more flashing the app behind.** Otty stays a background-only app in both states, with no Dock icon: the roomy window's Dock icon came from switching the app's kind (Electron's Dock calls, and its workspace setting, which switches unless told not to), and every switch handed the focus to the app behind. The roomy window keeps its own keys; it loses the menu bar and ⌘Tab. Otty also leaves the floating level only once it has focus. Pressing again mid-move queues the way back.
+- **Clicking the bubble doesn't startle Otty.** The caught frame (paws up) is for being carried: it shows once a press moves, and the wiggle follows only a real drop.
+
+### The cove, full bleed (D-74, 2026-11-21)
+
+- **Otty's place fills the window.** On Home and the empty chat the painted cove now runs behind the whole screen, under the header and the message box, as the design drew it: the date and greeting on the sky, Otty floating *in* the water at its waterline with a soft reflection, and every card, the header and the message box on clear glass that the cove shows through. It was a picture strip over a plain page.
+- **Clear glass that stays readable, by measurement.** The glass flattens and lifts what's behind it, so its tint stays thin: 34–54% see-through by day, 74% on the night lake. A rule test models it on each painting and fails both when text drops under 4.5:1 and when the glass is thicker than it needs to be, so it can't drift back to opaque (`prepare.py --patches` re-measures a painting).
+- **The night is dark glass, whatever the Mac's appearance**, and the greeting gets a halo only as strong as each painting needs (stronger at golden hour, where the far hills sit behind the words). The header frosts as the greeting scrolls away.
+- **A chat with content keeps the cove behind its header only**, so answers sit on the plain page (the quiet wash).
+- Reduce transparency and Increase contrast give solid cards and header. Home's date comes from main with its other words.
+
+### Motion that answers you (2026-11-21)
+
+- **Motion where CSS can't go.** The `motion` library (lazy `m.*` components, tokens shared with `styles.css`) now does exits, gliding to a new place and following the pointer; CSS keeps everything it does for free (DESIGN.md, "CSS or Motion"). Nothing new runs while idle, and a rule test refuses a repeating Motion animation.
+- **The frame moves with you** (W4, W5, W13): going deeper glides in from the right, Back from the left, any other move surfaces; the chat keeps its scroll. The selected item's card glides along the rail or sidebar, down to Settings. The header's title surfaces as the screen changes, and the compact screen menu grows from its button and ebbs away.
+- **Home arrives in reading order** (the greeting, then each block, 60 ms apart). Deciding a Needs-you item lets it ebb while the rest glide up and the next opens in place, and a block that empties ebbs while its neighbours close the gap.
+- **The cove answers touch:** the first cove of a window settles in (the reeds and lily pad, then Otty on the buoy curve); the painting's layers lean away from the pointer by their depth on a slow, damped follow; and pressing the water, or Otty, spreads two rings across it.
+- The thinking line ebbs before the next step surfaces (S2), and the **EN | 中** highlight slides between the two (M8).
+
 ### The living cove (D-72, 2026-11-21)
 
 - **Otty lives somewhere now.** Home and the empty chat open on a painted cove, one painting for each time of day (dawn from 5, day from 8, golden hour from 17, night from 19), with the full-body Otty floating on its back in the water, a cloud, reeds and a lily pad. Dark mode is the night picture, never an inverted day. One timer waits for the next painting and cross-fades it in; nothing polls and nothing moves on its own but the otter's stepped float.

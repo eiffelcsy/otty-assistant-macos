@@ -48,14 +48,21 @@ test('a look-up waiting on a page: Home says one thing needs you, Read it reads 
   await expect(home.getByText(/left your Mac/)).toBeVisible()
 })
 
-test('the living cove: Home and the empty chat show the painting for the hour, every layer drawn, and Otty on the water', { tag: ['@step-174'] }, async ({ otty }) => {
+test('the living cove: Home and the empty chat show the painting for the hour full bleed, every layer drawn, and Otty on the water', { tag: ['@step-174'] }, async ({ otty }) => {
   const panel = await otty.openPanel()
-  const coveIn = async (where: Locator) => {
-    const cove = where.locator('.cove')
+  // The cove is the frame's backdrop (D-74): it fills the main column, behind the header, and Otty is in the screen's hero.
+  const coveIn = async (screen: Locator) => {
+    const cove = panel.locator('.frame__main--full > .cove--full')
     await expect(cove).toBeVisible()
     await expect(cove).toHaveAttribute('data-time', /^(dawn|day|golden|night)$/)
+    const [c, main] = await Promise.all([cove.boundingBox(), panel.locator('.frame__main').boundingBox()])
+    expect(c).toEqual(main)
     // Each painting loads under the built app's CSP: a picture that didn't would have no width.
-    await expect.poll(() => cove.locator('img').evaluateAll((imgs) => imgs.every((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0))).toBe(true)
+    const otty = screen.getByRole('button', { name: 'Otty' })
+    for (const imgs of [cove.locator('img'), otty.locator('img')]) {
+      await expect.poll(() => imgs.evaluateAll((all) => all.every((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0))).toBe(true)
+    }
+    await expect(otty).toBeVisible()
   }
   await coveIn(panel.locator('.empty'))
   await panel.keyboard.press('Meta+1')

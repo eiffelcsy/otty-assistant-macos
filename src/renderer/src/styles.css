@@ -53,8 +53,66 @@
   --otter-bubble: var(--silver);
   /* Decoration only, never information: Today's river line on Home (D-66). */
   --water: rgba(99, 124, 66, 0.12);
-  /* Frosted glass over the cove (D-72): opaque enough that every text role passes 4.5:1 over its darkest patch. */
-  --glass: rgba(253, 252, 249, 0.9);
+  /* Decoration only: the rings a touch spreads across the cove's water. */
+  --ripple: rgba(255, 255, 255, 0.75);
+  /* The cove, full bleed (D-74, Spec 07). The painting follows the clock; the glass is light at dawn, day and golden
+     hour, and dark in dark mode or at night (whatever the appearance). Each pair is set once, here. The glass clears its text by flattening and
+     lifting (or smoking) what's behind it, so its tint stays thin. Each tint, halo and scrim is the least that passes
+     on the paintings plus .02; rules/renderer.test.ts checks every one, both ways. */
+  --cv-frost-light: blur(6px) saturate(1.45) contrast(0.6) brightness(1.5);
+  --cv-frost-dark: blur(6px) saturate(1.6) contrast(0.6) brightness(0.65);
+  --cv-glass-dawn: rgba(255, 255, 255, 0.34);
+  --cv-glass-day: rgba(255, 255, 255, 0.17);
+  --cv-glass-golden: rgba(255, 255, 255, 0.49);
+  --cv-glass-night: rgba(24, 21, 26, 0.45);
+  --cv-glass-dark-dawn: rgba(24, 21, 26, 0.45);
+  --cv-glass-dark-day: rgba(24, 21, 26, 0.52);
+  --cv-glass-dark-golden: rgba(24, 21, 26, 0.49);
+  /* Text on light glass: the paper roles one step darker. --text and --heading stay. */
+  --cv-text-2: #50473d;
+  --cv-brand-text: #4a5e30;
+  --cv-straw-ink: #5f4c22;
+  /* Text on dark glass (the night). */
+  --cv-night-text: #e6e3dc;
+  --cv-night-heading: #f5f2ec;
+  --cv-night-text-2: #b0a690;
+  --cv-night-brand-text: #a3b37f;
+  --cv-night-straw-ink: #d9caa2;
+  /* The greeting on the sky, and the header's icons: ink, then the halo behind the greeting and the scrim behind the icons. */
+  --cv-ink: #3a3132;
+  --cv-sub: var(--cv-text-2);
+  --cv-night-ink: var(--cv-night-heading);
+  --cv-night-sub: #dedad2;
+  --cv-halo-dawn: rgba(244, 241, 234, 0.44);
+  --cv-halo-day: rgba(244, 241, 234, 0.3);
+  --cv-halo-golden: rgba(244, 241, 234, 0.64);
+  --cv-halo-night: rgba(16, 24, 38, 0.05);
+  /* The greeting's halo made solid (Reduce transparency, Increase contrast): follows the painting, as the words do. */
+  --cv-halo-solid: #f4f1ea;
+  --cv-top-dawn: rgba(244, 241, 234, 0);
+  --cv-top-day: rgba(244, 241, 234, 0);
+  --cv-top-golden: rgba(244, 241, 234, 0);
+  --cv-top-night: rgba(16, 24, 38, 0.53);
+  /* The water's own colour, under the painting's bottom edge (prepare.py --patches). */
+  --cv-deep-dawn: #345d8d;
+  --cv-deep-day: #267888;
+  --cv-deep-golden: #37323a;
+  --cv-deep-night: #042248;
+  /* The glass's edge: a lit rim through a mask, and its lift. Light glass, then dark (the night). */
+  --cv-rim-light: linear-gradient(140deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.18) 30%, transparent 55%, rgba(255, 255, 255, 0.18) 78%, rgba(255, 255, 255, 0.6));
+  --cv-rim-dark: linear-gradient(140deg, rgba(255, 250, 240, 0.32), rgba(255, 250, 240, 0.04) 30%, transparent 55%, rgba(255, 250, 240, 0.04) 78%, rgba(255, 250, 240, 0.14));
+  --cv-lift-light: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(255, 255, 255, 0.3), 0 0 0 0.5px rgba(58, 49, 50, 0.07), 0 2px 6px -2px rgba(30, 34, 40, 0.24), 0 18px 40px -18px rgba(30, 34, 40, 0.24);
+  --cv-lift-dark: inset 0 1px 0 rgba(255, 250, 240, 0.22), inset 0 -1px 0 rgba(255, 250, 240, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.25), 0 2px 6px -2px rgba(0, 0, 0, 0.55), 0 18px 40px -18px rgba(0, 0, 0, 0.55);
+  /* The rest of the dark set, for a night cove in light mode (the glass's own fills, edges and solid fallback). */
+  --cv-night-text-3: #857a68;
+  --cv-night-bg: #1f1c1d;
+  --cv-night-surface: #2a2526;
+  --cv-night-surface-2: #332d2e;
+  --cv-night-fill: rgba(255, 248, 235, 0.05);
+  --cv-night-fill-strong: rgba(255, 248, 235, 0.09);
+  --cv-night-hairline: rgba(255, 248, 235, 0.08);
+  --cv-night-hairline-strong: rgba(255, 248, 235, 0.14);
+  --cv-night-brand-soft: rgba(140, 155, 106, 0.16);
 
   /* Spacing: a 4px grid. --s-1h is only for the gap between an inline icon and its text. */
   --s-0: 2px;
@@ -71,6 +129,9 @@
   /* Type roles: size and line height. Weights are 500, 600, 700 and 800 only. */
   --fs-display: 24px;
   --lh-display: 30px;
+  /* The cove's greeting only (Spec 07); 32 / 36 in the compact band. */
+  --fs-hero: 40px;
+  --lh-hero: 44px;
   --fs-heading: 20px;
   --lh-heading: 26px;
   --fs-title: 16px;
@@ -152,7 +213,7 @@
     --ok-soft: rgba(140, 155, 106, 0.16);
     --knob: var(--text);
     --water: rgba(140, 155, 106, 0.16);
-    --glass: rgba(42, 37, 38, 0.93);
+    --ripple: rgba(255, 248, 235, 0.4);
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3);
     --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 18px -4px rgba(0, 0, 0, 0.45);
     --elev-3: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 40px -8px rgba(0, 0, 0, 0.6);
@@ -484,6 +545,12 @@ html[data-view='bubble'] body {
   flex-direction: column;
   outline: none;
 }
+.frame__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .frame__screen {
   flex: 1;
   min-height: 0;
@@ -516,13 +583,10 @@ html[data-view='bubble'] body {
 .frame--roomy .frame__nav-top {
   height: 52px;
 }
-.panel--moving .frame {
-  animation: window-move var(--t-travel) var(--glide);
-}
-@keyframes window-move {
-  28% { opacity: 0.3; transform: none; }
-  72% { opacity: 0.3; transform: translateY(4px); }
-  100% { opacity: 1; transform: none; }
+/* While the panel grows between states, nothing frosts or eases: each frame is one layout of the content. */
+.panel--moving .frame * {
+  backdrop-filter: none !important;
+  transition: none !important;
 }
 .frame__expand {
   color: var(--brand-text);
@@ -639,15 +703,23 @@ html[data-view='bubble'] body {
   font-size: var(--i-xl);
   display: grid;
   place-items: center;
-  transition: background var(--t-settle) var(--glide), color var(--t-quick) var(--glide), box-shadow var(--t-settle) var(--glide);
+  isolation: isolate;
+  transition: background var(--t-quick) var(--glide), color var(--t-quick) var(--glide);
 }
 .nav-btn:hover {
   background: var(--fill);
 }
 .nav-btn[aria-current] {
+  color: var(--text);
+}
+/* W5: the selected item's card, one element that Motion glides from item to item (Frame.tsx). */
+.nav-btn__mark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--r-sm);
   background: var(--surface);
   box-shadow: var(--elev-1);
-  color: var(--text);
 }
 .nav-btn--row {
   width: 100%;
@@ -797,73 +869,24 @@ html[data-view='bubble'] body {
 .home__column {
   position: relative;
   max-width: 720px;
-  margin: calc(-1 * var(--s-6)) auto 0;
+  margin: 0 auto;
   padding: 0 var(--s-4) var(--s-4);
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
 }
-.home-greeting {
+.home__now {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-.home-greeting__otter {
-  display: block;
-  padding: 0;
-  border: none;
-  background: none;
-  animation: squish var(--t-settle) var(--buoy);
-}
-/* The cove stays put while Home scrolls over it on glass, easing back as it goes (D-72). */
-.cove.home__cove {
-  position: sticky;
-  top: 0;
-}
-@supports (animation-timeline: scroll()) {
-  /* It has dimmed by the time the greeting reaches the water, so the words stay readable as they cross it. */
-  .home__cove {
-    animation: cove-ease linear both;
-    animation-timeline: scroll();
-    animation-range: 0 calc(var(--cove-h) / 2);
-  }
-  .home__cove .cove__far {
-    animation: cove-far linear both;
-    animation-timeline: scroll();
-    animation-range: 0 var(--cove-h);
-  }
-  .home__cove .cove__near,
-  .home__cove .cove__front,
-  .home__cove .cove__float {
-    animation: cove-near linear both;
-    animation-timeline: scroll();
-    animation-range: 0 var(--cove-h);
-  }
-}
-.home-greeting__hello {
-  margin: 0;
-  font-size: var(--fs-heading);
-  line-height: var(--lh-heading);
-  font-weight: 800;
-  color: var(--heading);
-}
-.home-greeting__status {
-  max-width: 46ch;
-  margin: var(--s-1) 0 0;
-  font-size: var(--fs-body);
-  line-height: var(--lh-body);
-  color: var(--text-2);
-  text-wrap: balance;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
 }
 .home-now {
-  margin-top: var(--s-3);
   min-height: 32px;
   padding: 0 var(--s-3) 0 var(--s-2);
   border: none;
   border-radius: var(--r-sm);
-  background: var(--glass);
-  backdrop-filter: blur(24px) saturate(1.4);
+  background: var(--surface);
   box-shadow: var(--elev-1);
   display: inline-flex;
   align-items: center;
@@ -902,19 +925,12 @@ html[data-view='bubble'] body {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
   }
-  .home .cove {
-    --cove-h: 300px;
-    --horizon: 172px;
-  }
-  .home .cove__otty {
-    width: 200px;
-  }
 }
 .home-block {
+  position: relative;
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-md);
-  background: var(--glass);
-  backdrop-filter: blur(24px) saturate(1.4);
+  background: var(--surface);
   box-shadow: var(--elev-1);
   display: flex;
   flex-direction: column;
@@ -942,6 +958,10 @@ html[data-view='bubble'] body {
 .home-block--wait .home-block__value {
   color: var(--straw-ink);
   font-weight: 700;
+}
+.home-needs {
+  /* Where a decided item ebbs from, out of the flow (Home.tsx). */
+  position: relative;
 }
 .home-needs,
 .home-river,
@@ -1166,19 +1186,152 @@ html[data-view='bubble'] body {
 }
 /* ---------- end Home ---------- */
 
-/* ---------- The living cove (D-72; BRAINSTORM, "The living cove") ----------
-   Painted layers, back to front: the sky and shore, the water, the foreground pieces, then Otty. Shore and water are
-   one painting cut at its horizon (prepare.py), so both are drawn at one width and meet at --horizon. Nothing moves on
-   its own: the otter's float is stepped, and only a scroll moves the layers (Home). Reduced motion holds it all still. */
-.cove {
-  --cove-h: 232px;
-  --horizon: 132px;
-  --paint-w: max(100%, 760px);
+/* ---------- The living cove (D-72), full bleed (D-74, Spec 07) ----------
+   The backdrop of the frame's main column on Home and the empty chat (`frame__main--full`), and only the band behind
+   the header in a chat with content (`--wash`). Painted layers, back to front: the water's own colour, the sky and
+   shore, the water, the foreground pieces, the header's scrim; the screen's scroller, header and message box sit over
+   it, and Otty floats in the screen's hero (`.cove-otty`), so it scrolls with the words. Shore and water are one
+   painting cut at its horizon (prepare.py), drawn at one width so they meet at --horizon, which places everything.
+   Nothing moves on its own: the otter's float is stepped, the first cove of a window settles in once, and only a
+   scroll or the pointer moves the layers. Reduced motion holds it all still.
+   Depth: Cove.tsx drifts --px and --py (-1 to 1) after the pointer; each layer leans away by its distance, on
+   `translate`, so the scroll's `transform` and the depth add up. The painting is at least 32 px wider than the column
+   and tall enough to cover the sky past the depth and scroll moves, so it never shows an edge. */
+.frame {
+  --header-h: 44px;
+  --horizon: 216px;
+  --otty-w: 136px;
+  --waterline: 16px;
+  --hero-gap: 72px;
+  --hero-top: var(--s-6);
+}
+.frame--roomy {
+  --header-h: 52px;
+}
+.frame--rail,
+.frame--medium {
+  --horizon: 248px;
+  --otty-w: 168px;
+  --waterline: 24px;
+  --hero-gap: 80px;
+  --hero-top: var(--s-8);
+}
+.frame--wide {
+  --horizon: 288px;
+  --otty-w: 200px;
+  --waterline: 32px;
+  --hero-gap: 88px;
+  --hero-top: var(--s-8);
+}
+.frame--compact {
+  --fs-hero: 32px;
+  --lh-hero: 36px;
+}
+
+/* The scope: words on the bare painting (greeting, halo, header icons) follow the painting, so a day sky keeps its
+   dark ink and white halo in dark mode; the glass and the words on it are dark in dark mode, or at night. */
+.frame__main--cove {
   position: relative;
-  flex: none;
-  height: var(--cove-h);
+  isolation: isolate;
+  --cove-glass: var(--cv-glass-day);
+  --cove-frost: var(--cv-frost-light);
+  --cove-halo: var(--cv-halo-day);
+  --cove-top: var(--cv-top-day);
+  --cove-ink: var(--cv-ink);
+  --cove-sub: var(--cv-sub);
+  --cove-halo-solid: var(--cv-halo-solid);
+  --cove-rim: var(--cv-rim-light);
+  --cove-lift: var(--cv-lift-light);
+  --cove-solid: var(--surface);
+}
+.frame__main--cove:has(> .cove[data-time='dawn']) {
+  --cove-glass: var(--cv-glass-dawn);
+  --cove-halo: var(--cv-halo-dawn);
+  --cove-top: var(--cv-top-dawn);
+}
+.frame__main--cove:has(> .cove[data-time='golden']) {
+  --cove-glass: var(--cv-glass-golden);
+  --cove-halo: var(--cv-halo-golden);
+  --cove-top: var(--cv-top-golden);
+}
+.frame__main--cove:has(> .cove[data-glass='dark']) {
+  --cove-frost: var(--cv-frost-dark);
+  --cove-rim: var(--cv-rim-dark);
+  --cove-lift: var(--cv-lift-dark);
+  --cove-solid: var(--cv-night-surface);
+}
+.frame__main--cove:has(> .cove[data-time='dawn'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-dawn);
+}
+.frame__main--cove:has(> .cove[data-time='day'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-day);
+}
+.frame__main--cove:has(> .cove[data-time='golden'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-golden);
+}
+.frame__main--cove:has(> .cove[data-time='night']) {
+  --cove-glass: var(--cv-glass-night);
+  --cove-halo: var(--cv-halo-night);
+  --cove-top: var(--cv-top-night);
+  --cove-ink: var(--cv-night-ink);
+  --cove-sub: var(--cv-night-sub);
+  --cove-halo-solid: var(--cv-night-surface);
+}
+/* Text on glass: the paper roles a step darker (light glass), or the dark set (dark glass), wherever words sit over the
+   cove: the whole screen in full, only the header over the wash. */
+.frame__main--full,
+.frame__main--wash > .panel__header {
+  --text-2: var(--cv-text-2);
+  --brand-text: var(--cv-brand-text);
+  --straw-ink: var(--cv-straw-ink);
+}
+.frame__main--full:has(> .cove[data-glass='dark']),
+.frame__main--wash:has(> .cove[data-glass='dark']) > .panel__header {
+  --text: var(--cv-night-text);
+  --heading: var(--cv-night-heading);
+  --text-2: var(--cv-night-text-2);
+  --text-3: var(--cv-night-text-3);
+  --brand-text: var(--cv-night-brand-text);
+  --straw-ink: var(--cv-night-straw-ink);
+  --bg: var(--cv-night-bg);
+  --surface: var(--cv-night-surface);
+  --surface-2: var(--cv-night-surface-2);
+  --fill: var(--cv-night-fill);
+  --fill-strong: var(--cv-night-fill-strong);
+  --hairline: var(--cv-night-hairline);
+  --hairline-strong: var(--cv-night-hairline-strong);
+  --brand-soft: var(--cv-night-brand-soft);
+  color: var(--text);
+}
+
+/* The layers */
+.cove {
+  --paint-w: max(100% + 32px, (var(--horizon) + 24px) * 3.04);
+  --px: 0;
+  --py: 0;
+  --cv-deep: var(--cv-deep-day);
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 0;
+  height: 100%;
   overflow: hidden;
   isolation: isolate;
+  pointer-events: none;
+  background: var(--cv-deep);
+  transition: height var(--t-drift) var(--glide);
+}
+.cove[data-time='dawn'] {
+  --cv-deep: var(--cv-deep-dawn);
+}
+.cove[data-time='golden'] {
+  --cv-deep: var(--cv-deep-golden);
+}
+.cove[data-time='night'] {
+  --cv-deep: var(--cv-deep-night);
+}
+/* A chat with content: the painting stays behind the header only, and answers sit on the plain page. */
+.cove--wash {
+  height: var(--header-h);
 }
 .cove__scene,
 .cove__far,
@@ -1189,6 +1342,39 @@ html[data-view='bubble'] body {
 }
 .cove__scene--in {
   animation: cove-in var(--t-drift) var(--glide) both;
+}
+.cove__far {
+  translate: calc(var(--px) * -4px) calc(var(--py) * -2px);
+}
+.cove__near {
+  translate: calc(var(--px) * -10px) calc(var(--py) * -4px);
+}
+.cove__front {
+  translate: calc(var(--px) * -16px) calc(var(--py) * -6px);
+}
+/* The first cove of a window: the painting is there and the pieces rise into it; Otty follows, in the hero. */
+.cove[data-arriving] .cove__front {
+  animation: cove-arrive-front var(--t-drift) var(--glide) 80ms both;
+}
+@keyframes cove-arrive-front {
+  from { opacity: 0; translate: 0 18px; }
+}
+.cove__ripples {
+  position: absolute;
+  inset: 0;
+}
+.cove__ripple {
+  position: absolute;
+}
+/* Flat on the water: an ellipse, spread by Motion from its middle (Cove.tsx). */
+.cove__ring {
+  position: absolute;
+  left: -64px;
+  top: -16px;
+  width: 128px;
+  height: 32px;
+  border: 1.5px solid var(--ripple);
+  border-radius: 50%;
 }
 .cove__shore,
 .cove__water {
@@ -1205,10 +1391,12 @@ html[data-view='bubble'] body {
 .cove__water {
   top: var(--horizon);
   transform: translate(-50%, -1.52%);
+  /* Its foot fades into --cv-deep, the water's own colour, so the painting never ends in a line. */
+  mask: linear-gradient(black calc(100% - 120px), transparent);
 }
 .cove__cloud {
   position: absolute;
-  top: 10%;
+  top: calc(var(--header-h) + var(--s-2));
   left: 6%;
   width: min(44%, 360px);
   opacity: 0.85;
@@ -1222,55 +1410,363 @@ html[data-view='bubble'] body {
 .cove__lilypad {
   position: absolute;
   right: 12%;
-  top: calc(var(--horizon) + 40px);
+  top: calc(var(--horizon) + 48px);
   width: 72px;
 }
-.cove__float {
-  position: absolute;
-  z-index: 2;
-  left: 50%;
-  top: calc(var(--horizon) - 48px);
-  translate: -50% 0;
-}
-.cove__otty {
-  display: block;
-  width: 156px;
-  animation: float 6s steps(10) infinite;
-}
 /* The pieces were painted in daylight, so they take the light of the hour they're in. */
-.cove[data-time='night'] :is(.cove__front, .cove__otty) {
+.cove[data-time='night'] .cove__front {
   filter: brightness(0.62) saturate(0.75);
 }
 .cove[data-time='night'] .cove__cloud {
   opacity: 0.3;
 }
-.cove[data-time='golden'] :is(.cove__front, .cove__otty) {
+.cove[data-time='golden'] .cove__front {
   filter: sepia(0.18) saturate(1.1);
 }
-.cove[data-time='dawn'] :is(.cove__front, .cove__otty) {
+.cove[data-time='dawn'] .cove__front {
   filter: sepia(0.1) hue-rotate(-8deg);
 }
-/* The water ends in the window's own paper, so what comes after sits on plain ground. */
-.cove::after {
+/* Behind the header's icons: only dark glass needs it (the moon, or light ink on a bright sky), and the test holds it to that (Spec 07, Part 5). */
+.cove__scrim {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 76px;
+  background: linear-gradient(var(--cove-top), transparent);
+}
+/* The veil: the water calms under the message box. */
+.cove--full::after {
   content: '';
   position: absolute;
   inset: auto 0 0;
+  height: 128px;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--cv-deep) 55%, transparent));
+}
+
+/* The screen over it: the header floats, the scroller runs under it, the message box sits on the veil. */
+.frame__main--cove > .frame__body {
+  position: relative;
   z-index: 1;
-  height: 88px;
-  background: linear-gradient(transparent, var(--bg) 80%);
+}
+.frame__main--full > .panel__header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  isolation: isolate;
+  background: transparent;
+  border-bottom-color: transparent;
+}
+/* Its frost: clear over the hero, glass once the greeting has gone (scroll-driven below; on the first pixel without). */
+.frame__main--full > .panel__header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+  box-shadow: 0 1px 0 var(--hairline);
+  opacity: 0;
+}
+.frame__main--full > .panel__header--scrolled::before {
+  opacity: 1;
+}
+.frame__main--full > .panel__header .panel__title {
+  visibility: hidden;
+}
+.frame__main--full > .panel__header--scrolled .panel__title {
+  visibility: visible;
+}
+.frame__main--full > .panel__header .icon-btn {
+  color: var(--cove-sub);
+}
+.frame__main--full > .panel__header--scrolled .icon-btn {
+  color: var(--text-2);
+}
+.frame__main--full > .panel__header .screen-menu__btn {
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+}
+/* Over the chat's body (z 1), so menus that drop from the header stay on top. */
+.frame__main--wash > .panel__header {
+  position: relative;
+  z-index: 3;
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+  color: var(--text);
+}
+
+/* The hero: the words on the sky, Otty in the water. It lets the pointer through to the water, but not its words. */
+.chat.cove-scroll {
+  padding: 0;
+}
+.cove-hero {
+  position: relative;
+  flex: none;
+  /* The greeting's halo reaches past the words, and past the window once they fill it: clipped here, so the screen
+     never scrolls sideways (clip, unlike hidden, leaves nothing to scroll). */
+  overflow-x: clip;
+  height: calc(var(--horizon) + var(--hero-gap));
+  padding: 0 var(--s-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
   pointer-events: none;
+}
+.cove-hero__words {
+  position: relative;
+  isolation: isolate;
+  margin-top: calc(var(--header-h) + var(--hero-top));
+  max-width: 40ch;
+  pointer-events: auto;
+}
+.cove-hero__arrive,
+.cove-hero__words {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1h);
+}
+/* The halo: the light gathers round the words, measured per painting (Spec 07, Part 5). */
+.cove-hero__words::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--s-8)) calc(-1 * var(--s-12));
+  z-index: -1;
+  background: radial-gradient(closest-side, var(--cove-halo), var(--cove-halo) 55%, transparent);
+}
+.cove-hero__date {
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--cove-sub);
+}
+.cove-hero__hello {
+  margin: 0;
+  font-size: var(--fs-hero);
+  line-height: var(--lh-hero);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  color: var(--cove-ink);
+}
+.cove-hero__sentence {
+  margin: 0;
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 600;
+  text-wrap: balance;
+  color: var(--cove-sub);
+}
+.cove-hero kbd {
+  background: var(--fill-strong);
+}
+
+/* Otty, placed by its waterline (70% down the float pose, which is 768 × 447), faded below it, with its reflection. */
+.cove-otty {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074);
+  width: var(--otty-w);
+  padding: 0;
+  border: none;
+  background: none;
+  translate: -50% 0;
+  pointer-events: auto;
+}
+.cove-otty[data-arriving] {
+  animation: cove-arrive-otty var(--t-drift) var(--buoy) 160ms both;
+}
+@keyframes cove-arrive-otty {
+  from { opacity: 0; translate: -50% 28px; }
+}
+.cove-otty__squish,
+.cove-otty__body {
+  position: relative;
+  display: block;
+}
+.cove-otty__squish--on {
+  animation: squish var(--t-settle) var(--buoy);
+}
+.cove-otty__body {
+  animation: float 6s steps(10) infinite;
+}
+.cove-otty__img {
+  position: relative;
+  display: block;
+  width: 100%;
+  mask: linear-gradient(black 64%, rgba(0, 0, 0, 0.35) 76%, transparent 90%);
+}
+.cove-otty__refl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  transform-origin: 50% 70%;
+  transform: scaleY(-0.6);
+  opacity: 0.25;
+  filter: blur(1.5px);
+  mask: linear-gradient(transparent 15%, black 55%, black 69%, transparent 70%);
+}
+.frame__main--cove:has(> .cove[data-time='night']) .cove-otty {
+  filter: brightness(0.62) saturate(0.75);
+}
+.frame__main--cove:has(> .cove[data-time='golden']) .cove-otty {
+  filter: sepia(0.18) saturate(1.1);
+}
+.frame__main--cove:has(> .cove[data-time='dawn']) .cove-otty {
+  filter: sepia(0.1) hue-rotate(-8deg);
+}
+
+/* Glass: the backdrop flattened and lifted (or smoked), a thin tint, a lit rim and a soft lift (Spec 07, "Glass"). */
+.frame__main--full :is(.home-block, .home-left, .home-now, .try, .message-box:not(.message-box--bare)) {
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+  box-shadow: var(--cove-lift);
+}
+.frame__main--full :is(.home-block, .home-left, .try) {
+  position: relative;
+  border-radius: var(--r-lg);
+}
+.frame__main--full :is(.home-block, .home-left, .try)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
+  background: var(--cove-rim) border-box;
+  mask: linear-gradient(black 0 0) padding-box exclude, linear-gradient(black 0 0);
+  pointer-events: none;
+}
+.frame__main--full .home-block--wait {
+  box-shadow: var(--cove-lift), inset 0 0 0 1px var(--straw);
+}
+.frame__main--full .try {
+  padding: var(--s-2);
+}
+/* A health notice above the empty chat sits under the floating header and pushes the scroller down, so the hero
+   drops the header's height it would otherwise leave room for: the words stay under the notice and Otty floats a little
+   nearer, still in the water. */
+.frame__main--full .frame__screen > .health {
+  position: relative;
+  z-index: 1;
+  margin-top: var(--header-h);
+  /* On the cove it's glass, like the cards: its straw tint alone left light words on a bright sky in dark mode. */
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+}
+.frame__main--full .frame__screen:has(> .health) .cove-hero {
+  height: calc(var(--horizon) + var(--hero-gap) - var(--header-h));
+}
+.frame__main--full .frame__screen:has(> .health) .cove-hero__words {
+  margin-top: var(--hero-top);
+}
+.frame__main--full .frame__screen:has(> .health) .cove-otty {
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074 - var(--header-h));
+}
+/* The message box sits under the reading column, as in a chat. */
+.frame__main--full .composer {
+  width: 100%;
+  max-width: 712px;
+  margin-inline: auto;
+}
+.frame__main--full .message-box:not(.message-box--bare):focus-within {
+  box-shadow: var(--cove-lift), var(--ring);
+}
+
+/* Scroll: the far shore moves least, the near water most, the words lift away, and the header frosts as they go. */
+@supports (animation-timeline: scroll()) {
+  .frame__main--full {
+    timeline-scope: --cove;
+  }
+  .frame__main--full .cove-scroll {
+    scroll-timeline: --cove y;
+  }
+  .cove--full .cove__far {
+    animation: cove-far linear both;
+    animation-timeline: --cove;
+    animation-range: 0 var(--horizon);
+  }
+  .cove--full :is(.cove__near, .cove__front) {
+    animation: cove-near linear both;
+    animation-timeline: --cove;
+    animation-range: 0 var(--horizon);
+  }
+  .cove-hero__words {
+    animation: cove-words linear both;
+    animation-timeline: --cove;
+    animation-range: 0 calc(var(--horizon) - 64px);
+  }
+  .frame__main--full > .panel__header::before {
+    animation: cove-frost linear both;
+    animation-timeline: --cove;
+    animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
+  }
+  /* The title is Motion's (its own opacity inline), so it's shown and hidden by visibility, which wins over that. */
+  .frame__main--full > .panel__header .panel__title {
+    animation: cove-title linear both;
+    animation-timeline: --cove;
+    animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
+  }
+  .frame__main--full > .panel__header .icon-btn {
+    animation: cove-icons linear both;
+    animation-timeline: --cove;
+    animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
+  }
 }
 @keyframes cove-in {
   from { opacity: 0; }
-}
-@keyframes cove-ease {
-  to { opacity: 0.25; }
 }
 @keyframes cove-far {
   to { transform: translateY(-12px); }
 }
 @keyframes cove-near {
   to { transform: translateY(-36px); }
+}
+@keyframes cove-words {
+  to { opacity: 0; transform: translateY(-24px); }
+}
+@keyframes cove-frost {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cove-title {
+  from { visibility: hidden; }
+  to { visibility: visible; }
+}
+@keyframes cove-icons {
+  from { color: var(--cove-sub); }
+  to { color: var(--text-2); }
+}
+
+/* Reduce transparency and Increase contrast: solid surfaces, a full halo, a header that's solid from the start. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .frame__main--full :is(.home-block, .home-left, .home-now, .try, .message-box:not(.message-box--bare)),
+  .frame__main--full .frame__screen > .health,
+  .frame__main--full > .panel__header .screen-menu__btn,
+  .frame__main--full > .panel__header::before,
+  .frame__main--wash > .panel__header {
+    background: var(--cove-solid);
+    backdrop-filter: none;
+  }
+  .frame__main--full > .panel__header::before {
+    animation: none;
+    opacity: 1;
+  }
+  .frame__main--full > .panel__header .panel__title {
+    animation: none;
+    visibility: visible;
+  }
+  .frame__main--full > .panel__header .icon-btn {
+    animation: none;
+    color: var(--text-2);
+  }
+  .cove-hero__words::before {
+    /* Not --cove-solid: that's the glass's, dark in dark mode, and the greeting's words follow the painting. */
+    background: radial-gradient(closest-side, var(--cove-halo-solid), var(--cove-halo-solid) 55%, transparent);
+  }
 }
 /* ---------- end cove ---------- */
 
@@ -1869,9 +2365,6 @@ html[data-view='bubble'] body {
   flex-direction: column;
   gap: var(--s-0);
 }
-.thinking__tool {
-  animation: surface var(--t-quick) var(--glide) both;
-}
 .thinking__slow {
   font-size: var(--fs-small);
   line-height: var(--lh-small);
@@ -1884,30 +2377,15 @@ html[data-view='bubble'] body {
 
 /* empty state */
 .empty {
-  margin: 0 0 auto;
-  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  gap: var(--s-4);
+  padding-bottom: var(--s-4);
 }
-.empty__cove {
-  align-self: stretch;
-  margin: calc(-1 * var(--s-4)) calc(-1 * var(--s-4)) calc(-1 * var(--s-6));
-}
-.empty h2 {
-  position: relative;
-  margin: 0;
-  font-size: var(--fs-heading);
-  font-weight: 800;
-  line-height: var(--lh-heading);
-  color: var(--heading);
-}
-.empty p {
-  max-width: 32ch;
-  margin: var(--s-1) 0 0;
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-  color: var(--text-2);
+.empty .try {
+  width: auto;
+  margin: 0 var(--s-4);
 }
 
 /* ---------- Composer ---------- */
@@ -2077,6 +2555,8 @@ html[data-view='bubble'] body {
   background: var(--fill);
 }
 .lang-pill__opt {
+  position: relative;
+  isolation: isolate;
   min-width: 26px;
   height: 22px;
   padding: 0 var(--s-1h);
@@ -2092,8 +2572,15 @@ html[data-view='bubble'] body {
   color: var(--heading);
 }
 .lang-pill__opt[aria-pressed='true'] {
-  background: var(--brand-fill);
   color: var(--brand-ink);
+}
+/* The lit side's fill, one element that Motion slides between EN and 中 (LanguagePill.tsx). */
+.lang-pill__mark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--r-xs);
+  background: var(--brand-fill);
   box-shadow: var(--elev-1);
 }
 

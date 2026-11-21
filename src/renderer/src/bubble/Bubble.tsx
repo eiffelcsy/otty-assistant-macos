@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BubbleMood, BubbleState } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { Otter, type OtterFace } from '../components/Otter'
@@ -7,6 +7,8 @@ import { Otter, type OtterFace } from '../components/Otter'
 export const SLEEP_MS = 10 * 60_000
 /** One munch, then back to whatever it was doing (D-37). */
 const MUNCH_MS = 700
+/** How far a press moves before it's a carry, not a click. */
+const CARRY_PX = 4
 
 const TITLES: Record<NonNullable<BubbleMood> | 'badge' | 'idle', string> = {
   idle: 'Click to ask Otty · Right-click for more',
@@ -23,8 +25,9 @@ export function Bubble() {
   /** Files or text are being dragged over the otter (D-37). */
   const [feeding, setFeeding] = useState(false)
   const [munching, setMunching] = useState(false)
-  /** Pressed: caught by the pointer, then a wiggle when let go (D-38). */
+  /** Picked up: caught by the pointer once a press moves (a click isn't a carry), then a wiggle when let go (D-38). */
   const [held, setHeld] = useState(false)
+  const pressedAt = useRef<{ x: number; y: number } | null>(null)
   const [landed, setLanded] = useState(false)
   const [nudged, setNudged] = useState(0)
   /** What was going on when Otty dozed off: anything new since (a hover, a state) wakes it. */
@@ -80,13 +83,18 @@ export function Bubble() {
       onPointerDown={(e) => {
         if (e.button !== 0) return
         e.currentTarget.setPointerCapture(e.pointerId)
-        setHeld(true)
+        pressedAt.current = { x: e.screenX, y: e.screenY }
         window.otty.bubbleDrag('start')
+      }}
+      onPointerMove={(e) => {
+        const at = pressedAt.current
+        if (at && !held && Math.hypot(e.screenX - at.x, e.screenY - at.y) > CARRY_PX) setHeld(true)
       }}
       onPointerUp={(e) => {
         if (e.button !== 0) return
+        pressedAt.current = null
+        if (held) setLanded(true)
         setHeld(false)
-        setLanded(true)
         window.otty.bubbleDrag('end')
       }}
       onContextMenu={(e) => {

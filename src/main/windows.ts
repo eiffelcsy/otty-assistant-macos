@@ -5,7 +5,7 @@ import { join } from 'path'
 import { getViewer } from './draw'
 import { readText } from './ocr'
 import { getStored, saveBubblePosition } from './settings'
-import { closeRoomy, expand, floatingSize, FLOATING, remember, sendState, shrink, windowState } from './roomy'
+import { closeRoomy, expand, floatingSize, FLOATING, remember, sendState, shrink, windowState, SPACES, prepareStandIn } from './roomy'
 
 const BUBBLE_SIZE = 84
 const QUICK_W = 420
@@ -71,7 +71,7 @@ export function createBubble(): BrowserWindow {
     webPreferences
   })
   bubble.setAlwaysOnTop(true, 'floating')
-  bubble.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  bubble.setVisibleOnAllWorkspaces(true, SPACES)
   secure(bubble)
   load(bubble, 'bubble')
   bubble.once('ready-to-show', () => getStored().showBubble && bubble?.showInactive())
@@ -95,11 +95,12 @@ export function createPanel(): BrowserWindow {
     skipTaskbar: true,
     alwaysOnTop: true,
     fullscreenable: false,
+    maximizable: false,
     show: false,
     webPreferences
   })
   panel.setAlwaysOnTop(true, 'floating')
-  panel.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  panel.setVisibleOnAllWorkspaces(true, SPACES)
   panel.setWindowButtonVisibility(false)
   secure(panel)
   load(panel, 'panel')
@@ -117,12 +118,14 @@ export function createPanel(): BrowserWindow {
   win.on('resized', () => remember(win))
   win.webContents.on('did-finish-load', () => sendState(win))
   win.on('closed', () => (panel = null))
+  // The move's stand-in picture (Spec 06) is made once the panel has been seen, so the first Expand has it ready.
+  win.once('show', () => void prepareStandIn().catch(() => {}))
   return win
 }
 
 /** Floating → roomy (Expand, ⇧⌘E, or opening Otty from Applications). */
 export function expandPanel(): void {
-  if (panel) expand(panel)
+  if (panel) void expand(panel)
 }
 
 /** Roomy → floating, beside the bubble (or the cursor) as the floating window always opens. */
@@ -168,7 +171,7 @@ export function createQuick(): BrowserWindow {
     webPreferences
   })
   quick.setAlwaysOnTop(true, 'floating')
-  quick.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  quick.setVisibleOnAllWorkspaces(true, SPACES)
   secure(quick)
   load(quick, 'quick')
   // A popover: clicking anywhere else puts it away (the chat keeps going in the panel),
@@ -236,7 +239,7 @@ export function showPickup(dataUrl: string): void {
   })
   pickup = win
   win.setAlwaysOnTop(true, 'floating')
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+  win.setVisibleOnAllWorkspaces(true, SPACES)
   secure(win)
   load(win, 'pickup')
   win.once('ready-to-show', () => win.show())

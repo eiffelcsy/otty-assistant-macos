@@ -26,11 +26,13 @@ import {
   startBubbleDrag,
   webPreferences
 } from '../windows'
+import { glideReady } from '../roomy'
 import { handle, on } from './check'
 
 export function registerWindows(): void {
   // D-65: Expand and Shrink (the header's button, ⇧⌘E). The window asks; main decides how the move goes.
   handle('window:state', (_e, to: 'expand' | 'shrink') => (to === 'expand' ? expandPanel() : shrinkPanel()))
+  on('window:glide-ready', () => glideReady())
   // Invoked from the panel's buttons: hide first so the previous app regains focus.
   handle('capture:selection', async () => {
     getPanel()?.hide()

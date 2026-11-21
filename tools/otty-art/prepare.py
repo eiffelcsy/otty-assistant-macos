@@ -218,7 +218,41 @@ def cove(f: Path) -> None:
     water.putalpha(Image.fromarray((np.repeat(ramp[:, None], w, axis=1) * 255).astype(np.uint8)))
     water.save(COVE_OUT / f'{f.stem}-water.webp', quality=80, method=6)
     print('wrote', (COVE_OUT / f'{f.stem}-shore.webp').relative_to(ROOT), 'and -water')
+    print(patches(img))
+
+
+def luminance(rgb: np.ndarray) -> np.ndarray:
+    c = rgb / 255
+    c = np.where(c <= 0.03928, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+    return c @ [0.2126, 0.7152, 0.0722]
+
+
+def extremes(rgb: np.ndarray, block: int) -> list[list[int]]:
+    """The darkest and lightest block-sized patch (by WCAG luminance) of a region, as their mean colours."""
+    h, w = (s - s % block for s in rgb.shape[:2])
+    means = rgb[:h, :w].reshape(h // block, block, w // block, block, 3).mean(axis=(1, 3)).reshape(-1, 3)
+    lum = luminance(means)
+    return [np.rint(means[i]).astype(int).tolist() for i in (lum.argmin(), lum.argmax())]
+
+
+def patches(img: Image.Image) -> str:
+    """What the cove's contrast test (rules/renderer.test.ts, Spec 07 Part 5) holds for this painting: the darkest and
+    lightest 32 px patch anywhere (glass), and 16 px patches of the bands behind the greeting (rows 180–420, the middle
+    half) and the header's icons (rows 40–200, the right 35%), plus the water's bottom colour (--cv-deep).
+    Copy the line into COVE in the test when a painting changes."""
+    rgb = np.asarray(img.convert('RGB'), dtype=float)
+    w = rgb.shape[1]
+    deep = '#' + ''.join(f'{v:02x}' for v in np.rint(rgb[-24:].mean(axis=(0, 1))).astype(int))
+    time = Path(img.filename).stem.removeprefix('cove-') if getattr(img, 'filename', '') else '?'
+    return (f"{time}: {{ glass: {extremes(rgb, 32)}, sky: {extremes(rgb[180:420, w // 4 : w * 3 // 4], 16)}, "
+            f"top: {extremes(rgb[40:200, w * 13 // 20 :], 16)}, deep: '{deep}' }},")
 
 
 if __name__ == '__main__':
-    main()
+    import sys
+
+    if sys.argv[1:] == ['--patches']:  # measure only, writing nothing
+        for f in sorted(SRC.glob('cove-*.webp')):
+            print(patches(Image.open(f)))
+    else:
+        main()
