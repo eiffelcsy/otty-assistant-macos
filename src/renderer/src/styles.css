@@ -362,7 +362,7 @@ kbd {
   border-radius: var(--r-xs);
   border: 1px solid var(--hairline);
   border-bottom: 2px solid var(--hairline-strong);
-  background: var(--surface-2);
+  background: var(--fill-strong);
   color: var(--text-2);
   font-family: var(--mono);
   font-size: var(--fs-meta);
@@ -530,7 +530,7 @@ html[data-view='bubble'] body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
   overflow: hidden;
@@ -546,7 +546,7 @@ html[data-view='bubble'] body {
   padding: 0 var(--s-2) 0 var(--s-3);
   /* W6: the hairline shows only once the content under it has scrolled. */
   border-bottom: 1px solid transparent;
-  background: var(--surface);
+  background: transparent;
   transition: border-color var(--t-quick) var(--glide);
 }
 .panel__header--scrolled {
@@ -598,6 +598,7 @@ html[data-view='bubble'] body {
   width: 240px;
   display: flex;
   flex-direction: column;
+  background: var(--mist-side);
   border-right: 1px solid var(--hairline);
   outline: none;
 }
@@ -627,7 +628,7 @@ html[data-view='bubble'] body {
   display: none;
 }
 .frame__list-head {
-  background: var(--bg);
+  background: transparent;
 }
 /* At wide, the chat keeps a reading column of at most 680, centred, with its box under it (Spec 03, Spec 05). */
 .frame--wide .frame__screen--chat > .chat,
@@ -663,7 +664,7 @@ html[data-view='bubble'] body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--hairline);
-  background: var(--surface-2);
+  background: var(--mist-side);
   -webkit-app-region: drag;
 }
 .frame__nav > :not(.frame__nav-top) {
@@ -784,8 +785,8 @@ html[data-view='bubble'] body {
   inset: 0;
   z-index: -1;
   border-radius: var(--r-sm);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .nav-btn--row {
   width: 100%;
@@ -817,13 +818,13 @@ html[data-view='bubble'] body {
   height: 7px;
   border-radius: 50%;
   background: var(--straw);
-  box-shadow: 0 0 0 2px var(--surface-2);
+  box-shadow: 0 0 0 2px var(--mist-side);
 }
 .pause-card {
   padding: var(--s-3);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -1267,8 +1268,8 @@ html[data-view='bubble'] body {
 /* ---------- end Home ---------- */
 
 /* ---------- The living cove (D-72), full bleed (D-74, Spec 07) ----------
-   The backdrop of the frame's main column on Home and the empty chat (`frame__main--full`), and only the band behind
-   the header in a chat with content (`--wash`). Painted layers, back to front: the water's own colour, the sky and
+   The backdrop of the frame's main column on Home and the empty chat (`frame__main--full`), and the band behind the
+   header on every shallow screen (`--wash`, Spec 08). Painted layers, back to front: the water's own colour, the sky and
    shore, the water, the foreground pieces, the header's scrim; the screen's scroller, header and message box sit over
    it, and Otty floats in the screen's hero (`.cove-otty`), so it scrolls with the words. Shore and water are one
    painting cut at its horizon (prepare.py), drawn at one width so they meet at --horizon, which places everything.
@@ -1358,15 +1359,17 @@ html[data-view='bubble'] body {
   --cove-halo-solid: var(--cv-night-surface);
 }
 /* Text on glass: the paper roles a step darker (light glass), or the dark set (dark glass), wherever words sit over the
-   cove: the whole screen in full, only the header over the wash. */
+   cove: the whole screen in full, only the header over the wash (main column and list column). */
 .frame__main--full,
-.frame__main--wash > .panel__header {
+.frame__main--wash > .panel__header,
+.frame__list--wash > .panel__header {
   --text-2: var(--cv-text-2);
   --brand-text: var(--cv-brand-text);
   --straw-ink: var(--cv-straw-ink);
 }
 .frame__main--full:has(> .cove[data-glass='dark']),
-.frame__main--wash:has(> .cove[data-glass='dark']) > .panel__header {
+.frame__main--wash:has(> .cove[data-glass='dark']) > .panel__header,
+.frame__list--wash:has(> .cove[data-glass='dark']) > .panel__header {
   --text: var(--cv-night-text);
   --heading: var(--cv-night-heading);
   --text-2: var(--cv-night-text-2);
@@ -1566,12 +1569,15 @@ html[data-view='bubble'] body {
   backdrop-filter: var(--cove-frost);
 }
 /* Over the chat's body (z 1), so menus that drop from the header stay on top. */
-.frame__main--wash > .panel__header {
+.frame__main--wash > .panel__header,
+.frame__list--wash > .panel__header {
   position: relative;
   z-index: 3;
   background: var(--cove-glass);
   backdrop-filter: var(--cove-frost);
   color: var(--text);
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 var(--hairline);
 }
 
 /* The hero: the words on the sky, Otty in the water. It lets the pointer through to the water, but not its words. */
@@ -1823,7 +1829,8 @@ html[data-view='bubble'] body {
   .frame__main--full :is(.home-block, .home-left, .home-now, .try, .message-box:not(.message-box--bare)),
   .frame__main--full > .panel__header .screen-menu__btn,
   .frame__main--full > .panel__header::before,
-  .frame__main--wash > .panel__header {
+  .frame__main--wash > .panel__header,
+  .frame__list--wash > .panel__header {
     background: var(--cove-solid);
     backdrop-filter: none;
   }

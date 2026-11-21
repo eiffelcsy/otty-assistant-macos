@@ -76,7 +76,7 @@ export interface FrameProps {
   /** The sidebar folded to the rail by ⌃⌘S. */
   sidebarHidden: boolean
   notices?: ReactNode
-  /** The living cove behind the main column (D-74, Spec 07): `full` behind the whole screen, `wash` only behind the header. */
+  /** The living cove (D-74, Spec 07, Spec 08): `full` behind the whole screen on Home and the empty chat, `wash` (the band behind the header) on every other screen. */
   cove?: 'full' | 'wash'
   children: ReactNode
 }
@@ -119,7 +119,8 @@ export function Frame(p: FrameProps) {
     <div className={`frame frame--${band}${p.roomy ? ' frame--roomy' : ''}`} data-band={band}>
       {nav !== 'none' && <Nav kind={nav} {...p} />}
       {cols.list && p.list && (
-        <section className="frame__list" data-column aria-label="Chats" tabIndex={-1} onScrollCapture={onListScroll}>
+        <section className="frame__list frame__main--cove frame__list--wash" data-column aria-label="Chats" tabIndex={-1} onScrollCapture={onListScroll}>
+          <Cove mode="wash" />
           {/* The header splits at the column line: the list's own title and its one action over it (Spec 05). */}
           <header className={`panel__header frame__list-head${listScrolled ? ' panel__header--scrolled' : ''}`}>
             <h2 className="panel__title">Chats</h2>
