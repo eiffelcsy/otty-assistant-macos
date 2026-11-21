@@ -211,7 +211,10 @@ const UTF8 = { env: { ...process.env, LANG: 'en_US.UTF-8' } }
  */
 export async function goTo(page: Page, screen: string): Promise<void> {
   const menu = page.getByRole('button', { name: /, switch screen/ })
-  for (let i = 0; i < 4 && !(await menu.isVisible()); i++) await page.getByRole('button', { name: 'Back', exact: true }).click()
+  const back = page.getByRole('button', { name: 'Back', exact: true })
+  // isVisible doesn't wait: a panel still rendering (just relaunched, say) has neither yet.
+  await expect(menu.or(back).first()).toBeVisible()
+  for (let i = 0; i < 4 && !(await menu.isVisible()); i++) await back.click()
   await menu.click()
   await page
     .locator('.screen-menu__item')
