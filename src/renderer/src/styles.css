@@ -1537,7 +1537,7 @@ html[data-view='bubble'] body {
   transition: none;
 }
 .cove[data-time='night'] .cove__ghost {
-  filter: brightness(0.84) saturate(0.85);
+  filter: brightness(0.80) saturate(0.85);
 }
 .cove[data-time='golden'] .cove__ghost {
   filter: sepia(0.18) saturate(1.1);
@@ -1835,7 +1835,7 @@ html[data-view='bubble'] body {
   mask: linear-gradient(transparent 15%, black 55%, black 69%, transparent 70%);
 }
 .frame__main--cove:has(> .cove[data-time='night']) .cove-otty {
-  filter: brightness(0.84) saturate(0.85);
+  filter: brightness(0.80) saturate(0.85);
 }
 .frame__main--cove:has(> .cove[data-time='golden']) .cove-otty {
   filter: sepia(0.18) saturate(1.1);
