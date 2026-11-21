@@ -161,17 +161,6 @@ function Header(p: FrameProps & { compact: boolean; scrolled: boolean }) {
         {p.actions}
         {/* Pause has one place at each width: here when compact, at the foot of the rail or sidebar otherwise. */}
         {p.compact && <PauseButton paused={p.paused} />}
-        {p.compact && p.place !== 'logbook' && (
-          <button
-            className="icon-btn icon-btn--dot"
-            title="Logbook ⌘3"
-            aria-label={p.needsYou ? `Logbook, ${p.needsYou} needs you` : 'Logbook'}
-            onClick={() => p.onGo('logbook')}
-          >
-            <Icon name="journal-alt" />
-            {p.needsYou > 0 && <span className="icon-btn__dot" />}
-          </button>
-        )}
         {(p.compact || (p.place === 'chat' && !p.list)) && (
           <button className="icon-btn" title="New chat ⌘N" aria-label="New chat" onClick={p.onNewChat}>
             <Icon name="comment-medical" />
@@ -207,7 +196,7 @@ function Title({ text }: { text: string }) {
   )
 }
 
-/** On a root screen at compact width: the otter and the screen's name, opening every other screen (Spec 05). */
+/** On a root screen at compact width: the screen's icon and name, opening every other screen (Spec 05). */
 function ScreenMenu(p: FrameProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -236,12 +225,16 @@ function ScreenMenu(p: FrameProps) {
         className="screen-menu__btn"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`${p.title}, switch screen`}
+        aria-label={`${p.title}, switch screen${p.needsYou ? `, ${p.needsYou} needs you` : ''}`}
         onClick={() => setOpen((o) => !o)}
       >
-        <Otter state={p.busy ? 'thinking' : 'idle'} size={28} />
+        <Icon
+          className="screen-menu__icon"
+          name={NAV.find((n) => n.place === p.place)?.icon ?? (p.place === 'settings' ? 'settings' : 'home')}
+        />
         <span className="screen-menu__title">{p.title}</span>
-        <Icon name="angle-small-down" />
+        <Icon className="screen-menu__chev" name="angle-small-down" />
+        {p.needsYou > 0 && <span className="icon-btn__dot" />}
       </button>
       <AnimatePresence>
         {open && (
@@ -296,7 +289,7 @@ function Nav({ kind, ...p }: FrameProps & { kind: 'rail' | 'sidebar' }) {
   return (
     <nav className={`frame__nav frame__nav--${kind}`} aria-label="Otty" data-column>
       <div className="frame__nav-top" />
-      <button className="frame__otty" title={p.status} aria-label={`Otty: ${p.status}`} onClick={() => p.onGo('home')}>
+      <button className="frame__otty" title={wide ? undefined : p.status} aria-label={`Otty: ${p.status}`} onClick={() => p.onGo('home')}>
         <Otter state={p.busy ? 'thinking' : 'idle'} size={40} />
         {wide && (
           <span className="frame__otty-text">
@@ -374,7 +367,7 @@ function NavButton({
     <button
       className={`nav-btn${wide ? ' nav-btn--row' : ''}`}
       aria-current={selected || undefined}
-      title={`${item.label}  ${item.keys}${count ? ` · ${count} needs you` : ''}`}
+      title={wide ? undefined : item.label}
       aria-label={count ? `${item.label}, ${count} needs you` : item.label}
       onClick={() => onGo(item.place)}
     >

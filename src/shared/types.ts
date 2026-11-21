@@ -27,7 +27,7 @@ export type DrawingResult = 'copied' | 'saved' | 'cancelled' | 'failed'
 
 /** What the bigger view shows: a picture, or one HTML page per slide with its speaker notes. */
 export type DrawingView =
-  | { kind: 'picture'; dataUrl: string; width: number; height: number }
+  | { kind: 'picture'; dataUrl: string; width: number; height: number; screenshot?: boolean }
   | { kind: 'slides'; pages: string[]; notes: string[][]; present?: boolean }
 
 /** A file the user added, before main has read it. Paths stay in main; the renderer gets an id. */

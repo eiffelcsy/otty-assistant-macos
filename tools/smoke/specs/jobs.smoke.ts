@@ -310,6 +310,7 @@ test.describe('forgetting', () => {
     await stuckOffline(otty, world, panel)
     await otty.go(panel, 'Chats')
     await panel.getByRole('button', { name: 'Forget this chat' }).first().click()
+    await panel.getByRole('dialog').getByRole('button', { name: 'Forget' }).click()
     await expect(panel.locator('.history__title')).toHaveCount(0)
     await openLogbook(panel)
     await expect(look(panel)).toHaveCount(0)

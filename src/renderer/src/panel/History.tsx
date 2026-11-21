@@ -27,6 +27,49 @@ function Snippet({ snippet }: { snippet: ChatSearchHit['snippet'] }) {
   return <span className="history__snippet">{parts}</span>
 }
 
+/** Asks before forgetting one or more chats. Esc and Cancel close it without forgetting. */
+function ForgetDialog({
+  count,
+  title,
+  onConfirm,
+  onClose
+}: {
+  count: number
+  title?: string
+  onConfirm: () => void
+  onClose: () => void
+}) {
+  const ref = useRef<HTMLDialogElement>(null)
+
+  useEffect(() => {
+    ref.current!.showModal()
+  }, [])
+
+  useEffect(() => {
+    const d = ref.current!
+    d.addEventListener('close', onClose)
+    return () => d.removeEventListener('close', onClose)
+  }, [onClose])
+
+  const one = count === 1
+  return (
+    <dialog ref={ref} className="forget-dialog" aria-labelledby="forget-title">
+      <h2 id="forget-title" className="forget-dialog__title">
+        {one ? `Forget “${title ?? 'this chat'}”?` : `Forget ${count} chats?`}
+      </h2>
+      <p className="hint">Otty will forget {one ? 'it' : 'them'} for good. This can’t be undone.</p>
+      <div className="forget-dialog__actions">
+        <button className="btn btn--soft" autoFocus onClick={() => ref.current?.close()}>
+          Cancel
+        </button>
+        <button className="btn btn--warn" onClick={onConfirm}>
+          Forget
+        </button>
+      </div>
+    </dialog>
+  )
+}
+
 /** Saved chats, newest first, with a search box. Opening one swaps it into the chat view. */
 const KEPT: Record<KeepChats, string> = {
   '30d': 'Otty keeps chats for 30 days on this Mac.',
@@ -38,16 +81,19 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
   const [chats, setChats] = useState<ChatSummary[] | null>(null)
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<ChatSearchHit[] | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [pending, setPending] = useState<ChatSummary[] | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const latest = useRef(0)
 
   useEffect(() => {
-    window.otty.listChats().then(setChats)
+    void window.otty.listChats().then(setChats)
   }, [])
 
+  const loaded = chats !== null
   useEffect(() => {
     searchRef.current?.focus()
-  }, [focusSearch, chats !== null])
+  }, [focusSearch, loaded])
 
   // Search as you type; an answer to an older keystroke is dropped.
   useEffect(() => {
@@ -64,6 +110,24 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
     await window.otty.openChat(id, messageId)
     onOpen()
   }
+
+  const forget = async (ids: string[]) => {
+    for (const id of ids) {
+      // shortcut: one IPC call per chat, fine for a screenful; add a bulk channel if people forget hundreds at once.
+      await window.otty.deleteChat(id)
+    }
+    setChats((cs) => cs!.filter((x) => !ids.includes(x.id)))
+    setPicked(new Set())
+    setPending(null)
+  }
+
+  const togglePick = (id: string) =>
+    setPicked((s) => {
+      const next = new Set(s)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
 
   if (!chats) return <div className="history" />
 
@@ -82,7 +146,16 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
   const searching = query.trim() !== ''
 
   return (
-    <div className="history">
+    <div
+      className={`history${picked.size > 0 ? ' history--picking' : ''}`}
+      onKeyDown={(e) => {
+        // Esc clears a selection; the first Esc must not also close the window.
+        if (e.key === 'Escape' && picked.size > 0 && !pending && !query) {
+          e.stopPropagation()
+          setPicked(new Set())
+        }
+      }}
+    >
       <label className="history__search">
         <Icon name="search" />
         <input
@@ -90,7 +163,10 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
           type="search"
           placeholder="Search your chats"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            if (e.target.value.trim()) setPicked(new Set()) // selecting and searching don't mix
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Escape' && query) {
               e.stopPropagation() // the first Esc only clears the search
@@ -106,7 +182,7 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
         ) : (
           hits?.map((h) => (
             <div key={h.chatId} className="history__item">
-              <button className="history__open" onClick={() => open(h.chatId, h.messageId)}>
+              <button className="history__open" onClick={() => void open(h.chatId, h.messageId)}>
                 <span className="history__title">{h.title}</span>
                 {h.snippet.text && <Snippet snippet={h.snippet} />}
                 <span className="history__meta">
@@ -119,9 +195,41 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
         )
       ) : (
         <>
+          {picked.size > 0 && (
+            <div className="history__bar" role="toolbar" aria-label="Selected chats">
+              <span className="history__bar-count">{picked.size} selected</span>
+              {picked.size < chats.length && (
+                <button className="btn btn--soft btn--small" onClick={() => setPicked(new Set(chats.map((c) => c.id)))}>
+                  Select all
+                </button>
+              )}
+              <button
+                className="btn btn--soft btn--small"
+                onClick={() => setPending(chats.filter((c) => picked.has(c.id)))}
+              >
+                <Icon name="trash" />
+                Forget
+              </button>
+              <button
+                className="icon-btn icon-btn--sm"
+                title="Clear selection"
+                aria-label="Clear selection"
+                onClick={() => setPicked(new Set())}
+              >
+                <Icon name="cross-small" />
+              </button>
+            </div>
+          )}
           {chats.map((c) => (
             <div key={c.id} className="history__item">
-              <button className="history__open" onClick={() => open(c.id)}>
+              <input
+                type="checkbox"
+                className="history__pick"
+                aria-label={`Select “${c.title}”`}
+                checked={picked.has(c.id)}
+                onChange={() => togglePick(c.id)}
+              />
+              <button className="history__open" onClick={() => void open(c.id)}>
                 <span className="history__title">{c.title}</span>
                 <span className="history__meta">
                   {c.draft ? (
@@ -139,10 +247,7 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
               <button
                 className="icon-btn icon-btn--sm history__delete"
                 title="Forget this chat"
-                onClick={async () => {
-                  await window.otty.deleteChat(c.id)
-                  setChats((cs) => cs!.filter((x) => x.id !== c.id))
-                }}
+                onClick={() => setPending([c])}
               >
                 <Icon name="trash" />
               </button>
@@ -152,6 +257,15 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
             {KEPT[keep]} Pictures are never saved.{chats.length >= 500 && ' Search finds older ones.'}
           </p>
         </>
+      )}
+
+      {pending && (
+        <ForgetDialog
+          count={pending.length}
+          title={pending.length === 1 ? pending[0].title : undefined}
+          onConfirm={() => void forget(pending.map((c) => c.id))}
+          onClose={() => setPending(null)}
+        />
       )}
     </div>
   )

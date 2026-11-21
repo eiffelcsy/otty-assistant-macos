@@ -4,6 +4,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Forget several chats, see a snip big, a quieter header (2026-11-21)
+
+- **Forgetting a chat asks first**, and the chat list can select several at once, like a mail inbox: tick chats (or Select all) and Forget them together, behind one confirm.
+- **Click a screenshot in a chat to see it big**, in the same window as Show big for drawings.
+- **The compact header's screen menu matches the buttons beside it**: the screen's icon and name in the same quiet style, instead of the otter and a bold title. The Logbook button there is gone, since the menu has it; a dot on the menu says when something needs you.
+- **No shortcut tooltips on the roomy sidebar**, which already shows each name. The icon-only rail still names each button.
+- **Otty is a little brighter at night** in the cove.
+
 ### The cove keeps the hour, a smoother Expand, a calmer click (2026-11-21)
 
 - **Dark glass you can see through:** a lighter frost (6 px blur, the painting's own colour) and a tint close to the moving panel's look, so the cove shows through instead of grey. Both glasses are now held to 3.5:1 contrast instead of 4.5:1, so light glass is thinner too (day 17% white, from 46%).

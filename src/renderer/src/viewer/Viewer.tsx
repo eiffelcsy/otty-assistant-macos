@@ -39,7 +39,7 @@ export function Viewer() {
   if (view.kind === 'picture') {
     return (
       <div className="viewer viewer--picture">
-        <img src={view.dataUrl} alt="Drawing by Otty" />
+        <img src={view.dataUrl} alt={view.screenshot ? 'Your screenshot' : 'Drawing by Otty'} />
         <button className="viewer__close" title="Close (Esc)" onClick={() => void window.otty.closeViewer()}>
           <Icon name="cross-small" />
         </button>
