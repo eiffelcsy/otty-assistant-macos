@@ -647,15 +647,12 @@ html[data-view='bubble'] body {
 }
 .frame__list {
   flex: none;
-  width: 240px;
+  width: var(--list-w);
   display: flex;
   flex-direction: column;
   background: var(--side-glass);
   border-right: 1px solid var(--hairline);
   outline: none;
-}
-.frame--wide .frame__list {
-  width: 248px;
 }
 .frame__main {
   flex: 1;
@@ -1341,6 +1338,19 @@ html[data-view='bubble'] body {
 .frame--roomy {
   --header-h: 52px;
 }
+/* The chat list's width. Beside it the cove keeps Home's framing (Spec 08, Part 10): laid out from the nav's edge, as
+   on Home, and clipped at the list's, so the painting doesn't change and the words and Otty move over with the column. */
+.frame {
+  --list-w: 240px;
+}
+.frame--wide {
+  --list-w: 248px;
+}
+.frame:has(> .frame__list) .frame__main--cove > .cove {
+  --cove-shift: var(--list-w);
+  left: calc(-1 * var(--list-w));
+  clip-path: inset(0 0 0 var(--list-w));
+}
 .frame--rail,
 .frame--medium {
   --horizon: 248px;
@@ -1411,15 +1421,13 @@ html[data-view='bubble'] body {
   --cove-halo-solid: var(--cv-night-surface);
 }
 /* Text on glass: the paper roles a step darker (light glass), or the dark set (dark glass), wherever words sit over the
-   cove: the whole screen in full, only the header over the wash. */
-.frame__main--full,
-.frame__main--wash > .panel__header {
+   cove. On the sky (wash) everything, the header included, sits on the reading sheet, so it keeps the page's roles. */
+.frame__main--full {
   --text-2: var(--cv-text-2);
   --brand-text: var(--cv-brand-text);
   --straw-ink: var(--cv-straw-ink);
 }
-.frame__main--full:has(> .cove[data-glass='dark']),
-.frame__main--wash:has(> .cove[data-glass='dark']) > .panel__header {
+.frame__main--full:has(> .cove[data-glass='dark']) {
   --text: var(--cv-night-text);
   --heading: var(--cv-night-heading);
   --text-2: var(--cv-night-text-2);
@@ -1497,7 +1505,7 @@ html[data-view='bubble'] body {
 .cove::after {
   content: '';
   position: absolute;
-  inset: var(--header-h) 0 0;
+  inset: 0;
   background: var(--sheet-glass);
   /* A light frost: the sky is plain, so less than the cards' (the tint alone carries the contrast). */
   backdrop-filter: blur(4px);
@@ -1517,7 +1525,8 @@ html[data-view='bubble'] body {
 /* Otty, still, where the hero's Otty floats: shown while the hero is gone, so it rides the water out and back. */
 .cove__ghost {
   position: absolute;
-  left: 50%;
+  /* Centred on the column, as the hero's Otty is, not on the (wider) cove beside the chat list. */
+  left: calc(50% + var(--cove-shift, 0px) / 2);
   top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074);
   width: var(--otty-w);
   translate: -50% 0;
@@ -1689,14 +1698,19 @@ html[data-view='bubble'] body {
   background: var(--cove-glass);
   backdrop-filter: var(--cove-frost);
 }
-/* Over the chat's body (z 1), so menus that drop from the header stay on top. */
+/* Over the chat's body (z 1), so menus that drop from the header stay on top. On the sky it's clear, full bleed as on
+   Home: the reading sheet runs under it; once the screen scrolls under it, it frosts (the sheet, thicker) with a line. */
 .frame__main--wash > .panel__header {
   position: relative;
   z-index: 3;
-  background: var(--cove-glass);
-  backdrop-filter: var(--cove-frost);
+  background: transparent;
   color: var(--text);
   border-bottom-color: transparent;
+  transition: background-color var(--t-quick) var(--glide), box-shadow var(--t-quick) var(--glide);
+}
+.frame__main--wash > .panel__header--scrolled {
+  background: var(--sheet-glass);
+  backdrop-filter: blur(12px);
   box-shadow: 0 1px 0 var(--hairline);
 }
 
@@ -1785,6 +1799,11 @@ html[data-view='bubble'] body {
 }
 .cove-otty[data-arriving] {
   animation: cove-arrive-otty var(--t-drift) var(--buoy) 160ms both;
+}
+/* Looking back down (Frame.tsx sets it while the camera lands), the stand-in in the cove carries Otty home; the hero's
+   Otty takes over only when the world has landed, at the same place, so there's never two. */
+[data-landing] .cove-otty {
+  visibility: hidden;
 }
 @keyframes cove-arrive-otty {
   from { opacity: 0; translate: -50% 28px; }
@@ -1953,9 +1972,12 @@ html[data-view='bubble'] body {
   }
   .frame__main--full :is(.home-block, .home-left, .home-now, .try, .onboarding__block, .message-box:not(.message-box--bare)),
   .frame__main--full > .panel__header .screen-menu__btn,
-  .frame__main--full > .panel__header::before,
-  .frame__main--wash > .panel__header {
+  .frame__main--full > .panel__header::before {
     background: var(--cove-solid);
+    backdrop-filter: none;
+  }
+  .frame__main--wash > .panel__header--scrolled {
+    background: var(--bg);
     backdrop-filter: none;
   }
   .frame__main--full > .panel__header::before {

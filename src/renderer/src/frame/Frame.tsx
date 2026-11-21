@@ -105,7 +105,21 @@ function useScreenMove(place: Place, pushed: boolean, cove: FrameProps['cove']) 
     if (reduced) return void animate(scope.current, { opacity: [0, 1] }, { duration: 0.2 })
     // Spec 08 Part 9: through the camera's tilt, the screen waits for the sky (or the cove) to come into view, then surfaces.
     // Hidden first: the delay would otherwise show it at full strength over the moving painting.
-    if (tilt) return void ((scope.current.style.opacity = '0'), animate(scope.current, { opacity: [0, 1], x: [0, 0], y: [32, 0] }, { duration: T.camera * 0.75, delay: T.camera * 0.25, ease: swell, opacity: { duration: T.camera * 0.75, delay: T.camera * 0.25, ease: glide } }))
+    if (tilt) {
+      const el = scope.current
+      el.style.opacity = '0'
+      // Up: the screen rides the last three quarters of the tilt. Down: the cove lands first, with the stand-in Otty,
+      // then Home's words surface, and Home's own Otty takes over once the world is still (styles.css, data-landing).
+      const down = cove === 'full'
+      const [delay, duration] = down ? [T.camera * 0.55, T.camera * 0.6] : [T.camera * 0.25, T.camera * 0.75]
+      if (down) el.dataset.landing = ''
+      const done = setTimeout(() => delete el.dataset.landing, T.camera * 1000)
+      animate(el, { opacity: [0, 1], x: [0, 0], y: [down ? 16 : 32, 0] }, { duration, delay, ease: swell, opacity: { duration, delay, ease: glide } })
+      return () => {
+        clearTimeout(done)
+        delete el.dataset.landing
+      }
+    }
     const x = pushed && !before.pushed ? 24 : before.pushed && !pushed ? -24 : 0
     animate(scope.current, { opacity: [0, 1], x: [x, 0], y: [x ? 0 : 10, 0] }, { duration: T.settle, ease: glide, opacity: { duration: T.quick } })
   }, [place, pushed, cove, reduced, animate, scope])

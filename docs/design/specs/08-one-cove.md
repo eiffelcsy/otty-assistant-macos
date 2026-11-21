@@ -186,19 +186,26 @@ Two tries at leaving the cove read as cheap: the painting rolling up like a blin
 
 **Otty rides the water.** The hero's Otty belongs to Home's screen, which goes at once. `.cove__ghost` is the same float pose, still, at the hero's position in the world: shown while looking up, so Otty sinks out of view with the water and rises back with it, and hidden once the camera is home and the hero is back.
 
-**The reading sheet.** `.cove::after`, from `--header-h` down, edge to edge: `--sheet-glass`, paper over the sky at the least alpha that keeps every text role at 4.5:1 on the sky's darkest and lightest 32 px patch, plus .02. Light: dawn .71, day .56, golden .78, night .86. Dark: dawn .75, day .82, golden .75, night .27 (the stars show). It frosts lightly, `blur(4px)` (the cards' is 6 px with more besides; the sky is plain, so a little softens the brushwork and turns stars into soft points), and its top edge is a 1 px light line. Under Reduce transparency it's solid `--bg`. `rules/renderer.test.ts` checks each both ways.
+**The reading sheet.** `.cove::after`, the whole column, edge to edge and under the header: `--sheet-glass`, paper over the sky at the least alpha that keeps every text role at 4.5:1 on the sky's darkest and lightest 32 px patch, plus .02. Light: dawn .71, day .56, golden .78, night .86. Dark: dawn .75, day .82, golden .75, night .27 (the stars show). It frosts lightly, `blur(4px)` (the cards' is 6 px with more besides; the sky is plain, so a little softens the brushwork and turns stars into soft points), and its top edge is a 1 px light line. Under Reduce transparency it's solid `--bg`. `rules/renderer.test.ts` checks each both ways.
 
 **Timing, in order.** One move, not two steps: the sheet and the screen ride the last three quarters of the tilt.
 
 | | Looking up (Home → a screen) | Looking down (a screen → Home) |
 | --- | --- | --- |
-| 0 ms | Home's words and cards go; the ghost Otty takes the hero's place; the world starts to gather | The sheet and the screen ebb out over `--t-quick` on `--ebb`; the world starts to gather |
-| 225 (a quarter) | The sheet and the screen start to surface: opacity on `--glide`, up from 32 px on `--swell`, over 675 ms | Home's screen starts to surface the same way |
-| 900 | The world, the sheet and the screen land together | The world lands; the ghost hides under the hero's Otty |
+| 0 ms | Home's words and cards go; the ghost Otty takes the hero's place; the world starts to gather | The sheet and the screen ebb out over `--t-quick` on `--ebb`; the world starts to gather, the ghost Otty riding up with the water |
+| 225 (a quarter) | The sheet and the screen start to surface: opacity on `--glide`, up from 32 px on `--swell`, over 675 ms | — |
+| 495 (55%) | — | Home's words and cards surface, up from 16 px, over 540 ms; the hero's Otty stays hidden (`data-landing`) |
+| 900 | The world, the sheet and the screen land together | The world lands; the ghost hides and the hero's Otty shows, at the same pixel, so there's only ever one Otty and one greeting |
 
 The screen's delay is `Frame`'s `useScreenMove`, which knows the camera moved because `cove` changed between `full` and `wash`; it hides the screen first, so the delay never shows it over the moving painting. Sending the first question in an empty chat is the same move: the camera looks up as the answer starts.
 
 Reduced motion: the world jumps, and the sheet and screen fade (the global reduced-motion rule). Nothing new runs while still; the painting under the sheet is static.
+
+**The header on the sky** (owner's call, 2026-11-21) is clear, full bleed as on Home: the reading sheet runs under it, so it keeps the page's text roles. When the screen scrolls under it, it frosts: `--sheet-glass` with `blur(12px)` and a hairline, over `--t-quick` (solid `--bg` under Reduce transparency). The painted band is gone.
+
+## Part 10 · The cove beside the chat list (owner's call, 2026-11-21)
+
+The cove was laid out to its column, so opening the chat list beside the empty chat rescaled and re-centred the painting: a different picture from Home's. Now the painting never changes with the list: beside it, the cove is laid out from the nav's edge exactly as on Home (`left: -var(--list-w)`, the same `--paint-w`) and clipped at the list's edge (`clip-path`), so the list covers the painting's left and the hero (greeting, Otty), the cards and the message box move over with the column. `--list-w` (240, 248 wide) is the list's width token, used by the list and the cove. The ghost Otty is centred on the column, as the hero's Otty is (`--cove-shift`).
 
 ## Part 6 · Build packages
 
