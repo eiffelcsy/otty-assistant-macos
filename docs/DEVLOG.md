@@ -75,7 +75,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Key decisions (still true)**
 - Main owns the conversation and the API key. Renderers only see `ChatEvent`s.
-- Explain terms are `[term](#explain)` and tips are `> 💡` blockquotes (see `Markdown.tsx` and `prompts.ts`).
+- Explain terms are `[term](#explain)` and old tips are `> 💡` blockquotes, no longer asked for (D-69; see `Markdown.tsx` and `prompts.ts`).
 - The bubble is a non-activating `type: 'panel'` window, so clicking it keeps the other app's selection.
 - Pictures never touch disk beyond the moment of encoding.
 - **Each request is the previous request, plus its output, plus new messages.** DeepSeek only reuses its cache for an exact match from the first token, so the system prompt depends only on settings, per-turn context goes in `turnNote` at the end of the user message and stays in the history, and `llm.test.ts` guards it byte for byte. The chat shows only the user's words. The one exception is the model's thinking, dropped from earlier replies between turns, which costs little.

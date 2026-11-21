@@ -42,9 +42,23 @@ test('an address in another alphabet says so on its card', { tag: ['@step-140'] 
 test('a click the instant a card appears does nothing', { tag: ['@step-141'] }, async ({ otty, world }) => {
   world.reply(turn('Open the otter page'), { calls: [{ name: 'open_url', args: { url: 'https://otters.example/' } }] }, { say: 'Okay.' })
   const panel = await otty.openPanel()
+  // Clicked from inside the page in the same tick the button mounts, so it always lands while the card is arming:
+  // a Playwright click took longer than ARM_MS on CI's slower Mac and was rightly counted. detail 1 = a mouse click.
+  const clicked = panel.evaluate(
+    () =>
+      new Promise<void>((done) => {
+        const watch = new MutationObserver(() => {
+          const open = [...document.querySelectorAll<HTMLButtonElement>('.confirm-card button')].find((b) => b.textContent?.startsWith('Open it'))
+          if (!open) return
+          watch.disconnect()
+          open.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+          done()
+        })
+        watch.observe(document.body, { childList: true, subtree: true })
+      })
+  )
   await otty.ask(panel, 'Open the otter page')
-  // `force` skips Playwright's wait for the button to take the pointer: the click lands while the card is arming.
-  await card(panel).getByRole('button', { name: /^Open it/ }).click({ force: true })
+  await clicked
   await card(panel).getByRole('button', { name: 'Skip' }).click()
   await expect(receipts(panel)).toHaveText('Skipped otters.example')
   expect((await otty.snapshot()).calls.filter((c) => c.kind === 'open-external')).toEqual([])
