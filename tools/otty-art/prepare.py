@@ -37,6 +37,8 @@ HORIZON, FEATHER = 506, 8
 FLOAT_W = 768  # width of the floating Otty frames
 PIECES = ('reeds', 'stones', 'lilypad', 'cloud')  # the cove's foreground pieces
 PIECE_MAX = 768  # longest side of a piece
+JOIN_FROM = 0.45  # a sky is shifted onto its cove's top colour from here down (join)
+HAZE, HAZE_BLUR = (192, 128), 6  # the haze's size and its blur radius, in its own pixels
 
 
 def load(name: str) -> np.ndarray:
@@ -134,7 +136,7 @@ def main() -> None:
         frames['idle-blink'] = idle * (1 - m) + load(closed.name) * m
     # Every other source but the cove is a bust expression in the same framing (generate.py), cut against its own background.
     for f in sorted(SRC.glob('*.webp')):
-        if f.stem not in ('idle', 'idle-eyes-closed') and not f.stem.startswith(('cove-', 'float') + PIECES):
+        if f.stem not in ('idle', 'idle-eyes-closed') and not f.stem.startswith(('cove-', 'sky-', 'float') + PIECES):
             frames[f.stem] = load(f.name)
     for name, rgb in frames.items():
         cutout(rgb, bg if name.startswith('idle') else background(rgb)).save(OUT / f'{name}.webp', quality=88, method=6)
@@ -142,6 +144,8 @@ def main() -> None:
     write_icns(app_icon(cutout(idle, bg, fade_out=False, size=OTTER)))
     for f in sorted(SRC.glob('cove-*.webp')):
         cove(f)
+    for f in sorted(SRC.glob('sky-*.webp')):
+        sky(f)
     floating()
     for f in sorted(SRC.glob('*.webp')):
         if f.stem.startswith(PIECES):
@@ -218,7 +222,49 @@ def cove(f: Path) -> None:
     water.putalpha(Image.fromarray((np.repeat(ramp[:, None], w, axis=1) * 255).astype(np.uint8)))
     water.save(COVE_OUT / f'{f.stem}-water.webp', quality=80, method=6)
     print('wrote', (COVE_OUT / f'{f.stem}-shore.webp').relative_to(ROOT), 'and -water')
+    haze(img).save(COVE_OUT / f"haze-{f.stem.removeprefix('cove-')}.webp", quality=82, method=6)
     print(patches(img))
+    print(haze_patches(img))
+
+
+def sky(f: Path) -> None:
+    """The sky above a cove, where the camera tilts to (Spec 08, Part 9), as painted; and what its sheet's test holds."""
+    img = Image.open(f).convert('RGB')
+    assert img.size == (1536, 1024), f'{f.name} is {img.size}; the sky recipes paint 1536x1024'
+    img = join(img, Image.open(SRC / f"cove-{f.stem.removeprefix('sky-')}.webp").convert('RGB'))
+    img.save(COVE_OUT / f'{f.stem}.webp', quality=80, method=6)
+    print('wrote', (COVE_OUT / f'{f.stem}.webp').relative_to(ROOT))
+    print(sky_patches(img, f.stem.removeprefix('sky-')))
+
+
+def join(sky: Image.Image, cove: Image.Image) -> Image.Image:
+    """The model paints a glow along a sky's foot however it's asked, so the seam is made here: the lower part of the
+    sky is shifted, by a smooth ramp, onto the colour of the cove's top edge, keeping its brushwork."""
+    rgb = np.asarray(sky, dtype=float)
+    h = rgb.shape[0]
+    delta = np.asarray(cove, dtype=float)[:24].mean(axis=(0, 1)) - rgb[-24:].mean(axis=(0, 1))
+    t = np.clip((np.arange(h) / h - JOIN_FROM) / (1 - JOIN_FROM), 0, 1)
+    ramp = (t * t * (3 - 2 * t))[:, None, None]
+    return Image.fromarray(np.clip(rgb + delta * ramp, 0, 255).astype(np.uint8))
+
+
+def sky_patches(img: Image.Image, time: str) -> str:
+    """The sky's darkest and lightest 32 px patch: what the reading sheet over it must read on (rules/renderer.test.ts)."""
+    return f'{time}: {extremes(np.asarray(img.convert("RGB"), dtype=float), 32)},'
+
+
+def haze(img: Image.Image) -> Image.Image:
+    """The painting as a blur of its colours, the backdrop the sidebar's frosted glass shows (Spec 08, Part 8). Blurred
+    here, small, so the window never runs a blur: scaled up, a blurred picture stays smooth."""
+    return img.convert('RGB').resize(HAZE, Image.LANCZOS).filter(ImageFilter.GaussianBlur(HAZE_BLUR))
+
+
+def haze_patches(img: Image.Image) -> str:
+    """The haze's darkest and lightest pixel, away from its edges: what the side glass's test holds (Spec 08, Part 8)."""
+    rgb = np.asarray(haze(img), dtype=float)[8:-8, 8:-8].reshape(-1, 3)
+    lum = luminance(rgb)
+    time = Path(img.filename).stem.removeprefix('cove-') if getattr(img, 'filename', '') else '?'
+    return f'{time}: {[np.rint(rgb[i]).astype(int).tolist() for i in (lum.argmin(), lum.argmax())]},'
 
 
 def luminance(rgb: np.ndarray) -> np.ndarray:
@@ -254,5 +300,13 @@ if __name__ == '__main__':
     if sys.argv[1:] == ['--patches']:  # measure only, writing nothing
         for f in sorted(SRC.glob('cove-*.webp')):
             print(patches(Image.open(f)))
+            print(haze_patches(Image.open(f)))
+        for f in sorted(SRC.glob('sky-*.webp')):
+            print(sky_patches(Image.open(f), f.stem.removeprefix('sky-')))
+    elif sys.argv[1:] == ['--cove']:  # the cove's layers, haze and skies only
+        for f in sorted(SRC.glob('cove-*.webp')):
+            cove(f)
+        for f in sorted(SRC.glob('sky-*.webp')):
+            sky(f)
     else:
         main()

@@ -34,7 +34,7 @@ test('turning off "Remember my chats" forgets them and hides Recent chats', { ta
   await holdPrompt(otty, panel, /^Turn off and forget/)
   await expect(panel.getByText('Saved')).toBeVisible()
   // Chats leaves the screen menu.
-  await panel.getByRole('button', { name: /, switch screen$/ }).click()
+  await panel.getByRole('button', { name: /, switch screen/ }).click()
   await expect(panel.getByRole('menuitem', { name: /^Chats/ })).toHaveCount(0)
   await panel.keyboard.press('Escape')
   await expect(panel.getByRole('button', { name: /Forget all chats/ })).toHaveCount(0)

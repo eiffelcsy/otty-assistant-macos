@@ -12,7 +12,7 @@ const fixture = (name: string) => join(FILES, name)
 /** Picks these files in the next file picker, then presses the paperclip. */
 async function attach(otty: Otty, panel: Page, paths: string[]): Promise<void> {
   await otty.control((c, p) => c.nextOpen(p), paths)
-  await panel.getByTitle('Attach files').click()
+  await panel.getByRole('button', { name: 'Attach files' }).click()
 }
 
 /** A chip in the composer's tray, by file name. */
@@ -81,8 +81,8 @@ test('a PDF, a Word document and a photo become chips, and ↵ summarizes them w
   expect(user).toContain('[File 3: kelp.png · a picture, attached]')
   expect(user).toContain('data:image/')
   await expect(sentChip(panel, 'otters.pdf')).toBeVisible()
-  // Step 51's other half: the painted otter still loads under the CSP.
-  const otter = panel.locator('.panel__header img.otter-frame').first()
+  // Step 51's other half: the painted art (the cove behind the header) still loads under the CSP.
+  const otter = panel.locator('img.cove__shore, img.otter-frame').first()
   expect(await otter.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0)
 })
 

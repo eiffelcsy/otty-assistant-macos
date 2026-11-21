@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { AnimatePresence, m, useAnimate, useReducedMotion } from 'motion/react'
 import { Cove } from '../components/Cove'
 import { Icon } from '../components/Icon'
-import { T, ebb, glide } from '../lib/motion'
+import { T, ebb, glide, swell } from '../lib/motion'
 import { Otter } from '../components/Otter'
 import { PauseButton } from '../components/PauseButton'
 import { columns, sameLayout, type Band, bandFor } from './bands'
@@ -76,7 +76,7 @@ export interface FrameProps {
   /** The sidebar folded to the rail by ⌃⌘S. */
   sidebarHidden: boolean
   notices?: ReactNode
-  /** The living cove behind the main column (D-74, Spec 07): `full` behind the whole screen, `wash` only behind the header. */
+  /** The living cove (D-74, Spec 07, Spec 08): `full` behind the whole screen on Home and the empty chat, `wash` (the band behind the header) on every other screen. */
   cove?: 'full' | 'wash'
   children: ReactNode
 }
@@ -93,23 +93,41 @@ function useScrolled(screen: unknown): [boolean, (e: React.UIEvent) => void] {
  * on the body rather than keyed, so the chat stays mounted with its scroll; transform and opacity only, so it runs on the
  * compositor while the new screen is still rendering.
  */
-function useScreenMove(place: Place, pushed: boolean) {
+function useScreenMove(place: Place, pushed: boolean, cove: FrameProps['cove']) {
   const [scope, animate] = useAnimate<HTMLDivElement>()
   const reduced = useReducedMotion()
-  const was = useRef({ place, pushed })
+  const was = useRef({ place, pushed, cove })
   useEffect(() => {
     const before = was.current
-    was.current = { place, pushed }
-    if (!scope.current || (before.place === place && before.pushed === pushed)) return
+    was.current = { place, pushed, cove }
+    const tilt = (before.cove === 'full') !== (cove === 'full')
+    if (!scope.current || (before.place === place && before.pushed === pushed && !tilt)) return
     if (reduced) return void animate(scope.current, { opacity: [0, 1] }, { duration: 0.2 })
+    // Spec 08 Part 9: through the camera's tilt, the screen waits for the sky (or the cove) to come into view, then surfaces.
+    // Hidden first: the delay would otherwise show it at full strength over the moving painting.
+    if (tilt) {
+      const el = scope.current
+      animate(el, { opacity: 0 }, { duration: 0 })
+      // Up: the screen rides the last three quarters of the tilt. Down: the cove lands first, with the stand-in Otty,
+      // then Home's words surface, and Home's own Otty takes over once the world is still (styles.css, data-landing).
+      const down = cove === 'full'
+      const [delay, duration] = down ? [T.camera * 0.55, T.camera * 0.6] : [T.camera * 0.25, T.camera * 0.75]
+      if (down) el.setAttribute('data-landing', '')
+      const done = setTimeout(() => el.removeAttribute('data-landing'), T.camera * 1000)
+      animate(el, { opacity: [0, 1], x: [0, 0], y: [down ? 16 : 32, 0] }, { duration, delay, ease: swell, opacity: { duration, delay, ease: glide } })
+      return () => {
+        clearTimeout(done)
+        el.removeAttribute('data-landing')
+      }
+    }
     const x = pushed && !before.pushed ? 24 : before.pushed && !pushed ? -24 : 0
     animate(scope.current, { opacity: [0, 1], x: [x, 0], y: [x ? 0 : 10, 0] }, { duration: T.settle, ease: glide, opacity: { duration: T.quick } })
-  }, [place, pushed, reduced, animate, scope])
+  }, [place, pushed, cove, reduced, animate, scope])
   return scope
 }
 
 export function Frame(p: FrameProps) {
-  const body = useScreenMove(p.place, p.pushed)
+  const body = useScreenMove(p.place, p.pushed, p.cove)
   const [mainScrolled, onMainScroll] = useScrolled(p.place)
   const [listScrolled, onListScroll] = useScrolled(null)
   const band: Band = bandFor(p.width)
@@ -117,6 +135,7 @@ export function Frame(p: FrameProps) {
   const nav = cols.nav === 'sidebar' && p.sidebarHidden ? 'rail' : cols.nav
   return (
     <div className={`frame frame--${band}${p.roomy ? ' frame--roomy' : ''}`} data-band={band}>
+      <div className="frame__haze" aria-hidden="true" />
       {nav !== 'none' && <Nav kind={nav} {...p} />}
       {cols.list && p.list && (
         <section className="frame__list" data-column aria-label="Chats" tabIndex={-1} onScrollCapture={onListScroll}>
@@ -161,17 +180,6 @@ function Header(p: FrameProps & { compact: boolean; scrolled: boolean }) {
         {p.actions}
         {/* Pause has one place at each width: here when compact, at the foot of the rail or sidebar otherwise. */}
         {p.compact && <PauseButton paused={p.paused} />}
-        {p.compact && p.place !== 'logbook' && (
-          <button
-            className="icon-btn icon-btn--dot"
-            title="Logbook ⌘3"
-            aria-label={p.needsYou ? `Logbook, ${p.needsYou} needs you` : 'Logbook'}
-            onClick={() => p.onGo('logbook')}
-          >
-            <Icon name="journal-alt" />
-            {p.needsYou > 0 && <span className="icon-btn__dot" />}
-          </button>
-        )}
         {(p.compact || (p.place === 'chat' && !p.list)) && (
           <button className="icon-btn" title="New chat ⌘N" aria-label="New chat" onClick={p.onNewChat}>
             <Icon name="comment-medical" />
@@ -207,7 +215,7 @@ function Title({ text }: { text: string }) {
   )
 }
 
-/** On a root screen at compact width: the otter and the screen's name, opening every other screen (Spec 05). */
+/** On a root screen at compact width: the screen's icon and name, opening every other screen (Spec 05). */
 function ScreenMenu(p: FrameProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -236,12 +244,16 @@ function ScreenMenu(p: FrameProps) {
         className="screen-menu__btn"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`${p.title}, switch screen`}
+        aria-label={`${p.title}, switch screen${p.needsYou ? `, ${p.needsYou} needs you` : ''}`}
         onClick={() => setOpen((o) => !o)}
       >
-        <Otter state={p.busy ? 'thinking' : 'idle'} size={28} />
+        <Icon
+          className="screen-menu__icon"
+          name={NAV.find((n) => n.place === p.place)?.icon ?? (p.place === 'settings' ? 'settings' : 'home')}
+        />
         <span className="screen-menu__title">{p.title}</span>
-        <Icon name="angle-small-down" />
+        <Icon className="screen-menu__chev" name="angle-small-down" />
+        {p.needsYou > 0 && <span className="icon-btn__dot" />}
       </button>
       <AnimatePresence>
         {open && (
@@ -296,7 +308,7 @@ function Nav({ kind, ...p }: FrameProps & { kind: 'rail' | 'sidebar' }) {
   return (
     <nav className={`frame__nav frame__nav--${kind}`} aria-label="Otty" data-column>
       <div className="frame__nav-top" />
-      <button className="frame__otty" title={p.status} aria-label={`Otty: ${p.status}`} onClick={() => p.onGo('home')}>
+      <button className="frame__otty" title={wide ? undefined : p.status} aria-label={`Otty: ${p.status}`} onClick={() => p.onGo('home')}>
         <Otter state={p.busy ? 'thinking' : 'idle'} size={40} />
         {wide && (
           <span className="frame__otty-text">
@@ -374,7 +386,7 @@ function NavButton({
     <button
       className={`nav-btn${wide ? ' nav-btn--row' : ''}`}
       aria-current={selected || undefined}
-      title={`${item.label}  ${item.keys}${count ? ` · ${count} needs you` : ''}`}
+      title={wide ? undefined : item.label}
       aria-label={count ? `${item.label}, ${count} needs you` : item.label}
       onClick={() => onGo(item.place)}
     >

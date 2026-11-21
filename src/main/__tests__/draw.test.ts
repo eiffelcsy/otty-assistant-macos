@@ -21,6 +21,9 @@ describe('what main accepts from a drawing card', () => {
   it('opens only pictures and slide pages in the bigger view', () => {
     expect(validView({ kind: 'picture', dataUrl: 'data:image/svg+xml,x', width: 1, height: 1 })).toMatchObject({ kind: 'picture' })
     expect(validView({ kind: 'picture', dataUrl: 'https://evil.example/x.svg' })).toBeNull()
+    expect(validView({ kind: 'picture', dataUrl: 'data:image/png;base64,AAAA' })).toMatchObject({ kind: 'picture', screenshot: true })
+    expect(validView({ kind: 'picture', dataUrl: 'data:image/png,AAAA' })).toBeNull()
+    expect(validView({ kind: 'picture', dataUrl: 'data:text/html;base64,AAAA' })).toBeNull()
     expect(validView({ kind: 'slides', pages: ['<section>'], notes: [['Say hi', 3]], present: true })).toEqual({ kind: 'slides', pages: ['<section>'], notes: [['Say hi']], present: true })
     expect(validView({ kind: 'slides', pages: [1] })).toBeNull()
   })

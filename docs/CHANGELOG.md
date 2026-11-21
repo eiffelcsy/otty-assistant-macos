@@ -4,6 +4,24 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### One cove: the whole app in the cove's language (D-75, Spec 08, 2026-11-21)
+
+- **Every screen is in Otty's place now, not just Home.** The Quick view, Pick up text and the picture viewer sit on the hour's **mist**: paper with a little of the painting in it, cooler by day, warmer at golden hour, deeper in dark mode.
+- **The cove shows through every header**, under the same glass Home's header frosts to, so you always see what hour Otty's in. The hard cyan strip over a chat with content is gone.
+- **A frosted sidebar.** The sidebar and chat list are frosted glass over a soft blur of the hour's painting, like a Mac sidebar over the desktop but in Otty's colours: cool by day, amber at golden hour, deep blue at night. The blur is painted ahead of time, so it costs nothing to show.
+- **The camera moves through Otty's world.** Leaving Home, the camera tilts up from the cove into the hour's sky: the water falls away with Otty riding it, and Settings, the Logbook, the Notebook and chats surface on a sheet of glass over the sky (soft blue by day, rose and apricot at golden hour, stars at night). Coming back, it tilts down to the cove, Otty riding the water home before the greeting appears. Headers on the sky are clear, as on Home, and frost only when the page scrolls under them. Beside the chat list, the empty chat shows the same painting as Home, with Otty and the cards moved over, instead of a squeezed one. Four new sky paintings, painted from each hour's cove and joined to it without a seam.
+- **One kind of card.** Cards, settings groups, Logbook boxes, the message box and fields share the cove's glass edge (a lit rim and a soft lift) and Home's rounder corners; menus and popovers are solid glass. No more beige boxes inside answers: code and table heads take the page's tint.
+- **The welcome starts in the cove**, with Otty floating in the water under "Hi! I'm Otty" and each step's choices on glass.
+- Text roles are the cove's darker values everywhere, and a rule test checks every one on every mist and on the glass over it, in both themes.
+
+### Forget several chats, see a snip big, a quieter header (2026-11-21)
+
+- **Forgetting a chat asks first**, and the chat list can select several at once, like a mail inbox: tick chats (or Select all) and Forget them together, behind one confirm.
+- **Click a screenshot in a chat to see it big**, in the same window as Show big for drawings.
+- **The compact header's screen menu matches the buttons beside it**: the screen's icon and name in the same quiet style, instead of the otter and a bold title. The Logbook button there is gone, since the menu has it; a dot on the menu says when something needs you.
+- **No shortcut tooltips on the roomy sidebar**, which already shows each name. The icon-only rail still names each button.
+- **Otty is a little brighter at night** in the cove.
+
 ### The cove keeps the hour, a smoother Expand, a calmer click (2026-11-21)
 
 - **Dark glass you can see through:** a lighter frost (6 px blur, the painting's own colour) and a tint close to the moving panel's look, so the cove shows through instead of grey. Both glasses are now held to 3.5:1 contrast instead of 4.5:1, so light glass is thinner too (day 17% white, from 46%).

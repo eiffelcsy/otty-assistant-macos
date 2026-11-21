@@ -55,6 +55,16 @@ SAME_COVE = (
     'light and colour: '
 )
 
+SKY = (
+    'This is Otty\'s cove. Paint ONLY the sky that continues directly ABOVE the top edge of this picture, as if the '
+    'camera tilted up into the sky: no land, no hills, no trees, no water, no horizon, no sun, no moon, nothing but sky. '
+    'The bottom edge of your picture must be exactly the colour of this picture\'s TOP edge (not its horizon), so the '
+    'two join without a seam: no glow, no pale band and no warm light at the bottom, because the horizon is far below '
+    'it. From the bottom edge the sky only gets a little deeper towards the top. The SAME soft dry-brush children\'s-book style and '
+    'palette as this picture, visible soft brush strokes, low contrast, no outlines. Keep it calm: large, open, even '
+    'areas, because panels of text will float over it; at most two or three small soft clouds, near the left and right '
+    'edges only, none in the middle. Time: '
+)
 FLOAT = (
     'Paint Otty\'s whole body, floating on its back on calm water, the way real sea otters rest, seen from the side. '
     'Keep the SAME face, fur colours and soft dry-brush style as the reference portrait. Head on the left, raised '
@@ -120,6 +130,15 @@ RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
     'cove-night': (SAME_COVE + 'a calm night. Deep navy sky with small soft stars, a pale moon high on the right with a '
                    'gentle glow, hills as dark blue silhouettes, water dark blue-black with a soft silver moon path. '
                    'Calm and cosy, not scary.', '1536x1024', 'cove-day.webp'),
+    # The sky above the cove (Spec 08, Part 9): where the camera tilts to for every screen but Home and the empty chat.
+    'sky-day': (SKY + 'a clear bright afternoon: soft clear blue, a little deeper blue towards the top.', '1536x1024',
+                'cove-day.webp'),
+    'sky-dawn': (SKY + 'dawn: lavender-blue at the bottom, deepening to soft periwinkle towards the top, with a faint '
+                 'warm peach blush along the bottom edge.', '1536x1024', 'cove-dawn.webp'),
+    'sky-golden': (SKY + 'golden hour: warm apricot at the bottom, deepening through dusty rose to a soft muted violet '
+                   'towards the top.', '1536x1024', 'cove-golden.webp'),
+    'sky-night': (SKY + 'a calm night: deep navy, a little deeper towards the top, with small soft stars scattered '
+                  'thinly and evenly, no moon. Calm and cosy, not scary.', '1536x1024', 'cove-night.webp'),
     'float': (FLOAT + 'Pose: relaxed and happy, eyes open with the same smile as the reference, both small front paws '
               'resting together on its chest.', '1536x1024'),
     'float-paddle': (SAME_FLOAT + 'the two raised hind feet, mid-paddle: both still sticking up above the belly, '

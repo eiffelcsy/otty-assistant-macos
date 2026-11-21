@@ -184,8 +184,9 @@ test('a remote picture in an answer shows only its words and is never fetched; O
   await expect(answer).toContainText('Picture not shown, to keep you safe: test')
   await expect(panel.locator('img[src^="http"]')).toHaveCount(0)
   expect(world.requests.filter((r) => r.url.includes('p.png'))).toEqual([])
-  const otter = panel.locator('img.otter-frame').first()
-  expect(await otter.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
+  // The cove's painting is behind every chat's header, so it stands in for all of Otty's own pictures.
+  const own = panel.locator('img.cove__shore').first()
+  expect(await own.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true)
 })
 
 test('a drawing asked to link to another site has no link and fetches nothing', { tag: ['@step-116'] }, async ({ otty, world }) => {

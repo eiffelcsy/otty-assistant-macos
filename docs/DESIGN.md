@@ -76,19 +76,20 @@ The palette tokens stay. These text roles sit on top, each with a measured contr
 | Token | Light | Dark | For | Contrast (light / dark) |
 | --- | --- | --- | --- | --- |
 | `--text` | `#221f20` | `#e6e3dc` | Body and titles | ≥ 13.5:1 / ≥ 10.5:1 |
-| `--text-2` | `#6f6458` (was `#857a6d`) | `#a89c86` | Sub-lines, details, meta | ≥ 4.7:1 / ≥ 4.9:1 on every surface |
+| `--text-2` | `#50473d` (was `#6f6458`; Spec 08) | `#bcb29c` | Sub-lines, details, meta | ≥ 4.7:1 / ≥ 4.9:1 on every surface |
 | `--text-3` | `#958a7b` | `#857a68` | Placeholders and disabled only; never information | ≥ 2.8:1 / ≥ 3.2:1 |
-| `--brand-text` | `#566d38` | `#a3b37f` | Links and brand-coloured text | ≥ 4.7:1 / ≥ 5.9:1 |
+| `--brand-text` | `#4a5e30` (Spec 08) | `#b0bf8c` | Links and brand-coloured text | ≥ 4.7:1 / ≥ 5.9:1 |
 | `--brand-fill` | `#5a7339` | `#a3b37f` | Primary buttons and user bubbles, with `--brand-ink` text | 5.1:1 / 7.5:1 |
-| `--straw-ink` | `#74613a` (was `#8a7445`) | `#d4c49c` | Waiting, suggestions, "behind" | ≥ 4.9:1 / 8.8:1 |
+| `--straw-ink` | `#5f4c22` (Spec 08) | `#d9caa2` | Waiting, suggestions, "behind" | ≥ 4.9:1 / 8.8:1 |
 
-Meadow `#637c42` stays the brand colour for rings, dots, progress and illustration, where it isn't carrying text. Semantic colours (brand for done, straw for waiting, danger for can't-undo) are never the only signal: each state also has a word or an icon.
+Since Spec 08 every surface sits on the hour's mist, so the roles above are the cove's darker values everywhere, checked on every mist and on paper glass over it. Meadow `#637c42` stays the brand colour for rings, dots, progress and illustration, where it isn't carrying text. Semantic colours (brand for done, straw for waiting, danger for can't-undo) are never the only signal: each state also has a word or an icon.
 
 ### Shape
 
 - **Radius:** `--r-xs` 6 (keycaps, tooltips, small tags), `--r-sm` 10 (buttons, fields, rows), `--r-md` 14 (cards, groups), `--r-lg` 18 (user bubbles), `--radius` 24 (the window). 50% only for the otter, dots and round buttons. No 999 px capsules for chips or filters.
 - **Concentric corners:** an inner shape's radius is its container's radius minus the padding between them, floored at 6. So the composer box, 12 px inside a 24 px window corner, is 12; a button 4 px inside a 14 px card corner is 10.
 - **One edge, one separator:** a surface gets a hairline *or* a shadow, never both. Lists separate rows with an inset hairline that starts at the text column, not under the icon.
+- **Surfaces (Spec 08):** one family, by recipe: MIST (a window's backdrop, the hour's colours), SIDE (nav and list column), GLASS (paper glass: cards, groups, blocks and the message box, `--mist-card` with `--glass-lift`, radius `--r-lg`), FLOAT (solid glass for menus and popovers), FIELD, TINT (recessed content) and the cove's own glass over the painting. No screen shows plain paper, a white header or a `--surface-2` box.
 - **Elevation:** `--elev-1` for cards and groups on the background; `--elev-2` for the composer and popovers; `--elev-3` for windows, toasts and menus.
 
 ### Icons
@@ -209,7 +210,7 @@ One window, layout from width alone (container queries, never viewport media que
 
 ## Screens
 
-Screen specs, written to the polish bar, in build order: [01 Decisions and receipts](design/specs/01-decisions.md) (confirm cards, receipts, the Noted line) · [02 Settings](design/specs/02-settings.md) · [03 Chat and the message box](design/specs/03-chat.md) · [04 Logbook](design/specs/04-logbook.md) · [05 The frame and layout from width](design/specs/05-frame.md) · [06 The roomy window and Home](design/specs/06-roomy-and-home.md) · [07 The cove, full bleed](design/specs/07-cove.md). Each covers 420, 760 and 1200 px even while only the panel ships, so nothing is redone for the Otty window. The summaries below are the direction; where they differ, the spec wins.
+Screen specs, written to the polish bar, in build order: [01 Decisions and receipts](design/specs/01-decisions.md) (confirm cards, receipts, the Noted line) · [02 Settings](design/specs/02-settings.md) · [03 Chat and the message box](design/specs/03-chat.md) · [04 Logbook](design/specs/04-logbook.md) · [05 The frame and layout from width](design/specs/05-frame.md) · [06 The roomy window and Home](design/specs/06-roomy-and-home.md) · [07 The cove, full bleed](design/specs/07-cove.md) · [08 One cove: the whole app in the cove's language](design/specs/08-one-cove.md). Each covers 420, 760 and 1200 px even while only the panel ships, so nothing is redone for the Otty window. The summaries below are the direction; where they differ, the spec wins.
 
 ### Home
 
@@ -253,10 +254,12 @@ Sections, changes as you go, no Save button (UX_REVIEW #2):
 | `--t-quick` | 280 ms | Hover, toggles, tooltips, colour changes |
 | `--t-settle` | 480 ms | Cards surfacing, rows folding, panes sliding in |
 | `--t-travel` | 720 ms | Window resize, quick view to window, picture zoom |
+| `--t-camera` | 900 ms | The camera's tilt between the cove and the sky (Spec 08) |
 | `--t-drift` | 1.4 s | One-off moments that carry meaning: ripples, the Noted pen line, a permission granted |
 | `--glide` | `cubic-bezier(.16,1,.3,1)` | The default: fast start, long soft landing |
 | `--buoy` | `cubic-bezier(.3,1.22,.5,1)` | A float that rises just past and comes back, for "done" and keepsakes |
 | `--ebb` | `cubic-bezier(.45,0,.85,.4)` | Exits |
+| `--swell` | `cubic-bezier(.42,0,.12,1)` | A move of the whole world: gathers gently, carries, lands long and soft. Never a press |
 
 **Named motions:** *surface* (rise 8–18 px and clear, settle), *ebb* (sink 6 px and fade, about two-thirds of the entrance), *ripple* (rings spreading, drift), *drift* (a slow one-off, such as a line drawing itself).
 
@@ -283,6 +286,7 @@ What makes Otty look like Otty and not a chat app with an avatar (BRAINSTORM, "O
 | Moment | What the user sees | Rules | Status |
 | --- | --- | --- | --- |
 | **The living cove** | A painted cove behind Home and the empty chat, one picture per time of day, the otter floating in a clear hero header with the greeting, content on frosted glass that the cove shows through, and parallax when scrolling | Painted through `tools/otty-art/`; parallax on `animation-timeline: scroll()` (transforms only, so nothing runs until a scroll); still under `data-asleep` and reduced motion; text 4.5:1 over the brightest picture; a quiet wash, not the full picture, behind a chat with content | Built full bleed, with clear glass and the quiet wash (D-72, D-74, [Spec 07](design/specs/07-cove.md), `components/Cove.tsx`). Touch built: the first cove of a window settles in (pieces, then Otty on the buoy curve), the layers lean away from the pointer by their depth, and a press on the water or Otty spreads two rings |
+| **The camera** | Leaving Home tilts the camera up from the cove into the hour's painted sky, Otty riding the water out of view; every other screen sits on a glass sheet over that sky, and coming back tilts down | One world (`.cove__world`), one CSS transform over `--t-camera` on `--swell`, the sheet frosting lightly; the screen surfaces after the world has mostly moved, so words never sit on moving paint; still once landed | Built ([Spec 08](design/specs/08-one-cove.md), Part 9) |
 | **The liquid capsule** | The message box is a drop: typing nudges its outline a few pixels, which settles back over `--t-settle`; sending lets a small drop rise towards the chat and the box settles | An SVG path over the box, eased by one `requestAnimationFrame` loop that runs only while it's settling and stops at rest; no change to the box's layout or hit area; reduced motion keeps a still outline | Built (`components/Capsule.tsx`) |
 | **Pebbles landing** | A kept Pebble sinks into the Pouch with `--buoy` and settles among the others | One brief motion per keep; the Pouch never animates on its own | Concept note in BRAINSTORM |
 | **Charts and slides with taste** | Pies and bars in a calm categorical palette, soft gridlines, rounded bars, a title slide washed with the brand, a kicker line, coloured bullets and big quote marks, number badges | Colours from the tokens (`--chart-1` to `--chart-6`, checked for contrast in both themes); the deck stays self-contained HTML with no scripts and `img-src data:` | D-70 |
