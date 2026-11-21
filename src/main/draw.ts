@@ -135,6 +135,9 @@ export function validView(v: unknown): DrawingView | null {
   if (x.kind === 'picture' && typeof x.dataUrl === 'string' && x.dataUrl.startsWith('data:image/svg+xml')) {
     return { kind: 'picture', dataUrl: x.dataUrl, width: Number(x.width) || 800, height: Number(x.height) || 600 }
   }
+  if (x.kind === 'picture' && typeof x.dataUrl === 'string' && /^data:image\/(png|jpeg|webp);base64,/.test(x.dataUrl)) {
+    return { kind: 'picture', dataUrl: x.dataUrl, width: Number(x.width) || 800, height: Number(x.height) || 600, screenshot: true }
+  }
   if (x.kind === 'slides' && Array.isArray(x.pages) && x.pages.every((p) => typeof p === 'string')) {
     const notes = Array.isArray(x.notes) ? x.notes.map((n) => (Array.isArray(n) ? n.filter((s): s is string => typeof s === 'string') : [])) : []
     return { kind: 'slides', pages: x.pages as string[], notes, present: x.present === true }
@@ -154,7 +157,7 @@ export function showDrawing(raw: unknown, load: (win: BrowserWindow) => void, we
     ...(present
       ? { x: display.bounds.x, y: display.bounds.y, width: display.bounds.width, height: display.bounds.height, simpleFullscreen: true }
       : { width: Math.round(wa.width * 0.8), height: Math.round(wa.height * 0.8), center: true }),
-    title: v.kind === 'slides' ? 'Otty slides' : 'Otty drawing',
+    title: v.kind === 'slides' ? 'Otty slides' : v.screenshot ? 'Otty screenshot' : 'Otty drawing',
     backgroundColor: '#1f1c1d',
     show: false,
     webPreferences

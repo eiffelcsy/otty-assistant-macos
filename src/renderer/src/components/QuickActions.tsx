@@ -2,14 +2,23 @@ import type { AppInfo, Capture, FileAttachment, HomeLanguage, QuickAction, Scree
 import { LANGUAGE_SHORT } from '../../../shared/languages'
 import { looksLikeCode } from '../../../shared/code'
 import { isMostlyHan, isShortPhrase } from '../../../shared/script'
+import { tilesFor, type MyTile } from '../../../shared/tiles'
 import { Icon } from './Icon'
 
 export interface ActionItem {
-  action: QuickAction
-  /** Shown on the tile and, once sent, as the user's message. */
+  /** A built-in action. The user's own tiles (D-56) have none: they send `prompt` as if typed. */
+  action?: QuickAction
+  /** Shown on the tile and, once sent, as the user's message (unless there's a `prompt`). */
   label: string
   icon: string
+  prompt?: string
 }
+
+/** The user's tiles that fit this tray, after the built-in ones. */
+export const withMyTiles = (items: ActionItem[], tiles: MyTile[], captures: Capture[], files: FileAttachment[], app?: AppInfo | null): ActionItem[] => [
+  ...items,
+  ...tilesFor(tiles, captures, files, app).map((t) => ({ label: t.name, icon: t.icon, prompt: t.prompt }))
+]
 
 /** For code, highlighted or attached: Explain this code is the ↵ default. */
 function codeActions(home: HomeLanguage | null): ActionItem[] {
@@ -95,7 +104,7 @@ export function QuickActions({
   return (
     <div className="quick-actions">
       {items.map((a, i) => (
-        <button key={a.action} className={`action${i === 0 ? ' action--default' : ''}`} disabled={disabled} onClick={() => onPick(a)}>
+        <button key={a.action ?? `my-${a.label}`} className={`action${i === 0 ? ' action--default' : ''}`} disabled={disabled} onClick={() => onPick(a)}>
           <Icon name={a.icon} />
           <span className="action__label">{a.label}</span>
           {i === 0 && <kbd className="action__key">↵</kbd>}

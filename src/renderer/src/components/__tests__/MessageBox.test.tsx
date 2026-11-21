@@ -73,3 +73,25 @@ describe('the message box', () => {
     expect(tray.nextElementSibling?.className).toBe('composer__row')
   })
 })
+
+describe('the liquid capsule', () => {
+  it('eases every side back to still, and never further than it was pushed', async () => {
+    const { settle, capsulePath, kick, MAX_NUDGE } = await import('../Capsule')
+    let o = [3, -2, 0, 4]
+    for (let t = 0; t < 30; t++) o = settle(o, 16)
+    expect(o).toEqual([0, 0, 0, 0])
+    expect(Math.max(...[1, 2, 3, 4, 5, 6].map((n) => Math.abs(kick(n).by)))).toBeLessThanOrEqual(MAX_NUDGE)
+    expect(capsulePath(100, 40, 12, [0, 0, 0, 0])).toMatch(/^M12,0 Q50,0 88,0/)
+  })
+
+  it('lets a drop go on send, and a bare box has no capsule', () => {
+    const { input } = box()
+    expect(document.querySelector('.capsule')).toBeTruthy()
+    expect(document.querySelector('.capsule__drop')).toBeNull()
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(document.querySelector('.capsule__drop')).toBeTruthy()
+    cleanup()
+    box({ bare: true })
+    expect(document.querySelector('.capsule')).toBeNull()
+  })
+})

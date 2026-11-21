@@ -149,6 +149,7 @@ export function home(s: HomeSources): HomePage {
         paused: s.held
       }))
   return {
+    date: new Date(s.now).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }),
     greeting: greeting(s.now),
     status: statusLine(s, waiting.length),
     now,

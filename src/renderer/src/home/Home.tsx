@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { HomeNeed, HomePage, LogControl, Words } from '../../../shared/types'
+import { AnimatePresence, m } from 'motion/react'
 import { Icon } from '../components/Icon'
-import { Otter } from '../components/Otter'
+import { T, surface } from '../lib/motion'
+import { CoveOtty } from '../components/Cove'
 
 // Home (D-66, Spec 06): the otter, how things stand in one sentence, then only the blocks with something in them.
 // Every word comes from main (`main/home/`); deciding an item sends its Logbook id through the same channels as the
@@ -29,51 +31,61 @@ async function decide(item: HomeNeed, c: LogControl, onOpenChat: (id: string) =>
   onOpenEntry(item.id)
 }
 
-function Block({ label, glyph, value, wait, children }: { label: string; glyph: string; value?: string; wait?: boolean; children: React.ReactNode }) {
+/** Home arrives in reading order, 60 ms apart: the greeting, then each block. */
+const arrive = (order: number) => ({ ...surface, animate: { ...surface.animate, transition: { delay: 0.1 + order * 0.06 } } })
+
+/**
+ * A block surfaces when it has something in it and ebbs away when it's empty; the blocks around it glide to their new
+ * place (`layout="position"`, so glass and text are moved, never stretched).
+ */
+function Block({ label, glyph, value, wait, order, children }: { label: string; glyph: string; value?: string; wait?: boolean; order: number; children: React.ReactNode }) {
   return (
-    <section className={`home-block${wait ? ' home-block--wait' : ''}`} aria-label={label}>
+    <m.section layout="position" {...arrive(order)} className={`home-block${wait ? ' home-block--wait' : ''}`} aria-label={label}>
       <h2 className="home-block__head">
         <Icon name={glyph} />
         <span className="home-block__label">{label}</span>
         {value && <span className="home-block__value">{value}</span>}
       </h2>
       {children}
-    </section>
+    </m.section>
   )
 }
 
 function Needs({ page, onOpenChat, onOpenEntry, onOpenLogbook }: { page: HomePage; onOpenChat: (id: string) => void; onOpenEntry: (id: string) => void; onOpenLogbook: () => void }) {
   const [open, setOpen] = useState(0)
   return (
-    <Block label="Needs you" glyph="inbox-in" value={String(page.needs.total)} wait>
+    <Block label="Needs you" glyph="inbox-in" value={String(page.needs.total)} wait order={1}>
       <ul className="home-needs">
-        {page.needs.items.map((item, i) =>
-          i === open ? (
-            <li key={item.id} className="home-need home-need--open">
-              <Icon name={item.glyph} className="home-need__glyph" />
-              <div className="home-need__body">
-                <div className="home-need__question">{item.question}</div>
-                <div className="home-need__subject">{item.subject}</div>
-                <div className="home-need__actions">
-                  {item.actions.map((c) => (
-                    <button key={c.kind} className={`btn btn--small ${c.primary ? 'btn--primary' : 'btn--quiet'}`} onClick={() => void decide(item, c, onOpenChat, onOpenEntry)}>
-                      {c.label}
-                    </button>
-                  ))}
-                  <span className="home-need__since">{item.since}</span>
-                </div>
-              </div>
-            </li>
-          ) : (
-            <li key={item.id} className="home-need">
-              <button className="home-need__fold" onClick={() => setOpen(i)}>
+        {/* A decided item ebbs out of the flow at once and the rest glide up under it; the next one opens in place. */}
+        <AnimatePresence mode="popLayout" initial={false}>
+          {page.needs.items.map((item, i) =>
+            i === open ? (
+              <m.li key={item.id} layout="position" exit={surface.exit} className="home-need home-need--open">
                 <Icon name={item.glyph} className="home-need__glyph" />
-                <span className="home-need__question">{item.question}</span>
-                <span className="home-need__since">{item.since}</span>
-              </button>
-            </li>
-          )
-        )}
+                <m.div className="home-need__body" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: T.quick }}>
+                  <div className="home-need__question">{item.question}</div>
+                  <div className="home-need__subject">{item.subject}</div>
+                  <div className="home-need__actions">
+                    {item.actions.map((c) => (
+                      <button key={c.kind} className={`btn btn--small ${c.primary ? 'btn--primary' : 'btn--quiet'}`} onClick={() => void decide(item, c, onOpenChat, onOpenEntry)}>
+                        {c.label}
+                      </button>
+                    ))}
+                    <span className="home-need__since">{item.since}</span>
+                  </div>
+                </m.div>
+              </m.li>
+            ) : (
+              <m.li key={item.id} layout="position" exit={surface.exit} className="home-need">
+                <button className="home-need__fold" onClick={() => setOpen(i)}>
+                  <Icon name={item.glyph} className="home-need__glyph" />
+                  <span className="home-need__question">{item.question}</span>
+                  <span className="home-need__since">{item.since}</span>
+                </button>
+              </m.li>
+            )
+          )}
+        </AnimatePresence>
       </ul>
       {page.needs.total > page.needs.items.length && (
         <button className="home-more" onClick={onOpenLogbook}>
@@ -87,7 +99,7 @@ function Needs({ page, onOpenChat, onOpenEntry, onOpenLogbook }: { page: HomePag
 function Today({ page, onOpenEntry }: { page: HomePage; onOpenEntry: (id: string) => void }) {
   const [unfolded, setUnfolded] = useState(false)
   return (
-    <Block label="Today" glyph="clock" value={page.today.date}>
+    <Block label="Today" glyph="clock" value={page.today.date} order={2}>
       <ol className="home-river">
         {page.today.folded > 0 && !unfolded && (
           <li className="home-tick home-tick--folded">
@@ -117,7 +129,7 @@ function Today({ page, onOpenEntry }: { page: HomePage; onOpenEntry: (id: string
 
 function After({ page, onOpenEntry, onOpenComingUp }: { page: HomePage; onOpenEntry: (id: string) => void; onOpenComingUp: () => void }) {
   return (
-    <Block label="Looking after" glyph="arrows-repeat" value={String(page.after.total)}>
+    <Block label="Looking after" glyph="arrows-repeat" value={String(page.after.total)} order={3}>
       <ul className="home-after">
         {page.after.items.map((a) => (
           <li key={a.id}>
@@ -155,37 +167,46 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
     load()
     return window.otty.onLogbook(load)
   }, [load])
-  const [squish, setSquish] = useState(0)
-
-  if (!page) return <div className="home" />
+  if (!page) return <div className="home cove-scroll" />
   return (
-    <div className="home" role="main" aria-label="Home">
-      <div className="home__column">
-        <div className="home-greeting">
-          <button key={squish} className="home-greeting__otter" aria-label="Otty" onClick={() => setSquish((n) => n + 1)}>
-            <Otter state="idle" size={96} />
-          </button>
-          <div className="home-greeting__water" aria-hidden="true" />
-          <h1 className="home-greeting__hello">{page.greeting}</h1>
-          <p className="home-greeting__status" aria-live="polite">
-            {page.status}
-          </p>
-          {page.now.map((n) => (
-            <button key={n.id} className="home-now" onClick={() => onOpenEntry(n.id)}>
-              <span className={`home-now__dot${n.paused ? ' home-now__dot--paused' : ''}`} aria-hidden="true" />
-              <span>
-                <Said words={n.text} />
-              </span>
-            </button>
-          ))}
+    <div className="home cove-scroll" role="main" aria-label="Home">
+      {/* The greeting on the sky and Otty in the water, over the frame's cove (D-74, Spec 07). */}
+      <div className="cove-hero">
+        <div className="cove-hero__words">
+          <m.div className="cove-hero__arrive" {...arrive(0)}>
+            <span className="cove-hero__date">{page.date}</span>
+            <h1 className="cove-hero__hello">{page.greeting}</h1>
+            <p className="cove-hero__sentence" aria-live="polite">
+              {page.status}
+            </p>
+          </m.div>
         </div>
+        <CoveOtty />
+      </div>
+      <div className="home__column">
+        {page.now.length > 0 && (
+          <m.div className="home__now" {...arrive(1)}>
+            {page.now.map((n) => (
+              <button key={n.id} className="home-now" onClick={() => onOpenEntry(n.id)}>
+                <span className={`home-now__dot${n.paused ? ' home-now__dot--paused' : ''}`} aria-hidden="true" />
+                <span>
+                  <Said words={n.text} />
+                </span>
+              </button>
+            ))}
+          </m.div>
+        )}
         <div className="home__blocks">
-          {page.needs.total > 0 && <Needs page={page} onOpenChat={onOpenChat} onOpenEntry={onOpenEntry} onOpenLogbook={() => onOpenLogbook('wait')} />}
+          <AnimatePresence>
+            {page.needs.total > 0 && <Needs key="needs" page={page} onOpenChat={onOpenChat} onOpenEntry={onOpenEntry} onOpenLogbook={() => onOpenLogbook('wait')} />}
+          </AnimatePresence>
           <div className="home__pair">
-            {page.today.ticks.length + page.today.folded > 0 && <Today page={page} onOpenEntry={onOpenEntry} />}
+            <AnimatePresence>{page.today.ticks.length + page.today.folded > 0 && <Today key="today" page={page} onOpenEntry={onOpenEntry} />}</AnimatePresence>
             <div className="home__side">
-              {page.after.total > 0 && <After page={page} onOpenEntry={onOpenEntry} onOpenComingUp={() => onOpenLogbook('next')} />}
-              <section className="home-left" aria-label="What left your Mac">
+              <AnimatePresence>
+                {page.after.total > 0 && <After key="after" page={page} onOpenEntry={onOpenEntry} onOpenComingUp={() => onOpenLogbook('next')} />}
+              </AnimatePresence>
+              <m.section layout="position" {...arrive(4)} className="home-left" aria-label="What left your Mac">
                 <Icon name="arrow-up-right-from-square" />
                 <span>
                   <Said words={page.left} />{' '}
@@ -193,23 +214,25 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
                     Logbook
                   </button>
                 </span>
-              </section>
+              </m.section>
             </div>
           </div>
-          {page.firstRun && suggestions.length > 0 && (
-            <Block label="Try asking" glyph="comment">
-              <ul className="home-try">
-                {suggestions.slice(0, 3).map((t) => (
-                  <li key={t}>
-                    <button className="home-try__row" onClick={() => onSuggest(t)}>
-                      <Icon name="arrow-turn-down-right" />
-                      {t}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </Block>
-          )}
+          <AnimatePresence>
+            {page.firstRun && suggestions.length > 0 && (
+              <Block key="try" label="Try asking" glyph="comment" order={5}>
+                <ul className="home-try">
+                  {suggestions.slice(0, 3).map((t) => (
+                    <li key={t}>
+                      <button className="home-try__row" onClick={() => onSuggest(t)}>
+                        <Icon name="arrow-turn-down-right" />
+                        {t}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </Block>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>

@@ -23,7 +23,7 @@ describe('the frame (Spec 05)', () => {
     const { onGo } = frame()
     expect(screen.queryByText('The list')).toBeNull()
     expect(screen.queryByRole('navigation')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Chat, switch screen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Chat, switch screen, 2 needs you' }))
     expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Home⌘1', 'Chat⌘2', 'Chats⇧⌘F', 'Logbook2⌘3', 'Notebook⌘4', 'Settings⌘,'])
     fireEvent.click(screen.getByRole('menuitem', { name: /^Logbook/ }))
     expect(onGo).toHaveBeenCalledWith('logbook')
@@ -37,9 +37,11 @@ describe('the frame (Spec 05)', () => {
     expect(screen.getByRole('heading', { name: 'Chats' })).toBeTruthy()
   })
 
-  it('keeps four icons when compact, with the needs-you count in the Logbook’s name', () => {
+  it('keeps three icons when compact, with the needs-you count on the screen menu', () => {
     frame()
-    expect(screen.getByRole('button', { name: 'Logbook, 2 needs you' })).toBeTruthy()
+    // The Logbook is in the screen menu, so the header doesn't repeat it.
+    expect(screen.queryByRole('button', { name: /^Logbook/ })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Chat, switch screen, 2 needs you' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Pause everything' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'New chat' })).toBeTruthy()
   })
@@ -66,7 +68,7 @@ describe('the frame (Spec 05)', () => {
 
   it('leaves Chats out when chats aren’t remembered', () => {
     frame({ noChats: true })
-    fireEvent.click(screen.getByRole('button', { name: 'Chat, switch screen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Chat, switch screen, 2 needs you' }))
     expect(screen.queryByRole('menuitem', { name: /^Chats/ })).toBeNull()
   })
 })

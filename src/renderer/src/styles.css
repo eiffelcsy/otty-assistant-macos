@@ -25,10 +25,10 @@
      information. Meadow (--brand) is for rings, dots, icons and progress, never text. */
   --text: var(--shadow-ink);
   --heading: var(--fur);
-  --text-2: #6f6458;
+  --text-2: #50473d;
   --text-3: #958a7b;
-  --brand-text: #566d38;
-  --straw-ink: #74613a;
+  --brand-text: #4a5e30;
+  --straw-ink: #5f4c22;
 
   --brand: var(--meadow);
   --brand-fill: #5a7339;
@@ -51,8 +51,108 @@
   --knob: var(--surface);
 
   --otter-bubble: var(--silver);
-  /* Decoration only, never information: the water the otter floats in on Home (D-66). */
+  /* Decoration only, never information: Today's river line on Home (D-66). */
   --water: rgba(99, 124, 66, 0.12);
+  /* Decoration only: the rings a touch spreads across the cove's water. */
+  --ripple: rgba(255, 255, 255, 0.75);
+  /* The cove, full bleed (D-74, Spec 07). The painting follows the clock; the glass is light at dawn, day and golden
+     hour, and dark in dark mode or at night (whatever the appearance). Each pair is set once, here. The glass clears its text by flattening and
+     lifting (or smoking) what's behind it, so its tint stays thin. Each tint, halo and scrim is the least that passes
+     on the paintings plus .02; rules/renderer.test.ts checks every one, both ways. */
+  --cv-frost-light: blur(6px) saturate(1.45) contrast(0.6) brightness(1.5);
+  --cv-frost-dark: blur(6px) saturate(1.6) contrast(0.6) brightness(0.65);
+  --cv-glass-dawn: rgba(255, 255, 255, 0.34);
+  --cv-glass-day: rgba(255, 255, 255, 0.17);
+  --cv-glass-golden: rgba(255, 255, 255, 0.49);
+  --cv-glass-night: rgba(24, 21, 26, 0.45);
+  --cv-glass-dark-dawn: rgba(24, 21, 26, 0.45);
+  --cv-glass-dark-day: rgba(24, 21, 26, 0.52);
+  --cv-glass-dark-golden: rgba(24, 21, 26, 0.49);
+  /* Text on light glass: the paper roles one step darker. --text and --heading stay. */
+  --cv-text-2: #50473d;
+  --cv-brand-text: #4a5e30;
+  --cv-straw-ink: #5f4c22;
+  /* Text on dark glass (the night). */
+  --cv-night-text: #e6e3dc;
+  --cv-night-heading: #f5f2ec;
+  --cv-night-text-2: #b0a690;
+  --cv-night-brand-text: #a3b37f;
+  --cv-night-straw-ink: #d9caa2;
+  /* The greeting on the sky, and the header's icons: ink, then the halo behind the greeting and the scrim behind the icons. */
+  --cv-ink: #3a3132;
+  --cv-sub: var(--cv-text-2);
+  --cv-night-ink: var(--cv-night-heading);
+  --cv-night-sub: #dedad2;
+  --cv-halo-dawn: rgba(244, 241, 234, 0.44);
+  --cv-halo-day: rgba(244, 241, 234, 0.3);
+  --cv-halo-golden: rgba(244, 241, 234, 0.64);
+  --cv-halo-night: rgba(16, 24, 38, 0.05);
+  /* The greeting's halo made solid (Reduce transparency, Increase contrast): follows the painting, as the words do. */
+  --cv-halo-solid: #f4f1ea;
+  --cv-top-dawn: rgba(244, 241, 234, 0);
+  --cv-top-day: rgba(244, 241, 234, 0);
+  --cv-top-golden: rgba(244, 241, 234, 0);
+  --cv-top-night: rgba(16, 24, 38, 0.53);
+  /* The water's own colour, under the painting's bottom edge (prepare.py --patches). */
+  --cv-deep-dawn: #345d8d;
+  --cv-deep-day: #267888;
+  --cv-deep-golden: #37323a;
+  --cv-deep-night: #042248;
+  /* The glass's edge: a lit rim through a mask, and its lift. Light glass, then dark (the night). */
+  --cv-rim-light: linear-gradient(140deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.18) 30%, transparent 55%, rgba(255, 255, 255, 0.18) 78%, rgba(255, 255, 255, 0.6));
+  --cv-rim-dark: linear-gradient(140deg, rgba(255, 250, 240, 0.32), rgba(255, 250, 240, 0.04) 30%, transparent 55%, rgba(255, 250, 240, 0.04) 78%, rgba(255, 250, 240, 0.14));
+  --cv-lift-light: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(255, 255, 255, 0.3), 0 0 0 0.5px rgba(58, 49, 50, 0.07), 0 2px 6px -2px rgba(30, 34, 40, 0.24), 0 18px 40px -18px rgba(30, 34, 40, 0.24);
+  --cv-lift-dark: inset 0 1px 0 rgba(255, 250, 240, 0.22), inset 0 -1px 0 rgba(255, 250, 240, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.25), 0 2px 6px -2px rgba(0, 0, 0, 0.55), 0 18px 40px -18px rgba(0, 0, 0, 0.55);
+  /* The rest of the dark set, for a night cove in light mode (the glass's own fills, edges and solid fallback). */
+  --cv-night-text-3: #857a68;
+  --cv-night-bg: #1f1c1d;
+  --cv-night-surface: #2a2526;
+  --cv-night-surface-2: #332d2e;
+  --cv-night-fill: rgba(255, 248, 235, 0.05);
+  --cv-night-fill-strong: rgba(255, 248, 235, 0.09);
+  --cv-night-hairline: rgba(255, 248, 235, 0.08);
+  --cv-night-hairline-strong: rgba(255, 248, 235, 0.14);
+  --cv-night-brand-soft: rgba(140, 155, 106, 0.16);
+  /* One cove (Spec 08): every window takes the hour's colours. The mist is paper with a little of the painting in it
+     (sky at the top, water at the bottom, sky at half strength for the nav and list column), averaged from the
+     painting by Spec 08's script; `data-time` on the root picks the hour (main.tsx). Text roles pass 4.5:1 on each,
+     and on --mist-card over each (rules/renderer.test.ts). */
+  --mist-top-dawn: #ebe7e5;
+  --mist-bottom-dawn: #e6e3e0;
+  --mist-side-dawn: #efece8;
+  --mist-top-day: #e8ece9;
+  --mist-bottom-day: #e3e7e1;
+  --mist-side-day: #eeefe9;
+  --mist-top-golden: #f1e5d7;
+  --mist-bottom-golden: #e5dcd1;
+  --mist-side-golden: #f3ebe0;
+  --mist-top-night: #dddedc;
+  --mist-bottom-night: #dededc;
+  --mist-side-night: #e9e7e3;
+  /* The side glass: paper over the hour's haze (.frame__haze), for the nav and the list column, so the painting's
+     colours show through softly. Each is the least that passes on the haze plus .02 (rules/renderer.test.ts). */
+  --side-glass-dawn: rgba(244, 241, 234, 0.79);
+  --side-glass-day: rgba(244, 241, 234, 0.76);
+  --side-glass-golden: rgba(244, 241, 234, 0.83);
+  --side-glass-night: rgba(244, 241, 234, 0.86);
+  --side-glass: var(--side-glass-day);
+  /* The reading sheet: paper over the hour's sky, where every screen but Home and the empty chat sits once the camera
+     has looked up (Spec 08, Part 9). The least that passes on the sky plus .02 (rules/renderer.test.ts). */
+  --sheet-glass-dawn: rgba(244, 241, 234, 0.71);
+  --sheet-glass-day: rgba(244, 241, 234, 0.56);
+  --sheet-glass-golden: rgba(244, 241, 234, 0.78);
+  --sheet-glass-night: rgba(244, 241, 234, 0.86);
+  --sheet-glass: var(--sheet-glass-day);
+  --mist-top: var(--mist-top-day);
+  --mist-bottom: var(--mist-bottom-day);
+  --mist-side: var(--mist-side-day);
+  /* Paper glass: cards, groups, fields and the message box on the mist. Its fill, a field's, and its edge (a lit
+     rim and a soft lift in one shadow, so no ::before is needed); floating things (menus, popovers) are solid
+     --surface with the float lift. */
+  --mist-card: rgba(255, 255, 255, 0.62);
+  --mist-field: rgba(255, 255, 255, 0.5);
+  --glass-lift: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 0.5px rgba(58, 49, 50, 0.08), 0 2px 6px -2px rgba(30, 34, 40, 0.14), 0 12px 28px -14px rgba(30, 34, 40, 0.18);
+  --glass-lift-float: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 0 0 0.5px rgba(58, 49, 50, 0.1), 0 4px 12px -4px rgba(30, 34, 40, 0.18), 0 24px 48px -16px rgba(30, 34, 40, 0.3);
 
   /* Spacing: a 4px grid. --s-1h is only for the gap between an inline icon and its text. */
   --s-0: 2px;
@@ -69,6 +169,9 @@
   /* Type roles: size and line height. Weights are 500, 600, 700 and 800 only. */
   --fs-display: 24px;
   --lh-display: 30px;
+  /* The cove's greeting only (Spec 07); 32 / 36 in the compact band. */
+  --fs-hero: 40px;
+  --lh-hero: 44px;
   --fs-heading: 20px;
   --lh-heading: 26px;
   --fs-title: 16px;
@@ -109,9 +212,13 @@
   --t-settle: 480ms;
   --t-travel: 720ms;
   --t-drift: 1.4s;
+  /* The camera's tilt between the cove and the sky (Spec 08, Part 9). */
+  --t-camera: 900ms;
   --glide: cubic-bezier(0.16, 1, 0.3, 1);
   --buoy: cubic-bezier(0.3, 1.22, 0.5, 1);
   --ebb: cubic-bezier(0.45, 0, 0.85, 0.4);
+  /* A swell: it gathers gently, carries, and lands long and soft. For moves of the whole world, never a press. */
+  --swell: cubic-bezier(0.42, 0, 0.12, 1);
 
   --font: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'PingFang HK', 'Segoe UI', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -128,10 +235,10 @@
     --hairline-strong: rgba(255, 248, 235, 0.14);
     --text: #e6e3dc;
     --heading: #f5f2ec;
-    --text-2: #a89c86;
+    --text-2: #bcb29c;
     --text-3: #857a68;
-    --brand-text: #a3b37f;
-    --straw-ink: #d4c49c;
+    --brand-text: #b0bf8c;
+    --straw-ink: #d9caa2;
     --brand: #a3b37f;
     --brand-fill: #a3b37f;
     --chart-1: #3f8cc4;
@@ -150,9 +257,64 @@
     --ok-soft: rgba(140, 155, 106, 0.16);
     --knob: var(--text);
     --water: rgba(140, 155, 106, 0.16);
+    --ripple: rgba(255, 248, 235, 0.4);
     --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3);
     --elev-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 18px -4px rgba(0, 0, 0, 0.45);
     --elev-3: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 40px -8px rgba(0, 0, 0, 0.6);
+    --side-glass-dawn: rgba(31, 28, 29, 0.8);
+    --side-glass-day: rgba(31, 28, 29, 0.83);
+    --side-glass-golden: rgba(31, 28, 29, 0.81);
+    --side-glass-night: rgba(31, 28, 29, 0.56);
+    --sheet-glass-dawn: rgba(31, 28, 29, 0.75);
+    --sheet-glass-day: rgba(31, 28, 29, 0.82);
+    --sheet-glass-golden: rgba(31, 28, 29, 0.75);
+    --sheet-glass-night: rgba(31, 28, 29, 0.27);
+    --mist-top-dawn: #39353c;
+    --mist-bottom-dawn: #333035;
+    --mist-side-dawn: #2c292c;
+    --mist-top-day: #363c40;
+    --mist-bottom-day: #2f3636;
+    --mist-side-day: #2b2c2f;
+    --mist-top-golden: #423329;
+    --mist-bottom-golden: #322822;
+    --mist-side-golden: #302823;
+    --mist-top-night: #1c2029;
+    --mist-bottom-night: #1d2129;
+    --mist-side-night: #1e1e23;
+    --mist-card: rgba(255, 248, 235, 0.05);
+    --mist-field: rgba(0, 0, 0, 0.16);
+    --glass-lift: inset 0 1px 0 rgba(255, 250, 240, 0.1), inset 0 0 0 1px rgba(255, 250, 240, 0.05), 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 2px 6px -2px rgba(0, 0, 0, 0.45), 0 12px 28px -14px rgba(0, 0, 0, 0.5);
+    --glass-lift-float: inset 0 1px 0 rgba(255, 250, 240, 0.12), 0 0 0 0.5px rgba(0, 0, 0, 0.4), 0 4px 12px -4px rgba(0, 0, 0, 0.5), 0 24px 48px -16px rgba(0, 0, 0, 0.65);
+  }
+}
+
+/* One cove (Spec 08): the hour's mist, picked by `data-time` on the root (main.tsx sets it from the cove's clock). */
+:root[data-time='dawn'] {
+  --mist-top: var(--mist-top-dawn);
+  --mist-bottom: var(--mist-bottom-dawn);
+  --mist-side: var(--mist-side-dawn);
+  --side-glass: var(--side-glass-dawn);
+  --sheet-glass: var(--sheet-glass-dawn);
+}
+:root[data-time='golden'] {
+  --mist-top: var(--mist-top-golden);
+  --mist-bottom: var(--mist-bottom-golden);
+  --mist-side: var(--mist-side-golden);
+  --side-glass: var(--side-glass-golden);
+  --sheet-glass: var(--sheet-glass-golden);
+}
+:root[data-time='night'] {
+  --mist-top: var(--mist-top-night);
+  --mist-bottom: var(--mist-bottom-night);
+  --mist-side: var(--mist-side-night);
+  --side-glass: var(--side-glass-night);
+  --sheet-glass: var(--sheet-glass-night);
+}
+/* Reduce transparency and Increase contrast: paper glass turns solid, as the cove's glass does (Spec 07, Part 5). */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root {
+    --mist-card: var(--surface);
+    --mist-field: var(--bg);
   }
 }
 
@@ -232,7 +394,7 @@ kbd {
   border-radius: var(--r-xs);
   border: 1px solid var(--hairline);
   border-bottom: 2px solid var(--hairline-strong);
-  background: var(--surface-2);
+  background: var(--fill-strong);
   color: var(--text-2);
   font-family: var(--mono);
   font-size: var(--fs-meta);
@@ -262,14 +424,10 @@ kbd {
   user-select: none;
   pointer-events: none;
 }
-/* The eyes-closed frame: flashed for a blink, held for the happy face. */
+/* The eyes-closed frame, flashed for a blink. Every other face is its own painted frame (D-38). */
 .otter-frame--blink {
   opacity: 0;
   animation: blink 5s steps(1, end) infinite;
-}
-.otter--happy .otter-frame--blink {
-  opacity: 1;
-  animation: none;
 }
 .otter-bubbles {
   position: absolute;
@@ -292,9 +450,14 @@ kbd {
   opacity: 1;
   animation: rise 1.6s ease-in-out infinite;
 }
-.otter--happy .otter-body {
+.otter--happy .otter-body,
+.bubble--landed .otter-body {
   animation: wiggle 0.6s ease-in-out 2;
   transform-origin: 50% 90%;
+}
+/* Let go after a drag: one wiggle, not a cheer. */
+.bubble--landed .otter-body {
+  animation-iteration-count: 1;
 }
 
 @keyframes blink {
@@ -328,10 +491,12 @@ html[data-asleep] *::after {
   animation-play-state: paused !important;
 }
 
+/* Reduced motion: nothing moves and the otter holds still; what changes fades over 200 ms instead. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation: none !important;
-    transition: none !important;
+    transition-property: opacity, color, background-color, border-color !important;
+    transition-duration: 200ms !important;
   }
 }
 
@@ -397,7 +562,7 @@ html[data-view='bubble'] body {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
   overflow: hidden;
@@ -411,8 +576,28 @@ html[data-view='bubble'] body {
   gap: var(--s-2);
   height: 44px;
   padding: 0 var(--s-2) 0 var(--s-3);
-  border-bottom: 1px solid var(--hairline);
-  background: var(--surface);
+  /* W6: the hairline shows only once the content under it has scrolled. */
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  transition: border-color var(--t-quick) var(--glide);
+}
+.panel__header--scrolled {
+  border-bottom-color: var(--hairline);
+}
+/* Otty's own tooltip (lib/tooltips.ts), for every title. */
+.tooltip {
+  position: fixed;
+  z-index: 100;
+  max-width: 240px;
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-xs);
+  background: var(--fur);
+  color: var(--silver);
+  box-shadow: var(--elev-3);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  font-weight: 600;
+  pointer-events: none;
 }
 .panel__title {
   flex: 1;
@@ -436,20 +621,38 @@ html[data-view='bubble'] body {
 /* ---------- The frame (D-64, Spec 05): nav, header and columns, laid out by the window's width alone ---------- */
 .frame {
   container: otty / inline-size;
+  position: relative;
+  isolation: isolate;
   flex: 1;
   min-height: 0;
   display: flex;
 }
+/* The hour's painting as a blur of its colours, behind the whole frame: the nav and the list column are frosted glass
+   over it (Spec 08, Part 8). Pre-blurred by prepare.py, so nothing blurs at run time. */
+.frame__haze {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url('./assets/cove/haze-day.webp') center / cover no-repeat;
+  pointer-events: none;
+}
+:root[data-time='dawn'] .frame__haze {
+  background-image: url('./assets/cove/haze-dawn.webp');
+}
+:root[data-time='golden'] .frame__haze {
+  background-image: url('./assets/cove/haze-golden.webp');
+}
+:root[data-time='night'] .frame__haze {
+  background-image: url('./assets/cove/haze-night.webp');
+}
 .frame__list {
   flex: none;
-  width: 240px;
+  width: var(--list-w);
   display: flex;
   flex-direction: column;
+  background: var(--side-glass);
   border-right: 1px solid var(--hairline);
   outline: none;
-}
-.frame--wide .frame__list {
-  width: 248px;
 }
 .frame__main {
   flex: 1;
@@ -457,6 +660,12 @@ html[data-view='bubble'] body {
   display: flex;
   flex-direction: column;
   outline: none;
+}
+.frame__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 .frame__screen {
   flex: 1;
@@ -468,7 +677,7 @@ html[data-view='bubble'] body {
   display: none;
 }
 .frame__list-head {
-  background: var(--bg);
+  background: transparent;
 }
 /* At wide, the chat keeps a reading column of at most 680, centred, with its box under it (Spec 03, Spec 05). */
 .frame--wide .frame__screen--chat > .chat,
@@ -490,13 +699,10 @@ html[data-view='bubble'] body {
 .frame--roomy .frame__nav-top {
   height: 52px;
 }
-.panel--moving .frame {
-  animation: window-move var(--t-travel) var(--glide);
-}
-@keyframes window-move {
-  28% { opacity: 0.3; transform: none; }
-  72% { opacity: 0.3; transform: translateY(4px); }
-  100% { opacity: 1; transform: none; }
+/* While the panel grows between states, nothing frosts or eases: each frame is one layout of the content. */
+.panel--moving .frame * {
+  backdrop-filter: none !important;
+  transition: none !important;
 }
 .frame__expand {
   color: var(--brand-text);
@@ -507,7 +713,7 @@ html[data-view='bubble'] body {
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--hairline);
-  background: var(--surface-2);
+  background: var(--side-glass);
   -webkit-app-region: drag;
 }
 .frame__nav > :not(.frame__nav-top) {
@@ -613,15 +819,23 @@ html[data-view='bubble'] body {
   font-size: var(--i-xl);
   display: grid;
   place-items: center;
-  transition: background var(--t-settle) var(--glide), color var(--t-quick) var(--glide), box-shadow var(--t-settle) var(--glide);
+  isolation: isolate;
+  transition: background var(--t-quick) var(--glide), color var(--t-quick) var(--glide);
 }
 .nav-btn:hover {
   background: var(--fill);
 }
 .nav-btn[aria-current] {
-  background: var(--surface);
-  box-shadow: var(--elev-1);
   color: var(--text);
+}
+/* W5: the selected item's card, one element that Motion glides from item to item (Frame.tsx). */
+.nav-btn__mark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--r-sm);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .nav-btn--row {
   width: 100%;
@@ -653,13 +867,13 @@ html[data-view='bubble'] body {
   height: 7px;
   border-radius: 50%;
   background: var(--straw);
-  box-shadow: 0 0 0 2px var(--surface-2);
+  box-shadow: 0 0 0 2px var(--mist-side);
 }
 .pause-card {
   padding: var(--s-3);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -697,34 +911,48 @@ html[data-view='bubble'] body {
   -webkit-app-region: no-drag;
 }
 .screen-menu__btn {
+  position: relative;
   max-width: 100%;
   height: 32px;
-  padding: 0 var(--s-2) 0 var(--s-0);
+  padding: 0 var(--s-2);
   border: none;
   border-radius: var(--r-sm);
-  background: none;
-  color: var(--text);
+  background: transparent;
+  color: var(--text-2);
   display: inline-flex;
   align-items: center;
-  gap: var(--s-1h);
-  transition: background var(--t-quick) var(--glide);
+  gap: var(--s-1);
+  transition: background var(--t-quick) var(--glide), color var(--t-quick) var(--glide), transform var(--t-tap) var(--glide);
 }
 .screen-menu__btn:hover {
-  background: var(--fill);
+  background: var(--fill-strong);
+  color: var(--text);
 }
-.screen-menu__btn > .icon {
+.screen-menu__btn:active {
+  transform: scale(0.97);
+}
+.screen-menu__btn[aria-expanded='true'] {
+  background: var(--fill-strong);
+  color: var(--text);
+}
+.screen-menu__icon {
+  font-size: var(--i-lg);
+  display: grid;
+  place-items: center;
+}
+.screen-menu__chev {
   font-size: var(--i-sm);
-  color: var(--text-2);
+  color: var(--text-3);
 }
 .screen-menu__title {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--fs-title);
-  line-height: var(--lh-title);
-  font-weight: 700;
-  color: var(--heading);
+  font-size: var(--fs-ui);
+  line-height: var(--lh-ui);
+  font-weight: 600;
+  color: var(--text);
 }
 .screen-menu__list {
   top: 38px;
@@ -769,52 +997,21 @@ html[data-view='bubble'] body {
   overflow-y: auto;
 }
 .home__column {
+  position: relative;
   max-width: 720px;
   margin: 0 auto;
-  padding: var(--s-6) var(--s-4) var(--s-4);
+  padding: 0 var(--s-4) var(--s-4);
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
 }
-.home-greeting {
+.home__now {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-.home-greeting__otter {
-  position: relative;
-  z-index: 1;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background: none;
-  animation: squish var(--t-settle) var(--buoy);
-}
-.home-greeting__water {
-  width: 220px;
-  height: 22px;
-  margin-top: -18px;
-  border-radius: 50%;
-  background: var(--water);
-}
-.home-greeting__hello {
-  margin: var(--s-2) 0 0;
-  font-size: var(--fs-heading);
-  line-height: var(--lh-heading);
-  font-weight: 800;
-  color: var(--heading);
-}
-.home-greeting__status {
-  max-width: 46ch;
-  margin: var(--s-1) 0 0;
-  font-size: var(--fs-body);
-  line-height: var(--lh-body);
-  color: var(--text-2);
-  text-wrap: balance;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-2);
 }
 .home-now {
-  margin-top: var(--s-3);
   min-height: 32px;
   padding: 0 var(--s-3) 0 var(--s-2);
   border: none;
@@ -858,11 +1055,9 @@ html[data-view='bubble'] body {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
   }
-  .home__column {
-    padding-top: var(--s-8);
-  }
 }
 .home-block {
+  position: relative;
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-md);
   background: var(--surface);
@@ -893,6 +1088,10 @@ html[data-view='bubble'] body {
 .home-block--wait .home-block__value {
   color: var(--straw-ink);
   font-weight: 700;
+}
+.home-needs {
+  /* Where a decided item ebbs from, out of the flow (Home.tsx). */
+  position: relative;
 }
 .home-needs,
 .home-river,
@@ -1117,6 +1316,692 @@ html[data-view='bubble'] body {
 }
 /* ---------- end Home ---------- */
 
+/* ---------- The living cove (D-72), full bleed (D-74, Spec 07) ----------
+   The backdrop of the frame's main column on Home and the empty chat (`frame__main--full`), and the band behind the
+   header on every shallow screen (`--wash`, Spec 08). Painted layers, back to front: the water's own colour, the sky and
+   shore, the water, the foreground pieces, the header's scrim; the screen's scroller, header and message box sit over
+   it, and Otty floats in the screen's hero (`.cove-otty`), so it scrolls with the words. Shore and water are one
+   painting cut at its horizon (prepare.py), drawn at one width so they meet at --horizon, which places everything.
+   Nothing moves on its own: the otter's float is stepped, the first cove of a window settles in once, and only a
+   scroll or the pointer moves the layers. Reduced motion holds it all still.
+   Depth: Cove.tsx drifts --px and --py (-1 to 1) after the pointer; each layer leans away by its distance, on
+   `translate`, so the scroll's `transform` and the depth add up. The painting is at least 32 px wider than the column
+   and tall enough to cover the sky past the depth and scroll moves, so it never shows an edge. */
+.frame {
+  --header-h: 44px;
+  --horizon: 216px;
+  --otty-w: 136px;
+  --waterline: 16px;
+  --hero-gap: 72px;
+  --hero-top: var(--s-6);
+}
+.frame--roomy {
+  --header-h: 52px;
+}
+/* The chat list's width. Beside it the cove keeps Home's framing (Spec 08, Part 10): laid out from the nav's edge, as
+   on Home, and clipped at the list's, so the painting doesn't change and the words and Otty move over with the column. */
+.frame {
+  --list-w: 240px;
+}
+.frame--wide {
+  --list-w: 248px;
+}
+.frame:has(> .frame__list) .frame__main--cove > .cove {
+  --cove-shift: var(--list-w);
+  left: calc(-1 * var(--list-w));
+  clip-path: inset(0 0 0 var(--list-w));
+}
+.frame--rail,
+.frame--medium {
+  --horizon: 248px;
+  --otty-w: 168px;
+  --waterline: 24px;
+  --hero-gap: 80px;
+  --hero-top: var(--s-8);
+}
+.frame--wide {
+  --horizon: 288px;
+  --otty-w: 200px;
+  --waterline: 32px;
+  --hero-gap: 88px;
+  --hero-top: var(--s-8);
+}
+.frame--compact {
+  --fs-hero: 32px;
+  --lh-hero: 36px;
+}
+
+/* The scope: words on the bare painting (greeting, halo, header icons) follow the painting, so a day sky keeps its
+   dark ink and white halo in dark mode; the glass and the words on it are dark in dark mode, or at night. */
+.frame__main--cove {
+  position: relative;
+  isolation: isolate;
+  --cove-glass: var(--cv-glass-day);
+  --cove-frost: var(--cv-frost-light);
+  --cove-halo: var(--cv-halo-day);
+  --cove-top: var(--cv-top-day);
+  --cove-ink: var(--cv-ink);
+  --cove-sub: var(--cv-sub);
+  --cove-halo-solid: var(--cv-halo-solid);
+  --cove-rim: var(--cv-rim-light);
+  --cove-lift: var(--cv-lift-light);
+  --cove-solid: var(--surface);
+}
+.frame__main--cove:has(> .cove[data-time='dawn']) {
+  --cove-glass: var(--cv-glass-dawn);
+  --cove-halo: var(--cv-halo-dawn);
+  --cove-top: var(--cv-top-dawn);
+}
+.frame__main--cove:has(> .cove[data-time='golden']) {
+  --cove-glass: var(--cv-glass-golden);
+  --cove-halo: var(--cv-halo-golden);
+  --cove-top: var(--cv-top-golden);
+}
+.frame__main--cove:has(> .cove[data-glass='dark']) {
+  --cove-frost: var(--cv-frost-dark);
+  --cove-rim: var(--cv-rim-dark);
+  --cove-lift: var(--cv-lift-dark);
+  --cove-solid: var(--cv-night-surface);
+}
+.frame__main--cove:has(> .cove[data-time='dawn'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-dawn);
+}
+.frame__main--cove:has(> .cove[data-time='day'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-day);
+}
+.frame__main--cove:has(> .cove[data-time='golden'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-golden);
+}
+.frame__main--cove:has(> .cove[data-time='night']) {
+  --cove-glass: var(--cv-glass-night);
+  --cove-halo: var(--cv-halo-night);
+  --cove-top: var(--cv-top-night);
+  --cove-ink: var(--cv-night-ink);
+  --cove-sub: var(--cv-night-sub);
+  --cove-halo-solid: var(--cv-night-surface);
+}
+/* Text on glass: the paper roles a step darker (light glass), or the dark set (dark glass), wherever words sit over the
+   cove. On the sky (wash) everything, the header included, sits on the reading sheet, so it keeps the page's roles. */
+.frame__main--full {
+  --text-2: var(--cv-text-2);
+  --brand-text: var(--cv-brand-text);
+  --straw-ink: var(--cv-straw-ink);
+}
+.frame__main--full:has(> .cove[data-glass='dark']) {
+  --text: var(--cv-night-text);
+  --heading: var(--cv-night-heading);
+  --text-2: var(--cv-night-text-2);
+  --text-3: var(--cv-night-text-3);
+  --brand-text: var(--cv-night-brand-text);
+  --straw-ink: var(--cv-night-straw-ink);
+  --bg: var(--cv-night-bg);
+  --surface: var(--cv-night-surface);
+  --surface-2: var(--cv-night-surface-2);
+  --fill: var(--cv-night-fill);
+  --fill-strong: var(--cv-night-fill-strong);
+  --hairline: var(--cv-night-hairline);
+  --hairline-strong: var(--cv-night-hairline-strong);
+  --brand-soft: var(--cv-night-brand-soft);
+  color: var(--text);
+}
+
+/* The layers */
+.cove {
+  /* cqw, not %: the sky is placed by `bottom`, where a % would be of the height. The cove is its own container. */
+  --paint-w: max(100cqw + 32px, (var(--horizon) + 24px) * 3.04);
+  --px: 0;
+  --py: 0;
+  --cv-deep: var(--cv-deep-day);
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 0;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
+  container-type: size;
+  background: var(--cv-deep);
+}
+.cove[data-time='dawn'] {
+  --cv-deep: var(--cv-deep-dawn);
+}
+.cove[data-time='golden'] {
+  --cv-deep: var(--cv-deep-golden);
+}
+.cove[data-time='night'] {
+  --cv-deep: var(--cv-deep-night);
+}
+/* The camera (Spec 08, Part 9). Home and the empty chat look at the cove; every other screen looks up into the hour's
+   sky, and sits on a reading sheet of glass over it. The world moves as one (a tilt has no parallax), the near pieces a
+   little more so the water seems to fall away; the sheet surfaces once the sky is in view, and ebbs first on the way
+   back, so words never sit on the moving painting. */
+.cove__world {
+  position: absolute;
+  inset: 0;
+  transition: transform var(--t-camera) var(--swell);
+}
+.cove--wash .cove__world {
+  transform: translateY(calc(100% + 160px));
+}
+.cove__front {
+  transition: transform var(--t-camera) var(--swell);
+}
+.cove--wash .cove__front {
+  transform: translateY(24%);
+}
+/* The sky above the shore, joined at its foot (prepare.py's join), deep enough to fill the column once looked up at. */
+.cove__sky {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100cqh - var(--horizon) + var(--paint-w) * 0.3346 - 48px);
+  width: var(--paint-w);
+  height: max(var(--paint-w) / 1.5, 100cqh + 240px);
+  max-width: none;
+  transform: translateX(-50%);
+  object-fit: cover;
+  object-position: 50% 100%;
+  mask: linear-gradient(black calc(100% - 48px), transparent);
+}
+.cove::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--sheet-glass);
+  /* A light frost: the sky is plain, so less than the cards' (the tint alone carries the contrast). */
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity var(--t-quick) var(--ebb), transform var(--t-quick) var(--ebb);
+}
+/* It surfaces from a quarter into the tilt and lands with the world, as one move (Frame.tsx's screen does the same). */
+.cove--wash::after {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity calc(var(--t-camera) * 0.75) var(--glide) calc(var(--t-camera) * 0.25),
+    transform calc(var(--t-camera) * 0.75) var(--swell) calc(var(--t-camera) * 0.25);
+}
+/* Otty, still, where the hero's Otty floats: shown while the hero is gone, so it rides the water out and back. */
+.cove__ghost {
+  position: absolute;
+  /* Centred on the column, as the hero's Otty is, not on the (wider) cove beside the chat list. */
+  left: calc(50% + var(--cove-shift, 0px) / 2);
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074);
+  width: var(--otty-w);
+  translate: -50% 0;
+  opacity: 0;
+  transition: opacity 0s linear var(--t-camera);
+}
+.cove--wash .cove__ghost {
+  opacity: 1;
+  transition: none;
+}
+.cove[data-time='night'] .cove__ghost {
+  filter: brightness(0.80) saturate(0.85);
+}
+.cove[data-time='golden'] .cove__ghost {
+  filter: sepia(0.18) saturate(1.1);
+}
+.cove[data-time='dawn'] .cove__ghost {
+  filter: sepia(0.1) hue-rotate(-8deg);
+}
+.cove__scene,
+.cove__far,
+.cove__near,
+.cove__front {
+  position: absolute;
+  inset: 0;
+}
+.cove__scene--in {
+  animation: cove-in var(--t-drift) var(--glide) both;
+}
+.cove__far {
+  translate: calc(var(--px) * -4px) calc(var(--py) * -2px);
+}
+.cove__near {
+  translate: calc(var(--px) * -10px) calc(var(--py) * -4px);
+}
+.cove__front {
+  translate: calc(var(--px) * -16px) calc(var(--py) * -6px);
+}
+/* The first cove of a window: the painting is there and the pieces rise into it; Otty follows, in the hero. */
+.cove[data-arriving] .cove__front {
+  animation: cove-arrive-front var(--t-drift) var(--glide) 80ms both;
+}
+@keyframes cove-arrive-front {
+  from { opacity: 0; translate: 0 18px; }
+}
+.cove__ripples {
+  position: absolute;
+  inset: 0;
+}
+.cove__ripple {
+  position: absolute;
+}
+/* Flat on the water: an ellipse, spread by Motion from its middle (Cove.tsx). */
+.cove__ring {
+  position: absolute;
+  left: -64px;
+  top: -16px;
+  width: 128px;
+  height: 32px;
+  border: 1.5px solid var(--ripple);
+  border-radius: 50%;
+}
+.cove__shore,
+.cove__water {
+  position: absolute;
+  left: 50%;
+  width: var(--paint-w);
+  max-width: none;
+}
+/* The horizon is 8 px into each half at 1536 wide (prepare.py's FEATHER). */
+.cove__shore {
+  bottom: calc(100% - var(--horizon));
+  transform: translate(-50%, 1.56%);
+}
+.cove__water {
+  top: var(--horizon);
+  transform: translate(-50%, -1.52%);
+  /* Its foot fades into --cv-deep, the water's own colour, so the painting never ends in a line. */
+  mask: linear-gradient(black calc(100% - 120px), transparent);
+}
+.cove__cloud {
+  position: absolute;
+  top: calc(var(--header-h) + var(--s-2));
+  left: 6%;
+  width: min(44%, 360px);
+  opacity: 0.85;
+}
+.cove__reeds {
+  position: absolute;
+  left: -20px;
+  top: calc(var(--horizon) - 30px);
+  width: 128px;
+}
+.cove__lilypad {
+  position: absolute;
+  right: 12%;
+  top: calc(var(--horizon) + 48px);
+  width: 72px;
+}
+/* The pieces were painted in daylight, so they take the light of the hour they're in. */
+.cove[data-time='night'] .cove__front {
+  filter: brightness(0.62) saturate(0.75);
+}
+.cove[data-time='night'] .cove__cloud {
+  opacity: 0.3;
+}
+.cove[data-time='golden'] .cove__front {
+  filter: sepia(0.18) saturate(1.1);
+}
+.cove[data-time='dawn'] .cove__front {
+  filter: sepia(0.1) hue-rotate(-8deg);
+}
+/* Behind the header's icons: only dark glass needs it (the moon, or light ink on a bright sky), and the test holds it to that (Spec 07, Part 5). */
+.cove__scrim {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 76px;
+  background: linear-gradient(var(--cove-top), transparent);
+}
+/* The veil: the water calms under the message box. */
+.cove--full::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 128px;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--cv-deep) 55%, transparent));
+}
+
+/* The screen over it: the header floats, the scroller runs under it, the message box sits on the veil. */
+.frame__main--cove > .frame__body {
+  position: relative;
+  z-index: 1;
+}
+.frame__main--full > .panel__header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 3;
+  isolation: isolate;
+  background: transparent;
+  border-bottom-color: transparent;
+}
+/* Its frost: clear over the hero, glass once the greeting has gone (scroll-driven below; on the first pixel without). */
+.frame__main--full > .panel__header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+  box-shadow: 0 1px 0 var(--hairline);
+  opacity: 0;
+}
+.frame__main--full > .panel__header--scrolled::before {
+  opacity: 1;
+}
+.frame__main--full > .panel__header .panel__title {
+  visibility: hidden;
+}
+.frame__main--full > .panel__header--scrolled .panel__title {
+  visibility: visible;
+}
+.frame__main--full > .panel__header .icon-btn {
+  color: var(--cove-sub);
+}
+.frame__main--full > .panel__header--scrolled .icon-btn {
+  color: var(--text-2);
+}
+.frame__main--full > .panel__header .screen-menu__btn {
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+}
+/* Over the chat's body (z 1), so menus that drop from the header stay on top. On the sky it's clear, full bleed as on
+   Home: the reading sheet runs under it; once the screen scrolls under it, it frosts (the sheet, thicker) with a line. */
+.frame__main--wash > .panel__header {
+  position: relative;
+  z-index: 3;
+  background: transparent;
+  color: var(--text);
+  border-bottom-color: transparent;
+  transition: background-color var(--t-quick) var(--glide), box-shadow var(--t-quick) var(--glide);
+}
+.frame__main--wash > .panel__header--scrolled {
+  background: var(--sheet-glass);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 0 var(--hairline);
+}
+
+/* The hero: the words on the sky, Otty in the water. It lets the pointer through to the water, but not its words. */
+.chat.cove-scroll {
+  padding: 0;
+}
+.cove-hero {
+  position: relative;
+  flex: none;
+  /* The greeting's halo reaches past the words, and past the window once they fill it: clipped here, so the screen
+     never scrolls sideways (clip, unlike hidden, leaves nothing to scroll). */
+  overflow-x: clip;
+  height: calc(var(--horizon) + var(--hero-gap));
+  padding: 0 var(--s-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+.cove-hero__words {
+  position: relative;
+  isolation: isolate;
+  margin-top: calc(var(--header-h) + var(--hero-top));
+  max-width: 40ch;
+  pointer-events: auto;
+}
+.cove-hero__arrive,
+.cove-hero__words {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1h);
+}
+/* The halo: the light gathers round the words, measured per painting (Spec 07, Part 5). */
+.cove-hero__words::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--s-8)) calc(-1 * var(--s-12));
+  z-index: -1;
+  background: radial-gradient(closest-side, var(--cove-halo), var(--cove-halo) 55%, transparent);
+}
+.cove-hero__date {
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  color: var(--cove-sub);
+}
+.cove-hero__hello {
+  margin: 0;
+  font-size: var(--fs-hero);
+  line-height: var(--lh-hero);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+  color: var(--cove-ink);
+}
+.cove-hero__sentence {
+  margin: 0;
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 600;
+  text-wrap: balance;
+  color: var(--cove-sub);
+}
+.cove-hero kbd {
+  background: var(--fill-strong);
+}
+
+/* Otty, placed by its waterline (70% down the float pose, which is 768 × 447), faded below it, with its reflection. */
+.cove-otty {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074);
+  width: var(--otty-w);
+  padding: 0;
+  border: none;
+  background: none;
+  translate: -50% 0;
+  pointer-events: auto;
+}
+.cove-otty[data-arriving] {
+  animation: cove-arrive-otty var(--t-drift) var(--buoy) 160ms both;
+}
+/* Looking back down (Frame.tsx sets it while the camera lands), the stand-in in the cove carries Otty home; the hero's
+   Otty takes over only when the world has landed, at the same place, so there's never two. */
+[data-landing] .cove-otty {
+  visibility: hidden;
+}
+@keyframes cove-arrive-otty {
+  from { opacity: 0; translate: -50% 28px; }
+}
+.cove-otty__squish,
+.cove-otty__body {
+  position: relative;
+  display: block;
+}
+.cove-otty__squish--on {
+  animation: squish var(--t-settle) var(--buoy);
+}
+.cove-otty__body {
+  animation: float 6s steps(10) infinite;
+}
+.cove-otty__img {
+  position: relative;
+  display: block;
+  width: 100%;
+  mask: linear-gradient(black 64%, rgba(0, 0, 0, 0.35) 76%, transparent 90%);
+}
+.cove-otty__refl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  transform-origin: 50% 70%;
+  transform: scaleY(-0.6);
+  opacity: 0.25;
+  filter: blur(1.5px);
+  mask: linear-gradient(transparent 15%, black 55%, black 69%, transparent 70%);
+}
+.frame__main--cove:has(> .cove[data-time='night']) .cove-otty {
+  filter: brightness(0.80) saturate(0.85);
+}
+.frame__main--cove:has(> .cove[data-time='golden']) .cove-otty {
+  filter: sepia(0.18) saturate(1.1);
+}
+.frame__main--cove:has(> .cove[data-time='dawn']) .cove-otty {
+  filter: sepia(0.1) hue-rotate(-8deg);
+}
+
+/* Glass: the backdrop flattened and lifted (or smoked), a thin tint, a lit rim and a soft lift (Spec 07, "Glass"). */
+.frame__main--full :is(.home-block, .home-left, .home-now, .try, .onboarding__block, .message-box:not(.message-box--bare)) {
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+  box-shadow: var(--cove-lift);
+}
+.frame__main--full :is(.home-block, .home-left, .try, .onboarding__block) {
+  position: relative;
+  border-radius: var(--r-lg);
+}
+.frame__main--full :is(.home-block, .home-left, .try, .onboarding__block)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
+  background: var(--cove-rim) border-box;
+  mask: linear-gradient(black 0 0) padding-box exclude, linear-gradient(black 0 0);
+  pointer-events: none;
+}
+.frame__main--full .home-block--wait {
+  box-shadow: var(--cove-lift), inset 0 0 0 1px var(--straw);
+}
+.frame__main--full .try {
+  padding: var(--s-2);
+}
+/* A health notice above the empty chat sits under the floating header and pushes the scroller down, so the hero
+   drops the header's height it would otherwise leave room for: the words stay under the notice and Otty floats a little
+   nearer, still in the water. */
+.frame__main--full .frame__screen > .health {
+  position: relative;
+  z-index: 1;
+  margin-top: var(--header-h);
+  /* On the cove it's glass, like the cards: its straw tint alone left light words on a bright sky in dark mode. */
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
+}
+.frame__main--full .frame__screen:has(> .health) .cove-hero {
+  height: calc(var(--horizon) + var(--hero-gap) - var(--header-h));
+}
+.frame__main--full .frame__screen:has(> .health) .cove-hero__words {
+  margin-top: var(--hero-top);
+}
+.frame__main--full .frame__screen:has(> .health) .cove-otty {
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074 - var(--header-h));
+}
+/* The message box sits under the reading column, as in a chat. */
+.frame__main--full .composer {
+  width: 100%;
+  max-width: 712px;
+  margin-inline: auto;
+}
+.frame__main--full .message-box:not(.message-box--bare):focus-within {
+  box-shadow: var(--cove-lift), var(--ring);
+}
+
+/* Scroll: the far shore moves least, the near water most, the words lift away, and the header frosts as they go. */
+@supports (animation-timeline: scroll()) {
+  .frame__main--full {
+    timeline-scope: --cove;
+  }
+  .frame__main--full .cove-scroll {
+    scroll-timeline: --cove y;
+  }
+  .cove--full .cove__far {
+    animation: cove-far linear both;
+    animation-timeline: --cove;
+    animation-range: 0 var(--horizon);
+  }
+  .cove--full :is(.cove__near, .cove__front) {
+    animation: cove-near linear both;
+    animation-timeline: --cove;
+    animation-range: 0 var(--horizon);
+  }
+  .cove-hero__words {
+    animation: cove-words linear both;
+    animation-timeline: --cove;
+    animation-range: 0 calc(var(--horizon) - 64px);
+  }
+  .frame__main--full > .panel__header::before {
+    animation: cove-frost linear both;
+    animation-timeline: --cove;
+    animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
+  }
+  /* The title is Motion's (its own opacity inline), so it's shown and hidden by visibility, which wins over that. */
+  .frame__main--full > .panel__header .panel__title {
+    animation: cove-title linear both;
+    animation-timeline: --cove;
+    animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
+  }
+  .frame__main--full > .panel__header .icon-btn {
+    animation: cove-icons linear both;
+    animation-timeline: --cove;
+    animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
+  }
+}
+@keyframes cove-in {
+  from { opacity: 0; }
+}
+@keyframes cove-far {
+  to { transform: translateY(-12px); }
+}
+@keyframes cove-near {
+  to { transform: translateY(-36px); }
+}
+@keyframes cove-words {
+  to { opacity: 0; transform: translateY(-24px); }
+}
+@keyframes cove-frost {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cove-title {
+  from { visibility: hidden; }
+  to { visibility: visible; }
+}
+@keyframes cove-icons {
+  from { color: var(--cove-sub); }
+  to { color: var(--text-2); }
+}
+
+/* Reduce transparency and Increase contrast: solid surfaces, a full halo, a header that's solid from the start. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  /* The reading sheet over the sky turns solid paper. */
+  .cove::after {
+    background: var(--bg);
+    backdrop-filter: none;
+  }
+  .frame__main--full :is(.home-block, .home-left, .home-now, .try, .onboarding__block, .message-box:not(.message-box--bare)),
+  .frame__main--full .frame__screen > .health,
+  .frame__main--full > .panel__header .screen-menu__btn,
+  .frame__main--full > .panel__header::before {
+    background: var(--cove-solid);
+    backdrop-filter: none;
+  }
+  .frame__main--wash > .panel__header--scrolled {
+    background: var(--bg);
+    backdrop-filter: none;
+  }
+  .frame__main--full > .panel__header::before {
+    animation: none;
+    opacity: 1;
+  }
+  .frame__main--full > .panel__header .panel__title {
+    animation: none;
+    visibility: visible;
+  }
+  .frame__main--full > .panel__header .icon-btn {
+    animation: none;
+    color: var(--text-2);
+  }
+  .cove-hero__words::before {
+    /* Not --cove-solid: that's the glass's, dark in dark mode, and the greeting's words follow the painting. */
+    background: radial-gradient(closest-side, var(--cove-halo-solid), var(--cove-halo-solid) 55%, transparent);
+  }
+}
+/* ---------- end cove ---------- */
+
 /* Icon button: 32 in the header and composer, 28 (--sm) in rows and answers. */
 .icon-btn {
   flex: none;
@@ -1316,7 +2201,7 @@ html[data-view='bubble'] body {
   font-size: var(--fs-small);
 }
 .md pre {
-  background: var(--surface-2);
+  background: var(--fill-strong);
   border: 1px solid var(--hairline);
   padding: var(--s-2) var(--s-3) var(--s-3);
   border-radius: var(--r-sm);
@@ -1332,7 +2217,7 @@ html[data-view='bubble'] body {
   margin: var(--s-3) 0;
   border: 1px solid var(--hairline);
   border-radius: var(--r-sm);
-  background: var(--surface-2);
+  background: var(--fill-strong);
   overflow: hidden;
 }
 .md .code-block pre {
@@ -1375,7 +2260,7 @@ html[data-view='bubble'] body {
   line-height: var(--lh-small);
 }
 .md th {
-  background: var(--surface-2);
+  background: var(--fill-strong);
   font-size: var(--fs-label);
   line-height: var(--lh-label);
   font-weight: 700;
@@ -1425,7 +2310,7 @@ html[data-view='bubble'] body {
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-md);
   background: var(--surface);
-  box-shadow: var(--elev-3);
+  box-shadow: var(--glass-lift-float);
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -1614,15 +2499,15 @@ html[data-view='bubble'] body {
   75% { content: '...'; }
 }
 
-/* Card: confirm, notice, step and activity cards. Actions sit 4 further below. */
+/* Card: confirm, notice, step and activity cards. Actions sit 4 further below. Paper glass, Spec 08. */
 .confirm-card,
 .notice-card,
 .step-card {
   max-width: 520px;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -1649,7 +2534,7 @@ html[data-view='bubble'] body {
   gap: var(--s-2);
   align-items: flex-start;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   font-size: var(--fs-ui);
   line-height: var(--lh-ui);
   background: var(--danger-soft);
@@ -1660,8 +2545,8 @@ html[data-view='bubble'] body {
 }
 /* An answer that failed: one button that helps, never a raw code (D-62). */
 .msg--otty .error-card {
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger-ink) 30%, transparent);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift), inset 0 0 0 1px color-mix(in srgb, var(--danger-ink) 30%, transparent);
   font-size: var(--fs-small);
   line-height: var(--lh-small);
 }
@@ -1701,7 +2586,7 @@ html[data-view='bubble'] body {
   border: none;
   border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: var(--elev-2);
+  box-shadow: var(--glass-lift-float);
   font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--text);
@@ -1711,9 +2596,6 @@ html[data-view='bubble'] body {
   display: flex;
   flex-direction: column;
   gap: var(--s-0);
-}
-.thinking__tool {
-  animation: surface var(--t-quick) var(--glide) both;
 }
 .thinking__slow {
   font-size: var(--fs-small);
@@ -1727,25 +2609,15 @@ html[data-view='bubble'] body {
 
 /* empty state */
 .empty {
-  margin: var(--s-6) 0 auto;
-  text-align: center;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  gap: var(--s-4);
+  padding-bottom: var(--s-4);
 }
-.empty h2 {
-  margin: var(--s-3) 0 0;
-  font-size: var(--fs-heading);
-  font-weight: 800;
-  line-height: var(--lh-heading);
-  color: var(--heading);
-}
-.empty p {
-  max-width: 32ch;
-  margin: var(--s-1) 0 0;
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-  color: var(--text-2);
+.empty .try {
+  width: auto;
+  margin: 0 var(--s-4);
 }
 
 /* ---------- Composer ---------- */
@@ -1764,14 +2636,48 @@ html[data-view='bubble'] body {
   gap: var(--s-1h);
 }
 .message-box:not(.message-box--bare) {
+  position: relative;
   padding: var(--s-1h);
   border-radius: calc(var(--radius) - var(--s-3));
-  background: var(--surface);
-  box-shadow: var(--elev-2);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   transition: box-shadow var(--t-quick) var(--glide);
 }
+/* The liquid capsule: an outline over the box's edge, seen only while it settles after a key press. */
+.capsule {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.capsule__line {
+  fill: none;
+  stroke: var(--brand-line);
+  stroke-width: 1.5;
+  opacity: 0;
+}
+/* On send, one drop rises from the top of the box and clears. */
+.capsule__drop {
+  position: absolute;
+  top: calc(-1 * var(--s-1));
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--brand-line);
+  opacity: 0;
+  pointer-events: none;
+  animation: drop-rise var(--t-settle) var(--glide);
+}
+@keyframes drop-rise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0.9; }
+  100% { transform: translateY(-18px) scale(1); opacity: 0; }
+}
 .message-box:not(.message-box--bare):focus-within {
-  box-shadow: var(--elev-2), var(--ring);
+  box-shadow: var(--glass-lift), var(--ring);
 }
 .message-box--bare .composer__input {
   padding: 0;
@@ -1881,6 +2787,8 @@ html[data-view='bubble'] body {
   background: var(--fill);
 }
 .lang-pill__opt {
+  position: relative;
+  isolation: isolate;
   min-width: 26px;
   height: 22px;
   padding: 0 var(--s-1h);
@@ -1896,8 +2804,15 @@ html[data-view='bubble'] body {
   color: var(--heading);
 }
 .lang-pill__opt[aria-pressed='true'] {
-  background: var(--brand-fill);
   color: var(--brand-ink);
+}
+/* The lit side's fill, one element that Motion slides between EN and 中 (LanguagePill.tsx). */
+.lang-pill__mark {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--r-xs);
+  background: var(--brand-fill);
   box-shadow: var(--elev-1);
 }
 
@@ -1908,9 +2823,9 @@ html[data-view='bubble'] body {
   flex-direction: column;
   gap: var(--s-2);
   padding: var(--s-3);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .context-card > .context-text,
 .context-card > .context-picture {
@@ -1978,8 +2893,8 @@ html[data-view='bubble'] body {
   min-width: 0;
   padding: var(--s-1);
   border-radius: var(--r-sm);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .file-tray--sent .file-chip {
   padding-right: var(--s-3);
@@ -2050,7 +2965,7 @@ html[data-view='bubble'] body {
   gap: var(--s-2);
   border: 2px dashed var(--brand-line);
   border-radius: var(--r-lg);
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  background: color-mix(in srgb, var(--mist-top) 88%, transparent);
   backdrop-filter: blur(2px);
   color: var(--brand-text);
   font-size: var(--fs-ui);
@@ -2071,6 +2986,21 @@ html[data-view='bubble'] body {
   border-radius: var(--r-sm);
   border: 1px solid var(--hairline);
   display: block;
+}
+.context-picture__open {
+  display: block;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: zoom-in;
+  border-radius: var(--r-sm);
+}
+.context-picture__open:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.context-picture__open:hover .context-img {
+  border-color: var(--text-3);
 }
 .context-text {
   display: flex;
@@ -2200,8 +3130,8 @@ html[data-view='bubble'] body {
   flex-shrink: 0;
 }
 .action:hover:not(:disabled) {
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .action:active:not(:disabled) {
   transform: scale(0.97);
@@ -2310,7 +3240,7 @@ html[data-view='bubble'] body {
   font-size: var(--fs-ui);
   font-weight: 500;
   color: var(--text);
-  background: var(--bg);
+  background: var(--mist-field);
   user-select: text;
   transition: border-color var(--t-quick) var(--glide), box-shadow var(--t-quick) var(--glide);
 }
@@ -2402,7 +3332,7 @@ html[data-view='bubble'] body {
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-sm);
   border: 1px solid var(--hairline-strong);
-  background: var(--bg);
+  background: var(--mist-field);
   text-align: left;
   cursor: pointer;
   transition: border-color var(--t-quick) var(--glide), background var(--t-quick) var(--glide);
@@ -2472,7 +3402,7 @@ html[data-view='bubble'] body {
   padding: 0 var(--s-3);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--mist-field);
   color: var(--text-2);
   font-size: var(--i-md);
 }
@@ -2545,9 +3475,9 @@ html[data-view='bubble'] body {
 .set-group__box {
   display: flex;
   flex-direction: column;
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   overflow: hidden;
 }
 /* A row: 44 high on one line, growing with its description. The hairline is inset 16 and skips the last row. */
@@ -2593,6 +3523,29 @@ html[data-view='bubble'] body {
   min-height: 52px;
   padding-top: var(--s-2);
   padding-bottom: var(--s-2);
+}
+/* D-56: one tile being written, inside the My tiles group. */
+.tile-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+}
+.tile-edit__icons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+.tile-edit__prompt {
+  height: auto;
+  padding: var(--s-2) var(--s-3);
+  resize: vertical;
+}
+.tile-edit__buttons,
+.tile-row__tools {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-1);
 }
 .set-row__glyph {
   flex: none;
@@ -2707,7 +3660,7 @@ html[data-view='bubble'] body {
   padding: 0 var(--s-3);
   border: 1px solid var(--brand-line);
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--mist-field);
   box-shadow: 0 0 0 3px var(--brand-soft);
   font: inherit;
   font-size: var(--fs-small);
@@ -2814,29 +3767,29 @@ html[data-view='bubble'] body {
 
 .onboarding {
   -webkit-app-region: drag;
-  flex: 1;
+  height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: var(--s-4) var(--s-6) var(--s-6);
-  overflow-y: auto;
+}
+.onboarding__block {
+  -webkit-app-region: no-drag;
+  width: calc(100% - 2 * var(--s-4));
+  max-width: 440px;
+  margin: 0 auto var(--s-4);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  text-align: center;
 }
 .onboarding__page {
   -webkit-app-region: no-drag;
-  margin: auto 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--s-3);
   text-align: center;
-}
-.onboarding__page h2 {
-  margin: 4px 0 0;
-  font-size: var(--fs-display);
-  font-weight: 800;
-  line-height: var(--lh-display);
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-  color: var(--heading);
 }
 .onboarding__page p {
   margin: 0;
@@ -2867,9 +3820,9 @@ html[data-view='bubble'] body {
   align-items: center;
   text-align: left;
   padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .perm-row__status {
   font-size: var(--i-xl);
@@ -2898,10 +3851,10 @@ html[data-view='quick'] body {
   padding: var(--s-3); /* keep in sync with MARGIN in Quick.tsx */
 }
 .quick__card {
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
-  box-shadow: var(--elev-2);
+  box-shadow: var(--glass-lift-float);
   padding: var(--s-2);
   display: flex;
   flex-direction: column;
@@ -2930,12 +3883,12 @@ html[data-view='quick'] body {
   gap: var(--s-2);
   padding: var(--s-2) var(--s-3);
   border-radius: calc(var(--radius) - var(--s-2));
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   transition: box-shadow var(--t-quick) var(--glide);
 }
 .quick__box:focus-within {
-  box-shadow: var(--elev-1), var(--ring);
+  box-shadow: var(--glass-lift), var(--ring);
 }
 .quick__box .context-img {
   max-height: 64px;
@@ -3084,8 +4037,69 @@ html[data-view='quick'] body {
   opacity: 0;
 }
 .history__item:hover .history__delete,
+.history__item:focus-within .history__delete,
 .history__delete:focus-visible {
   opacity: 1;
+}
+.history__pick {
+  flex: none;
+  margin: 0 0 0 var(--s-2);
+  accent-color: var(--brand);
+  opacity: 0;
+}
+.history__item:hover .history__pick,
+.history__item:focus-within .history__pick,
+.history--picking .history__pick {
+  opacity: 1;
+}
+.history__bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--fill-strong);
+}
+.history__bar-count {
+  flex: 1;
+  font-size: var(--fs-small);
+  font-weight: 600;
+}
+.history__bar .btn--small {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+.forget-dialog {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  color: var(--text);
+  padding: var(--s-5);
+  max-width: 320px;
+}
+.forget-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.forget-dialog::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
+.forget-dialog__title {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  line-height: var(--lh-ui);
+  color: var(--heading);
+  margin: 0;
+}
+.forget-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
 }
 .history__note {
   text-align: center;
@@ -3171,12 +4185,13 @@ html[data-view='quick'] body {
   align-items: center;
   gap: var(--s-1);
   padding: var(--s-1) var(--s-2) var(--s-1) var(--s-3);
-  border-bottom: 1px solid var(--hairline);
-  background: var(--surface);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .find-bar__field {
   flex: 1;
   min-width: 0;
+  background: var(--mist-field);
 }
 .find-bar__count {
   flex-shrink: 0;
@@ -3224,7 +4239,7 @@ html[data-view='pickup'] #root {
   height: 100%;
   overflow: hidden;
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
 }
 
 .pickup__stage {
@@ -3344,8 +4359,8 @@ html[data-view='pickup'] #root {
   padding: 0 var(--s-2);
   border: none;
   border-radius: var(--r-sm);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   color: var(--text);
   cursor: pointer;
   font: inherit;
@@ -3356,19 +4371,30 @@ html[data-view='pickup'] #root {
 }
 
 .context-picture__pickup:hover {
-  background: var(--surface-2);
+  background: var(--surface);
 }
 
 /* Proofread card: what changed, marked up by Otty rather than the model. */
+/* D-56: a tile the model drafted, kept only from its Save button. */
+.tile-card {
+  margin: var(--s-1) 0 var(--s-3);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
+}
+.tile-card--said {
+  padding: var(--s-3) var(--s-4);
+  color: var(--text-2);
+}
 .fixed-card {
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
   margin: var(--s-1) 0 var(--s-3);
   padding: var(--s-3) var(--s-4);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-md);
-  background: var(--bg);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 
 .fixed-card__text {
@@ -3496,7 +4522,7 @@ html[data-view='pickup'] #root {
   padding: var(--s-1);
   border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: var(--elev-3);
+  box-shadow: var(--glass-lift-float);
   display: flex;
   flex-direction: column;
 }
@@ -3530,8 +4556,9 @@ button.menu__item:hover {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-radius: var(--r-sm);
-  background: var(--fill);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .memory {
   display: flex;
@@ -3592,9 +4619,9 @@ button.menu__item:hover {
   align-self: flex-start;
   max-width: 100%;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .calc-card__sum {
   font-size: var(--fs-small);
@@ -3913,9 +4940,9 @@ button.menu__item:hover {
 }
 .log-now {
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .log-now__title {
   display: flex;
@@ -3999,7 +5026,8 @@ button.menu__item:hover {
   height: 36px;
   margin: 0;
   border-bottom: 1px solid var(--hairline-strong);
-  background: var(--bg);
+  background: color-mix(in srgb, var(--mist-top) 82%, transparent);
+  backdrop-filter: blur(12px);
   font-size: var(--fs-ui);
   font-weight: 700;
   color: var(--heading);
@@ -4162,8 +5190,9 @@ button.menu__item:hover {
 }
 .log-block__card {
   padding: var(--s-3);
-  border-radius: var(--r-sm);
-  background: var(--surface);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   font-size: var(--fs-small);
   line-height: var(--lh-small);
   color: var(--text);
@@ -4273,7 +5302,7 @@ button.menu__item:hover {
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--hairline);
+  box-shadow: var(--glass-lift-float);
   font-size: var(--fs-meta);
 }
 .hidden-sheet ul {
@@ -4434,9 +5463,9 @@ button.menu__item:hover {
 /* ---------- Drawings (D-30) ---------- */
 .drawing-card {
   margin: var(--s-3) 0;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-  background: var(--surface);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   overflow: hidden;
 }
 .drawing-card__stage {
@@ -4444,7 +5473,7 @@ button.menu__item:hover {
   align-items: center;
   justify-content: center;
   min-height: 96px;
-  background: var(--bg);
+  background: var(--fill-strong);
 }
 .drawing-card__picture,
 .drawing-card__deck {
@@ -4476,6 +5505,8 @@ button.menu__item:hover {
   bottom: 16px;
   font-size: var(--fs-meta);
   font-variant-numeric: tabular-nums;
+  background: var(--surface);
+  box-shadow: var(--glass-lift-float);
   padding: var(--s-0) var(--s-2);
   border-radius: var(--r-xs);
   background: var(--surface);
@@ -4506,6 +5537,10 @@ button.menu__item:hover {
 .drawing-card__text-btn {
   margin-left: auto;
 }
+/* Pebbles, step 1: a kept drawing says so in the brand colour. */
+.drawing-card__keep--on {
+  color: var(--brand-text);
+}
 .drawing-card__said {
   font-size: var(--fs-meta);
   color: var(--brand-text);
@@ -4531,9 +5566,12 @@ button.menu__item:hover {
 }
 
 /* The bigger view: a window of its own. */
-html[data-view='viewer'],
-html[data-view='viewer'] body {
+html[data-view='viewer'] {
   background: var(--bg);
+  height: 100%;
+}
+html[data-view='viewer'] body {
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
   height: 100%;
 }
 .viewer {
@@ -4541,7 +5579,7 @@ html[data-view='viewer'] body {
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
 }
 .viewer--picture img {
   flex: 1;
@@ -4580,7 +5618,7 @@ html[data-view='viewer'] body {
   padding: var(--s-1);
   border-radius: calc(var(--r-md) - var(--s-0));
   background: var(--surface);
-  box-shadow: var(--elev-2);
+  box-shadow: var(--glass-lift-float);
   color: var(--text);
   font-size: var(--fs-small);
   opacity: 0.35;
@@ -4668,7 +5706,7 @@ html[data-view='viewer'] body {
   transition: box-shadow var(--t-quick) var(--glide);
 }
 .ask:focus-visible {
-  box-shadow: var(--elev-1), var(--ring);
+  box-shadow: var(--glass-lift), var(--ring);
 }
 .ask__glyph {
   flex: none;
@@ -4757,7 +5795,7 @@ html[data-view='viewer'] body {
 }
 /* Unusual: a straw inner edge and the line that says why. Nothing else changes. */
 .ask--unusual {
-  box-shadow: var(--elev-1), inset 0 0 0 1px var(--straw);
+  box-shadow: var(--glass-lift), inset 0 0 0 1px var(--straw);
 }
 .ask__unusual {
   display: flex;
@@ -4798,7 +5836,7 @@ html[data-view='viewer'] body {
   animation: ask-ring var(--t-drift) var(--glide) 1;
 }
 @keyframes ask-ring {
-  50% { box-shadow: var(--elev-1), 0 0 0 2px var(--brand-line); }
+  50% { box-shadow: var(--glass-lift), 0 0 0 2px var(--brand-line); }
 }
 
 /* A receipt: one line in the answer's flow, like a tool chip. */

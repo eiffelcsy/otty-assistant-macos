@@ -1,4 +1,5 @@
 import type { SettableKey, SettingsUpdate } from '../../shared/types'
+import { validTiles } from '../../shared/tiles'
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron'
 
 // D-44: a compromised renderer is what the sandbox is for, so main checks everything a window sends. Each channel
@@ -60,7 +61,8 @@ export const SETTABLE = {
   snapHotkey: hotkey,
   screenHotkey: hotkey,
   monthlyCap: checkedLater,
-  capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x)
+  capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x),
+  myTiles: validTiles
 } as const satisfies Record<SettableKey, Guard>
 
 /**
@@ -113,6 +115,8 @@ export const CHANNELS = {
   'steps:tick': { views: CHAT, args: [id, int(0, 100), bool] },
   'steps:check': { views: CHAT, args: [id, int(0, 100)] },
   'steps:stuck': { views: CHAT, args: [id, int(0, 100)] },
+  'pebbles:keep': { views: CHAT, args: [id, int(0, 100), bool] },
+  'pebbles:kept': { views: CHAT, args: [id] },
   'activity:list': { views: PANEL, args: [] },
   'activity:stop': { views: PANEL, args: [id] },
   'activity:answer': { views: PANEL, args: [id, bool] },
@@ -144,6 +148,7 @@ export const CHANNELS = {
   'capture:screenshot': { views: PANEL, args: [] },
   'panel:close': { views: PANEL, args: [] },
   'window:state': { views: PANEL, args: [oneOf('expand', 'shrink')] },
+  'window:glide-ready': { views: PANEL, args: [] },
   'shell:open': { views: CHAT, args: [text(8_000)] },
   'clipboard:write': { views: [...CHAT, 'pickup'], args: [text(1_000_000)] },
   'pickup:open': { views: CHAT, args: [text(50_000_000)] },
@@ -160,7 +165,8 @@ export const CHANNELS = {
   'quick:state': { views: ['quick'], args: [record] },
   'bubble:menu': { views: ['bubble'], args: [] },
   'bubble:drag': { views: ['bubble'], args: [oneOf('start', 'end')] },
-  'bubble:feed': { views: ['bubble'], args: [list(id, 5)] }
+  'bubble:feed': { views: ['bubble'], args: [list(id, 5)] },
+  'bubble:feed-text': { views: ['bubble'], args: [text(200_000)] }
 } as const satisfies Record<string, { views: readonly View[]; args: readonly Guard[] }>
 
 export type Channel = keyof typeof CHANNELS

@@ -1,3 +1,4 @@
+import { TILE_ICONS, TILE_WHEN } from '../shared/tiles'
 import type { AnswerLanguage, HomeLanguage, QuickAction } from '../shared/types'
 import { languageGuide, LANGUAGE_NAMES, LANGUAGE_SHORT } from './language'
 
@@ -30,7 +31,10 @@ const DRAWINGS = `Drawings:
   - \`\`\`slides for a deck: "---" between slides, each starting with "# Title", then a few short bullets. "::: columns", then "|||" between the two sides and ":::" to close, makes two columns; "> " is a quote; a slide titled with just a number ("# 42%") shows it big; "Note: …" lines are what to say; and ~~~mermaid … ~~~ puts a diagram on a slide. About 5 to 10 slides, one idea each.
 - Before the block, say in one sentence what it shows, so the answer still makes sense without the picture. Don't explain the code.
 - To change a drawing, send the whole block again.
-- To chart my own data (a CSV I attached, a table I highlighted), call make_chart instead: Otty adds up the rows and shows the chart. Write about it using only the numbers it returns, and don't draw it again.`
+- To chart my own data (a CSV I attached, a table I highlighted), call make_chart instead: Otty adds up the rows and shows the chart. Write about it using only the numbers it returns, and don't draw it again.
+
+My own tiles:
+- When I ask for a tile or button for something I ask often, draft it as a \`\`\`tile block holding one JSON object: "name" (up to 30 characters), "icon" (one of ${TILE_ICONS.join(', ')}), "prompt" (the question, written as I'd type it, up to 1000 characters) and "when" (one of ${TILE_WHEN.join(', ')}). I check it and save it myself, so never say it's saved. Only ever when I ask.`
 
 const JOBS = `Big questions:
 - When answering well needs many sources or a long comparison, call start_job rather than doing it all here. Most questions don't need it. The user decides on a card. Write the brief so it stands alone, with nothing private in it: the job sees no chat, memories, captures or files.

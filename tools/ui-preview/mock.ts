@@ -21,10 +21,29 @@ import { home } from '../../src/main/home'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
+
+// D-74: `&time=dawn|day|golden|night` pins the cove's painting (and Home's greeting) by moving the clock to that hour.
+const HOURS: Record<string, number> = { dawn: 6, day: 14, golden: 17, night: 21 }
+const pinned = HOURS[q.get('time') ?? '']
+if (pinned !== undefined) {
+  const Real = Date
+  const at = new Real()
+  at.setHours(pinned, 30, 0, 0)
+  const offset = at.getTime() - Real.now()
+  globalThis.Date = class extends Real {
+    constructor(...args: [] | [string | number | Date]) {
+      if (args.length) super(...args)
+      else super(Real.now() + offset)
+    }
+    static now() {
+      return Real.now() + offset
+    }
+  } as DateConstructor
+}
 
 // D-64: `&w=` and `&h=` size the window, so every band of the frame can be drawn (Spec 05).
 const root = document.getElementById('root')
@@ -86,6 +105,14 @@ const settings: PublicSettings = {
   notifyDone: false,
   openAtLogin: false,
   canOpenAtLogin: true,
+  // D-56: two tiles of the user's own, in Settings and under a highlight.
+  myTiles:
+    scene === 'settings-tiles' || scene === 'compose'
+      ? [
+          { id: 't1', name: 'Make flashcards', icon: 'layers', prompt: 'Turn this into five flashcards.', when: 'text' },
+          { id: 't2', name: 'Reply politely', icon: 'envelope', prompt: 'Draft a short, polite reply to this.', when: 'any' }
+        ]
+      : [],
   monthlyCap: scene.startsWith('settings') || scene === 'cap' || scene === 'near' ? { unit: 'questions', limit: 300 } : null,
   capNoticed: null,
   homeUsed: q.get('home') !== 'unused'
@@ -660,6 +687,9 @@ const api: OttyApi = {
   bubbleMenu: () => {},
   bubbleDrag: () => {},
   feedOtty: async () => {},
+  feedOttyText: async () => {},
+  keepPebble: async () => true,
+  keptPebbles: async () => [],
   onChatEvent: (cb) => {
     chatCbs.add(cb)
     if (scene === 'proofread') setTimeout(() => cb({ type: 'load', messages: proofreadSample }), 50)
@@ -710,7 +740,7 @@ const api: OttyApi = {
     trayed.panel = true
     if (scene.startsWith('settings') || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
     // D-61: `&section=you|keys|privacy|usage|conn|help` opens a section; the other settings scenes set one up.
-    const titles: Record<string, string> = { you: 'You & Otty', keys: 'Shortcuts', privacy: 'Privacy', usage: 'Usage & limit', conn: 'Connection', help: 'Help' }
+    const titles: Record<string, string> = { you: 'You & Otty', tiles: 'My tiles', keys: 'Shortcuts', privacy: 'Privacy', usage: 'Usage & limit', conn: 'Connection', help: 'Help' }
     const setUp: Record<string, string> = { 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn' }
     const section = setUp[scene] ?? (titles[scene.replace('settings-', '')] ? scene.replace('settings-', '') : null)
     // React runs this twice in development, so each press happens once.
@@ -773,6 +803,8 @@ const api: OttyApi = {
   onBubbleBadge: () => () => {},
   onWindowVisible: () => () => {},
   // D-65: `&state=roomy` draws the roomy window's header and traffic-light row.
+  onWindowGlide: () => () => {},
+  windowGlideReady: () => {},
   onWindowState: (cb) => {
     if (q.get('state') === 'roomy') setTimeout(() => cb('roomy'), 0)
     return () => {}

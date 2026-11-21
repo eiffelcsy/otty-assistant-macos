@@ -48,10 +48,10 @@ The five promoted on value per effort are in DEVLOG ("Priority, 2026-11-20").
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | Feature-teaching collection: first snip, first file, first translation each earn a keepsake, so rewards teach what Otty can do | H | M | considering, part of Otty's den; keepsakes need painted art (re-sized 2026-11-20) |
-| Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | → D-38 |
+| Moods: sleeps after ~10 min idle (Zzz), wakes on hover, startled when grabbed, wiggles when dropped, cheers on success, head-tilt on errors. Must stay inside the idle budget (NFR-3): smooth endless animation is what cost 1.6% | H | S–M | shipped (D-38) |
 | Speech-bubble micro-replies from the otter itself ("Copied!", "Reminder set for 5pm") instead of opening a window | M | S | considering, Look after me needs it to speak |
-| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | → D-37 (step 1 shipped; the munch waits for art) |
-| More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | idea |
+| Feed Otty: drop files on the otter and a new chat opens in the Otty window with them attached; the munch comes with painted frames | H | S–M | shipped (D-37) |
+| More painted expressions through `tools/otty-art/prepare.py`: thinking (eyes up, paw on chin), oops for error cards, listening for the quick view, wink for "Copied" | M | S | art ready (D-71 step 1: thinking, oops, listening, wink, cheer, tilt, sleepy, mouth open, munch, catch); thinking, cheer, tilt, sleepy, mouth open, munch and catch are wired (D-38); oops, listening and wink wait for a place to show |
 | A simplified small-size head for the 34px header and quick view, where painted fur gets soft | M | S | idea |
 | Edge docking: drag to a screen edge and it tucks in, ears peeking | H | M | considering |
 | **Otty's den**: a pet home in the panel with shells, a collection and gentle stats, built on the local `counters` table. See the concept note below | H | M | considering |
@@ -285,11 +285,11 @@ Language users: **bilingual / multilingual people who work in English** and some
 | An Undo on the Saved whisper for the last change, as UX_REVIEW #2 suggested; D-61 shipped the whisper without it | L | S | idea, after D-61 |
 | Try again as a split button: Try again, with a small chevron that opens Shorter, Simpler and In more detail. The action row wraps to two lines at 420 since D-58, which is busier than the polish bar likes | M | S | idea, found in D-58 |
 | Drafts keep the tray too: captures and file ids beside the text (Spec 03). Today a draft is the words only, and a snip waiting in the quick view's tray doesn't follow ↵ continue in chat | M | S | idea, after D-62 |
-| Home's motion (Spec 06): the otter, greeting and Needs you surfacing 160 ms apart on open, a decided item folding into its receipt for 2.4 s, a finishing tick's dot filling as the now point drifts down. D-66 shows the blocks without it | M | S | idea, after D-66 |
+| Home's motion (Spec 06): the otter, greeting and Needs you surfacing 160 ms apart on open, a decided item folding into its receipt for 2.4 s, a finishing tick's dot filling as the now point drifts down. D-66 shows the blocks without it | M | S | shipped in part: Home surfaces in reading order 60 ms apart, a decided item ebbs while the rest glide up, and empty blocks ebb away. Still to do: the receipt fold and the tick's dot |
 | Home's side blocks in the details pane at wide (Spec 06): Looking after and what left your Mac beside the main column from 980. Today they sit in Home's own two columns | M | S | idea, after D-66 |
 | Expand and Shrink on Otty's own 720 ms glide instead of macOS's animated move: main would step the bounds on the display's refresh, if that holds 60 fps (Spec 06). D-65 uses the native move | L | S | idea, after D-65 |
 | The roomy window's corner: the floating window keeps the page's 24 px corner on a transparent window; the roomy one uses a 10 px corner. Check both against the system's at 100% and 200%, and make the composer concentric with the one macOS draws | M | S | ✋ check, after D-65 |
-| The frame's motion (Spec 05): the rail's glyphs gliding into the sidebar, a joined column fading in on release, pushed pages gliding from the side, the selected nav row gliding (W2, W4, W5). D-64 lays out without animating | M | S | idea, after D-64 |
+| The frame's motion (Spec 05): the rail's glyphs gliding into the sidebar, a joined column fading in on release, pushed pages gliding from the side, the selected nav row gliding (W2, W4, W5). D-64 lays out without animating | M | S | shipped in part (W4, W5, W13, the screen menu's ebb); W2 and the joined column are still to do |
 | A list column for Settings and the Notebook at medium and wide (Spec 05): today they page inside the main column, as at compact, and the Logbook keeps its own views column | M | S | idea, after D-64 |
 | "This chat" in the details pane (DESIGN.md): what left the Mac, notes used and words explained for the chat on show, from 1248 | M | M | idea, after D-64 |
 | Answer chunks that fade in from a slight blur as they stream, and actions, Noted lines and tips surfacing 200 ms apart when it ends (Spec 03, S5 and S7). Left out of D-62: the blur costs a repaint per chunk, so measure it against the idle budget first | M | S | idea, after D-62 |
@@ -389,6 +389,11 @@ Models will keep improving, so Otty should gain from each upgrade instead of bei
 | Finish the idle budget: a run with the panel open, more memory runs to set a limit, and pausing the otter when the display sleeps | M | S | idea |
 | Create the panel and quick view on first use, or free them after a long idle, to cut memory (about 100 MB each). Measure the cost to NFR-1 first | M | S | idea |
 | An idle check in CI or a script that fails when a change goes over the CPU budget, so an animation can't creep back in | M | M | idea |
+| The clip-based move's first jump hides the window for a frame or two while the page redraws at the new size (when the top-left corner moves). If that blink shows, draw the first glide frame into the old window ahead of the jump, or pick the covering area so the corner stays put more often | M | S | idea (2026-11-21), after a look on a real Mac |
+| The roomy window's menu bar and ⌘Tab, without the focus moving: a background-only app can't have them, so look for a way to switch kinds only while no Otty window floats over another app, or a ⌘Tab-like Otty switcher of its own | M | M | idea (2026-11-21) |
+| **Glass like the Mac's own (Liquid Glass):** Apple keeps its glass nearly clear because the ink adapts, not the glass: words and symbols flip dark or light with what's behind them, with a soft shadow, and the glass reads as glass through lensing and bright rims at its edges, not frost. The cove knows its paintings, so a card's words could flip by where it sits (dark ink on the sky, light over the water, worked out from `prepare.py --patches` or sampled once per scroll position band), and the tint could fall to near zero with the glass's contrast rule back at 4.5:1 (it's 3.5:1 since 2026-11-21). Keep Reduce transparency's solid fallback | H | M | idea (2026-11-21) |
+| A flash check for window moves: a smoke-style probe that streams the real screen through Electron's own capture (`getUserMedia` with a `chromeMediaSource` id) during Expand and Shrink cycles and flags any one-to-three-frame change that returns to where it was. It found the corner flash that sampling window bounds missed (5 in 10 cycles before the fix, 0 in 15 after). Needs Screen Recording for Electron, so a local check, not CI | M | S | idea (2026-11-21), the probe is in this session's scratchpad |
+| **A frame budget for the living look,** beside the idle one: as the cove, the pool and Otty's reactions grow, measure frame times for Expand, scrolling Home, the hourly cross-fade and a tap reaction (Chromium's tracing through the smoke harness), and set limits. Levers: paintings decoded at the size each band shows, cove pieces as composited layers, glass paused while anything moves (as Expand now does), and `content-visibility` on screens out of view | H | S–M | idea (2026-11-21) |
 | Background activity list: everything running or scheduled, with a stop button | H | S | shipped |
 | Survive sleep and wake: pause on sleep, resume on wake, retry after a dropped connection (`powerMonitor`) | M | S | shipped |
 | Keep going after closing: a long task carries on when the panel closes, and the unseen-answer dot says when it's ready | M | S–M | shipped |
@@ -427,10 +432,10 @@ Otty can only help with what it can see, and most of a person's week lives in ot
 | --- | --- | --- | --- |
 | The connection layer: one `Connection` interface, its token in the Keychain, a sign-in through the browser, its tools in `toolSafety.ts`, and its content tainting the run as private and outside at once | H | M–L | → D-54 (with Google Calendar) |
 | **Google Calendar**, read-only: "what's on tomorrow?", "when am I free on Thursday?", and the material for Look after me's focus list | H | M | → D-54 |
-| **Canvas** (NUS's Canvas first): assignments, due dates and announcements, so "what's due this week?" works and deadlines can feed the focus list. Needs a token or an OAuth developer key from the school (**verify** what NUS allows) | H | M | idea, after D-54 |
-| **Notion**, read-only: search and read pages and databases the user shares with Otty's integration (Notion only shows an integration the pages it's added to) | M | M | idea, after D-54 |
+| **Canvas** (NUS's Canvas first): assignments, due dates and announcements, so "what's due this week?" works and deadlines can feed the focus list. Needs a token or an OAuth developer key from the school (**verify** what NUS allows) | H | M | → D-54 (step 1, pasted token) |
+| **Notion**, read-only: search and read pages and databases the user shares with Otty's integration (Notion only shows an integration the pages it's added to) | M | M | → D-54 (step 2, pasted token) |
 | Apple Calendar and Reminders through EventKit, on the Mac with no account: the same `Connection` shape with a local source. Reminders can already be added | M | M | idea, after D-54; needs the Swift helper |
-| An MCP client for everything else: add a remote MCP server (or a local one) as a connection, with every tool off until the user turns it on, its descriptions treated as outside text, and a changed tool asked about again | H | M–L | idea, after D-54; advanced, off by default |
+| An MCP client for everything else: add a remote MCP server (or a local one) as a connection, with every tool off until the user turns it on, its descriptions treated as outside text, and a changed tool asked about again | H | M–L | → D-54 (step 5); advanced, off by default |
 | Writes, one tool at a time: "add this to my calendar", "append to my Notion page", each behind a card, with the ledger's undo where the service allows it (delete the event Otty made) | H | M | idea, after reads have a record |
 | Connections in What left your Mac: "Sent 4 calendar events to DeepSeek", so moving data from one service to another is as visible as a search | H | S | idea, ships with D-54 |
 | A connection's own limits: which calendars or Notion pages, how far ahead, and a "never send this one to the model" list | M | S | idea, with the second connection |
@@ -444,7 +449,7 @@ Two ideas that meet in one place. Developers (and their coding agents) need a fa
 | --- | --- | --- | --- |
 | **The feature kit** (for developers): `docs/EXTENDING.md` lists every extension point with its checklist (a tool's `toolSafety` row, an IPC channel in `CHANNELS`, a card in `Markdown.tsx` and `prompts.ts`, a setting, a migration, a smoke step), and a `feature` skill takes a BRAINSTORM row to a DEVLOG entry with checkable "Done when" lines, scaffolds what it needs, builds it and hands it to `ship` | H | M | → D-55 |
 | Scaffolds for the common shapes: `npm run new -- tool <name>` writes the table row, a stub, a test and a smoke stub, so the rules are met before the first line of logic | M | S–M | idea, part of D-55 if it pays |
-| **My own tiles** (for everyone, the first step): a tile is a name, an icon, a prompt and which captures it shows for ("for code", "for a table"). Otty drafts it from "make me a button that turns this into flashcards"; the user edits and saves it. No new tools, so nothing new can leave or change | H | S–M | → D-56 |
+| **My own tiles** (for everyone, the first step): a tile is a name, an icon, a prompt and which captures it shows for ("for code", "for a table"). Otty drafts it from "make me a button that turns this into flashcards"; the user edits and saves it. No new tools, so nothing new can leave or change | H | S–M | shipped (D-56) |
 | Recipes: a tile plus a trigger (a hotkey, a time, a connection's event) and a fixed list of tools picked from what a job may use. The card says it in plain words, and `ruleOfTwo` checks it before it's saved. The same recipes as Otty's chores | H | M | idea, after D-56 and D-54; overlaps chore recipes |
 | Share a tile or recipe as a small file, and import one with its plain-words card first. Imported text is outside text: it can't widen what the recipe may do | M | S | idea, after recipes |
 | Steps that run code: a recipe step may be a small script (a transform of a table, a date sum) in a sealed-off worker with no files and no network, written by the model and shown before it runs | M | L | idea, needs the code runner sandbox |
@@ -483,7 +488,7 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | shipped as D-64 (frame), D-65 (roomy window) and D-66 (Home); goals, Otty noticed and the den later |
 | Phone app: Otty goes with you, one relationship across devices | H | L | considering, after the core split ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)); reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
-| **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | idea; step 1 needs no account, sharing needs the hosted service and sign-in |
+| **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | → D-73 (step 1, local, no account); sharing needs the hosted service and sign-in |
 | Otties that talk to each other: yours finds a meeting time with a colleague's | M | L | idea, the last step of [Otty's own calendar](#ottys-own-calendar-shared-and-multi-person), and an otter-to-otter part of [Raft](#raft-otty-together) |
 
 ## The far horizon: the dream, unconstrained
@@ -592,7 +597,7 @@ The plumbing that AUTONOMY.md's "shape to build towards" needs. The pillar for e
 | Typed IPC from one table: channel names, input guards and `window.otty`'s types come from a single schema, so `index.ts`, the preload and `api.d.ts` can't drift | H | M | idea, after D-44; step 1 of [Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells) |
 | Jobs in a utility process, like `fileWorker.js`, for isolation and so a stuck job can't slow the UI. Measure first, as AUTONOMY.md asks | M | M | idea, unblocked: the loop and `JobRunner` import no electron (D-45) |
 | The eval's Mac tools through a recording `MacHands` instead of stubbing `runTool`, so their confirm cards and argument checks run as in the app. Compare against the baseline when changing it, since the stub never asked | M | S | idea, possible since tools reach the Mac through `ToolContext.mac` |
-| Settings checked per field: `settings.update` cleans `monthlyCap` and `workPausedUntil` by hand. When tiles (D-56) add a third field from the renderer that needs checking, move them to one table of cleaners, so a new field can't skip its check | M | S | idea, with D-56 |
+| Settings checked per field: `settings.update` cleans `monthlyCap` and `workPausedUntil` by hand. When tiles (D-56) add a third field from the renderer that needs checking, move them to one table of cleaners, so a new field can't skip its check | M | S | idea; D-56 used a guard in `SETTABLE` (`validTiles`) instead, so it's still two hand-cleaned fields |
 | TOON for structured data sent to the model: tool results that are lists of like rows (search results, a table's rows, Logbook entries, calendar events) written as Token-Oriented Object Notation instead of JSON, which repeats every key on every row. Measure first: tokens saved on real tool results, and the eval's score on the same cases in both formats, on each service's model. Never the system prompt or anything already sent (the cache rule), and the model still writes JSON for tool calls | M | S–M | considering; step 0 is the measurement ([concept note](#toon-fewer-tokens-for-tables-of-things)) |
 | One core, two shells: everything that isn't the Mac (the loop, tools, jobs, stores, providers, memory, the ledger, `shared/`) as a package with no electron import, behind interfaces the Mac shell and later an iOS shell each implement | H | L (step 1: M) | considering ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)); D-45 did the loop and jobs |
 | Agent-to-agent hand-offs as typed data: a run's result is a Pebble-shaped record with its source attached, so another run, another Otty or an outside agent reads fields, never instructions | H | M | considering, with sub-runs and Pebbles ([Agentic collaboration](#agentic-collaboration-runs-that-work-together)) |
@@ -621,13 +626,26 @@ What makes Otty feel expensive and unlike a chat app with an avatar. The design 
 | --- | --- | --- | --- |
 | Charts and slides with taste: a categorical palette from the tokens for pies and bars, soft gridlines and rounded bars, a title slide with a wash of the cove, a kicker line, brand-coloured bullets and quote marks, number badges, and two themes (Otty, high contrast) | H | S–M | shipped (D-70), but for the high-contrast theme (next row) |
 | A high-contrast deck theme, picked on the slides card, for projectors and low vision: the same template with `--text` on white and the series at their darkest steps | M | S | idea, from D-70 |
+| **The liquid capsule:** the message box as a drop of water. Its outline is an SVG path whose control points ease towards a resting shape; each key press nudges them (a few px, on touch only), and it settles in `--t-settle`. On send, a drop separates and travels up to the chat. Nothing moves while idle | M | S–M | shipped (2026-11-20); a ✋ check of idle with `OTTY_METRICS=1` still to do |
 | **The rippling message box:** a regular rounded glass box whose outline is an SVG path of springs coupled to their neighbours. Each key press pushes the edge near the caret and the ripple runs round the outline, with the rim lit while it moves, then settles and stops. On send, a drop separates and travels up to the chat. Nothing moves while idle | M | S–M | considering; working concept in the design draft (v0.7); measure with `OTTY_METRICS=1` |
-| **The living cove, step 1** (chosen as Otty's look, 20 Nov 2026): a painted cove behind Home and the empty chat, one picture per time of day (dawn, day, golden hour, night), cross-faded on the hour, with the otter floating in an unobstructed hero header above the headline. Painted through `tools/otty-art/`, never generated in CSS | H | M | chosen; drawn in `docs/design/otty-window-draft.html` (v0.6, vector stand-in, with Pebbles, the Pouch and a raft), needs painted sources |
-| **The living cove, step 2:** scroll-driven parallax (the far shore moves slower than the near water) and frosted-glass cards (`backdrop-filter`) that refract the cove as content scrolls over it. On touch only | H | M | chosen, after step 1; drawn in the design draft with a slider for how clear the glass is |
-| **The living cove, step 3:** the cove follows the weather and season, from the Mac's own time and, if allowed, a coarse location, never sent anywhere | M | M | idea, after step 2 |
 | **The pool:** the floating bubble reworked for the cove. A small lens of Liquid Glass lying on the desktop, holding the cove's water at the true hour, with Otty floating on its back in it; clicking grows the window out of the water and closing pours it back. State lives in Otty and the water (paddling, holding up sea glass, a Pebble bobbing beside it, still grey water, dozing), never in badges. Concept note: [The pool](#the-pool) | H | M | considering; drawn in `docs/design/otty-window-draft.html` (v0.8, with the painted float frames and cove water) |
-| Answer surfacing through the water line: a new answer rises from just under a soft horizon at the bottom of the chat, rather than appearing (one `--t-settle`, then still) | M | S | idea, pairs with the capsule; drawn in the design draft (v0.3) |
-| Ripples where you touch: a press on the cove or a Pebble sends one ring outwards (`--t-drift`, brief) | L | S | idea |
+| **The living cove, step 1:** a painted cove behind Home and the empty chat, one picture per time of day (dawn, day, golden hour, night), cross-faded on the hour, with the otter floating in an unobstructed hero header above the headline. Painted through `tools/otty-art/`, never generated in CSS | H | M | shipped (D-72), full bleed (D-74) |
+| **The living cove, step 2:** scroll-driven parallax (the far shore moves slower than the near water) and frosted-glass cards (`backdrop-filter`) that refract the cove as content scrolls over it. On touch only | H | M | shipped (D-72), clear glass measured on the paintings (D-74) |
+| **One cove:** carry the cove's language to every view: the hour's mist on every window, the cove behind every header, one glass family for every card | H | M | shipped (D-75, Spec 08) |
+| **The mist moves with the light:** a second step for the mist, its top stop following the painting's cross-fade on the hour instead of switching | L | S | idea, after D-75 |
+| **The living cove, step 3:** the cove follows the weather and season, from the Mac's own time and, if allowed, a coarse location, never sent anywhere | M | M | idea, after step 2 |
+| Answer surfacing through the water line: a new answer rises from just under a soft horizon at the bottom of the chat, rather than appearing (one `--t-settle`, then still) | M | S | idea, pairs with the capsule |
+| Ripples where you touch: a press on the cove or a Pebble sends one ring outwards (`--t-drift`, brief) | L | S | shipped for the cove (two rings, at Otty's waterline when Otty is pressed); Pebbles wait for the Pouch |
+| The cove's depth follows the pointer: each painted layer leans away by its distance, on a damped follow that never bounces, only while the pointer moves | M | S | shipped |
+| A decided Needs-you item leaves a receipt line that drifts into Today's river, so deciding visibly becomes history | M | S | idea, pairs with Home's receipt fold |
+| The confirm card's fold into its receipt (K3) and the undo toast's draining line (K9) on Motion's `layout` and exits, now that it's in | M | S | idea |
+| Messages surface with `layout` so the chat glides up as an answer's extras arrive (S7), instead of jumping | M | S | idea, measure long chats first |
+| Reeds that sway as the otter drifts past, and a lily pad that bobs when pressed: the painted pieces (D-71 step 4) moved once, from their base, never while idle | M | S | idea, art ready |
+| **One visual language:** the rail and sidebar, Chats, the Logbook, the Notebook, Settings and a chat with content still speak the paper language beside Home's full-bleed cove, so Home reads as a different app. Redesign them in the cove's language (glass over the painting or its wash, cove-derived tokens, the same ink rules), keeping Spec 07's reason the nav stayed paper (no flicker between screens) as the constraint to solve, not a reason to skip. Needs a spec per screen at the polish bar | H | L | idea (2026-11-21) |
+| **A fuller cove:** one reed clump, one lily pad and one cloud read as plain and empty. Compose each painting with more of the pieces already painted (`reeds-tall`, `stones`, the plain `lilypad`, `cloud-puff` sources exist but aren't cut or placed), a few more where they're missing, set by depth so the parallax has layers to work with; motion stays the brief, on-touch kind in the rows here | H | S–M | idea (2026-11-21) |
+| **The pool's art list** (concept note: [The pool](#the-pool)): the bubble as a pool of cove water with Otty on its back. *Have:* `float` (resting), `float-paddle` (working), `float-pebble` (needs you), `float-doze` (asleep), `cove-*-water` (the pool's water, cropped small). *Need:* a second paddle frame (the draft steps two), a float blink, on-the-back frames for thinking, cheer (answer landed), head tilt (oops), mouth open and munch (fed a file) and startled (carried), a sea-glass piece to bob beside Otty (has an answer), and an edge-peek face (edge tuck). *Retired with the bubble:* the bust frames only it uses, `catch`, `munch`, `mouth-open`, `sleepy` and `tilt`; `idle`, `idle-blink`, `thinking` and `cheer` stay for the header, quick view and onboarding | H | M | considering, art list 2026-11-21 |
+| **Otty alive everywhere:** a tap on Otty in the cove only ripples the water; Otty itself never reacts. Give every appearance (pool, floating, roomy, quick view) a touch reply and small, rare life: a startled or happy frame and a splash on a tap, a roll or paddle when petted by hover, a blink on the float frame, a glance towards a new answer. Stepped and brief, never a loop (NFR-3), so it needs on-the-back frames (the pool's art list) and a small table of which reaction each touch gets | H | M | idea (2026-11-21) |
+| Small visitors in the cove, painted through `tools/otty-art/`: a dragonfly at day, fireflies at dusk, a fish ring on the water, each brief and rare, never on a loop | M | S–M | idea |
 | Light that follows the otter: the hero's highlight sits where the otter floats, so cards near it catch a little more light | L | S | idea, after step 1 |
 | The window's edge as a water meniscus: a 1 px inner highlight that thickens slightly at the top, so the floating window reads as a drop of the cove | L | S | idea |
 | Trackpad haptics on armed buttons and a Pebble landing in the Pouch, through the Swift helper (`NSHapticFeedbackManager`) | M | M | idea, after the long-lived Swift helper |
@@ -638,8 +656,8 @@ Otty already makes drawings, decks and charts, but they live inside a chat and s
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| **Pebbles:** compact, tactile cards for what Otty gathered or built (a chart, a deck, a comparison, a checklist, a page it read, a plan, a word list), each a typed record with a kind, a title, its data and its sources. The answer refers to them; they sit in a strip under it, open big, and can be copied, exported and kept | H | L (step 1: M) | considering; step 1 wraps today's drawing, chart and step cards as Pebbles |
-| **Otty's Pouch:** kept Pebbles as a visual collection (pieces of sea glass tinted by kind, on glass shelves over the cove), with search, a few shelves the user names, and "where did this come from?" back to its chat | H | M | considering, after Pebbles step 1 |
+| **Pebbles:** compact, tactile cards for what Otty gathered or built (a chart, a deck, a comparison, a checklist, a page it read, a plan, a word list), each a typed record with a kind, a title, its data and its sources. The answer refers to them; they sit in a strip under it, open big, and can be copied, exported and kept | H | L (step 1: M) | step 1 shipped (Keep on drawing and chart cards; step cards wait for step 3); the Pouch is next |
+| **Otty's Pouch:** kept Pebbles as a visual collection (stones of different shapes and colours by kind, on the cove's sand), with search, a few shelves the user names, and "where did this come from?" back to its chat | H | M | considering, after Pebbles step 1 |
 | A Pebble that stays fresh: a kept Pebble from a look-up can be refreshed by a job (a read-only look, behind its card), and says when it was last checked | H | M | idea, after the Pouch; uses repeating looks (D-34) |
 | **Otty slides:** a deck as a document you edit, not only a card: reorder, retitle, change a slide's layout, pick a theme, present, export `.pptx` and PDF. The model edits by proposing a new version that the user accepts | H | M–L | idea, grows from D-30 and D-70 |
 | **Otty docs:** a page Otty and you write together (headings, lists, tables, Pebbles inline), saved in `otty.db`, with versions and Markdown and `.docx` export. Otty proposes edits as marked changes, as the proofread card does | H | L | idea, after Pebbles |
@@ -740,7 +758,7 @@ Each state remembers its own size and position, and an **Expand / Shrink** butto
 - Same conversation, same `ChatEvent`s: the ↵ "continue in chat" swap opens the Otty window, and Expand / Shrink is the same window, so nothing is handed over.
 - Safety never needs room: Pause, Undo, confirm cards and "what left my Mac" work in the narrowest compact window.
 
-**What it changes:** Otty hides from the Dock (`LSUIElement`, `app.dock.hide()`), so the roomy state needs a Dock icon and a menu bar while it's open, then has to go back to hiding when it shrinks or closes. Screens must work at any width (container queries, not one narrow column). The steps to get the panel ready are in `docs/UX_REVIEW.md`, "Getting the panel ready for the roomy window". The first visual draft, the names (Logbook, Notebook), the water motion system and the micro-interaction catalogue are in `docs/DESIGN.md`; the frame, the two states and Home are specced in `docs/design/specs/05-frame.md` and `06-roomy-and-home.md` (D-64 to D-66).
+**What it changes:** Otty hides from the Dock (`LSUIElement`), and since 2026-11-21 the roomy window does too: only a background-only app can float over full-screen apps, and switching in and out of it for the roomy window moved the focus to the app behind. Screens must work at any width (container queries, not one narrow column). The steps to get the panel ready are in `docs/UX_REVIEW.md`, "Getting the panel ready for the roomy window". The first visual draft, the names (Logbook, Notebook), the water motion system and the micro-interaction catalogue are in `docs/DESIGN.md`; the frame, the two states and Home are specced in `docs/design/specs/05-frame.md` and `06-roomy-and-home.md` (D-64 to D-66).
 
 ### Desktops (Spaces) and full-screen apps
 
@@ -906,7 +924,9 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 - Sharing shows exactly who sees what, and stops in one tap.
 - What leaves for sharing is listed in What left your Mac, like everything else.
 
-**Open questions:** end-to-end encryption for shared calendars from the start, or only once there's demand? And should step 1 wait for the roomy Otty window, since a calendar wants room?
+Step 1 is D-73 (2026-11-21), in the roomy window, which now exists.
+
+**Open questions:** end-to-end encryption for shared calendars from the start, or only once there's demand?
 
 ### The living cove
 
@@ -920,7 +940,7 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 
 **Motion, inside the rules.** Scroll-driven parallax uses `animation-timeline: scroll()` on transforms only, so it costs nothing until the user scrolls. The cove never moves on its own: no drifting clouds or lapping water while idle (NFR-3: the idle float alone once cost 1.6%). With `data-asleep` or reduced motion, the cove is a still picture.
 
-**Where it shows.** Home and the empty chat in the Otty window, the empty quick view as a thin strip, and onboarding. In a chat with content, the cove fades to a quiet wash at the top so answers keep their contrast; the text-contrast test (`rules/renderer.test.ts`) runs over the wash in both themes, and light or dark is the user's own setting at any hour, separate from the picture: the picture always shows the true time of day, and dark mode changes only the interface (smoked glass instead of light glass). The glass follows macOS Liquid Glass: a light blur (about 6 px) so shapes and colour come through, a specular edge like thick glass, and no grain; the backdrop is also lowered in contrast and lifted or smoked, under a thin tint that is only as strong as its faintest text needs to stay at 4.5:1.
+**Where it shows.** Home and the empty chat in the Otty window, the empty quick view as a thin strip, and onboarding. In a chat with content, the cove fades to a quiet wash at the top so answers keep their contrast; the text-contrast test (`rules/renderer.test.ts`) runs over the wash in both themes, and dark mode keeps the hour's painting under dark glass, never an inverted day.
 
 **Rules.**
 - Painted, never generated: the cove comes from the same art pipeline as the otter, so it looks like one hand made both.
@@ -932,7 +952,7 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 
 **The message box** (a rounded glass box whose outline ripples as you type) belongs to the same family: water that answers your touch and settles, never water that moves by itself. See DESIGN.md, "Signature moments".
 
-**Steps:** 1) painted cove and hero on Home (M, needs art); 2) parallax and glass (M); 3) weather and season (M).
+**Steps:** 1) painted cove and hero on Home (M) and 2) parallax and glass (M), ✅ shipped together as D-72; 3) weather and season (M).
 
 ### The pool
 
@@ -1059,3 +1079,23 @@ The model drafts; code decides what a feature may touch. A feature is data (a ma
 4. **Decide (a) or (b)** with the owner, then the iOS shell (L).
 
 **What the phone does first:** read and continue chats, the Pouch, the Logbook's Needs you, and asking with a photo. Not captures, step cards or anything that needs the Mac.
+
+## Ideas from building tiles, Keep and the capsule (2026-11-20)
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| Tiles in the quick view: the user's own tiles under a highlight there too, once the quick view has a tile row | M | S | idea, with "Quick-view action tiles" |
+| A tile's Shows for picks several kinds, not one (text and a table) | L | S | idea |
+| Drag to reorder tiles, beside the up and down buttons | L | S | idea |
+| Kept Pebbles get their title edited on Keep, since the sentence before a drawing isn't always a good name | M | S | idea, with the Pouch |
+| The toast (D-59) arrives with its first caller: Undo after a tile is deleted is a good one | M | S | idea |
+
+## Ideas from building the living cove (2026-11-21)
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| The quiet wash: a chat with content keeps a faint band of the hour's sky at its top, so the cove is still there without costing answers their contrast | M | S | idea, the rest of D-72's concept |
+| The cove as a thin strip in the empty quick view, and behind onboarding's first screen | M | S | idea |
+| Otty paddles when pressed: the float swaps to `float-paddle` for one beat instead of a squish, and dozes (`float-doze`) when Otty is asleep | M | S | idea, art ready |
+| A painted night set for the foreground pieces, instead of dimming the daylight reeds and lily pad with a filter | L | S | idea, through `generate.py` |
+| The greeting crosses the otter while Home scrolls: carry the greeting on the cove (so they leave together) once the hero has its own spec | L | S | idea |

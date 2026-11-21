@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 // Every view and scene the UI preview has (tools/ui-preview/mock.ts), in both colour schemes.
 const SCENES: Record<string, string[]> = {
@@ -12,6 +12,23 @@ const SCENES: Record<string, string[]> = {
  * still well over this. */
 const CHINESE = new Set(['panel chat', 'panel find'])
 
+/**
+ * The page's media features, all pinned: the scheme under test, reduced motion, and the Mac's accessibility settings
+ * off. CI's Mac reports Reduce transparency or Increase contrast on, which drew every cove scene solid. Playwright's
+ * `emulateMedia` can't set transparency, so this goes through the DevTools protocol, which replaces every feature.
+ */
+async function media(page: Page, scheme: 'light' | 'dark'): Promise<void> {
+  const cdp = await page.context().newCDPSession(page)
+  await cdp.send('Emulation.setEmulatedMedia', {
+    features: [
+      { name: 'prefers-color-scheme', value: scheme },
+      { name: 'prefers-reduced-motion', value: 'reduce' },
+      { name: 'prefers-reduced-transparency', value: 'no-preference' },
+      { name: 'prefers-contrast', value: 'no-preference' }
+    ]
+  })
+}
+
 /** The mock's sample chats are dated from now, so the clock is fixed for "2 hours ago" to stay the same. */
 const NOW = new Date('2026-11-17T10:00:00+08:00')
 
@@ -20,7 +37,7 @@ for (const scheme of ['light', 'dark'] as const) {
     for (const scene of scenes) {
       test(`${view} ${scene} ${scheme}`, async ({ page }) => {
         const scrolled = () => page.evaluate(() => [...document.querySelectorAll('*')].map((e) => e.scrollTop).join())
-        await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' })
+        await media(page, scheme)
         await page.clock.setFixedTime(NOW)
         // The frame's wide scenes need room for the window itself (D-64).
         if (scene.startsWith('frame-')) await page.setViewportSize({ width: 1340, height: 800 })
@@ -32,6 +49,38 @@ for (const scheme of ['light', 'dark'] as const) {
         let last = ''
         await expect.poll(async () => last === (last = await scrolled()), { intervals: [250], timeout: 5_000 }).toBe(true)
         await expect(page).toHaveScreenshot(`${view}-${scene}-${scheme}.png`, CHINESE.has(`${view} ${scene}`) ? { maxDiffPixelRatio: 0.01 } : {})
+      })
+    }
+  }
+}
+
+// D-74 (Spec 07): the cove, full bleed, at the floating, medium and roomy widths, for each painting in light mode and
+// the night in dark (`&time=` pins the painting), then Home scrolled past its greeting.
+const COVE_SIZES: [w: number, h: number, state: string][] = [
+  [420, 640, ''],
+  [980, 660, '&state=roomy'],
+  [1280, 800, '&state=roomy']
+]
+const COVE_TIMES: [time: string, scheme: 'light' | 'dark'][] = [
+  ['dawn', 'light'],
+  ['day', 'light'],
+  ['golden', 'light'],
+  ['night', 'light'],
+  ['night', 'dark']
+]
+for (const scene of ['home', 'empty', 'home-scrolled']) {
+  for (const [w, h, state] of scene === 'home-scrolled' ? COVE_SIZES.slice(1, 2) : COVE_SIZES) {
+    for (const [time, scheme] of scene === 'home-scrolled' ? COVE_TIMES.slice(1, 2) : COVE_TIMES) {
+      test(`cove ${scene} ${w} ${time} ${scheme}`, async ({ page }) => {
+        await media(page, scheme)
+        await page.clock.setFixedTime(NOW)
+        await page.setViewportSize({ width: Math.max(w + 60, 480), height: h + 60 })
+        await page.goto(`/?view=panel&scene=${scene === 'home-scrolled' ? 'home' : scene}&w=${w}&h=${h}${state}&time=${time}`)
+        await page.waitForLoadState('networkidle')
+        await page.waitForTimeout(800)
+        if (scene === 'home-scrolled') await page.locator('.home').evaluate((el) => el.scrollTo(0, el.scrollHeight))
+        await page.waitForTimeout(300)
+        await expect(page).toHaveScreenshot(`cove-${scene}-${w}-${time}-${scheme}.png`)
       })
     }
   }

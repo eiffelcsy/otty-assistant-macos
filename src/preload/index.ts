@@ -112,6 +112,8 @@ const api: OttyApi = {
   closePickup: () => ipcRenderer.invoke('pickup:close'),
   exportDrawing: (d, how) => ipcRenderer.invoke('drawing:export', d, how),
   showDrawing: (v) => ipcRenderer.invoke('drawing:show', v),
+  keepPebble: (answerId, index, keep) => ipcRenderer.invoke('pebbles:keep', answerId, index, keep),
+  keptPebbles: (answerId) => ipcRenderer.invoke('pebbles:kept', answerId),
   viewerContent: () => ipcRenderer.invoke('viewer:content'),
   closeViewer: () => ipcRenderer.invoke('viewer:close'),
 
@@ -123,6 +125,7 @@ const api: OttyApi = {
   bubbleMenu: () => ipcRenderer.send('bubble:menu'),
   bubbleDrag: (phase) => ipcRenderer.send('bubble:drag', phase),
   feedOtty: (ids) => ipcRenderer.invoke('bubble:feed', ids),
+  feedOttyText: (text) => ipcRenderer.invoke('bubble:feed-text', text),
 
   // A draft this window typed comes back to every window; this one already has it (D-62).
   onChatEvent: (cb) => listen<ChatEvent>('chat:event', (e) => (e.type === 'draft' && e.from === DRAFTS_FROM ? undefined : cb(e))),
@@ -133,6 +136,8 @@ const api: OttyApi = {
   onBubbleBadge: (cb) => listen('bubble:badge', cb),
   onWindowVisible: (cb) => listen('window:visible', cb),
   onWindowState: (cb) => listen('window:state', cb),
+  onWindowGlide: (cb) => listen('window:glide', cb),
+  windowGlideReady: () => ipcRenderer.send('window:glide-ready'),
   onFrameCommand: (cb) => listen('frame:command', cb)
 }
 

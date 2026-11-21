@@ -31,8 +31,28 @@ export interface ChartInfo {
 const CHART_RETRY = 'The chart didn’t draw. Call make_chart again, maybe with fewer bars.'
 
 /** A diagram, picture or deck drawn on the Mac from the model's text, with ways to take it elsewhere. */
-export function DrawingCard({ kind, code, host, chart }: { kind: DrawingKind; code: string; host: DrawingHost; chart?: ChartInfo }) {
+/** Which Pebble this card is (step 1): its answer and its place there, which main looks up to keep it. */
+export interface PebbleRef {
+  answerId: string
+  index: number
+}
+
+export function DrawingCard({ kind, code, host, chart, pebble }: { kind: DrawingKind; code: string; host: DrawingHost; chart?: ChartInfo; pebble?: PebbleRef }) {
   const [drawn, setDrawn] = useState<Drawn | null>(null)
+  const [kept, setKept] = useState(false)
+  const { answerId, index } = pebble ?? {}
+  useEffect(() => {
+    if (answerId === undefined || index === undefined || !host.done) return
+    let live = true
+    void window.otty.keptPebbles(answerId).then((k) => live && setKept(k.includes(index)))
+    return () => {
+      live = false
+    }
+  }, [answerId, index, host.done])
+  const keep = async () => {
+    if (!pebble) return
+    if (await window.otty.keepPebble(pebble.answerId, pebble.index, !kept)) setKept(!kept)
+  }
   const [showText, setShowText] = useState(false)
   const [said, setSaid] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -141,6 +161,12 @@ export function DrawingCard({ kind, code, host, chart }: { kind: DrawingKind; co
             <Icon name="code-simple" />
             {showText ? (chart ? 'Hide the numbers' : 'Hide the text') : chart ? 'See the numbers' : 'See the text'}
           </button>
+          {pebble && (
+            <button className={`copy-btn drawing-card__keep${kept ? ' drawing-card__keep--on' : ''}`} aria-pressed={kept} onClick={() => void keep()}>
+              <Icon name="bookmark" solid={kept} />
+              {kept ? 'Kept' : 'Keep'}
+            </button>
+          )}
           {said && <span className="drawing-card__said">{said}</span>}
         </div>
       )}

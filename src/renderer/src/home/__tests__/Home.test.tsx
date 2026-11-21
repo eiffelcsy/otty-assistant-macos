@@ -6,6 +6,7 @@ import type { HomePage } from '../../../../shared/types'
 import { Home } from '../Home'
 
 const quiet: HomePage = {
+  date: 'Wednesday 19 November',
   greeting: 'Good afternoon',
   status: 'Nothing needs you. Ask me anything.',
   now: [],
@@ -34,6 +35,8 @@ describe('Home (Spec 06)', () => {
     expect(await screen.findByRole('heading', { name: 'Good afternoon' })).toBeTruthy()
     expect(screen.getByText('Nothing needs you. Ask me anything.')).toBeTruthy()
     expect(screen.getByText('Nothing has left your Mac today.')).toBeTruthy()
+    expect(screen.getByText('Wednesday 19 November')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Otty' })).toBeTruthy()
     expect(screen.queryByRole('region', { name: 'Needs you' })).toBeNull()
     expect(screen.queryByRole('region', { name: 'Today' })).toBeNull()
     expect(screen.queryByRole('region', { name: 'Try asking' })).toBeNull()

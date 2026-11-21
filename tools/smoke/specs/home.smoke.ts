@@ -1,5 +1,6 @@
 // Home (D-66, Spec 06): one sentence on how things stand, only the blocks with something in them, and deciding a
 // waiting item does what the Logbook's card does.
+import type { Locator } from '@playwright/test'
 import { expect, test } from '../fixtures'
 
 const LOOK = {
@@ -45,4 +46,28 @@ test('a look-up waiting on a page: Home says one thing needs you, Read it reads 
   await expect(home.getByRole('region', { name: 'Needs you' })).toHaveCount(0, { timeout: 20_000 })
   await expect(home.getByRole('region', { name: 'Today' })).toContainText(LOOK.title)
   await expect(home.getByText(/left your Mac/)).toBeVisible()
+})
+
+test('the living cove: Home and the empty chat show the painting for the hour full bleed, every layer drawn, and Otty on the water', { tag: ['@step-174'] }, async ({ otty }) => {
+  const panel = await otty.openPanel()
+  // The cove is the frame's backdrop (D-74): it fills the main column, behind the header, and Otty is in the screen's hero.
+  const coveIn = async (screen: Locator) => {
+    const cove = panel.locator('.frame__main--full > .cove--full')
+    await expect(cove).toBeVisible()
+    await expect(cove).toHaveAttribute('data-time', /^(dawn|day|golden|night)$/)
+    const [c, main] = await Promise.all([cove.boundingBox(), panel.locator('.frame__main').boundingBox()])
+    expect(c).toEqual(main)
+    // Each painting loads under the built app's CSP: a picture that didn't would have no width.
+    const otty = screen.getByRole('button', { name: 'Otty' })
+    for (const imgs of [cove.locator('img'), otty.locator('img')]) {
+      await expect.poll(() => imgs.evaluateAll((all) => all.every((i) => (i as HTMLImageElement).complete && (i as HTMLImageElement).naturalWidth > 0))).toBe(true)
+    }
+    await expect(otty).toBeVisible()
+  }
+  await coveIn(panel.locator('.empty'))
+  await panel.keyboard.press('Meta+1')
+  const home = panel.getByRole('main', { name: 'Home' })
+  await coveIn(home)
+  await home.getByRole('button', { name: 'Otty' }).click()
+  await expect(home.getByRole('heading', { level: 1 })).toBeVisible()
 })

@@ -1,4 +1,5 @@
 import type { ServiceId } from './services'
+import type { MyTile } from './tiles'
 
 // Types shared by main, preload and renderer. Type-only: no runtime code here.
 
@@ -26,7 +27,7 @@ export type DrawingResult = 'copied' | 'saved' | 'cancelled' | 'failed'
 
 /** What the bigger view shows: a picture, or one HTML page per slide with its speaker notes. */
 export type DrawingView =
-  | { kind: 'picture'; dataUrl: string; width: number; height: number }
+  | { kind: 'picture'; dataUrl: string; width: number; height: number; screenshot?: boolean }
   | { kind: 'slides'; pages: string[]; notes: string[][]; present?: boolean }
 
 /** A file the user added, before main has read it. Paths stay in main; the renderer gets an id. */
@@ -196,6 +197,8 @@ export interface PublicSettings {
   homeUsed: boolean
   /** Only the installed app can be a login item; a development build can't. */
   canOpenAtLogin: boolean
+  /** The user's own tiles (D-56), after the built-in ones. */
+  myTiles: MyTile[]
 }
 
 /** Questions or tokens, never money: a price needs a dated table to be true. */
@@ -279,6 +282,7 @@ export type SettableKey =
   | 'screenHotkey'
   | 'monthlyCap'
   | 'capNoticed'
+  | 'myTiles'
 
 export interface Permissions {
   platform: string
@@ -288,7 +292,8 @@ export interface Permissions {
 
 export type PermissionKind = 'accessibility' | 'screen'
 
-export type BubbleState = 'idle' | 'thinking' | 'happy'
+/** Main's say in the otter's face: `happy` when an answer lands, `oops` (a head tilt) when one fails (D-38). */
+export type BubbleState = 'idle' | 'thinking' | 'happy' | 'oops'
 
 /** What the otter shows about work it's doing on its own: busy, waiting for an OK, or paused by the user. */
 export type BubbleMood = 'working' | 'waiting' | 'paused' | null
@@ -460,6 +465,18 @@ export interface MemoryNote {
 
 /** The Otty window's two states (D-65, Spec 06): floating beside your work, or a normal roomy Mac window. */
 export type WindowState = 'floating' | 'roomy'
+/**
+ * A step of the move between states (Spec 06), in the window's own pixels: with `from` and `to`, the window covers both
+ * places and the page grows its clip from one to the other; without them, the move has landed at this size.
+ */
+export interface WindowGlide {
+  width: number
+  height: number
+  from?: { x: number; y: number; width: number; height: number }
+  to?: { x: number; y: number; width: number; height: number }
+  /** Draw nothing for now (the next step shows the panel again): sent before a jump that moves the window's corner. */
+  blank?: boolean
+}
 
 /** What the app menu asks the Otty window to do on its own screen (D-65); navigation lives in the renderer (D-64). */
 export type FrameCommand = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
@@ -581,6 +598,8 @@ export interface HomeAfter {
 
 /** Everything Home shows (D-66, Spec 06), worded by main. A block with nothing in it is left out. */
 export interface HomePage {
+  /** The date over the greeting on the cove, "Tuesday 18 November" (Spec 07). */
+  date: string
   greeting: string
   status: string
   now: { id: string; text: Words; paused: boolean }[]
@@ -814,6 +833,10 @@ export interface OttyApi {
   exportDrawing(d: DrawingExport, how: 'copy' | 'png' | 'pdf'): Promise<DrawingResult>
   /** Opens the bigger view: a picture, or slides (full screen when `present`). */
   showDrawing(v: DrawingView): Promise<void>
+  /** Keep (or put back) a chart or drawing from an answer in the chat on show, by its place (Pebbles, step 1). */
+  keepPebble(answerId: string, index: number, keep: boolean): Promise<boolean>
+  /** Which of an answer's Pebbles are kept. */
+  keptPebbles(answerId: string): Promise<number[]>
   /** What the bigger view shows. */
   viewerContent(): Promise<DrawingView | null>
   closeViewer(): Promise<void>
@@ -830,6 +853,8 @@ export interface OttyApi {
   bubbleDrag(phase: 'start' | 'end'): void
   /** Files the bubble registered with `dropFiles`, by id: opens a new chat with them (D-37). */
   feedOtty(ids: string[]): Promise<void>
+  /** Text dragged onto the otter: a new chat with it as a highlight from the app it came from (D-37 step 2). */
+  feedOttyText(text: string): Promise<void>
 
   onChatEvent(cb: (e: ChatEvent) => void): () => void
   onPanelOpen(cb: (p: PanelOpenPayload) => void): () => void
@@ -843,6 +868,9 @@ export interface OttyApi {
   onWindowVisible(cb: (visible: boolean) => void): () => void
   /** Which state the Otty window is in: on load and after every Expand or Shrink. */
   onWindowState(cb: (state: WindowState) => void): () => void
+  onWindowGlide(cb: (glide: WindowGlide) => void): () => void
+  /** The page has drawn the latest glide step at the window's size. */
+  windowGlideReady(): void
   /** The app menu asking the window to go somewhere or do something on its screen. */
   onFrameCommand(cb: (command: FrameCommand) => void): () => void
 }

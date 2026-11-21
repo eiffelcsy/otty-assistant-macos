@@ -1,6 +1,6 @@
 // D-64: every band keeps the main column at its minimum or more, and the bands meet without gaps.
 import { describe, expect, it } from 'vitest'
-import { bandFor, columns, DETAILS_FROM, MAIN_MIN, MEDIUM_FROM, mainWidth, WIDE_FROM } from '../bands'
+import { bandFor, columns, DETAILS_FROM, MAIN_MIN, MEDIUM_FROM, mainWidth, sameLayout, WIDE_FROM } from '../bands'
 
 describe('bands (Spec 05)', () => {
   it('meet at 640, 712 and 980, with no gap and no overlap', () => {
@@ -19,5 +19,11 @@ describe('bands (Spec 05)', () => {
     expect(columns(1248, true)).toEqual({ nav: 'sidebar', list: true, details: true })
     expect(columns(420, true)).toEqual({ nav: 'none', list: false, details: false })
     expect(columns(760, true)).toEqual({ nav: 'rail', list: true, details: false })
+  })
+
+  it('calls two widths the same layout exactly when every column agrees', () => {
+    for (let a = 360; a <= 1600; a += 7)
+      for (const b of [a + 1, a + 40, a + 300])
+        expect(sameLayout(a, b), `${a} ${b}`).toBe([true, false].every((l) => JSON.stringify(columns(a, l)) === JSON.stringify(columns(b, l))))
   })
 })

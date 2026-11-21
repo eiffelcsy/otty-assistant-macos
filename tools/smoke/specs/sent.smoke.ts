@@ -69,6 +69,7 @@ test('a highlight question, a search and a page each have an entry; Part of goes
   // Forget that chat: its rows go, the others stay.
   await otty.go(panel, 'Chats')
   await panel.locator('.history__item', { hasText: 'Holding hands' }).getByTitle('Forget this chat').click()
+  await panel.getByRole('dialog').getByRole('button', { name: 'Forget' }).click()
   await expect(panel.locator('.history__item', { hasText: 'Holding hands' })).toHaveCount(0)
   await openSent(panel)
   await expect(row(panel, 'Searched DeepSeek for “otter facts”')).toBeVisible()

@@ -88,17 +88,24 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built; screens, smoke and idle checks waiting | — | M |
+| D-55 | The dev harness: `EXTENDING.md`, a `feature` skill and protocol for any scope, checkable "Done when" lines, and the extension points "build your own feature" reuses | ⏳ next | D-48 | M |
+| D-54 | Connections: one layer for APIs and MCP; Canvas and Notion by pasted token, Google Calendar by OAuth, then the MCP client | ⏳ next (step 1 needs no owner decision) | D-52; an OAuth client for Google (owner) | L (step 1: M) |
+| D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ planned | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
+| D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
-| D-54 | Connections v1: the connection layer, and Google Calendar read-only | ⏳ planned | D-52; an OAuth client (owner) | L (step 1: M) |
-| D-55 | The feature kit: `EXTENDING.md`, a `feature` skill, checkable "Done when" lines | ⏳ planned | D-48 | M |
-| D-56 | My own tiles: a saved question with a name, an icon and where it shows | ⏳ planned | — | S–M |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
-| D-37 | Feed Otty: drop files on the otter and a new chat opens with them attached | 🔨 step 1 built; step 2 waits for art | step 2: two painted frames (mouth open, munch) | S–M |
-| D-38 | Otter moods: sleepy when idle, wakes on hover, cheers and tilts its head, inside the idle budget | ⏳ needs art | painted mood frames | S–M |
+| D-71 | Otty's painted set: a generator for new art in the house style, then the expressions, the cove and a full-body Otty floating on its back | 🔨 steps 1–4 built (art) | an OpenAI key in the owner's Keychain | M–L (step 1: S) |
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
+
+**Priority (2026-11-21): the place, the reach, the kit, the calendar.** The owner named four next, ahead of the BRAINSTORM score. Each was checked against the vision (alive, a place not a chat clone, trust as the ceiling, autonomy grown with undo) and the rest of the roadmap re-ordered around them:
+1. ✅ **D-72 The living cove** (H, M; CHANGELOG). The art was painted (D-71), so nothing blocked it, and it's the clearest answer to "a place, not a chat clone". Steps 1–2 (cove, hero, glass, parallax) shipped together; step 3, weather and season, and the quiet wash behind a chat with content stay in BRAINSTORM. **Re-opened (2026-11-21) as D-74:** beside the draft it ships as a picture strip over an opaque page, with near-opaque cards, so it reads as a banner rather than a place. Spec 07 lays it out full bleed and takes in the wash. ✅ Built (CHANGELOG, D-74).
+2. **D-55 The dev harness** (H, M). Moved ahead of connections because both later items are built with it: a connection, a calendar and a user's own feature are each a set of extension points. Its scope widens from "the feature kit" to any feature (skills, the protocol, the checklists), and its extension-point map is the one "build your own feature" will expose in its safe subset.
+3. **D-54 Connections** (H, L). Re-planned so step 1 needs no owner decision: the layer, then **Canvas** (NUS) and **Notion** with a pasted token (both allow personal tokens; **verify** NUS's Canvas policy), read-only. Google Calendar follows once the OAuth client exists, then the MCP client for the long tail, every tool off until turned on. Fits AUTONOMY: reads first, taint both ways, every read in What left your Mac.
+4. **D-73 Otty's calendar, step 1** (H, M). Local only, in `otty.db`, nothing leaves the Mac; the first place Otty can *do, with undo* for real. UI and UX first: it's a screen in the roomy window, specced to DESIGN's polish bar before it's built. Overlaying Google Calendar waits for D-54.
+
+**Re-assessed around them.** Kept next, after the four: the Pouch (Pebbles step 2, H/M; it sits on the cove's sand, so it follows D-72), D-67 steps 2–3 when a spec needs them, the toast with its first caller. Moved later: D-48 phase 3 (near the beta, unchanged), recipes (wait for D-54 and D-55, which they combine), Raft and agentic collaboration (need the hosted service). Unchanged: D-1 later, D-14 and D-25 parked. Blocked, still high: the eval in CI (the owner's key).
 
 **Priority (2026-11-20): Otty, not a chat clone.** The owner's new list (BRAINSTORM: "Otty's look", "Making things", "Together", TOON, the iOS core, and smaller fixes from use) is planned in BRAINSTORM, and every row in BRAINSTORM and this roadmap was re-scored against the updated vision (BRAINSTORM, "Re-score, 2026-11-20"). The best value per effort, among what nothing blocks:
 1. ✅ (step 1) **D-67 Tests that find what people find** (H, S–M; step 1 S). Seven bugs from a day's use got past 1,072 unit tests, 160 smoke tests and 148 screenshots. Step 1 closes the class that let most of them through, and every later UI change rides on it.
@@ -107,7 +114,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 4. ✅ **D-68 See more** (M, S). A long highlight pushes the answer off screen in every chat that has one.
 5. ✅ **D-69 Good to know** (M, S). Decided: retire the always-on tip (the entry has the reasons), which makes every answer shorter.
 
-Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M, wants its composer spec) and Pebbles step 1 (H, M). The living cove needs painted sources first, like D-38. D-54 still waits for the OAuth client, and the eval in CI for the key.
+Next after these, by score: D-56 My own tiles (H, S–M), then the liquid capsule (M, S–M) and Pebbles step 1 (H, M). ✅ All three are built (CHANGELOG, 2026-11-20), with D-37 step 2 and D-38 now that D-71 painted their frames. Next: the Pouch (Pebbles step 2) and the living cove on Home, which has its art. D-54 still waits for the OAuth client, and the eval in CI for the key.
 
 **Refactor (2026-11-18, `refactor/extension-points`).** Tools are a registry (`tools/`), one entry each, and D-45 step 3 is done: the loop and the job runner import no electron, settings sit on a `SettingsBackend` and the Mac tools go through `ToolContext.mac`. D-54 adds its tools as entries and keeps tokens through the same `Keychain`.
 
@@ -196,7 +203,7 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Smoke test (add to the checklist when it ships).** ✋ A person compares each window at 420 × 580, light and dark, with DESIGN.md's component specs, because pixel fidelity isn't something a spec can assert.
 
 **Where it stands (2026-11-18).** Built: every token, `--muted` renamed to `--text-2` everywhere and gone (no alias was needed), and the components in `styles.css`: button (primary, soft, quiet-style `copy-btn`, warn; small and large), icon button (32 and `--sm` 28, 25% corners), small × (20 visible in a 28 target), switch (Settings toggles), field, row (Recent chats), group (Settings sections), card, header, composer box and keycap. Measured at 420 × 580: header 44, composer 64 (box 44), health line 40, so chrome is 108 px (19%). Answers have no bubble and use the full width; question to answer 8, turn to turn 20. Both tests are in `rules/renderer.test.ts`, with 5 off-scale entries, and fail on a planted bad value. Dark `--text-2` on `--brand-soft` was 4.35:1, so a selected radio row uses `--text`. Smoke passes (137): the new spacing exposed a race in `FindBar`, where an earlier match's wait for the chat to stop gliding pulled the view back after a quick ↵, so a newer jump now cancels it; and the health specs match Allow and Reopen Otty exactly, because the banner's words are now a button that contains them.
-**Not done yet:** tooltip and toast (tooltips are still native `title`s), the header hairline that appears only on scroll, and the reduced-motion fade. D-60 built the *unusual* card, the receipt and a first menu (the used marker); D-61 the group label above its box and rows with inset hairlines. **Checks waiting:** idle CPU with `OTTY_METRICS=1` on a Mac (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8). The baselines landed in their own PR (#65), and the smoke harness's idle spec passes.
+**Since (2026-11-20):** Otty's own tooltip for every `title` (`lib/tooltips.ts`, after 500 ms, then instant for 1.5 s; W11), the header hairline only once scrolled (W6) and the reduced-motion fade (200 ms, nothing moves). **Not done yet:** the toast, left until its first caller (K9's undo toast), so it isn't code nothing uses. D-60 built the *unusual* card, the receipt and a first menu (the used marker); D-61 the group label above its box and rows with inset hairlines. **Checks waiting:** idle CPU with `OTTY_METRICS=1` on a Mac (the float is now 6 s in 10 steps, fewer redraws than 4 s in 8). The baselines landed in their own PR (#65), and the smoke harness's idle spec passes.
 
 ## D-48 · Agents check their own work 🔨 phases 1–2 built
 
@@ -344,9 +351,25 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
-## D-54 · Connections v1: the layer, and Google Calendar ⏳
+## D-73 · Otty's calendar, step 1: a local calendar, UI first ⏳
 
-**Goal.** Otty can read the user's Google Calendar when asked ("what's on tomorrow?", "when am I free Thursday afternoon?"), through a connection layer that Canvas, Notion, EventKit and MCP servers will reuse. Read-only. The design and its reasons are in BRAINSTORM's concept note, [Connections](BRAINSTORM.md#connections-apis-and-mcp-behind-one-door).
+**Goal.** A calendar that belongs to Otty, in the roomy window: the user sees their week, adds and moves events, and asks Otty to plan ("block two hours for the essay before Thursday"), every change Otty makes undoable from the Logbook. Nothing leaves the Mac. The concept, and the later steps (overlay, sharing, otters agreeing a time), are in BRAINSTORM's [Otty's own calendar](BRAINSTORM.md#ottys-own-calendar-shared-and-multi-person).
+
+**Spec first (UI/UX is the point).** A screen spec, `docs/design/specs/09-calendar.md`, to DESIGN's polish bar before any code: a week view at wide and roomy widths, a day list at the floating window's width (the frame's bands decide, never a measurement), the empty week, an event's card, adding by typing a time into the row, moving by drag with a keyboard path, today's line, and how an event Otty proposed looks before it's accepted. The cove's quiet wash or a time-of-day tint in its header, so it reads as Otty's place. Every state gets a ui-preview scene.
+
+**Design.**
+- Data: an `events` table in `otty.db` (a new migration): id, title, start, end, all-day, notes, `made_by` (`you` or `otty`), and the chat it came from. Main owns it behind an `EventStore` (SQLite and memory, as `ChatStore`).
+- IPC: `calendar:week`, `calendar:save`, `calendar:remove`, each in `CHANNELS` with guards; the renderer sends ids and fields, never SQL.
+- A tool, `plan_event` (row in `toolSafety.ts` first: changes something, sends nothing), behind a confirm card, writing a ledger row whose undo removes the event. Not in `JOB_TOOLS` in step 1.
+- A screen in the frame (`NAV` gains Calendar, `⌘4`), and Home's Today shows today's events.
+
+**Steps.** 1) The spec and its preview scenes (S–M). 2) The store, migration and IPC (S–M). 3) The screen (M). 4) `plan_event` with its card, ledger and an eval case (S–M).
+
+**Done when.** The spec's every state has a scene in `npm run screens`; adding, moving and removing an event persist across a relaunch (smoke); "block two hours before Thursday" shows a card and, once accepted, the event, and Undo in the Logbook removes it (smoke, `ledger` test); nothing about events reaches What left your Mac unless a question carried them (`sent` test).
+
+## D-54 · Connections: one layer, then Canvas, Notion, Google Calendar and MCP ⏳
+
+**Goal.** Otty can read the user's other apps when asked ("what's due this week?" from Canvas, "what did I write about X?" from Notion, "what's on tomorrow?" from Google Calendar), through one connection layer that EventKit and MCP servers reuse. Read-only first; writes come one tool at a time behind cards. **Re-planned 2026-11-21:** Canvas and Notion go first, by pasted token, so step 1 waits on no owner decision; Google Calendar follows when the OAuth client exists. The design and its reasons are in BRAINSTORM's concept note, [Connections](BRAINSTORM.md#connections-apis-and-mcp-behind-one-door).
 
 **Owner decisions first:** a Google Cloud project with an OAuth client for a desktop app; whether to go through Google's verification for the `calendar.readonly` scope now or stay in testing mode (up to 100 named test users, **verify**) for the beta.
 
@@ -358,35 +381,26 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - **UI:** Settings › **Connections**: Connect Google Calendar → browser → back to a card that says what Otty can read and that it can't change anything. Per connection: which calendars, and **Disconnect** (revokes at Google, deletes the token). Built to work wide, for the roomy Otty window later.
 - **Attack tests first:** eval cases with an invite whose title or location gives instructions (search for something private, open a link, remember something), and `runGuards` tests for the taint. The smoke world fakes Google's OAuth and Calendar endpoints.
 
-**Steps.** 1) The layer, the Keychain store, OAuth and the fake world (M). 2) Google Calendar's two tools, taint and sent rows (S–M). 3) Settings › Connections (S–M). 4) Eval cases and smoke steps (S).
+- **Pasted tokens** (Canvas personal access token with its school's address, Notion internal integration token): kept in the Keychain like OAuth tokens, shown once as dots, and checked with one read before they're saved. Canvas tools: `canvas_due` (assignments due in a range, at most 30) and `canvas_announcements` (latest, at most 10). Notion: `notion_search` and `notion_page` (text only, at most a page's first 4,000 words), reading only what the user shared with the integration.
+- **MCP client** (last): a server is a connection whose tools come from it; each starts off, its description is outside text, and its schema is pinned when turned on, so a change asks again.
+
+**Steps.** 1) The layer, the Keychain store and the fake world, with Canvas by pasted token (M). 2) Notion by pasted token (S–M). 3) Settings › Connections (S–M). 4) OAuth and Google Calendar's two tools, when the owner's client exists (S–M). 5) The MCP client (M–L). Eval cases and smoke steps ship with each step.
 
 **Done when.** Connecting, asking "what's on tomorrow?" and disconnecting work against the fake world in smoke; an invite with instructions in its title is answered as data (eval); a search after reading the calendar shows the card (`runGuards.test.ts`); the token is never in `settings.json` or the renderer (`preload.test.ts`, `settings.test.ts`); with a model on this Mac the tools aren't offered.
 
-## D-55 · The feature kit ⏳
+## D-55 · The dev harness ⏳
 
-**Goal.** Any new feature, from BRAINSTORM row to green PR, starts right: an entry with checkable "Done when" lines, every extension point it touches named with its checklist, and the rules met before the logic is written. The owner's "dev harness"; it's also the map that "build your own feature" (D-56, then recipes) reuses for its safe subset.
+**Goal.** Any new feature, of any size, from BRAINSTORM row to green PR, starts right and follows one protocol: an entry with checkable "Done when" lines, every extension point it touches named with its checklist, and the rules met before the logic is written. The owner's "dev harness"; it's also the map that "build your own feature" (D-56, then recipes) reuses for its safe subset.
 
 **Design.**
 - `docs/EXTENDING.md`: one section per extension point, each with where it lives, what must come first and its test. Tools (the `toolSafety.ts` row, a card if it changes anything, ledger, `SentTag`, an eval case), IPC channels (`CHANNELS` and guards, the preload, `api.d.ts`), cards in answers (`Markdown.tsx`, `prompts.ts`, a UI preview scene), settings (`settings.ts`, `PublicSettings`, the Settings view), migrations (`store/db.ts`), jobs, connections (D-54), smoke steps and specs.
 - A `feature` skill (`.claude/skills/feature/`): take a named BRAINSTORM row, or the top unblocked one, write the DEVLOG entry, list the extension points, then build with `verify:quick` as it goes, and hand over to `ship`. Each "Done when" line names its proof: a test name, `@step-N` or ✋ with a reason.
 - A check in `rules/docsDrift.test.ts`: every "Done when" of a 🔨 entry names a test, a smoke tag or a ✋.
+- **The protocol**, written once in the skill: plan (entry, extension points, Done-when proofs) → spec (DESIGN's polish bar for anything on screen, a ui-preview scene per state) → build in small commits with `verify:quick` → `verify` and smoke → `ship`. A feature too big for one PR splits into steps, each with its own Done when.
+- **Room for later:** each extension point in `EXTENDING.md` says whether a person's own feature may use it (tiles yes; recipes with read-only job tools; anything that runs code, no), so "build your own feature" reads its safe subset from the same map.
 - A scaffold command only if two features in a row would have used it.
 
 **Done when.** A fresh agent given only "build D-57 with the feature skill" produces an entry, code and a PR whose every "Done when" line has evidence; `docs/RULES.md` names `EXTENDING.md`'s checklists where they're enforced; the drift test fails on a "Done when" line with no proof.
-
-## D-56 · My own tiles ⏳
-
-**Goal.** People can add their own one-tap actions beside Explain and Summarize: "Make flashcards", "Explain like I'm new to finance", "Reply politely". The first, safest step of building your own feature: a tile is a saved question, so it can do nothing a typed question can't.
-
-**Design.**
-- A tile: `name` (≤ 30 characters), `icon` (from a short list of UIcons), `prompt` (≤ 1,000 characters), and `when` (any capture, text, code, a picture, a table, a file, a page with nothing highlighted; from `shared/captures.ts`'s kinds). At most 12. Saved in `settings.json`, shown after the built-in tiles in the panel and the quick view's tiles.
-- **Make one:** Settings › **My tiles** › Add, or "make me a tile that turns this into flashcards" in a chat, which shows a card with the drafted tile to edit and save. The model drafts; nothing is saved without the user's click.
-- Pressing a tile sends its prompt as the visible question, exactly as if typed: the same `turnNote`, tools and cache rule. No new tool, so no new row in `toolSafety.ts`.
-- Edit, reorder and delete in Settings. Built to work wide.
-
-**Done when.** A saved tile shows only for its kinds of capture and sends its prompt as typed (renderer test and `@step-N`); a drafted tile is saved only from the card's button; 12 is the most, and a too-long name or prompt is refused in main (`settings.test.ts`).
-
----
 
 ## D-67 · Tests that find what people find 🔨 step 1
 
@@ -415,6 +429,14 @@ The pattern: specs are written from the feature's happy path, so they test **one
 - **Esc didn't close Pause's menu** (the screen menu's did), so in the app it reached the window. Fixed in `PauseButton.tsx`.
 - **The preview's mock kept only the last chat listener**, so the chat never heard its own reset in the preview, unlike the real preload. Fixed in `mock.ts`; it's the "one fake world" row in BRAINSTORM in miniature.
 Steps 2 and 3 are next when a spec or a bug needs them.
+
+**Where it stands (2026-11-20).** Step 1 is built: the ten expressions are kept in `source/` and cut to `src/renderer/src/assets/otty/` (wired: `Otter.tsx` shows thinking, cheer, tilt, sleepy, mouth open, munch and catch for D-37 step 2 and D-38; listening, oops and wink aren't used yet). Idle, blink and the icon came out unchanged. Listening took three tries and oops and sleepy two; the tries stay in `tools/otty-art/tries/`, ignored by git.
+
+Step 2's art is painted too: `cove-day` (the second try, softer and warmer than a realistic first one), then dawn, golden hour and night repainted from it, so all four share one horizon (row 506 of 1024, 49% down, lower than the draft's 37%, which leaves more sky for the greeting). `prepare.py` splits each at the horizon into `assets/cove/cove-*-shore.webp` and `-water.webp` (a soft 16px seam, 384 KB for all eight). One 1536px size, not 1× and 2×: painterly art holds up on a retina roomy window. Mid-scroll the water slides over the hills' foot and the low dawn and golden sun, which reads as the sun meeting the lake. Not wired: Home's cove is the living cove's step 1. Below 1024px the water ends, so the window's own `--cv-deep` colour must carry on under it.
+
+Step 3's art is painted too: `float` (Otty's face, on its back, paws on its chest, feet and tail up), then `float-paddle` (the second try: the first grew a third hind foot), `float-pebble` (a piece of teal sea glass, the Pebble look) and `float-doze`, repainted from it. `prepare.py` lines each up with the base by its outline (pebble had drifted 17px), cuts them with the base's box at 768px wide (180 KB for the four), and pulls the edge in 2px, because the model paints a faint pale haze that showed as a halo on night water; the outermost whisker tips go with it. Checked on all four coves with the lower third faded as a water line. When wired: the water line is a CSS mask, and the otter needs a per-time-of-day tint (it keeps daylight colours on night water), not repainted poses per time. A ripple ring round it is still to paint or draw.
+
+Step 4's art is painted too. `cove-day-clear` took the kept day picture's clouds, reeds and lily pads out (the second try: the first added an otter, because every request opens by naming Otty) and was kept as `cove-day`; dawn, golden hour and night were repainted from it, all still on row 506. The pieces were each right first time: `reeds-tall`, `reeds-low`, `stones` (with driftwood and moss), `lilypad`, `lilypad-flower`, `cloud-wide`, `cloud-puff`. They're painted alone on white (clouds white on black, so their opacity is their brightness) and cut to their own box, longest side 768px, into `assets/cove/` (812 KB for the folder). A test scene at the draft's 960×660 (shore, clouds, water, pads, the otter, stones and reeds, each at its own scroll rate, and night with the pieces tinted) reads as one place. For the wiring: the picture is 640px tall at 960px wide, so it must cover the window and its water must blend into `--cv-deep`; pieces on the water need the otter's water-line fade; reeds can sway briefly from their base (`transform-origin: bottom`) when the otter drifts by; and pieces take the time of day as a CSS tint, like the otter.
 
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
 
@@ -491,30 +513,23 @@ Steps 2 and 3 are next when a spec or a bug needs them.
 
 ---
 
-## D-37 · Feed Otty 🔨 step 1
+## D-71 · Otty's painted set 🔨 steps 1–4
 
-**Goal.** Drop files on the otter to ask about them. A new chat opens in the Otty window with the files in its tray, ready for a question or a tile. (Revised 2026-11-20, the owner's version: a new chat in the window, not the quick view, so it no longer waits for files in the quick view.)
+**Goal.** Every picture Otty needs, now and planned, painted in the same hand as today's portrait, so D-37 step 2, D-38 and the living cove stop waiting for art.
 
-**Design, step 1 (no new art).**
-- The bubble accepts drops: while files are over it, it swells a little (`bubble--feeding`, a transform over `--t-quick`, on touch only). On drop, it hands the files to main through the same `files:register` path the panel uses (the preload turns each `File` into a path on its way to main; the bubble gets ids and names only), then sends the ids on `bubble:feed`.
-- `bubble:feed` (bubble view only, a list of at most 5 ids) looks the ids up in main's file registry (`pendingFiles`) and opens the panel beside the bubble with `PanelOpenPayload.files`. Unknown ids are dropped, so the bubble can't name a file it didn't register.
-- The panel starts a new chat (the same `newChat` as ⌘N), adds the files to the tray (`useAttachments.adopt`), and focuses the box. While the roomy window is open, it comes forward instead.
-- Dragged text is left for step 2: it needs the frontmost app at drop time, which the bubble's drop doesn't know.
+**Design.**
+- `tools/otty-art/generate.py` (not shipped) asks OpenAI's image model for new sources, always sending `source/idle.webp` as the style reference, and writes them to `tools/otty-art/source/`. The key comes only from the Keychain (`security find-generic-password -s otty-art-openai`), never a file or the repo. Each asset is a named recipe (prompt, size, references); it never overwrites a source without `--force`, so a kept picture stays kept.
+- Bust frames keep the source framing (1254px square, white background, head centred), so `prepare.py`'s crop, cut-out and blink work unchanged. Every result is reviewed by eye against the idle portrait (same face, fur, palette, framing) and regenerated until it matches.
+- Wider subjects (the cove, the full body) get their own recipe in `prepare.py` when they land.
 
-**Where it stands (2026-11-20).** Step 1 is built (CHANGELOG, "Feed Otty files"): `Bubble.test.tsx`, `pending.test.ts` and the IPC table cover it, and a real drop from Finder is smoke step 165 (✋).
+**Steps.**
+1. The generator, and the bust expressions: thinking, oops, listening, wink, cheer, head tilt, sleepy, mouth open and munch (D-37), catch (W9). (S)
+2. The living cove: dawn, day, golden hour and night, each a sky-and-shore layer and a water layer, under 1.5 MB together. (M)
+3. A full-body Otty floating on its back: one painted base and poses repainted from it (a paddle frame, a Pebble on its chest, dozing), swapped in place while CSS bobs and drifts the whole otter. Repainted poses beat cutting one painting into parts, which would leave holes behind the head and paws. Inside the idle budget: brief or stepped motion only. Rolling over waits. (M)
+4. Foreground pieces, so the scene moves in more depths than two: the coves repainted clear (no clouds, reeds or lily pads), and clouds, reed clumps, a stone heap with driftwood and lily pads as cut-outs, each laid and moved on its own. (S)
+5. Later: a simplified small head for 34px, keepsakes, accessories, shells, the paw cursor (D-14).
 
-**Step 2 (needs art).** Two painted frames from `tools/otty-art/` (mouth open while something is over it, one munch on drop), stepped, never looping; dragged text becomes a text capture.
-
-**Done when (step 1).** Dropping a file on the otter calls `dropFiles` then `feedOtty` with the ids (`Bubble.test.tsx`); `bubble:feed` is bubble-only and refuses anything but a short list of ids (`rules/ipc.test.ts` and `check.ts`'s table); unknown ids open nothing (`files.test.ts › pendingFiles`); ✋ a real drop from Finder opens a new chat with the chip, because Playwright can't make a file on disk behind a drop (as step 30).
-
-
-## D-38 · Otter moods ⏳
-
-**Goal.** The otter feels alive without costing battery: it gets sleepy after about 10 minutes idle (Zzz), wakes on hover, looks startled when grabbed, wiggles when dropped, cheers when an answer lands and tilts its head on an error.
-
-**Design.** Moods are states in `Otter.tsx`, each a few painted frames stepped by CSS (`steps()`), run once or on a slow loop, and paused under `data-asleep`. Main already sends `bubble:state` and `bubble:mood`. Add `sleepy` after idle (a timer reset on any event, not a poll) and `error`. New frames come from `tools/otty-art/source/` through `prepare.py`. Reduce motion turns them into still frames.
-
-**Done when.** Each mood shows on its trigger, and `OTTY_METRICS=1` shows idle under 0.5% of a core with the otter asleep and awake.
+**Done when (step 1).** `generate.py` makes a named asset from the Keychain key and refuses to overwrite a kept source; each expression is in `source/`, passes review against the idle portrait, and comes out of `prepare.py` as a 512px WebP; LAUNCH_READINESS 12.7 notes the generator's terms.
 
 ## D-25 · Fast and Best: two model slots ⏸ (much later)
 
@@ -775,8 +790,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 155. Pause everything from the menu bar → the box says "Otty is paused" and **Paused · Carry on** stands where Send was; ↵ sends nothing. Carry on → ↵ asks.
 156. Open the panel and ask something, type a few words, then open **Chats** from the screen menu (the otter and the screen's name) → Back and "Chats". **⌘[** → the chat, with the words still in the box.
 157. Drag the panel wider: at about 700 px a rail appears with Chats beside the chat, at about 1000 the sidebar, and the chat and the box's words stay where they were. **⌘3** opens the Logbook, selected in the sidebar. ✋ also by hand: the rail and sidebar at 100% and 200% zoom, and that nothing jumps while dragging.
-158. Ask something long and press **Expand** while it answers → the window grows into the roomy window (traffic lights, the Dock icon, the menu bar), the answer keeps coming, and the box's words stay. **⇧⌘E** → back to floating, and the Dock icon goes once the window is small. ✋ also by hand: no Dock flicker, and full screen from the green button, which Shrink leaves first.
-159. Close the roomy window (the red button or ⌘W) → it goes, and the Dock icon after it. Click the bubble → the floating window, beside it. ✋ also by hand: open Otty from Applications while it runs → the roomy window; each state reopens where it was left.
+158. Ask something long and press **Expand** while it answers → the window grows into the roomy window with traffic lights, the answer keeps coming, and the box's words stay; no Dock icon appears. **⇧⌘E** → back to floating. ✋ also by hand: the app behind never flashes forward, and full screen from the green button, which Shrink leaves first.
+159. Close the roomy window (the red button or ⌘W) → it goes. Click the bubble → the floating window, beside it. ✋ also by hand: open Otty from Applications while it runs → the roomy window; each state reopens where it was left.
 160. Start a look-up that meets a page it hasn't been given → **⌘1** opens Home: "One thing needs you.", and Needs you shows the page with **Read it** and **Skip**. Read it → the look-up carries on, the item goes, and Today shows it. ✋ also by hand: the item folding into its receipt, and the now dot stepping only while something runs.
 161. On a first open, Home says good morning, afternoon or evening, "Nothing needs you. Ask me anything." and "Nothing has left your Mac today.", with no empty blocks; a Try asking row fills the box and sends nothing.
 162. Open the Pause menu (the pause button in the header or the rail) and press **Esc** → the menu closes and the window stays open. ✋ the window closing on Esc is main's, which the preview can't show; `invariants.screens.ts` checks the menu closes.
@@ -784,3 +799,14 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 164. Highlight a whole article → ⌥Space → ↵ → the sent message shows six lines of it and **Show all**; press it → the whole text; **Show less** folds it again. ⌘F a word near its end → it unfolds to the match.
 165. Drag a PDF from Finder onto the otter → it swells while over it; drop → the Otty window opens beside it on a new chat, the PDF's chip reads, and ↵ summarises it. With the roomy window open, it comes forward with the new chat. Drop six files → five chips and "Otty can take up to 5 files at a time". Drag text from Safari onto it → nothing happens. ✋ a real drop from Finder needs a file on disk behind it, which Playwright can't make (as step 30); `Bubble.test.tsx` covers the bubble's side.
 166. Ask "make a pie chart: rent 1200, food 400, fun 250" → slices in sea, coral and kelp with a thin gap between them, and the legend in grey text. Ask for a bar chart of a CSV → sea-blue bars with quiet axes. Ask "draw how a bill becomes a law" → rounded boxes and soft lines. Ask for 5 slides → the title slide sits on a soft wash with a straw sun, bullets are green dots, a quote slide has a large quote mark, and the page number is a small badge. Check light and dark. ✋ how it looks; `render.test.ts` and `slides.test.ts` cover the settings and the template, and `drawings.smoke.ts` that they still draw.
+167. Drag a few words from Notes onto the otter → its mouth opens while they're over it; drop → one munch, and the Otty window opens beside it with the words as a highlight from Notes. ✋ a drag between two apps is the system's, which Playwright can't make; `Bubble.test.tsx` covers the bubble's side.
+168. Leave Otty alone for 10 minutes → the otter dozes off; hover it → awake. Press and drag it → it catches; let go → one wiggle. A plain click → no catch, no wiggle. Ask something → thinking, then a cheer when the answer lands; with the network off → a head tilt. `OTTY_METRICS=1` stays under 0.5% asleep and awake. ✋ the bubble is its own window, which the specs don't open, and the idle budget needs a real Mac; `Bubble.test.tsx` covers the faces.
+169. Settings › **My tiles** › **Add a tile** → "Flashcards", "Turn this into five flashcards.", Shows for **A file** → Save. The chat's empty box has no Flashcards tile; attach a text file → **Flashcards** shows after the built-in tiles; press it → the question reads "Turn this into five flashcards." and the answer comes.
+170. Ask "make me a tile for polite replies" → the answer ends with a tile card, filled in. Settings › My tiles doesn't have it yet; **Save tile** on the card → "Saved “Reply politely” to My tiles", and it's in Settings, for highlighted text.
+171. Ask "make a pie chart of my month" → the chart's card has **Keep**; press it → **Kept**. Quit and reopen the chat → still Kept; press it → Keep again.
+172. Hover **New chat** in the header → after a moment, Otty's own tooltip "New chat ⌘N" (no system tooltip); move along to the next button → its tooltip shows at once. The line under the header shows only once the chat is scrolled.
+173. Type in the message box → its edge ripples a few pixels and settles; send → a small drop rises from it. With Reduce motion on (System Settings › Accessibility › Display) → nothing moves, and what changes fades. ✋ motion and its feel can't be asserted; `MessageBox.test.tsx` covers the settling and the drop, and the reduced-motion rule is in `styles.css`.
+174. Open the empty chat, then Home (**⌘1**) → a painted cove with Otty floating on its back: the morning, day, golden-hour or night painting by the Mac's clock, in dark mode too (there under dark glass). The cove fills the screen to every edge, under the header and the message box; the date and greeting sit on the sky and Otty floats in the water, faded below its waterline. Scroll Home → the cards slide over the cove on clear glass, the greeting lifts away and the header frosts before the first card reaches it. ✋ also by hand: the cross-fade on the hour, the parallax's feel, and still under Reduce motion.
+175. Open Otty for the first time since launch, on Home → the reeds and lily pad rise into the cove, then Otty floats up and settles; go to Chats and back → Home is already there. Move the pointer across the cove → the layers lean away, the nearest most, and drift back when it leaves. Press the water, then Otty → two rings spread from each; press the sky → nothing. With the sidebar showing, choose Logbook, then Settings → the selected card glides between them; open a Logbook entry → it glides in from the right, Back from the left. Decide a Needs-you item on Home → it ebbs and the rest close up. With Reduce motion on → nothing moves, and what changes fades. ✋ motion and its feel can't be asserted; `rules/renderer.test.ts` keeps Motion on the CSS tokens and off `repeat`.
+176. After 7pm with the Mac in light mode, open Home → the night cove, with dark glass and light words, though the rest of Otty stays light. Ask something from the empty chat → the cove recedes to the band behind the header and the answer sits on the plain page. Turn on Reduce transparency (System Settings › Accessibility › Display) → the cards and header are solid; the cove stays. ✋ the clock, the appearance and the accessibility setting are the Mac's; `rules/renderer.test.ts` checks every glass, halo and scrim on the paintings, and the ui-preview's `cove` screens draw each painting at three widths.
+177. Open Settings, then the Logbook, the Notebook and a chat with answers → each sits on a glass sheet over the hour's painted sky (blue by day, rose at golden hour, stars at night in dark mode); the sidebar and chat list are frosted glass with the hour's colours softly showing through, and every card and group has the same soft glass edge as Home's. Go from Home to the Logbook → the camera tilts up: the cove falls away with Otty on the water, the sky comes in, then the sheet and the Logbook surface together; back to Home → it tilts down and Home surfaces over the cove. Send the first question in an empty chat → the same tilt up. Open the Quick view and Pick up text → the same tint. Quit with no settings and reopen → the welcome sits on the cove, with Otty floating in the water under "Hi! I'm Otty". ✋ how the whole app looks together, by eye in light and dark at two hours; `rules/renderer.test.ts` checks every text role on every mist and on paper glass, and `npm run screens` draws each scene.

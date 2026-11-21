@@ -240,7 +240,7 @@ test('the Settings list: edit, pause, add, refuse a password, open the source ch
   expect(offersRemember(chats(otty).at(-1))).toBe(false)
   expect(lastQuestion(otty)).not.toContain(MEMORY_NOTE)
   await expect(notedLines(panel)).toHaveCount(0)
-  await panel.getByRole('button', { name: /, switch screen$/ }).click()
+  await panel.getByRole('button', { name: /, switch screen/ }).click()
   await expect(panel.getByRole('menuitem', { name: /learn from this chat/ })).toHaveCount(0)
   await panel.keyboard.press('Escape')
 })

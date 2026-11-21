@@ -34,7 +34,8 @@ const base: PublicSettings = {
   monthlyCap: null,
   capNoticed: null,
   homeUsed: true,
-  canOpenAtLogin: true
+  canOpenAtLogin: true,
+  myTiles: []
 }
 const counts: SettingsCounts = { chats: 142, olderThan: { '30d': 23, '1y': 0, forever: 0 }, notes: 18 }
 
@@ -147,9 +148,9 @@ describe('forgetting needs the hold, with the real count', () => {
 })
 
 describe('the list and Find a setting', () => {
-  it('shows six sections with their summaries, and finds rows by other words', () => {
+  it('shows seven sections with their summaries, and finds rows by other words', () => {
     open(null)
-    expect(screen.getAllByRole('button').filter((b) => b.classList.contains('set-row--section'))).toHaveLength(6)
+    expect(screen.getAllByRole('button').filter((b) => b.classList.contains('set-row--section'))).toHaveLength(7)
     expect(screen.getByText('⌥ Space to ask about highlighted text')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: 'Find a setting' }), { target: { value: 'memory' } })
     expect(screen.getByText('Open the Notebook')).toBeTruthy()
@@ -175,4 +176,31 @@ it('records a chord as an Electron accelerator', () => {
   expect(press('Digit4', { metaKey: true, shiftKey: true })).toBe('Shift+Command+4')
   expect(press('KeyA', {})).toBeNull()
   expect(press('ShiftLeft', { shiftKey: true })).toBeNull()
+})
+
+describe('My tiles (D-56)', () => {
+  const tile = { id: 'a', name: 'Reply politely', icon: 'envelope', prompt: 'Draft a polite reply.', when: 'any' as const }
+
+  it('adds a tile through main, with what was typed', async () => {
+    open('tiles')
+    fireEvent.click(screen.getByText('Add a tile'))
+    fireEvent.change(screen.getByPlaceholderText('Make flashcards'), { target: { value: ' Flashcards ' } })
+    fireEvent.change(screen.getByPlaceholderText(/Turn this into five/), { target: { value: 'Turn this into flashcards.' } })
+    fireEvent.click(screen.getByText('Save'))
+    await waitFor(() => expect(otty.setSetting).toHaveBeenCalled())
+    expect(otty.setSetting).toHaveBeenCalledWith('myTiles', [expect.objectContaining({ name: 'Flashcards', prompt: 'Turn this into flashcards.', icon: 'sparkles', when: 'any' })])
+  })
+
+  it('moves and deletes tiles, and stops at twelve', async () => {
+    const two = [tile, { ...tile, id: 'b', name: 'Flashcards' }]
+    open('tiles', { ...base, myTiles: two })
+    fireEvent.click(screen.getByLabelText('Move Flashcards up'))
+    expect(otty.setSetting).toHaveBeenLastCalledWith('myTiles', [two[1], two[0]])
+    fireEvent.click(screen.getByLabelText('Delete Reply politely'))
+    expect(otty.setSetting).toHaveBeenLastCalledWith('myTiles', [two[1]])
+    cleanup()
+    open('tiles', { ...base, myTiles: Array.from({ length: 12 }, (_, i) => ({ ...tile, id: `t${i}` })) })
+    expect(screen.getByText('12 is the most.')).toBeTruthy()
+    expect((screen.getByText('Add a tile').closest('button') as HTMLButtonElement).disabled).toBe(true)
+  })
 })

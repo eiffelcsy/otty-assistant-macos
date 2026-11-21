@@ -25,6 +25,9 @@ export function bandFor(width: number): Band {
   return 'wide'
 }
 
+/** Two widths that lay out the same columns, so nothing needs to re-render between them. */
+export const sameLayout = (a: number, b: number): boolean => bandFor(a) === bandFor(b) && a >= DETAILS_FROM === b >= DETAILS_FROM
+
 /** Which parts are columns at this width, for a screen that has a list, or not. */
 export function columns(width: number, hasList: boolean): { nav: 'none' | 'rail' | 'sidebar'; list: boolean; details: boolean } {
   const band = bandFor(width)

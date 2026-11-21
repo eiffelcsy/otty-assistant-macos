@@ -4,6 +4,71 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### One cove: the whole app in the cove's language (D-75, Spec 08, 2026-11-21)
+
+- **Every screen is in Otty's place now, not just Home.** The Quick view, Pick up text and the picture viewer sit on the hour's **mist**: paper with a little of the painting in it, cooler by day, warmer at golden hour, deeper in dark mode.
+- **The cove shows through every header**, under the same glass Home's header frosts to, so you always see what hour Otty's in. The hard cyan strip over a chat with content is gone.
+- **A frosted sidebar.** The sidebar and chat list are frosted glass over a soft blur of the hour's painting, like a Mac sidebar over the desktop but in Otty's colours: cool by day, amber at golden hour, deep blue at night. The blur is painted ahead of time, so it costs nothing to show.
+- **The camera moves through Otty's world.** Leaving Home, the camera tilts up from the cove into the hour's sky: the water falls away with Otty riding it, and Settings, the Logbook, the Notebook and chats surface on a sheet of glass over the sky (soft blue by day, rose and apricot at golden hour, stars at night). Coming back, it tilts down to the cove, Otty riding the water home before the greeting appears. Headers on the sky are clear, as on Home, and frost only when the page scrolls under them. Beside the chat list, the empty chat shows the same painting as Home, with Otty and the cards moved over, instead of a squeezed one. Four new sky paintings, painted from each hour's cove and joined to it without a seam.
+- **One kind of card.** Cards, settings groups, Logbook boxes, the message box and fields share the cove's glass edge (a lit rim and a soft lift) and Home's rounder corners; menus and popovers are solid glass. No more beige boxes inside answers: code and table heads take the page's tint.
+- **The welcome starts in the cove**, with Otty floating in the water under "Hi! I'm Otty" and each step's choices on glass.
+- Text roles are the cove's darker values everywhere, and a rule test checks every one on every mist and on the glass over it, in both themes.
+
+### Forget several chats, see a snip big, a quieter header (2026-11-21)
+
+- **Forgetting a chat asks first**, and the chat list can select several at once, like a mail inbox: tick chats (or Select all) and Forget them together, behind one confirm.
+- **Click a screenshot in a chat to see it big**, in the same window as Show big for drawings.
+- **The compact header's screen menu matches the buttons beside it**: the screen's icon and name in the same quiet style, instead of the otter and a bold title. The Logbook button there is gone, since the menu has it; a dot on the menu says when something needs you.
+- **No shortcut tooltips on the roomy sidebar**, which already shows each name. The icon-only rail still names each button.
+- **Otty is a little brighter at night** in the cove.
+
+### The cove keeps the hour, a smoother Expand, a calmer click (2026-11-21)
+
+- **Dark glass you can see through:** a lighter frost (6 px blur, the painting's own colour) and a tint close to the moving panel's look, so the cove shows through instead of grey. Both glasses are now held to 3.5:1 contrast instead of 4.5:1, so light glass is thinner too (day 17% white, from 46%).
+- **Fixed: the floating panel could ignore clicks after Shrink**, letting them through to the app behind. The move no longer switches the window's click-through.
+- **Fixed: with Reduce transparency or Increase contrast in dark mode by day, the greeting sat on a dark disc** in dark words. Its solid halo now follows the painting, as the words do. The screenshots also pin those settings off, since CI's Mac has one on.
+- **Fixed: the warning banner above the empty chat lost its words in dark mode by day** (light text on the bright sky): on the cove it's glass now, like the cards.
+- **Fixed: a sideways scrollbar on the empty chat and Home** at the floating window's own width: the greeting's halo reached past the window. It's clipped at the screen's edge now.
+- **Double-clicking the floating window's header no longer zooms it** (macOS's own resize, which left it floating over everything); Expand is the way to grow it. The roomy window zooms as any Mac window does.
+- **Fixed: Expand could stop working after a Shrink**, leaving the glass unfrosted: the stand-in picture waited for a frame in a hidden window, which never comes. It no longer waits on frames, and gets 250 ms before the move goes on without it.
+- **Dark mode no longer means night.** The cove paints the hour on the Mac's clock in either appearance; dark mode gives its cards dark glass, while the greeting keeps the painting's own ink and halo (a white halo on a day sky), and the night is dark glass in light mode too. Each dark-mode painting's glass is measured like the rest (`rules/renderer.test.ts`).
+- **Expand and Shrink glide without the wobble.** Resizing the window on every frame made its edges shake, so now the window resizes only twice: it jumps once to an invisible area covering both places, the panel grows from one place to the other over 720 ms with its content reflowing as it goes, and the window lands. Where the window's corner has to move, a picture of the panel stands in for the few frames it's hidden, so it never blinks; the picture's window is ready before the first move, and a late picture is dropped rather than flashed. The window is no longer hidden by turning it transparent, which made macOS show it for a frame at its old corner (a second panel at the screen's corner). The window re-renders only when its layout changes. **No more flashing the app behind.** Otty stays a background-only app in both states, with no Dock icon: the roomy window's Dock icon came from switching the app's kind (Electron's Dock calls, and its workspace setting, which switches unless told not to), and every switch handed the focus to the app behind. The roomy window keeps its own keys; it loses the menu bar and ⌘Tab. Otty also leaves the floating level only once it has focus. Pressing again mid-move queues the way back.
+- **Clicking the bubble doesn't startle Otty.** The caught frame (paws up) is for being carried: it shows once a press moves, and the wiggle follows only a real drop.
+
+### The cove, full bleed (D-74, 2026-11-21)
+
+- **Otty's place fills the window.** On Home and the empty chat the painted cove now runs behind the whole screen, under the header and the message box, as the design drew it: the date and greeting on the sky, Otty floating *in* the water at its waterline with a soft reflection, and every card, the header and the message box on clear glass that the cove shows through. It was a picture strip over a plain page.
+- **Clear glass that stays readable, by measurement.** The glass flattens and lifts what's behind it, so its tint stays thin: 34–54% see-through by day, 74% on the night lake. A rule test models it on each painting and fails both when text drops under 4.5:1 and when the glass is thicker than it needs to be, so it can't drift back to opaque (`prepare.py --patches` re-measures a painting).
+- **The night is dark glass, whatever the Mac's appearance**, and the greeting gets a halo only as strong as each painting needs (stronger at golden hour, where the far hills sit behind the words). The header frosts as the greeting scrolls away.
+- **A chat with content keeps the cove behind its header only**, so answers sit on the plain page (the quiet wash).
+- Reduce transparency and Increase contrast give solid cards and header. Home's date comes from main with its other words.
+
+### Motion that answers you (2026-11-21)
+
+- **Motion where CSS can't go.** The `motion` library (lazy `m.*` components, tokens shared with `styles.css`) now does exits, gliding to a new place and following the pointer; CSS keeps everything it does for free (DESIGN.md, "CSS or Motion"). Nothing new runs while idle, and a rule test refuses a repeating Motion animation.
+- **The frame moves with you** (W4, W5, W13): going deeper glides in from the right, Back from the left, any other move surfaces; the chat keeps its scroll. The selected item's card glides along the rail or sidebar, down to Settings. The header's title surfaces as the screen changes, and the compact screen menu grows from its button and ebbs away.
+- **Home arrives in reading order** (the greeting, then each block, 60 ms apart). Deciding a Needs-you item lets it ebb while the rest glide up and the next opens in place, and a block that empties ebbs while its neighbours close the gap.
+- **The cove answers touch:** the first cove of a window settles in (the reeds and lily pad, then Otty on the buoy curve); the painting's layers lean away from the pointer by their depth on a slow, damped follow; and pressing the water, or Otty, spreads two rings across it.
+- The thinking line ebbs before the next step surfaces (S2), and the **EN | 中** highlight slides between the two (M8).
+
+### The living cove (D-72, 2026-11-21)
+
+- **Otty lives somewhere now.** Home and the empty chat open on a painted cove, one painting for each time of day (dawn from 5, day from 8, golden hour from 17, night from 19), with the full-body Otty floating on its back in the water, a cloud, reeds and a lily pad. Dark mode is the night picture, never an inverted day. One timer waits for the next painting and cross-fades it in; nothing polls and nothing moves on its own but the otter's stepped float.
+- **Glass and parallax on Home:** the cove stays put while Home scrolls over it; the far shore, the water and Otty move at different speeds and the cove dims as the greeting reaches it, all on the scroll's own timeline (no script, nothing while still). Home's blocks are frosted glass the cove shows through, opaque enough that every text role passes 4.5:1 over the darkest and lightest patch of every painting (`rules/renderer.test.ts`). Reduced motion holds it all still.
+- The screenshots' clock is pinned to one time zone, so every Mac sees the same painting.
+
+### My own tiles, Keep, the capsule and tooltips (2026-11-20)
+
+- **My own tiles** (D-56): Settings › **My tiles** adds up to 12 one-tap questions, each a name, an icon, the words Otty is asked and what it shows for (anything, highlighted text, code, a picture, a table, a file or a web page). They come after the built-in tiles and send their words exactly as if typed, so a tile can do nothing a typed question can't. Ask Otty to "make me a tile for…" and it drafts one on a card; nothing is saved until **Save tile**. Main checks every field (`validTiles`) before saving.
+- **Keep a chart or drawing** (Pebbles, step 1): each drawing and chart card has **Keep**. Main finds it by the answer's id and its place in that answer, in the chat on show, and keeps it in `otty.db` (schema v11). Until the Pouch (step 2) gives kept Pebbles a screen, they go with their chats. **Show big** and **Present** already open them big.
+- **The liquid capsule:** typing ripples the message box's edge a few pixels, which settles over `--t-settle` and is invisible at rest; a send lets a small drop rise. One animation frame loop runs only while it settles, and reduced motion keeps it still.
+- **Otty's own tooltips** for every button's title, after half a second and then at once while moving along a row (W11); the header's line shows only once its content has scrolled (W6); and with Reduce motion on, what changes fades over 200 ms and nothing moves (D-59).
+
+### The otter's faces (D-37 step 2, D-38, 2026-11-20)
+
+- **Painted moods on the floating otter** (D-38): it dozes off after 10 minutes with nothing happening and wakes when the pointer comes near, catches when pressed and wiggles once when let go, thinks with its eyes up, cheers when an answer lands and tilts its head when one fails. Each face is one painted frame from D-71, swapped, never tweened, and the sleep is a timer reset by anything that happens, never a poll. Asleep, the otter doesn't float at all.
+- **Feed Otty, the munch** (D-37 step 2): its mouth opens while something is over it and it munches once on the drop. **Dragged text** now works too: it becomes a highlight from the app it was dragged from, in a new chat beside the otter.
+
 ### Charts and slides with taste (D-70, 2026-11-20)
 
 - **A chart palette:** six series colours in tokens (`--chart-1` to `--chart-6`: sea, coral, kelp, amber, dusk, meadow), each stepped separately for dark mode and checked for colour-blind separation between neighbours and 3:1 against the card. Pies and bar charts use them in order, with slices apart on a thin line of the card's colour, legends and axis labels in text colours, and quieter axes.
