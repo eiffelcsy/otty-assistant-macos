@@ -8,6 +8,7 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 - **Dark glass you can see through:** a lighter frost (6 px blur, the painting's own colour) and a tint close to the moving panel's look, so the cove shows through instead of grey. Both glasses are now held to 3.5:1 contrast instead of 4.5:1, so light glass is thinner too (day 17% white, from 46%).
 - **Fixed: the floating panel could ignore clicks after Shrink**, letting them through to the app behind. The move no longer switches the window's click-through.
+- **Fixed: with Reduce transparency or Increase contrast in dark mode by day, the greeting sat on a dark disc** in dark words. Its solid halo now follows the painting, as the words do. The screenshots also pin those settings off, since CI's Mac has one on.
 - **Fixed: a sideways scrollbar on the empty chat and Home** at the floating window's own width: the greeting's halo reached past the window. It's clipped at the screen's edge now.
 - **Double-clicking the floating window's header no longer zooms it** (macOS's own resize, which left it floating over everything); Expand is the way to grow it. The roomy window zooms as any Mac window does.
 - **Fixed: Expand could stop working after a Shrink**, leaving the glass unfrosted: the stand-in picture waited for a frame in a hidden window, which never comes. It no longer waits on frames, and gets 250 ms before the move goes on without it.

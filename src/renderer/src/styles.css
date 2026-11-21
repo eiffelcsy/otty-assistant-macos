@@ -87,6 +87,8 @@
   --cv-halo-day: rgba(244, 241, 234, 0.3);
   --cv-halo-golden: rgba(244, 241, 234, 0.64);
   --cv-halo-night: rgba(16, 24, 38, 0.05);
+  /* The greeting's halo made solid (Reduce transparency, Increase contrast): follows the painting, as the words do. */
+  --cv-halo-solid: #f4f1ea;
   --cv-top-dawn: rgba(244, 241, 234, 0);
   --cv-top-day: rgba(244, 241, 234, 0);
   --cv-top-golden: rgba(244, 241, 234, 0);
@@ -1237,6 +1239,7 @@ html[data-view='bubble'] body {
   --cove-top: var(--cv-top-day);
   --cove-ink: var(--cv-ink);
   --cove-sub: var(--cv-sub);
+  --cove-halo-solid: var(--cv-halo-solid);
   --cove-rim: var(--cv-rim-light);
   --cove-lift: var(--cv-lift-light);
   --cove-solid: var(--surface);
@@ -1272,6 +1275,7 @@ html[data-view='bubble'] body {
   --cove-top: var(--cv-top-night);
   --cove-ink: var(--cv-night-ink);
   --cove-sub: var(--cv-night-sub);
+  --cove-halo-solid: var(--cv-night-surface);
 }
 /* Text on glass: the paper roles a step darker (light glass), or the dark set (dark glass), wherever words sit over the
    cove: the whole screen in full, only the header over the wash. */
@@ -1756,7 +1760,8 @@ html[data-view='bubble'] body {
     color: var(--text-2);
   }
   .cove-hero__words::before {
-    background: radial-gradient(closest-side, var(--cove-solid), var(--cove-solid) 55%, transparent);
+    /* Not --cove-solid: that's the glass's, dark in dark mode, and the greeting's words follow the painting. */
+    background: radial-gradient(closest-side, var(--cove-halo-solid), var(--cove-halo-solid) 55%, transparent);
   }
 }
 /* ---------- end cove ---------- */
