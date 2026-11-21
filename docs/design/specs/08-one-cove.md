@@ -176,14 +176,30 @@ The first build gave the nav and list column a flat hour-tinted paper. Beside th
 - Selected items and the Pause card stay paper glass (`--mist-card`, `--glass-lift`), which reads as a lit tile on the frost.
 - In the compact band there's no side, and the main column covers the haze.
 
-## Part 9 · Leaving the cove (owner's call, 2026-11-21)
+## Part 9 · The camera (owner's call, 2026-11-21)
 
-The first build rolled the painting up to the header over 1.4 s (`height` on `.cove`), with the new page's words drawn over the bare painting as it went: cheap, and slow. Now **the painting never moves; the mist rises over it.**
+Two tries at leaving the cove read as cheap: the painting rolling up like a blind, then a cross-fade to a flat page. A studio would move the camera, so Otty does: **every screen is a place in one painted world.** Home and the empty chat look at the cove; every other screen looks up into the hour's sky, and sits on a reading sheet of glass over it.
 
-- `.cove` is full height in both modes. Its `::after` is the mist (the same gradient as MIST) from `--header-h` down, opacity 0 in `full` and 1 in `wash`.
-- Going from the surface to a shallow screen, the mist comes in over `--t-quick` on `--glide`, together with the screen's own fade (Spec 05, W4), so words never sit on the bare painting. Coming back to Home or the empty chat, it clears over `--t-settle`, so the cove surfaces more slowly than it goes. Sending the first question in an empty chat is the same move.
-- The header's glass and painted band don't change: they're the same in both modes.
-- Reduced motion: the fade only, as everywhere. The painting under the mist is static, so idle cost is unchanged.
+**The sky.** Four new paintings, `sky-{hour}` (`generate.py`'s `SKY` recipes, each painted with its own cove as the reference): only sky, calm open areas, a few soft clouds at the edges, stars at night. The model paints a glow at a sky's foot however it's asked, so `prepare.py`'s `join` shifts the lower 55% of each sky, by a smooth ramp, onto the colour of its cove's top edge, keeping the brushwork; the seam is then invisible. The sky sits in the far layer, directly above the shore (overlapping it by 48 px, its foot masked out), at least the column's height plus 240 px tall.
+
+**The world and the tilt.** `.cove__world` holds the sky, the cove, its pieces, the ripples and a still Otty. Looking up translates it down by the column's height plus 160 px over `--t-travel` on `--glide`: one move for the whole world, since a tilt has no parallax, with the near pieces (reeds, lily pad) falling a further 24% so the water seems to drop away below the camera. Looking back down is the same move reversed. Between two sky screens the camera stays; Spec 05's slide plays as before.
+
+**Otty rides the water.** The hero's Otty belongs to Home's screen, which goes at once. `.cove__ghost` is the same float pose, still, at the hero's position in the world: shown while looking up, so Otty sinks out of view with the water and rises back with it, and hidden once the camera is home and the hero is back.
+
+**The reading sheet.** `.cove::after`, from `--header-h` down, edge to edge: `--sheet-glass`, paper over the sky at the least alpha that keeps every text role at 4.5:1 on the sky's darkest and lightest 32 px patch, plus .02. Light: dawn .71, day .56, golden .78, night .86. Dark: dawn .75, day .82, golden .75, night .27 (the stars show). Its top edge is a 1 px light line. `rules/renderer.test.ts` checks each both ways.
+
+**Timing, in order.**
+
+| | Looking up (Home → a screen) | Looking down (a screen → Home) |
+| --- | --- | --- |
+| 0 ms | Home's words and cards go; the ghost Otty takes the hero's place; the world starts moving | The sheet and the screen ebb out over `--t-quick` on `--ebb`; the world starts moving |
+| 0–280 | The cove falls away, the sky comes in, nothing written on it | The sky falls away, the cove comes back with Otty |
+| 280 | The sheet and the screen surface together: opacity, and up from 18–24 px, over `--t-settle` on `--glide` | Home's screen surfaces over `--t-settle` |
+| 720 | The world lands | The world lands; the ghost hides under the hero's Otty |
+
+The screen's delay is `Frame`'s `useScreenMove`, which knows the camera moved because `cove` changed between `full` and `wash`; it hides the screen first, so the delay never shows it over the moving painting. Sending the first question in an empty chat is the same move: the camera looks up as the answer starts.
+
+Reduced motion: the world jumps, and the sheet and screen fade (the global reduced-motion rule). Nothing new runs while still; the painting under the sheet is static.
 
 ## Part 6 · Build packages
 

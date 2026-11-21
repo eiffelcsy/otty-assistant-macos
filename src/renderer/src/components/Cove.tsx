@@ -8,6 +8,10 @@ import goldenShore from '../assets/cove/cove-golden-shore.webp'
 import goldenWater from '../assets/cove/cove-golden-water.webp'
 import nightShore from '../assets/cove/cove-night-shore.webp'
 import nightWater from '../assets/cove/cove-night-water.webp'
+import dawnSky from '../assets/cove/sky-dawn.webp'
+import daySky from '../assets/cove/sky-day.webp'
+import goldenSky from '../assets/cove/sky-golden.webp'
+import nightSky from '../assets/cove/sky-night.webp'
 import cloud from '../assets/cove/cloud-wide.webp'
 import lilypad from '../assets/cove/lilypad-flower.webp'
 import reeds from '../assets/cove/reeds-low.webp'
@@ -15,11 +19,11 @@ import float from '../assets/otty/float.webp'
 import { coveGlass, coveTime, untilNextCove, type CoveTime } from '../lib/cove'
 import { T, glide } from '../lib/motion'
 
-const PAINTINGS: Record<CoveTime, [shore: string, water: string]> = {
-  dawn: [dawnShore, dawnWater],
-  day: [dayShore, dayWater],
-  golden: [goldenShore, goldenWater],
-  night: [nightShore, nightWater]
+const PAINTINGS: Record<CoveTime, [shore: string, water: string, sky: string]> = {
+  dawn: [dawnShore, dawnWater, dawnSky],
+  day: [dayShore, dayWater, daySky],
+  golden: [goldenShore, goldenWater, goldenSky],
+  night: [nightShore, nightWater, nightSky]
 }
 
 const DARK = '(prefers-color-scheme: dark)'
@@ -159,12 +163,15 @@ export function Cove({ mode }: { mode: 'full' | 'wash' }) {
       aria-hidden="true"
       onAnimationEnd={(e) => e.animationName === 'cove-arrive-front' && ((arrived = true), setArriving(false))}
     >
+      {/* The world the camera tilts across (Spec 08, Part 9): the sky above, the cove at the horizon. `wash` looks up. */}
+      <div className="cove__world">
       {[before, time].map(
         (t) =>
           t && (
             <div key={t} className={`cove__scene${t === time && before ? ' cove__scene--in' : ''}`} onAnimationEnd={settle}>
               <div className="cove__far">
                 <img className="cove__shore" src={PAINTINGS[t][0]} alt="" draggable={false} />
+                <img className="cove__sky" src={PAINTINGS[t][2]} alt="" draggable={false} />
                 <img className="cove__cloud" src={cloud} alt="" draggable={false} />
               </div>
               <div className="cove__near">
@@ -181,6 +188,12 @@ export function Cove({ mode }: { mode: 'full' | 'wash' }) {
       <div className="cove__front">
         <img className="cove__reeds" src={reeds} alt="" draggable={false} />
         <img className="cove__lilypad" src={lilypad} alt="" draggable={false} />
+      </div>
+      {/* Otty, still, where the hero's Otty floats: it rides the water out of view as the camera looks up, and back. */}
+      <span className="cove__ghost">
+        <img className="cove-otty__refl" src={float} alt="" draggable={false} />
+        <img className="cove-otty__img" src={float} alt="" draggable={false} />
+      </span>
       </div>
       <div className="cove__scrim" />
     </m.div>

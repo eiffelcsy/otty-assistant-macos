@@ -93,23 +93,27 @@ function useScrolled(screen: unknown): [boolean, (e: React.UIEvent) => void] {
  * on the body rather than keyed, so the chat stays mounted with its scroll; transform and opacity only, so it runs on the
  * compositor while the new screen is still rendering.
  */
-function useScreenMove(place: Place, pushed: boolean) {
+function useScreenMove(place: Place, pushed: boolean, cove: FrameProps['cove']) {
   const [scope, animate] = useAnimate<HTMLDivElement>()
   const reduced = useReducedMotion()
-  const was = useRef({ place, pushed })
+  const was = useRef({ place, pushed, cove })
   useEffect(() => {
     const before = was.current
-    was.current = { place, pushed }
-    if (!scope.current || (before.place === place && before.pushed === pushed)) return
+    was.current = { place, pushed, cove }
+    const tilt = (before.cove === 'full') !== (cove === 'full')
+    if (!scope.current || (before.place === place && before.pushed === pushed && !tilt)) return
     if (reduced) return void animate(scope.current, { opacity: [0, 1] }, { duration: 0.2 })
+    // Spec 08 Part 9: through the camera's tilt, the screen waits for the sky (or the cove) to come into view, then surfaces.
+    // Hidden first: the delay would otherwise show it at full strength over the moving painting.
+    if (tilt) return void ((scope.current.style.opacity = '0'), animate(scope.current, { opacity: [0, 1], x: [0, 0], y: [18, 0] }, { duration: T.settle, ease: glide, delay: T.quick }))
     const x = pushed && !before.pushed ? 24 : before.pushed && !pushed ? -24 : 0
     animate(scope.current, { opacity: [0, 1], x: [x, 0], y: [x ? 0 : 10, 0] }, { duration: T.settle, ease: glide, opacity: { duration: T.quick } })
-  }, [place, pushed, reduced, animate, scope])
+  }, [place, pushed, cove, reduced, animate, scope])
   return scope
 }
 
 export function Frame(p: FrameProps) {
-  const body = useScreenMove(p.place, p.pushed)
+  const body = useScreenMove(p.place, p.pushed, p.cove)
   const [mainScrolled, onMainScroll] = useScrolled(p.place)
   const [listScrolled, onListScroll] = useScrolled(null)
   const band: Band = bandFor(p.width)

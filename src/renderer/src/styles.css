@@ -136,6 +136,13 @@
   --side-glass-golden: rgba(244, 241, 234, 0.83);
   --side-glass-night: rgba(244, 241, 234, 0.86);
   --side-glass: var(--side-glass-day);
+  /* The reading sheet: paper over the hour's sky, where every screen but Home and the empty chat sits once the camera
+     has looked up (Spec 08, Part 9). The least that passes on the sky plus .02 (rules/renderer.test.ts). */
+  --sheet-glass-dawn: rgba(244, 241, 234, 0.71);
+  --sheet-glass-day: rgba(244, 241, 234, 0.56);
+  --sheet-glass-golden: rgba(244, 241, 234, 0.78);
+  --sheet-glass-night: rgba(244, 241, 234, 0.86);
+  --sheet-glass: var(--sheet-glass-day);
   --mist-top: var(--mist-top-day);
   --mist-bottom: var(--mist-bottom-day);
   --mist-side: var(--mist-side-day);
@@ -254,6 +261,10 @@
     --side-glass-day: rgba(31, 28, 29, 0.83);
     --side-glass-golden: rgba(31, 28, 29, 0.81);
     --side-glass-night: rgba(31, 28, 29, 0.56);
+    --sheet-glass-dawn: rgba(31, 28, 29, 0.75);
+    --sheet-glass-day: rgba(31, 28, 29, 0.82);
+    --sheet-glass-golden: rgba(31, 28, 29, 0.75);
+    --sheet-glass-night: rgba(31, 28, 29, 0.27);
     --mist-top-dawn: #39353c;
     --mist-bottom-dawn: #333035;
     --mist-side-dawn: #2c292c;
@@ -279,18 +290,21 @@
   --mist-bottom: var(--mist-bottom-dawn);
   --mist-side: var(--mist-side-dawn);
   --side-glass: var(--side-glass-dawn);
+  --sheet-glass: var(--sheet-glass-dawn);
 }
 :root[data-time='golden'] {
   --mist-top: var(--mist-top-golden);
   --mist-bottom: var(--mist-bottom-golden);
   --mist-side: var(--mist-side-golden);
   --side-glass: var(--side-glass-golden);
+  --sheet-glass: var(--sheet-glass-golden);
 }
 :root[data-time='night'] {
   --mist-top: var(--mist-top-night);
   --mist-bottom: var(--mist-bottom-night);
   --mist-side: var(--mist-side-night);
   --side-glass: var(--side-glass-night);
+  --sheet-glass: var(--sheet-glass-night);
 }
 /* Reduce transparency and Increase contrast: paper glass turns solid, as the cove's glass does (Spec 07, Part 5). */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
@@ -1421,7 +1435,8 @@ html[data-view='bubble'] body {
 
 /* The layers */
 .cove {
-  --paint-w: max(100% + 32px, (var(--horizon) + 24px) * 3.04);
+  /* cqw, not %: the sky is placed by `bottom`, where a % would be of the height. The cove is its own container. */
+  --paint-w: max(100cqw + 32px, (var(--horizon) + 24px) * 3.04);
   --px: 0;
   --py: 0;
   --cv-deep: var(--cv-deep-day);
@@ -1432,6 +1447,7 @@ html[data-view='bubble'] body {
   overflow: hidden;
   isolation: isolate;
   pointer-events: none;
+  container-type: size;
   background: var(--cv-deep);
 }
 .cove[data-time='dawn'] {
@@ -1443,19 +1459,74 @@ html[data-view='bubble'] body {
 .cove[data-time='night'] {
   --cv-deep: var(--cv-deep-night);
 }
-/* Every shallow screen (Spec 08, Part 9): the painting stays where it is, and the hour's mist rises over it below the
-   header, so the page never sits on the bare painting and nothing rolls up. Quick going in, slower coming back out. */
+/* The camera (Spec 08, Part 9). Home and the empty chat look at the cove; every other screen looks up into the hour's
+   sky, and sits on a reading sheet of glass over it. The world moves as one (a tilt has no parallax), the near pieces a
+   little more so the water seems to fall away; the sheet surfaces once the sky is in view, and ebbs first on the way
+   back, so words never sit on the moving painting. */
+.cove__world {
+  position: absolute;
+  inset: 0;
+  transition: transform var(--t-travel) var(--glide);
+}
+.cove--wash .cove__world {
+  transform: translateY(calc(100% + 160px));
+}
+.cove__front {
+  transition: transform var(--t-travel) var(--glide);
+}
+.cove--wash .cove__front {
+  transform: translateY(24%);
+}
+/* The sky above the shore, joined at its foot (prepare.py's join), deep enough to fill the column once looked up at. */
+.cove__sky {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100cqh - var(--horizon) + var(--paint-w) * 0.3346 - 48px);
+  width: var(--paint-w);
+  height: max(var(--paint-w) / 1.5, 100cqh + 240px);
+  max-width: none;
+  transform: translateX(-50%);
+  object-fit: cover;
+  object-position: 50% 100%;
+  mask: linear-gradient(black calc(100% - 48px), transparent);
+}
 .cove::after {
   content: '';
   position: absolute;
   inset: var(--header-h) 0 0;
-  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
+  background: var(--sheet-glass);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
   opacity: 0;
-  transition: opacity var(--t-settle) var(--glide);
+  transform: translateY(24px);
+  transition: opacity var(--t-quick) var(--ebb), transform var(--t-quick) var(--ebb);
 }
 .cove--wash::after {
   opacity: 1;
-  transition-duration: var(--t-quick);
+  transform: none;
+  transition: opacity var(--t-settle) var(--glide) var(--t-quick), transform var(--t-settle) var(--glide) var(--t-quick);
+}
+/* Otty, still, where the hero's Otty floats: shown while the hero is gone, so it rides the water out and back. */
+.cove__ghost {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074);
+  width: var(--otty-w);
+  translate: -50% 0;
+  opacity: 0;
+  transition: opacity 0s linear var(--t-travel);
+}
+.cove--wash .cove__ghost {
+  opacity: 1;
+  transition: none;
+}
+.cove[data-time='night'] .cove__ghost {
+  filter: brightness(0.74) saturate(0.8);
+}
+.cove[data-time='golden'] .cove__ghost {
+  filter: sepia(0.18) saturate(1.1);
+}
+.cove[data-time='dawn'] .cove__ghost {
+  filter: sepia(0.1) hue-rotate(-8deg);
 }
 .cove__scene,
 .cove__far,

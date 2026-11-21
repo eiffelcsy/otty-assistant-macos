@@ -25,7 +25,7 @@ describe('CLAUDE.md "Web safety": the renderer never loads anything remote', () 
     // Reviewed: each of these is a data: URL made in main (snips, thumbnails, drawings) or an imported asset.
     const OK = new Set(['dataUrl', 'picture.dataUrl', 'file.thumb', 'FRAMES[state]', 'idleBlink', 'view.dataUrl', 'drawn.dataUrl',
       // the cove's imported paintings (D-72)
-      'PAINTINGS[t][0]', 'PAINTINGS[t][1]', 'cloud', 'reeds', 'lilypad', 'float'])
+      'PAINTINGS[t][0]', 'PAINTINGS[t][1]', 'PAINTINGS[t][2]', 'cloud', 'reeds', 'lilypad', 'float'])
     const found = CODE.flatMap((f) =>
       [...withoutComments(read(f)).matchAll(/<img\b[^>]*\bsrc=\{([^}]+)\}/g)].filter((m) => !OK.has(m[1].trim())).map((m) => `${f}  src={${m[1]}}`)
     )
@@ -247,29 +247,37 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
     })
   }
 
-  describe('the side glass (Spec 08 Part 8): the nav and list column read on the haze, and are no thicker than that needs', () => {
-    // From `.venv/bin/python tools/otty-art/prepare.py --patches` (2026-11-21): each haze's darkest and lightest pixel.
+  describe('the side glass and the reading sheet (Spec 08 Parts 8-9): words read on the haze and the sky, no thicker than that needs', () => {
+    // From `.venv/bin/python tools/otty-art/prepare.py --patches` (2026-11-21): each haze's darkest and lightest pixel,
+    // and each sky's darkest and lightest 32 px patch.
     const HAZE: Record<string, RGB[]> = {
       dawn: [[47, 92, 143], [252, 202, 158]],
       day: [[38, 123, 143], [246, 237, 207]],
       golden: [[56, 51, 60], [251, 217, 74]],
       night: [[5, 27, 55], [90, 120, 150]]
     }
-    for (const [name, t] of Object.entries(themes))
-      for (const [hour, under] of Object.entries(HAZE)) {
-        const tint = t[`--side-glass-${hour}`]
-        const passes = (a: number) =>
-          under.every((u) => {
-            const back = colour(tint.replace(/[\d.]+\)$/, `${a})`), u)
-            return TEXT.every((r) => contrast(colour(t[r], back), back) >= 4.5)
+    const SKY: Record<string, RGB[]> = {
+      dawn: [[102, 128, 193], [198, 170, 189]],
+      day: [[90, 177, 224], [223, 227, 209]],
+      golden: [[116, 85, 108], [237, 165, 94]],
+      night: [[3, 20, 58], [48, 85, 133]]
+    }
+    for (const [glass, patches] of [['--side-glass', HAZE], ['--sheet-glass', SKY]] as const)
+      for (const [name, t] of Object.entries(themes))
+        for (const [hour, under] of Object.entries(patches)) {
+          const tint = t[`${glass}-${hour}`]
+          const passes = (a: number) =>
+            under.every((u) => {
+              const back = colour(tint.replace(/[\d.]+\)$/, `${a})`), u)
+              return TEXT.every((r) => contrast(colour(t[r], back), back) >= 4.5)
+            })
+          it(`${glass} ${name} ${hour}: every text role reaches 4.5:1, with at most .03 to spare`, () => {
+            const a = Number(tint.match(/([\d.]+)\)$/)![1])
+            const least = [...Array(101).keys()].map((i) => i / 100).find(passes)!
+            expect(passes(a)).toBe(true)
+            expect(a - least).toBeLessThanOrEqual(0.03 + 1e-9)
           })
-        it(`${name} ${hour}: every text role reaches 4.5:1, with at most .03 to spare`, () => {
-          const a = Number(tint.match(/([\d.]+)\)$/)![1])
-          const least = [...Array(101).keys()].map((i) => i / 100).find(passes)!
-          expect(passes(a)).toBe(true)
-          expect(a - least).toBeLessThanOrEqual(0.03 + 1e-9)
-        })
-      }
+        }
   })
 
   describe('the cove, full bleed (D-74, Spec 07 Part 5): every word on it is readable, and the glass is no thicker than that needs', () => {
