@@ -4,6 +4,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### One cove: the whole app in the cove's language (D-75, Spec 08, 2026-11-21)
+
+- **Every screen is in Otty's place now, not just Home.** Settings, the Logbook, the Notebook, chats, the Quick view, Pick up text and the picture viewer sit on the hour's **mist**: paper with a little of the painting in it, cooler by day, warmer at golden hour, deeper in dark mode. The sidebar and chat list take the same tint.
+- **The cove shows through every header**, under the same glass Home's header frosts to, so you always see what hour Otty's in. The hard cyan strip over a chat with content is gone.
+- **One kind of card.** Cards, settings groups, Logbook boxes, the message box and fields share the cove's glass edge (a lit rim and a soft lift) and Home's rounder corners; menus and popovers are solid glass. No more beige boxes inside answers: code and table heads take the page's tint.
+- **The welcome starts in the cove**, with Otty floating in the water under "Hi! I'm Otty" and each step's choices on glass.
+- Text roles are the cove's darker values everywhere, and a rule test checks every one on every mist and on the glass over it, in both themes.
+
 ### Forget several chats, see a snip big, a quieter header (2026-11-21)
 
 - **Forgetting a chat asks first**, and the chat list can select several at once, like a mail inbox: tick chats (or Select all) and Forget them together, behind one confirm.
