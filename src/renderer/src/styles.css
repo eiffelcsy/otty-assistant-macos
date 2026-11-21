@@ -2045,7 +2045,7 @@ html[data-view='bubble'] body {
   font-size: var(--fs-small);
 }
 .md pre {
-  background: var(--surface-2);
+  background: var(--fill-strong);
   border: 1px solid var(--hairline);
   padding: var(--s-2) var(--s-3) var(--s-3);
   border-radius: var(--r-sm);
@@ -2061,7 +2061,7 @@ html[data-view='bubble'] body {
   margin: var(--s-3) 0;
   border: 1px solid var(--hairline);
   border-radius: var(--r-sm);
-  background: var(--surface-2);
+  background: var(--fill-strong);
   overflow: hidden;
 }
 .md .code-block pre {
@@ -2104,7 +2104,7 @@ html[data-view='bubble'] body {
   line-height: var(--lh-small);
 }
 .md th {
-  background: var(--surface-2);
+  background: var(--fill-strong);
   font-size: var(--fs-label);
   line-height: var(--lh-label);
   font-weight: 700;
@@ -2154,7 +2154,7 @@ html[data-view='bubble'] body {
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-md);
   background: var(--surface);
-  box-shadow: var(--elev-3);
+  box-shadow: var(--glass-lift-float);
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -2343,15 +2343,15 @@ html[data-view='bubble'] body {
   75% { content: '...'; }
 }
 
-/* Card: confirm, notice, step and activity cards. Actions sit 4 further below. */
+/* Card: confirm, notice, step and activity cards. Actions sit 4 further below. Paper glass, Spec 08. */
 .confirm-card,
 .notice-card,
 .step-card {
   max-width: 520px;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   display: flex;
   flex-direction: column;
   gap: var(--s-2);
@@ -2378,7 +2378,7 @@ html[data-view='bubble'] body {
   gap: var(--s-2);
   align-items: flex-start;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   font-size: var(--fs-ui);
   line-height: var(--lh-ui);
   background: var(--danger-soft);
@@ -2389,8 +2389,8 @@ html[data-view='bubble'] body {
 }
 /* An answer that failed: one button that helps, never a raw code (D-62). */
 .msg--otty .error-card {
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger-ink) 30%, transparent);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift), inset 0 0 0 1px color-mix(in srgb, var(--danger-ink) 30%, transparent);
   font-size: var(--fs-small);
   line-height: var(--lh-small);
 }
@@ -2430,7 +2430,7 @@ html[data-view='bubble'] body {
   border: none;
   border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: var(--elev-2);
+  box-shadow: var(--glass-lift-float);
   font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--text);
@@ -2483,8 +2483,8 @@ html[data-view='bubble'] body {
   position: relative;
   padding: var(--s-1h);
   border-radius: calc(var(--radius) - var(--s-3));
-  background: var(--surface);
-  box-shadow: var(--elev-2);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   transition: box-shadow var(--t-quick) var(--glide);
 }
 /* The liquid capsule: an outline over the box's edge, seen only while it settles after a key press. */
@@ -2521,7 +2521,7 @@ html[data-view='bubble'] body {
   100% { transform: translateY(-18px) scale(1); opacity: 0; }
 }
 .message-box:not(.message-box--bare):focus-within {
-  box-shadow: var(--elev-2), var(--ring);
+  box-shadow: var(--glass-lift), var(--ring);
 }
 .message-box--bare .composer__input {
   padding: 0;
@@ -2667,9 +2667,9 @@ html[data-view='bubble'] body {
   flex-direction: column;
   gap: var(--s-2);
   padding: var(--s-3);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .context-card > .context-text,
 .context-card > .context-picture {
@@ -2737,8 +2737,8 @@ html[data-view='bubble'] body {
   min-width: 0;
   padding: var(--s-1);
   border-radius: var(--r-sm);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .file-tray--sent .file-chip {
   padding-right: var(--s-3);
@@ -2809,7 +2809,7 @@ html[data-view='bubble'] body {
   gap: var(--s-2);
   border: 2px dashed var(--brand-line);
   border-radius: var(--r-lg);
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  background: color-mix(in srgb, var(--mist-top) 88%, transparent);
   backdrop-filter: blur(2px);
   color: var(--brand-text);
   font-size: var(--fs-ui);
@@ -2974,8 +2974,8 @@ html[data-view='bubble'] body {
   flex-shrink: 0;
 }
 .action:hover:not(:disabled) {
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .action:active:not(:disabled) {
   transform: scale(0.97);
