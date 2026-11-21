@@ -37,6 +37,7 @@ HORIZON, FEATHER = 506, 8
 FLOAT_W = 768  # width of the floating Otty frames
 PIECES = ('reeds', 'stones', 'lilypad', 'cloud')  # the cove's foreground pieces
 PIECE_MAX = 768  # longest side of a piece
+HAZE, HAZE_BLUR = (192, 128), 6  # the haze's size and its blur radius, in its own pixels
 
 
 def load(name: str) -> np.ndarray:
@@ -218,7 +219,23 @@ def cove(f: Path) -> None:
     water.putalpha(Image.fromarray((np.repeat(ramp[:, None], w, axis=1) * 255).astype(np.uint8)))
     water.save(COVE_OUT / f'{f.stem}-water.webp', quality=80, method=6)
     print('wrote', (COVE_OUT / f'{f.stem}-shore.webp').relative_to(ROOT), 'and -water')
+    haze(img).save(COVE_OUT / f"haze-{f.stem.removeprefix('cove-')}.webp", quality=82, method=6)
     print(patches(img))
+    print(haze_patches(img))
+
+
+def haze(img: Image.Image) -> Image.Image:
+    """The painting as a blur of its colours, the backdrop the sidebar's frosted glass shows (Spec 08, Part 8). Blurred
+    here, small, so the window never runs a blur: scaled up, a blurred picture stays smooth."""
+    return img.convert('RGB').resize(HAZE, Image.LANCZOS).filter(ImageFilter.GaussianBlur(HAZE_BLUR))
+
+
+def haze_patches(img: Image.Image) -> str:
+    """The haze's darkest and lightest pixel, away from its edges: what the side glass's test holds (Spec 08, Part 8)."""
+    rgb = np.asarray(haze(img), dtype=float)[8:-8, 8:-8].reshape(-1, 3)
+    lum = luminance(rgb)
+    time = Path(img.filename).stem.removeprefix('cove-') if getattr(img, 'filename', '') else '?'
+    return f'{time}: {[np.rint(rgb[i]).astype(int).tolist() for i in (lum.argmin(), lum.argmax())]},'
 
 
 def luminance(rgb: np.ndarray) -> np.ndarray:
@@ -254,5 +271,9 @@ if __name__ == '__main__':
     if sys.argv[1:] == ['--patches']:  # measure only, writing nothing
         for f in sorted(SRC.glob('cove-*.webp')):
             print(patches(Image.open(f)))
+            print(haze_patches(Image.open(f)))
+    elif sys.argv[1:] == ['--cove']:  # the cove's layers and haze only
+        for f in sorted(SRC.glob('cove-*.webp')):
+            cove(f)
     else:
         main()

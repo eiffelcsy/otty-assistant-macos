@@ -67,14 +67,14 @@ Focus and state rules that combine a shadow: a GLASS element's `box-shadow: var(
 | `.panel` | `--bg` | MIST |
 | `.panel__header` | `--surface` | CLEAR |
 | `.frame__list-head` | `--bg` | CLEAR |
-| `.frame__nav` | `--surface-2` | SIDE (its hairline stays) |
-| `.frame__list` | none | SIDE |
+| `.frame__nav` | `--surface-2` | side glass over the haze (Part 8; its hairline stays) |
+| `.frame__list` | none | side glass over the haze (Part 8) |
 | `.nav-btn__dot` | ring `0 0 0 2px var(--surface-2)` | ring `0 0 0 2px var(--mist-side)` |
 | `.nav-btn__mark` | surface, elev-1 | GLASS (radius stays `--r-sm`) |
 | `.pause-card` | surface, elev-1, r-md | GLASS (r-lg) |
 | `kbd` | `--surface-2` | TINT |
 
-**The header band on every screen.** The quiet wash (Spec 07) becomes every shallow screen's header: `Panel.tsx` passes `cove="full"` for Home and the empty chat and `cove="wash"` for every other screen (a chat with content, Chats, Logbook, Notebook, Settings, pushed pages). The list column gets the same band: in `Frame.tsx` the `.frame__list` section also has the classes `frame__main--cove frame__list--wash` and renders `<Cove mode="wash" />` as its first child. Every CSS rule that names `.frame__main--wash > .panel__header` (the text roles, their dark-glass variant, the header's glass, and the Reduce transparency block) also names `.frame__list--wash > .panel__header`, with the same `:has(> .cove[data-glass='dark'])` form for the dark variant. The band's lower edge is one hairline at all times: the wash header rule gains `border-bottom-color: transparent; box-shadow: 0 1px 0 var(--hairline);`.
+**The header band on every screen.** The quiet wash (Spec 07) becomes every shallow screen's header: `Panel.tsx` passes `cove="full"` for Home and the empty chat and `cove="wash"` for every other screen (a chat with content, Chats, Logbook, Notebook, Settings, pushed pages). The list column has no band: it's side glass top to bottom, with the nav (Part 8). The band's lower edge is one hairline at all times: the wash header rule gains `border-bottom-color: transparent; box-shadow: 0 1px 0 var(--hairline);`.
 
 ### Chat, answers and the message box
 
@@ -166,6 +166,24 @@ CSS: `.onboarding` becomes `-webkit-app-region: drag; height: 100%; overflow-y: 
 | `.viewer__close` | FLOAT |
 
 The bubble is the otter, not a window of words: unchanged.
+
+## Part 8 · The frosted side (owner's call, 2026-11-21)
+
+The first build gave the nav and list column a flat hour-tinted paper. Beside the painting it read as a different material. Now they're **frosted glass over the hour's painting**, the way a Mac sidebar frosts the desktop behind it, but showing Otty's cove rather than the wallpaper.
+
+- **The haze.** `prepare.py` writes `assets/cove/haze-{hour}.webp`: the painting at 192 × 128, Gaussian-blurred 6 px, under 1 KB each. `.frame__haze` lies behind the whole frame (`z-index: -1` in the frame's own stacking context), `cover`, centred, picked by `:root[data-time]`. A pre-blurred picture scales up smooth, so nothing blurs at run time and resizing costs nothing.
+- **The side glass.** `.frame__nav` and `.frame__list` are `--side-glass`: paper (`#f4f1ea` light, `#1f1c1d` dark) at the least alpha that keeps every text role at 4.5:1 over the haze's darkest and lightest pixel, plus .02. Light: dawn .79, day .76, golden .83, night .86. Dark: dawn .80, day .83, golden .81, night .56. So 15–45% of the hour's colour comes through. `rules/renderer.test.ts` checks each both ways (passes, and at most .03 thicker than needed); `prepare.py --patches` re-measures a haze.
+- Selected items and the Pause card stay paper glass (`--mist-card`, `--glass-lift`), which reads as a lit tile on the frost.
+- In the compact band there's no side, and the main column covers the haze.
+
+## Part 9 · Leaving the cove (owner's call, 2026-11-21)
+
+The first build rolled the painting up to the header over 1.4 s (`height` on `.cove`), with the new page's words drawn over the bare painting as it went: cheap, and slow. Now **the painting never moves; the mist rises over it.**
+
+- `.cove` is full height in both modes. Its `::after` is the mist (the same gradient as MIST) from `--header-h` down, opacity 0 in `full` and 1 in `wash`.
+- Going from the surface to a shallow screen, the mist comes in over `--t-quick` on `--glide`, together with the screen's own fade (Spec 05, W4), so words never sit on the bare painting. Coming back to Home or the empty chat, it clears over `--t-settle`, so the cove surfaces more slowly than it goes. Sending the first question in an empty chat is the same move.
+- The header's glass and painted band don't change: they're the same in both modes.
+- Reduced motion: the fade only, as everywhere. The painting under the mist is static, so idle cost is unchanged.
 
 ## Part 6 · Build packages
 

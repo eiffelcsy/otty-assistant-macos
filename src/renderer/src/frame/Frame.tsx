@@ -117,10 +117,10 @@ export function Frame(p: FrameProps) {
   const nav = cols.nav === 'sidebar' && p.sidebarHidden ? 'rail' : cols.nav
   return (
     <div className={`frame frame--${band}${p.roomy ? ' frame--roomy' : ''}`} data-band={band}>
+      <div className="frame__haze" aria-hidden="true" />
       {nav !== 'none' && <Nav kind={nav} {...p} />}
       {cols.list && p.list && (
-        <section className="frame__list frame__main--cove frame__list--wash" data-column aria-label="Chats" tabIndex={-1} onScrollCapture={onListScroll}>
-          <Cove mode="wash" />
+        <section className="frame__list" data-column aria-label="Chats" tabIndex={-1} onScrollCapture={onListScroll}>
           {/* The header splits at the column line: the list's own title and its one action over it (Spec 05). */}
           <header className={`panel__header frame__list-head${listScrolled ? ' panel__header--scrolled' : ''}`}>
             <h2 className="panel__title">Chats</h2>

@@ -247,6 +247,31 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
     })
   }
 
+  describe('the side glass (Spec 08 Part 8): the nav and list column read on the haze, and are no thicker than that needs', () => {
+    // From `.venv/bin/python tools/otty-art/prepare.py --patches` (2026-11-21): each haze's darkest and lightest pixel.
+    const HAZE: Record<string, RGB[]> = {
+      dawn: [[47, 92, 143], [252, 202, 158]],
+      day: [[38, 123, 143], [246, 237, 207]],
+      golden: [[56, 51, 60], [251, 217, 74]],
+      night: [[5, 27, 55], [90, 120, 150]]
+    }
+    for (const [name, t] of Object.entries(themes))
+      for (const [hour, under] of Object.entries(HAZE)) {
+        const tint = t[`--side-glass-${hour}`]
+        const passes = (a: number) =>
+          under.every((u) => {
+            const back = colour(tint.replace(/[\d.]+\)$/, `${a})`), u)
+            return TEXT.every((r) => contrast(colour(t[r], back), back) >= 4.5)
+          })
+        it(`${name} ${hour}: every text role reaches 4.5:1, with at most .03 to spare`, () => {
+          const a = Number(tint.match(/([\d.]+)\)$/)![1])
+          const least = [...Array(101).keys()].map((i) => i / 100).find(passes)!
+          expect(passes(a)).toBe(true)
+          expect(a - least).toBeLessThanOrEqual(0.03 + 1e-9)
+        })
+      }
+  })
+
   describe('the cove, full bleed (D-74, Spec 07 Part 5): every word on it is readable, and the glass is no thicker than that needs', () => {
     // From `.venv/bin/python tools/otty-art/prepare.py --patches` (2026-11-21): the darkest and lightest patch anywhere
     // (under glass), behind the greeting (sky) and behind the header's icons (top), and the water's bottom colour.
