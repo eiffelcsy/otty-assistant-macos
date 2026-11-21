@@ -91,7 +91,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-55 | The dev harness: `EXTENDING.md`, a `feature` skill and protocol for any scope, checkable "Done when" lines, and the extension points "build your own feature" reuses | ⏳ next | D-48 | M |
 | D-54 | Connections: one layer for APIs and MCP; Canvas and Notion by pasted token, Google Calendar by OAuth, then the MCP client | ⏳ next (step 1 needs no owner decision) | D-52; an OAuth client for Google (owner) | L (step 1: M) |
 | D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ planned | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
-| D-75 | One cove: every view in the cove's language (Spec 08): the hour's mist on every window, the header band on every screen, paper glass for every card, the welcome on the cove | 🔨 built on `feat/cove-cohesion`; screens baseline next | D-74 | M |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
@@ -351,14 +350,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - Coverage floors and UI screenshots are in CI, and a deliberate CSS break in one card fails with a diff image.
 
 ---
-
-## D-75 · One cove: every view in the cove's language 🔨
-
-**Goal.** The whole app reads as one place at one hour, as Home does since D-74. The design, every token and the selector-by-selector surface map are in [Spec 08](design/specs/08-one-cove.md); nothing is left to the build.
-
-**Steps.** 1) Foundation: the mist tokens, paper glass, the cove's text roles everywhere, `data-time` on every window, the contrast pairs (built). 2) Five packages in parallel, by `styles.css` section (Spec 08, Part 6): the frame and header band, chat, settings and the welcome, cards, and the other windows. 3) Merge, check every scene by eye in light and dark at two hours, then the screens baseline in its own PR.
-
-**Done when.** Spec 08's "Done when"; then this entry goes, CHANGELOG keeps the summary, and smoke step 177 stays.
 
 ## D-73 · Otty's calendar, step 1: a local calendar, UI first ⏳
 
