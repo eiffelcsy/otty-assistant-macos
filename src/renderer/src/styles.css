@@ -3695,10 +3695,10 @@ html[data-view='quick'] body {
   padding: var(--s-3); /* keep in sync with MARGIN in Quick.tsx */
 }
 .quick__card {
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
   border: 1px solid var(--hairline-strong);
   border-radius: var(--radius);
-  box-shadow: var(--elev-2);
+  box-shadow: var(--glass-lift-float);
   padding: var(--s-2);
   display: flex;
   flex-direction: column;
@@ -3727,12 +3727,12 @@ html[data-view='quick'] body {
   gap: var(--s-2);
   padding: var(--s-2) var(--s-3);
   border-radius: calc(var(--radius) - var(--s-2));
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   transition: box-shadow var(--t-quick) var(--glide);
 }
 .quick__box:focus-within {
-  box-shadow: var(--elev-1), var(--ring);
+  box-shadow: var(--glass-lift), var(--ring);
 }
 .quick__box .context-img {
   max-height: 64px;
@@ -4029,12 +4029,13 @@ html[data-view='quick'] body {
   align-items: center;
   gap: var(--s-1);
   padding: var(--s-1) var(--s-2) var(--s-1) var(--s-3);
-  border-bottom: 1px solid var(--hairline);
-  background: var(--surface);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .find-bar__field {
   flex: 1;
   min-width: 0;
+  background: var(--mist-field);
 }
 .find-bar__count {
   flex-shrink: 0;
@@ -4082,7 +4083,7 @@ html[data-view='pickup'] #root {
   height: 100%;
   overflow: hidden;
   border-radius: var(--r-md);
-  background: var(--surface);
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
 }
 
 .pickup__stage {
@@ -4202,8 +4203,8 @@ html[data-view='pickup'] #root {
   padding: 0 var(--s-2);
   border: none;
   border-radius: var(--r-sm);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   color: var(--text);
   cursor: pointer;
   font: inherit;
@@ -4214,7 +4215,7 @@ html[data-view='pickup'] #root {
 }
 
 .context-picture__pickup:hover {
-  background: var(--surface-2);
+  background: var(--surface);
 }
 
 /* Proofread card: what changed, marked up by Otty rather than the model. */
@@ -4782,9 +4783,9 @@ button.menu__item:hover {
 }
 .log-now {
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .log-now__title {
   display: flex;
@@ -4868,7 +4869,8 @@ button.menu__item:hover {
   height: 36px;
   margin: 0;
   border-bottom: 1px solid var(--hairline-strong);
-  background: var(--bg);
+  background: color-mix(in srgb, var(--mist-top) 82%, transparent);
+  backdrop-filter: blur(12px);
   font-size: var(--fs-ui);
   font-weight: 700;
   color: var(--heading);
@@ -5031,8 +5033,9 @@ button.menu__item:hover {
 }
 .log-block__card {
   padding: var(--s-3);
-  border-radius: var(--r-sm);
-  background: var(--surface);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   font-size: var(--fs-small);
   line-height: var(--lh-small);
   color: var(--text);
@@ -5404,9 +5407,12 @@ button.menu__item:hover {
 }
 
 /* The bigger view: a window of its own. */
-html[data-view='viewer'],
-html[data-view='viewer'] body {
+html[data-view='viewer'] {
   background: var(--bg);
+  height: 100%;
+}
+html[data-view='viewer'] body {
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
   height: 100%;
 }
 .viewer {
@@ -5414,7 +5420,7 @@ html[data-view='viewer'] body {
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: linear-gradient(180deg, var(--mist-top), var(--mist-bottom));
 }
 .viewer--picture img {
   flex: 1;
@@ -5453,7 +5459,7 @@ html[data-view='viewer'] body {
   padding: var(--s-1);
   border-radius: calc(var(--r-md) - var(--s-0));
   background: var(--surface);
-  box-shadow: var(--elev-2);
+  box-shadow: var(--glass-lift-float);
   color: var(--text);
   font-size: var(--fs-small);
   opacity: 0.35;
