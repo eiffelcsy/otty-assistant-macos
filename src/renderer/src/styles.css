@@ -4221,9 +4221,9 @@ html[data-view='pickup'] #root {
 /* D-56: a tile the model drafted, kept only from its Save button. */
 .tile-card {
   margin: var(--s-1) 0 var(--s-3);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-md);
-  background: var(--bg);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .tile-card--said {
   padding: var(--s-3) var(--s-4);
@@ -4235,9 +4235,9 @@ html[data-view='pickup'] #root {
   gap: var(--s-2);
   margin: var(--s-1) 0 var(--s-3);
   padding: var(--s-3) var(--s-4);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--r-md);
-  background: var(--bg);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 
 .fixed-card__text {
@@ -4365,7 +4365,7 @@ html[data-view='pickup'] #root {
   padding: var(--s-1);
   border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: var(--elev-3);
+  box-shadow: var(--glass-lift-float);
   display: flex;
   flex-direction: column;
 }
@@ -4399,8 +4399,9 @@ button.menu__item:hover {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-radius: var(--r-sm);
-  background: var(--fill);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .memory {
   display: flex;
@@ -4461,9 +4462,9 @@ button.menu__item:hover {
   align-self: flex-start;
   max-width: 100%;
   padding: var(--s-3) var(--s-4);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .calc-card__sum {
   font-size: var(--fs-small);
@@ -5142,7 +5143,7 @@ button.menu__item:hover {
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-sm);
   background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--hairline);
+  box-shadow: var(--glass-lift-float);
   font-size: var(--fs-meta);
 }
 .hidden-sheet ul {
@@ -5303,9 +5304,9 @@ button.menu__item:hover {
 /* ---------- Drawings (D-30) ---------- */
 .drawing-card {
   margin: var(--s-3) 0;
-  border: 1px solid var(--hairline);
-  border-radius: var(--r-md);
-  background: var(--surface);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   overflow: hidden;
 }
 .drawing-card__stage {
@@ -5313,7 +5314,7 @@ button.menu__item:hover {
   align-items: center;
   justify-content: center;
   min-height: 96px;
-  background: var(--bg);
+  background: var(--fill-strong);
 }
 .drawing-card__picture,
 .drawing-card__deck {
@@ -5345,6 +5346,8 @@ button.menu__item:hover {
   bottom: 16px;
   font-size: var(--fs-meta);
   font-variant-numeric: tabular-nums;
+  background: var(--surface);
+  box-shadow: var(--glass-lift-float);
   padding: var(--s-0) var(--s-2);
   border-radius: var(--r-xs);
   background: var(--surface);
@@ -5541,7 +5544,7 @@ html[data-view='viewer'] body {
   transition: box-shadow var(--t-quick) var(--glide);
 }
 .ask:focus-visible {
-  box-shadow: var(--elev-1), var(--ring);
+  box-shadow: var(--glass-lift), var(--ring);
 }
 .ask__glyph {
   flex: none;
@@ -5630,7 +5633,7 @@ html[data-view='viewer'] body {
 }
 /* Unusual: a straw inner edge and the line that says why. Nothing else changes. */
 .ask--unusual {
-  box-shadow: var(--elev-1), inset 0 0 0 1px var(--straw);
+  box-shadow: var(--glass-lift), inset 0 0 0 1px var(--straw);
 }
 .ask__unusual {
   display: flex;
@@ -5671,7 +5674,7 @@ html[data-view='viewer'] body {
   animation: ask-ring var(--t-drift) var(--glide) 1;
 }
 @keyframes ask-ring {
-  50% { box-shadow: var(--elev-1), 0 0 0 2px var(--brand-line); }
+  50% { box-shadow: var(--glass-lift), 0 0 0 2px var(--brand-line); }
 }
 
 /* A receipt: one line in the answer's flow, like a tool chip. */
