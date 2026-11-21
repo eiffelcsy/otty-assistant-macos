@@ -1653,6 +1653,9 @@ html[data-view='bubble'] body {
   position: relative;
   z-index: 1;
   margin-top: var(--header-h);
+  /* On the cove it's glass, like the cards: its straw tint alone left light words on a bright sky in dark mode. */
+  background: var(--cove-glass);
+  backdrop-filter: var(--cove-frost);
 }
 .frame__main--full .frame__screen:has(> .health) .cove-hero {
   height: calc(var(--horizon) + var(--hero-gap) - var(--header-h));
@@ -1741,6 +1744,7 @@ html[data-view='bubble'] body {
 /* Reduce transparency and Increase contrast: solid surfaces, a full halo, a header that's solid from the start. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .frame__main--full :is(.home-block, .home-left, .home-now, .try, .message-box:not(.message-box--bare)),
+  .frame__main--full .frame__screen > .health,
   .frame__main--full > .panel__header .screen-menu__btn,
   .frame__main--full > .panel__header::before,
   .frame__main--wash > .panel__header {
