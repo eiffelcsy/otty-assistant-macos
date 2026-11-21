@@ -641,7 +641,7 @@ export function Panel() {
             noChats={!settings.rememberChats}
             menuExtras={menuExtras}
             actions={chatActions}
-            cove={shown === 'home' ? 'full' : shown === 'chat' ? (messages.length === 0 ? 'full' : 'wash') : undefined}
+            cove={shown === 'home' || (shown === 'chat' && messages.length === 0) ? 'full' : 'wash'}
             list={shown === 'chat' && chatsAsColumn ? <History onOpen={() => go('chat')} focusSearch={searchFocus} keep={settings.keepChats} /> : undefined}
           >
             <div className="frame__screen frame__screen--chat" hidden={shown !== 'chat'}>
