@@ -1509,7 +1509,6 @@ html[data-view='bubble'] body {
   background: var(--sheet-glass);
   /* A light frost: the sky is plain, so less than the cards' (the tint alone carries the contrast). */
   backdrop-filter: blur(4px);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
   opacity: 0;
   transform: translateY(32px);
   transition: opacity var(--t-quick) var(--ebb), transform var(--t-quick) var(--ebb);
