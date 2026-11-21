@@ -1701,16 +1701,16 @@ html[data-view='bubble'] body {
 }
 
 /* Glass: the backdrop flattened and lifted (or smoked), a thin tint, a lit rim and a soft lift (Spec 07, "Glass"). */
-.frame__main--full :is(.home-block, .home-left, .home-now, .try, .message-box:not(.message-box--bare)) {
+.frame__main--full :is(.home-block, .home-left, .home-now, .try, .onboarding__block, .message-box:not(.message-box--bare)) {
   background: var(--cove-glass);
   backdrop-filter: var(--cove-frost);
   box-shadow: var(--cove-lift);
 }
-.frame__main--full :is(.home-block, .home-left, .try) {
+.frame__main--full :is(.home-block, .home-left, .try, .onboarding__block) {
   position: relative;
   border-radius: var(--r-lg);
 }
-.frame__main--full :is(.home-block, .home-left, .try)::before {
+.frame__main--full :is(.home-block, .home-left, .try, .onboarding__block)::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -1820,7 +1820,7 @@ html[data-view='bubble'] body {
 
 /* Reduce transparency and Increase contrast: solid surfaces, a full halo, a header that's solid from the start. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  .frame__main--full :is(.home-block, .home-left, .home-now, .try, .message-box:not(.message-box--bare)),
+  .frame__main--full :is(.home-block, .home-left, .home-now, .try, .onboarding__block, .message-box:not(.message-box--bare)),
   .frame__main--full > .panel__header .screen-menu__btn,
   .frame__main--full > .panel__header::before,
   .frame__main--wash > .panel__header {
@@ -3084,7 +3084,7 @@ html[data-view='bubble'] body {
   font-size: var(--fs-ui);
   font-weight: 500;
   color: var(--text);
-  background: var(--bg);
+  background: var(--mist-field);
   user-select: text;
   transition: border-color var(--t-quick) var(--glide), box-shadow var(--t-quick) var(--glide);
 }
@@ -3176,7 +3176,7 @@ html[data-view='bubble'] body {
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-sm);
   border: 1px solid var(--hairline-strong);
-  background: var(--bg);
+  background: var(--mist-field);
   text-align: left;
   cursor: pointer;
   transition: border-color var(--t-quick) var(--glide), background var(--t-quick) var(--glide);
@@ -3246,7 +3246,7 @@ html[data-view='bubble'] body {
   padding: 0 var(--s-3);
   border: 1px solid var(--hairline-strong);
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--mist-field);
   color: var(--text-2);
   font-size: var(--i-md);
 }
@@ -3319,9 +3319,9 @@ html[data-view='bubble'] body {
 .set-group__box {
   display: flex;
   flex-direction: column;
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
   overflow: hidden;
 }
 /* A row: 44 high on one line, growing with its description. The hairline is inset 16 and skips the last row. */
@@ -3504,7 +3504,7 @@ html[data-view='bubble'] body {
   padding: 0 var(--s-3);
   border: 1px solid var(--brand-line);
   border-radius: var(--r-sm);
-  background: var(--surface);
+  background: var(--mist-field);
   box-shadow: 0 0 0 3px var(--brand-soft);
   font: inherit;
   font-size: var(--fs-small);
@@ -3611,29 +3611,29 @@ html[data-view='bubble'] body {
 
 .onboarding {
   -webkit-app-region: drag;
-  flex: 1;
+  height: 100%;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: var(--s-4) var(--s-6) var(--s-6);
-  overflow-y: auto;
+}
+.onboarding__block {
+  -webkit-app-region: no-drag;
+  width: calc(100% - 2 * var(--s-4));
+  max-width: 440px;
+  margin: 0 auto var(--s-4);
+  padding: var(--s-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  text-align: center;
 }
 .onboarding__page {
   -webkit-app-region: no-drag;
-  margin: auto 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--s-3);
   text-align: center;
-}
-.onboarding__page h2 {
-  margin: 4px 0 0;
-  font-size: var(--fs-display);
-  font-weight: 800;
-  line-height: var(--lh-display);
-  letter-spacing: -0.01em;
-  text-wrap: balance;
-  color: var(--heading);
 }
 .onboarding__page p {
   margin: 0;
@@ -3664,9 +3664,9 @@ html[data-view='bubble'] body {
   align-items: center;
   text-align: left;
   padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-md);
-  background: var(--surface);
-  box-shadow: var(--elev-1);
+  border-radius: var(--r-lg);
+  background: var(--mist-card);
+  box-shadow: var(--glass-lift);
 }
 .perm-row__status {
   font-size: var(--i-xl);
