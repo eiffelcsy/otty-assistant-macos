@@ -1,11 +1,13 @@
 // The Logbook (D-63) as the smoke specs reach it: the header button, the view menu, entries and their details.
 import type { Locator, Page } from '@playwright/test'
-import { expect } from './fixtures'
+import { expect, goTo } from './fixtures'
 
-/** Opens the Logbook from the header, on a view if one is named ("Needs you", "Coming up", "What left my Mac"…). */
+/** Opens the Logbook from the rail or the compact screen menu, on a view if one is named ("Needs you", "Coming up", "What left my Mac"…). */
 export async function openLogbook(panel: Page, view?: string): Promise<void> {
   if (!(await panel.locator('.logbook').isVisible())) {
-    await panel.getByRole('button', { name: /^Logbook/ }).click()
+    const rail = panel.locator('.frame__nav').getByRole('button', { name: /^Logbook/ })
+    if (await rail.isVisible()) await rail.click()
+    else await goTo(panel, 'Logbook')
     await expect(panel.locator('.logbook')).toBeVisible()
   }
   if (view) await showView(panel, view)

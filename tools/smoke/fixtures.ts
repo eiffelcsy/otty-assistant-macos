@@ -137,7 +137,7 @@ export class Otty {
 
   /** One of the chat's own actions, from the compact screen menu: "Find in this chat", "Don’t learn from this chat". */
   async chatAction(page: Page, label: string): Promise<void> {
-    await page.getByRole('button', { name: /, switch screen$/ }).click()
+    await page.getByRole('button', { name: /, switch screen/ }).click()
     await page.getByRole('menuitem', { name: label }).click()
   }
 
@@ -210,7 +210,7 @@ const UTF8 = { env: { ...process.env, LANG: 'en_US.UTF-8' } }
  * From a pushed page, it backs out first, as a person would.
  */
 export async function goTo(page: Page, screen: string): Promise<void> {
-  const menu = page.getByRole('button', { name: /, switch screen$/ })
+  const menu = page.getByRole('button', { name: /, switch screen/ })
   for (let i = 0; i < 4 && !(await menu.isVisible()); i++) await page.getByRole('button', { name: 'Back', exact: true }).click()
   await menu.click()
   await page

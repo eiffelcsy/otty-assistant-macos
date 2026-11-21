@@ -248,9 +248,10 @@ test.describe('when it’s done', () => {
     await offer(otty, world, panel)
     await panel.getByRole('button', { name: 'Start it' }).click()
     await chatSettled(world, panel)
-    const button = panel.getByRole('button', { name: /^Logbook/ })
+    // Compact, the screen menu carries the needs-you dot; the Logbook is inside it.
+    const button = panel.getByRole('button', { name: /, switch screen/ })
     await expect(button.locator('.icon-btn__dot')).toBeVisible()
-    await expect(button).toHaveAccessibleName('Logbook, 1 needs you')
+    await expect(button).toHaveAccessibleName(/, switch screen, 1 needs you$/)
     await openLogbook(panel, 'Needs you')
     await expect(panel.locator('li.log-entry')).toContainText(['Waiting: read travel-blog.example?'])
 
