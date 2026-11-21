@@ -107,17 +107,17 @@ function useScreenMove(place: Place, pushed: boolean, cove: FrameProps['cove']) 
     // Hidden first: the delay would otherwise show it at full strength over the moving painting.
     if (tilt) {
       const el = scope.current
-      el.style.opacity = '0'
+      animate(el, { opacity: 0 }, { duration: 0 })
       // Up: the screen rides the last three quarters of the tilt. Down: the cove lands first, with the stand-in Otty,
       // then Home's words surface, and Home's own Otty takes over once the world is still (styles.css, data-landing).
       const down = cove === 'full'
       const [delay, duration] = down ? [T.camera * 0.55, T.camera * 0.6] : [T.camera * 0.25, T.camera * 0.75]
-      if (down) el.dataset.landing = ''
-      const done = setTimeout(() => delete el.dataset.landing, T.camera * 1000)
+      if (down) el.setAttribute('data-landing', '')
+      const done = setTimeout(() => el.removeAttribute('data-landing'), T.camera * 1000)
       animate(el, { opacity: [0, 1], x: [0, 0], y: [down ? 16 : 32, 0] }, { duration, delay, ease: swell, opacity: { duration, delay, ease: glide } })
       return () => {
         clearTimeout(done)
-        delete el.dataset.landing
+        el.removeAttribute('data-landing')
       }
     }
     const x = pushed && !before.pushed ? 24 : before.pushed && !pushed ? -24 : 0

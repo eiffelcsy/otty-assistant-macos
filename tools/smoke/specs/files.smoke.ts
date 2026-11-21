@@ -12,7 +12,7 @@ const fixture = (name: string) => join(FILES, name)
 /** Picks these files in the next file picker, then presses the paperclip. */
 async function attach(otty: Otty, panel: Page, paths: string[]): Promise<void> {
   await otty.control((c, p) => c.nextOpen(p), paths)
-  await panel.getByTitle('Attach files').click()
+  await panel.getByRole('button', { name: 'Attach files' }).click()
 }
 
 /** A chip in the composer's tray, by file name. */
