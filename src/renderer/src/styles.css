@@ -212,9 +212,13 @@
   --t-settle: 480ms;
   --t-travel: 720ms;
   --t-drift: 1.4s;
+  /* The camera's tilt between the cove and the sky (Spec 08, Part 9). */
+  --t-camera: 900ms;
   --glide: cubic-bezier(0.16, 1, 0.3, 1);
   --buoy: cubic-bezier(0.3, 1.22, 0.5, 1);
   --ebb: cubic-bezier(0.45, 0, 0.85, 0.4);
+  /* A swell: it gathers gently, carries, and lands long and soft. For moves of the whole world, never a press. */
+  --swell: cubic-bezier(0.42, 0, 0.12, 1);
 
   --font: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'PingFang HK', 'Segoe UI', system-ui, sans-serif;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -1466,13 +1470,13 @@ html[data-view='bubble'] body {
 .cove__world {
   position: absolute;
   inset: 0;
-  transition: transform var(--t-travel) var(--glide);
+  transition: transform var(--t-camera) var(--swell);
 }
 .cove--wash .cove__world {
   transform: translateY(calc(100% + 160px));
 }
 .cove__front {
-  transition: transform var(--t-travel) var(--glide);
+  transition: transform var(--t-camera) var(--swell);
 }
 .cove--wash .cove__front {
   transform: translateY(24%);
@@ -1495,15 +1499,20 @@ html[data-view='bubble'] body {
   position: absolute;
   inset: var(--header-h) 0 0;
   background: var(--sheet-glass);
+  /* A light frost: the sky is plain, so less than the cards' (the tint alone carries the contrast). */
+  backdrop-filter: blur(4px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
   opacity: 0;
-  transform: translateY(24px);
+  transform: translateY(32px);
   transition: opacity var(--t-quick) var(--ebb), transform var(--t-quick) var(--ebb);
 }
+/* It surfaces from a quarter into the tilt and lands with the world, as one move (Frame.tsx's screen does the same). */
 .cove--wash::after {
   opacity: 1;
   transform: none;
-  transition: opacity var(--t-settle) var(--glide) var(--t-quick), transform var(--t-settle) var(--glide) var(--t-quick);
+  transition:
+    opacity calc(var(--t-camera) * 0.75) var(--glide) calc(var(--t-camera) * 0.25),
+    transform calc(var(--t-camera) * 0.75) var(--swell) calc(var(--t-camera) * 0.25);
 }
 /* Otty, still, where the hero's Otty floats: shown while the hero is gone, so it rides the water out and back. */
 .cove__ghost {
@@ -1513,7 +1522,7 @@ html[data-view='bubble'] body {
   width: var(--otty-w);
   translate: -50% 0;
   opacity: 0;
-  transition: opacity 0s linear var(--t-travel);
+  transition: opacity 0s linear var(--t-camera);
 }
 .cove--wash .cove__ghost {
   opacity: 1;
@@ -1937,6 +1946,11 @@ html[data-view='bubble'] body {
 
 /* Reduce transparency and Increase contrast: solid surfaces, a full halo, a header that's solid from the start. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  /* The reading sheet over the sky turns solid paper. */
+  .cove::after {
+    background: var(--bg);
+    backdrop-filter: none;
+  }
   .frame__main--full :is(.home-block, .home-left, .home-now, .try, .onboarding__block, .message-box:not(.message-box--bare)),
   .frame__main--full > .panel__header .screen-menu__btn,
   .frame__main--full > .panel__header::before,

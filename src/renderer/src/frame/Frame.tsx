@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { AnimatePresence, m, useAnimate, useReducedMotion } from 'motion/react'
 import { Cove } from '../components/Cove'
 import { Icon } from '../components/Icon'
-import { T, ebb, glide } from '../lib/motion'
+import { T, ebb, glide, swell } from '../lib/motion'
 import { Otter } from '../components/Otter'
 import { PauseButton } from '../components/PauseButton'
 import { columns, sameLayout, type Band, bandFor } from './bands'
@@ -105,7 +105,7 @@ function useScreenMove(place: Place, pushed: boolean, cove: FrameProps['cove']) 
     if (reduced) return void animate(scope.current, { opacity: [0, 1] }, { duration: 0.2 })
     // Spec 08 Part 9: through the camera's tilt, the screen waits for the sky (or the cove) to come into view, then surfaces.
     // Hidden first: the delay would otherwise show it at full strength over the moving painting.
-    if (tilt) return void ((scope.current.style.opacity = '0'), animate(scope.current, { opacity: [0, 1], x: [0, 0], y: [18, 0] }, { duration: T.settle, ease: glide, delay: T.quick }))
+    if (tilt) return void ((scope.current.style.opacity = '0'), animate(scope.current, { opacity: [0, 1], x: [0, 0], y: [32, 0] }, { duration: T.camera * 0.75, delay: T.camera * 0.25, ease: swell, opacity: { duration: T.camera * 0.75, delay: T.camera * 0.25, ease: glide } }))
     const x = pushed && !before.pushed ? 24 : before.pushed && !pushed ? -24 : 0
     animate(scope.current, { opacity: [0, 1], x: [x, 0], y: [x ? 0 : 10, 0] }, { duration: T.settle, ease: glide, opacity: { duration: T.quick } })
   }, [place, pushed, cove, reduced, animate, scope])

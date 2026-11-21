@@ -254,10 +254,12 @@ Sections, changes as you go, no Save button (UX_REVIEW #2):
 | `--t-quick` | 280 ms | Hover, toggles, tooltips, colour changes |
 | `--t-settle` | 480 ms | Cards surfacing, rows folding, panes sliding in |
 | `--t-travel` | 720 ms | Window resize, quick view to window, picture zoom |
+| `--t-camera` | 900 ms | The camera's tilt between the cove and the sky (Spec 08) |
 | `--t-drift` | 1.4 s | One-off moments that carry meaning: ripples, the Noted pen line, a permission granted |
 | `--glide` | `cubic-bezier(.16,1,.3,1)` | The default: fast start, long soft landing |
 | `--buoy` | `cubic-bezier(.3,1.22,.5,1)` | A float that rises just past and comes back, for "done" and keepsakes |
 | `--ebb` | `cubic-bezier(.45,0,.85,.4)` | Exits |
+| `--swell` | `cubic-bezier(.42,0,.12,1)` | A move of the whole world: gathers gently, carries, lands long and soft. Never a press |
 
 **Named motions:** *surface* (rise 8–18 px and clear, settle), *ebb* (sink 6 px and fade, about two-thirds of the entrance), *ripple* (rings spreading, drift), *drift* (a slow one-off, such as a line drawing itself).
 
@@ -284,7 +286,7 @@ What makes Otty look like Otty and not a chat app with an avatar (BRAINSTORM, "O
 | Moment | What the user sees | Rules | Status |
 | --- | --- | --- | --- |
 | **The living cove** | A painted cove behind Home and the empty chat, one picture per time of day, the otter floating in a clear hero header with the greeting, content on frosted glass that the cove shows through, and parallax when scrolling | Painted through `tools/otty-art/`; parallax on `animation-timeline: scroll()` (transforms only, so nothing runs until a scroll); still under `data-asleep` and reduced motion; text 4.5:1 over the brightest picture; a quiet wash, not the full picture, behind a chat with content | Built full bleed, with clear glass and the quiet wash (D-72, D-74, [Spec 07](design/specs/07-cove.md), `components/Cove.tsx`). Touch built: the first cove of a window settles in (pieces, then Otty on the buoy curve), the layers lean away from the pointer by their depth, and a press on the water or Otty spreads two rings |
-| **The camera** | Leaving Home tilts the camera up from the cove into the hour's painted sky, Otty riding the water out of view; every other screen sits on a glass sheet over that sky, and coming back tilts down | One world (`.cove__world`), one CSS transform over `--t-travel`; the screen surfaces after the world has mostly moved, so words never sit on moving paint; still once landed | Built ([Spec 08](design/specs/08-one-cove.md), Part 9) |
+| **The camera** | Leaving Home tilts the camera up from the cove into the hour's painted sky, Otty riding the water out of view; every other screen sits on a glass sheet over that sky, and coming back tilts down | One world (`.cove__world`), one CSS transform over `--t-camera` on `--swell`, the sheet frosting lightly; the screen surfaces after the world has mostly moved, so words never sit on moving paint; still once landed | Built ([Spec 08](design/specs/08-one-cove.md), Part 9) |
 | **The liquid capsule** | The message box is a drop: typing nudges its outline a few pixels, which settles back over `--t-settle`; sending lets a small drop rise towards the chat and the box settles | An SVG path over the box, eased by one `requestAnimationFrame` loop that runs only while it's settling and stops at rest; no change to the box's layout or hit area; reduced motion keeps a still outline | Built (`components/Capsule.tsx`) |
 | **Pebbles landing** | A kept Pebble sinks into the Pouch with `--buoy` and settles among the others | One brief motion per keep; the Pouch never animates on its own | Concept note in BRAINSTORM |
 | **Charts and slides with taste** | Pies and bars in a calm categorical palette, soft gridlines, rounded bars, a title slide washed with the brand, a kicker line, coloured bullets and big quote marks, number badges | Colours from the tokens (`--chart-1` to `--chart-6`, checked for contrast in both themes); the deck stays self-contained HTML with no scripts and `img-src data:` | D-70 |

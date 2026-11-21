@@ -120,7 +120,7 @@ describe('DESIGN.md "Motion": Motion moves with the CSS tokens (lib/motion.tsx)'
 
   it('has the --t-* durations', () => {
     const T = Object.fromEntries([...lib.match(/export const T = \{([^}]+)\}/)![1].matchAll(/(\w+): ([\d.]+)/g)].map((m) => [m[1], Number(m[2])]))
-    expect(Object.keys(T)).toEqual(['tap', 'quick', 'settle', 'travel', 'drift'])
+    expect(Object.keys(T)).toEqual(['tap', 'quick', 'settle', 'travel', 'drift', 'camera'])
     for (const [name, s] of Object.entries(T)) {
       const v = token(`t-${name}`)!
       expect(v.endsWith('ms') ? parseFloat(v) / 1000 : parseFloat(v), name).toBe(s)
@@ -128,7 +128,7 @@ describe('DESIGN.md "Motion": Motion moves with the CSS tokens (lib/motion.tsx)'
   })
 
   it('has the curves', () => {
-    for (const name of ['glide', 'ebb']) {
+    for (const name of ['glide', 'ebb', 'swell']) {
       const curve = lib.match(new RegExp(`export const ${name} = \\[([^\\]]+)\\]`))![1]
       expect(token(name), name).toBe(`cubic-bezier(${curve})`)
     }
