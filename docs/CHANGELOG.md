@@ -4,6 +4,22 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The cove, full bleed (D-74, 2026-11-21)
+
+- **Otty's place fills the window.** On Home and the empty chat the painted cove now runs behind the whole screen, under the header and the message box, as the design drew it: the date and greeting on the sky, Otty floating *in* the water at its waterline with a soft reflection, and every card, the header and the message box on clear glass that the cove shows through. It was a picture strip over a plain page.
+- **Clear glass that stays readable, by measurement.** The glass flattens and lifts what's behind it, so its tint stays thin: 34–54% see-through by day, 74% on the night lake. A rule test models it on each painting and fails both when text drops under 4.5:1 and when the glass is thicker than it needs to be, so it can't drift back to opaque (`prepare.py --patches` re-measures a painting).
+- **The night is dark glass, whatever the Mac's appearance**, and the greeting gets a halo only as strong as each painting needs (stronger at golden hour, where the far hills sit behind the words). The header frosts as the greeting scrolls away.
+- **A chat with content keeps the cove behind its header only**, so answers sit on the plain page (the quiet wash).
+- Reduce transparency and Increase contrast give solid cards and header. Home's date comes from main with its other words.
+
+### Motion that answers you (2026-11-21)
+
+- **Motion where CSS can't go.** The `motion` library (lazy `m.*` components, tokens shared with `styles.css`) now does exits, gliding to a new place and following the pointer; CSS keeps everything it does for free (DESIGN.md, "CSS or Motion"). Nothing new runs while idle, and a rule test refuses a repeating Motion animation.
+- **The frame moves with you** (W4, W5, W13): going deeper glides in from the right, Back from the left, any other move surfaces; the chat keeps its scroll. The selected item's card glides along the rail or sidebar, down to Settings. The header's title surfaces as the screen changes, and the compact screen menu grows from its button and ebbs away.
+- **Home arrives in reading order** (the greeting, then each block, 60 ms apart). Deciding a Needs-you item lets it ebb while the rest glide up and the next opens in place, and a block that empties ebbs while its neighbours close the gap.
+- **The cove answers touch:** the first cove of a window settles in (the reeds and lily pad, then Otty on the buoy curve); the painting's layers lean away from the pointer by their depth on a slow, damped follow; and pressing the water, or Otty, spreads two rings across it.
+- The thinking line ebbs before the next step surfaces (S2), and the **EN | 中** highlight slides between the two (M8).
+
 ### The living cove (D-72, 2026-11-21)
 
 - **Otty lives somewhere now.** Home and the empty chat open on a painted cove, one painting for each time of day (dawn from 5, day from 8, golden hour from 17, night from 19), with the full-body Otty floating on its back in the water, a cloud, reeds and a lily pad. Dark mode is the night picture, never an inverted day. One timer waits for the next painting and cross-fades it in; nothing polls and nothing moves on its own but the otter's stepped float.

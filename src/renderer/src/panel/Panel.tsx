@@ -1,10 +1,12 @@
 import { suggestionsFor } from '../../../shared/suggestions'
 import { HealthBanner } from './HealthBanner'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, m } from 'motion/react'
+import { T, ebb, glide } from '../lib/motion'
 import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, Memory, PanelOpenPayload, PendingFile, PublicSettings } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
-import { Cove } from '../components/Cove'
+import { CoveOtty } from '../components/Cove'
 import { Icon } from '../components/Icon'
 import { Otter } from '../components/Otter'
 import { LanguagePill } from '../components/LanguagePill'
@@ -573,6 +575,7 @@ export function Panel() {
             noChats={!settings.rememberChats}
             menuExtras={menuExtras}
             actions={chatActions}
+            cove={shown === 'home' ? 'full' : shown === 'chat' ? (messages.length === 0 ? 'full' : 'wash') : undefined}
             list={shown === 'chat' && chatsAsColumn ? <History onOpen={() => go('chat')} focusSearch={searchFocus} keep={settings.keepChats} /> : undefined}
           >
             <div className="frame__screen frame__screen--chat" hidden={shown !== 'chat'}>
@@ -581,7 +584,7 @@ export function Panel() {
               settings={settings}
               onOpenSettings={(section) => openSettings(section)}
             />
-            <div className="chat" ref={scrollRef}>
+            <div className={`chat${messages.length === 0 ? ' cove-scroll' : ''}`} ref={scrollRef}>
               {messages.length === 0 && (
                 <EmptyState
                   settings={settings}
@@ -779,9 +782,18 @@ function Thinking({ messages, service }: { messages: UiMessage[]; service: strin
     <div className="thinking" role="status">
       <Otter state="thinking" size={40} />
       <span className="thinking__words">
-        <span key={tool?.label ?? ''} className={tool ? 'thinking__tool' : 'dots'}>
-          {tool ? `${tool.label}…` : 'Otty is thinking'}
-        </span>
+        {/* S2: one line ebbs before the next surfaces, so two never overlap. */}
+        <AnimatePresence mode="wait" initial={false}>
+          <m.span
+            key={tool?.label ?? ''}
+            className={tool ? 'thinking__tool' : 'dots'}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0, transition: { duration: T.quick, ease: glide } }}
+            exit={{ opacity: 0, y: -3, transition: { duration: 0.14, ease: ebb } }}
+          >
+            {tool ? `${tool.label}…` : 'Otty is thinking'}
+          </m.span>
+        </AnimatePresence>
         {slow && <span className="thinking__slow">Still with you. {service} is slow right now.</span>}
       </span>
     </div>
@@ -793,11 +805,16 @@ function EmptyState({ settings, known, app, onSuggest }: { settings: PublicSetti
   const suggestions = suggestionsFor(app, settings.learn, settings.readsPages, known).slice(0, 3)
   return (
     <div className="empty">
-      <Cove className="empty__cove" />
-      <h2>Hi, I’m Otty</h2>
-      <p>
-        Highlight anything and press <kbd>{prettyKey(settings.askHotkey)}</kbd>, or just ask below.
-      </p>
+      {/* The same cove as Home, full bleed (D-74, Spec 07): the words on the sky, Otty in the water. */}
+      <div className="cove-hero">
+        <div className="cove-hero__words">
+          <h2 className="cove-hero__hello">Hi, I’m Otty</h2>
+          <p className="cove-hero__sentence">
+            Highlight anything and press <kbd>{prettyKey(settings.askHotkey)}</kbd>, or just ask below.
+          </p>
+        </div>
+        <CoveOtty />
+      </div>
       {suggestions.length > 0 && (
         <div className="try">
           <span className="try__label">Try asking</span>

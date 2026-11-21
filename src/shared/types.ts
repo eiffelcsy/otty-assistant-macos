@@ -586,6 +586,8 @@ export interface HomeAfter {
 
 /** Everything Home shows (D-66, Spec 06), worded by main. A block with nothing in it is left out. */
 export interface HomePage {
+  /** The date over the greeting on the cove, "Tuesday 18 November" (Spec 07). */
+  date: string
   greeting: string
   status: string
   now: { id: string; text: Words; paused: boolean }[]

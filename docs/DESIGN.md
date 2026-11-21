@@ -48,11 +48,12 @@ A 4 px grid. Only these values, as tokens:
 
 ### Type
 
-SF Pro Rounded (`ui-rounded`), with PingFang HK for Chinese. Seven roles and four weights (500, 600, 700, 800). No other sizes.
+SF Pro Rounded (`ui-rounded`), with PingFang HK for Chinese. Eight roles and four weights (500, 600, 700, 800). No other sizes.
 
 | Role | Token | Size / line | Weight | For |
 | --- | --- | --- | --- | --- |
-| Display | `--fs-display` | 24 / 30 | 800 | Home greeting, onboarding titles |
+| Display | `--fs-display` | 24 / 30 | 800 | Onboarding titles |
+| Hero | `--fs-hero` | 40 / 44 (32 / 36 compact) | 800 | The cove's greeting only (Spec 07) |
 | Heading | `--fs-heading` | 20 / 26 | 800 | Settings section titles, empty states |
 | Title | `--fs-title` | 16 / 22 | 700 | Window header, card titles that are questions |
 | Body | `--fs-body` | 14 / 22 | 500 | Answers, user bubbles, the composer. The content |
@@ -208,7 +209,7 @@ One window, layout from width alone (container queries, never viewport media que
 
 ## Screens
 
-Screen specs, written to the polish bar, in build order: [01 Decisions and receipts](design/specs/01-decisions.md) (confirm cards, receipts, the Noted line) · [02 Settings](design/specs/02-settings.md) · [03 Chat and the message box](design/specs/03-chat.md) · [04 Logbook](design/specs/04-logbook.md) · [05 The frame and layout from width](design/specs/05-frame.md) · [06 The roomy window and Home](design/specs/06-roomy-and-home.md). Each covers 420, 760 and 1200 px even while only the panel ships, so nothing is redone for the Otty window. The summaries below are the direction; where they differ, the spec wins.
+Screen specs, written to the polish bar, in build order: [01 Decisions and receipts](design/specs/01-decisions.md) (confirm cards, receipts, the Noted line) · [02 Settings](design/specs/02-settings.md) · [03 Chat and the message box](design/specs/03-chat.md) · [04 Logbook](design/specs/04-logbook.md) · [05 The frame and layout from width](design/specs/05-frame.md) · [06 The roomy window and Home](design/specs/06-roomy-and-home.md) · [07 The cove, full bleed](design/specs/07-cove.md). Each covers 420, 760 and 1200 px even while only the panel ships, so nothing is redone for the Otty window. The summaries below are the direction; where they differ, the spec wins.
 
 ### Home
 
@@ -268,13 +269,20 @@ Sections, changes as you go, no Save button (UX_REVIEW #2):
 - Safety moments are calm: no shakes, no red flashes.
 - Re-measure with `OTTY_METRICS=1` after changing what runs while idle (NFR-3).
 
+**CSS or Motion.** Two tools, one set of tokens (`lib/motion.tsx` mirrors `--t-*` and the curves; `rules/renderer.test.ts` keeps them equal).
+- **CSS** for everything that can run without a script: hover and press transitions, the stepped otter, the scroll-driven cove, one-off keyframes on mount. It costs nothing to start, runs on the compositor, and stops with `data-asleep` and reduced motion for free.
+- **Motion** (`motion/react`, lazy `m.*` under `MotionRoot`) only for what CSS can't do: **exits** (`AnimatePresence`: a menu ebbing, a decided item leaving), **things gliding to their new place** (`layout`, `layoutId`: the nav highlight, the language pill, blocks closing up), and **motion that follows the pointer** (the cove's depth). Never `repeat`, since `data-asleep` can't pause it (a rule test fails on one); reduced motion keeps its fades and drops its movement (`reducedMotion="user"`).
+- Animate a screen without remounting it (`useAnimate` on the frame's body), so the chat keeps its scroll.
+- Anything moved with `transform` by a scroll timeline gets its other motion on `translate`, so the two add up instead of fighting.
+- Don't put the cove's painting on a GPU layer of its own (no animation, no `will-change`): clipped on its own layer, the water shows as a one-pixel line under the paper fade.
+
 ## Signature moments
 
 What makes Otty look like Otty and not a chat app with an avatar (BRAINSTORM, "Otty's look"). Each one is still water, not springs, and still pays nothing while idle.
 
 | Moment | What the user sees | Rules | Status |
 | --- | --- | --- | --- |
-| **The living cove** | A painted cove behind Home and the empty chat, one picture per time of day, the otter floating in a clear hero header with the greeting, content on frosted glass that the cove shows through, and parallax when scrolling | Painted through `tools/otty-art/`; parallax on `animation-timeline: scroll()` (transforms only, so nothing runs until a scroll); still under `data-asleep` and reduced motion; text 4.5:1 over the brightest picture; a quiet wash, not the full picture, behind a chat with content | Built (D-72, `components/Cove.tsx`), but the quiet wash |
+| **The living cove** | A painted cove behind Home and the empty chat, one picture per time of day, the otter floating in a clear hero header with the greeting, content on frosted glass that the cove shows through, and parallax when scrolling | Painted through `tools/otty-art/`; parallax on `animation-timeline: scroll()` (transforms only, so nothing runs until a scroll); still under `data-asleep` and reduced motion; text 4.5:1 over the brightest picture; a quiet wash, not the full picture, behind a chat with content | Built full bleed, with clear glass and the quiet wash (D-72, D-74, [Spec 07](design/specs/07-cove.md), `components/Cove.tsx`). Touch built: the first cove of a window settles in (pieces, then Otty on the buoy curve), the layers lean away from the pointer by their depth, and a press on the water or Otty spreads two rings |
 | **The liquid capsule** | The message box is a drop: typing nudges its outline a few pixels, which settles back over `--t-settle`; sending lets a small drop rise towards the chat and the box settles | An SVG path over the box, eased by one `requestAnimationFrame` loop that runs only while it's settling and stops at rest; no change to the box's layout or hit area; reduced motion keeps a still outline | Built (`components/Capsule.tsx`) |
 | **Pebbles landing** | A kept Pebble sinks into the Pouch with `--buoy` and settles among the others | One brief motion per keep; the Pouch never animates on its own | Concept note in BRAINSTORM |
 | **Charts and slides with taste** | Pies and bars in a calm categorical palette, soft gridlines, rounded bars, a title slide washed with the brand, a kicker line, coloured bullets and big quote marks, number badges | Colours from the tokens (`--chart-1` to `--chart-6`, checked for contrast in both themes); the deck stays self-contained HTML with no scripts and `img-src data:` | D-70 |
@@ -365,8 +373,8 @@ Widths, screens and Expand / Shrink.
 | W1 | Expand / Shrink in one move | The Expand button or ⇧⌘E (⌃⌘F is the Mac’s full screen) | One animated setBounds over 720 ms. Content dims during the move, reflows, then surfaces back. | Keeps the “same window” promise and hides reflow. | Now | main |
 | W2 | Panes enter by side | Width crosses 640 or 980 | Sidebar slides from the left, details pane from the right, over 480 ms. | Shows where new things came from. | Next | brief |
 | W3 | Scroll anchor on reflow | Any width change | The message at the top of the view stays at the top. | Resizing never loses your place. | Now | on touch |
-| W4 | Push and pop | Moving between screens when narrow | Forward glides in from the right over 480 ms; Back from the left. ⌘[ goes back. | Navigation with a direction (UX #10). | Now | brief |
-| W5 | Gliding nav highlight | Choosing a sidebar item | The highlight glides to the new item over 480 ms. | Small, satisfying, shows the move. | Next | on touch |
+| W4 | Push and pop | Moving between screens when narrow | Forward glides in from the right over 480 ms; Back from the left. ⌘[ goes back. | Navigation with a direction (UX #10). | Built: any other move surfaces 10 px | brief |
+| W5 | Gliding nav highlight | Choosing a sidebar item | The highlight glides to the new item over 480 ms. | Small, satisfying, shows the move. | Built (rail and sidebar, Settings too) | on touch |
 | W6 | Header hairline on scroll | Content scrolls under the header | A hairline fades in only once scrolled. | Separation without a permanent line. | Now | on touch |
 | W7 | Notices push, never cover | Health or needs-you lines appear | They grow open in the layout over 480 ms, pushing content down. | Fixes the overlay problem (UX #3, A6). | Now | brief |
 | W8 | Open from the bubble | Clicking the bubble | The window grows out of the bubble over 720 ms. | The window belongs to the otter. | Next | main |
@@ -374,7 +382,7 @@ Widths, screens and Expand / Shrink.
 | W10 | Focus comes home | A card or sheet closes | Focus returns to the composer with a soft ring. | Keyboard users never get lost. | Now | on touch |
 | W11 | Warm tooltips | Hovering header icons | First tooltip after 500 ms, then instant while moving between icons for 1.5 s. | Fast to scan, quiet to ignore. | Now | on touch |
 | W12 | Command bar | ⌘K when roomy | Surfaces at 0.98 scale over 280 ms; the highlighted row glides. | Power without more chrome (A7). | Later | on touch |
-| W13 | Title crossfade | The screen changes | The header title crossfades over 280 ms. | A continuous header. | Later | brief |
+| W13 | Title crossfade | The screen changes | The header title crossfades over 280 ms. | A continuous header. | Built (the new title surfaces 3 px) | brief |
 | W14 | Return to Dock hiding | The roomy window shrinks or closes | The Dock icon leaves after the shrink completes. | No Dock flicker mid-move. | Next | main |
 
 ### M. Composer
@@ -390,7 +398,7 @@ Where every question starts.
 | M5 | Stopped tag | Stop pressed | The square returns to an arrow; “You stopped this” surfaces under the answer. | Honest state in the chat. | Now | brief |
 | M6 | File reading progress | Attaching a large document | A ring fills from the worker’s progress, then the thumbnail surfaces. | Real progress instead of a wait. | Next | while live |
 | M7 | Shield on hidden secrets | maskSecrets hides something | A small shield surfaces once on the chip; tapping it opens the hidden-lines sheet. | A quiet safety feature made visible. | Next | brief |
-| M8 | Language switch slides | Switching EN \| 中 | The highlight slides between the two; the label reads “Answer in 中文”. | Says what it does (UX #7). | Next | on touch |
+| M8 | Language switch slides | Switching EN \| 中 | The highlight slides between the two; the label reads “Answer in 中文”. | Says what it does (UX #7). | Slide built; the label is still to do | on touch |
 | M9 | Draft per chat | Switching chats with text typed | Text stays with its chat; the row says “Draft:” in straw. | Drafts become visible and safe (A2). | Next | main |
 | M10 | Chip drifts into the box | Tapping a try-asking chip | Its text drifts into the input and the caret lands at the end; it never sends. | Teaches that chips fill, not send. | Later | brief |
 | M11 | Tool tooltips with keys | Hovering snip or attach | Tooltip names the action and its shortcut. | Teaches the hotkey where it’s used. | Now | on touch |
@@ -404,7 +412,7 @@ From send to the last word.
 | ID | Interaction | When | Then | Why | Build | Cost |
 | --- | --- | --- | --- | --- | --- | --- |
 | S1 | Question surfaces | Sending | The user bubble rises 18 px from the composer and settles over 480 ms. | Connects the box to the chat. | Now | brief |
-| S2 | Thinking says what it’s doing | Waiting, then tools | The otter takes its thinking frame; the line beside it crossfades from “Thinking…” to “Searching “HTTP 429”…”. | Specific beats animated (A8). | Now | while live |
+| S2 | Thinking says what it’s doing | Waiting, then tools | The otter takes its thinking frame; the line beside it crossfades from “Thinking…” to “Searching “HTTP 429”…”. | Specific beats animated (A8). | Built (one line ebbs before the next surfaces) | while live |
 | S3 | Chips surface and settle | Each tool call | A chip surfaces, steps while running, turns to a check when done. | Visible progress made of real events. | Now | while live |
 | S4 | Chips fold away | The answer finishes | Three or more chips fold into “3 steps” over 480 ms. | Lead with the result. | Next | brief |
 | S5 | Chunks surface | Text streams | Each chunk clears from a light blur over 420 ms; a stepped caret marks the end. | Reads like ink settling, without per-character cost. | Next | brief |

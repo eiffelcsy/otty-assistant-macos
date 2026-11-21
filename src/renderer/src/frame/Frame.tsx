@@ -1,5 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { AnimatePresence, m, useAnimate, useReducedMotion } from 'motion/react'
+import { Cove } from '../components/Cove'
 import { Icon } from '../components/Icon'
+import { T, ebb, glide } from '../lib/motion'
 import { Otter } from '../components/Otter'
 import { PauseButton } from '../components/PauseButton'
 import { columns, type Band, bandFor } from './bands'
@@ -72,6 +75,8 @@ export interface FrameProps {
   /** The sidebar folded to the rail by ⌃⌘S. */
   sidebarHidden: boolean
   notices?: ReactNode
+  /** The living cove behind the main column (D-74, Spec 07): `full` behind the whole screen, `wash` only behind the header. */
+  cove?: 'full' | 'wash'
   children: ReactNode
 }
 
@@ -82,7 +87,28 @@ function useScrolled(screen: unknown): [boolean, (e: React.UIEvent) => void] {
   return [at.screen === screen && at.scrolled, (e) => setAt({ screen, scrolled: (e.target as HTMLElement).scrollTop > 0 })]
 }
 
+/**
+ * W4, the move between screens: forward glides in from the right, Back from the left, any other move surfaces. Played
+ * on the body rather than keyed, so the chat stays mounted with its scroll; transform and opacity only, so it runs on the
+ * compositor while the new screen is still rendering.
+ */
+function useScreenMove(place: Place, pushed: boolean) {
+  const [scope, animate] = useAnimate<HTMLDivElement>()
+  const reduced = useReducedMotion()
+  const was = useRef({ place, pushed })
+  useEffect(() => {
+    const before = was.current
+    was.current = { place, pushed }
+    if (!scope.current || (before.place === place && before.pushed === pushed)) return
+    if (reduced) return void animate(scope.current, { opacity: [0, 1] }, { duration: 0.2 })
+    const x = pushed && !before.pushed ? 24 : before.pushed && !pushed ? -24 : 0
+    animate(scope.current, { opacity: [0, 1], x: [x, 0], y: [x ? 0 : 10, 0] }, { duration: T.settle, ease: glide, opacity: { duration: T.quick } })
+  }, [place, pushed, reduced, animate, scope])
+  return scope
+}
+
 export function Frame(p: FrameProps) {
+  const body = useScreenMove(p.place, p.pushed)
   const [mainScrolled, onMainScroll] = useScrolled(p.place)
   const [listScrolled, onListScroll] = useScrolled(null)
   const band: Band = bandFor(p.width)
@@ -103,10 +129,13 @@ export function Frame(p: FrameProps) {
           {p.list}
         </section>
       )}
-      <main className="frame__main" data-column tabIndex={-1} onScrollCapture={onMainScroll}>
+      <main className={`frame__main${p.cove ? ` frame__main--cove frame__main--${p.cove}` : ''}`} data-column tabIndex={-1} onScrollCapture={onMainScroll}>
+        {p.cove && <Cove mode={p.cove} />}
         <Header {...p} compact={nav === 'none'} scrolled={mainScrolled} />
         {p.notices}
-        {p.children}
+        <div className="frame__body" ref={body}>
+          {p.children}
+        </div>
       </main>
     </div>
   )
@@ -120,12 +149,12 @@ function Header(p: FrameProps & { compact: boolean; scrolled: boolean }) {
           <button className="icon-btn frame__back" title="Back ⌘[" aria-label="Back" onClick={p.onBack}>
             <Icon name="angle-small-left" />
           </button>
-          <h1 className="panel__title">{p.title}</h1>
+          <Title text={p.title} />
         </>
       ) : p.compact ? (
         <ScreenMenu {...p} />
       ) : (
-        <h1 className="panel__title">{p.title}</h1>
+        <Title text={p.title} />
       )}
       <div className="panel__actions">
         {p.actions}
@@ -168,6 +197,15 @@ function Header(p: FrameProps & { compact: boolean; scrolled: boolean }) {
   )
 }
 
+/** W13: a new screen's name surfaces in place of the old one. */
+function Title({ text }: { text: string }) {
+  return (
+    <m.h1 key={text} className="panel__title" initial={{ opacity: 0, y: 3 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: T.quick }}>
+      {text}
+    </m.h1>
+  )
+}
+
 /** On a root screen at compact width: the otter and the screen's name, opening every other screen (Spec 05). */
 function ScreenMenu(p: FrameProps) {
   const [open, setOpen] = useState(false)
@@ -204,39 +242,49 @@ function ScreenMenu(p: FrameProps) {
         <span className="screen-menu__title">{p.title}</span>
         <Icon name="angle-small-down" />
       </button>
-      {open && (
-        <div className="menu screen-menu__list" role="menu" aria-label="Screens">
-          {NAV.filter((n) => !(p.noChats && n.place === 'chats')).map((n) => (
-            <button
-              key={n.place}
-              role="menuitem"
-              className="menu__item screen-menu__item"
-              aria-current={n.place === p.place || undefined}
-              onClick={() => go(n.place)}
-            >
-              <Icon name={n.icon} />
-              <span className="screen-menu__label">{n.label}</span>
-              {n.place === 'logbook' && p.needsYou > 0 && <span className="screen-menu__count">{p.needsYou}</span>}
-              <span className="screen-menu__keys">{n.keys}</span>
+      <AnimatePresence>
+        {open && (
+          <m.div
+            className="menu screen-menu__list"
+            role="menu"
+            aria-label="Screens"
+            style={{ transformOrigin: '24px 0' }}
+            initial={{ opacity: 0, scale: 0.97, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: T.quick, ease: glide } }}
+            exit={{ opacity: 0, scale: 0.98, transition: { duration: 0.16, ease: ebb } }}
+          >
+            {NAV.filter((n) => !(p.noChats && n.place === 'chats')).map((n) => (
+              <button
+                key={n.place}
+                role="menuitem"
+                className="menu__item screen-menu__item"
+                aria-current={n.place === p.place || undefined}
+                onClick={() => go(n.place)}
+              >
+                <Icon name={n.icon} />
+                <span className="screen-menu__label">{n.label}</span>
+                {n.place === 'logbook' && p.needsYou > 0 && <span className="screen-menu__count">{p.needsYou}</span>}
+                <span className="screen-menu__keys">{n.keys}</span>
+              </button>
+            ))}
+            {/* The chat's own actions are a group of their own, under the screens. */}
+            {p.menuExtras?.length ? <div className="menu__sep" role="separator" /> : null}
+            {p.menuExtras?.map((x) => (
+              <button key={x.label} role="menuitem" className="menu__item screen-menu__item" onClick={() => (setOpen(false), x.onClick())}>
+                <Icon name={x.icon} />
+                <span className="screen-menu__label">{x.label}</span>
+                {x.keys && <span className="screen-menu__keys">{x.keys}</span>}
+              </button>
+            ))}
+            <div className="menu__sep" role="separator" />
+            <button role="menuitem" className="menu__item screen-menu__item" aria-current={p.place === 'settings' || undefined} onClick={() => go('settings')}>
+              <Icon name="settings" />
+              <span className="screen-menu__label">Settings</span>
+              <span className="screen-menu__keys">⌘,</span>
             </button>
-          ))}
-          {/* The chat's own actions are a group of their own, under the screens. */}
-          {p.menuExtras?.length ? <div className="menu__sep" role="separator" /> : null}
-          {p.menuExtras?.map((x) => (
-            <button key={x.label} role="menuitem" className="menu__item screen-menu__item" onClick={() => (setOpen(false), x.onClick())}>
-              <Icon name={x.icon} />
-              <span className="screen-menu__label">{x.label}</span>
-              {x.keys && <span className="screen-menu__keys">{x.keys}</span>}
-            </button>
-          ))}
-          <div className="menu__sep" role="separator" />
-          <button role="menuitem" className="menu__item screen-menu__item" aria-current={p.place === 'settings' || undefined} onClick={() => go('settings')}>
-            <Icon name="settings" />
-            <span className="screen-menu__label">Settings</span>
-            <span className="screen-menu__keys">⌘,</span>
-          </button>
-        </div>
-      )}
+          </m.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -329,6 +377,8 @@ function NavButton({
       aria-label={count ? `${item.label}, ${count} needs you` : item.label}
       onClick={() => onGo(item.place)}
     >
+      {/* W5: one highlight that glides to the item chosen, across the rail or sidebar and its foot. */}
+      {selected && <m.span layoutId="nav-mark" className="nav-btn__mark" transition={{ duration: T.settle, ease: glide }} />}
       <Icon name={item.icon} />
       {wide && <span className="nav-btn__label">{item.label}</span>}
       {count > 0 && (wide ? <span className="nav-btn__count">{count}</span> : <span className="nav-btn__dot" />)}

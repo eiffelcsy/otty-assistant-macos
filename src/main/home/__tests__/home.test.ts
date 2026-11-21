@@ -34,6 +34,14 @@ describe('the status sentence (Spec 06)', () => {
     expect(greeting(new Date(2026, 0, 1, 15).getTime())).toBe('Good afternoon')
     expect(greeting(new Date(2026, 0, 1, 2).getTime())).toBe('Good evening')
   })
+
+  it('dates the cove’s greeting with the weekday, day and month, and no time (Spec 07)', () => {
+    const date = home(sources()).date
+    expect(date).toMatch(/Thursday/)
+    expect(date).toMatch(/19/)
+    expect(date).toMatch(/November/)
+    expect(date).not.toMatch(/\d:\d/)
+  })
 })
 
 describe('Needs you', () => {

@@ -107,6 +107,32 @@ describe('CLAUDE.md "Idle budget (NFR-3)": every infinite animation is reviewed'
       'Step it or run it briefly, measure with OTTY_METRICS=1, then add it here with the reason it stays under budget'
     ).toEqual([])
   })
+
+  it('never repeats a Motion animation, which no data-asleep can pause', () => {
+    const found = CODE.flatMap((f) => findIn(f, /\brepeat:\s*Infinity|\brepeatType\b/g))
+    expect(found, 'Ambient motion stays in CSS, stepped').toEqual([])
+  })
+})
+
+describe('DESIGN.md "Motion": Motion moves with the CSS tokens (lib/motion.tsx)', () => {
+  const token = (name: string) => read(STYLES).match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].trim()
+  const lib = read('src/renderer/src/lib/motion.tsx')
+
+  it('has the --t-* durations', () => {
+    const T = Object.fromEntries([...lib.match(/export const T = \{([^}]+)\}/)![1].matchAll(/(\w+): ([\d.]+)/g)].map((m) => [m[1], Number(m[2])]))
+    expect(Object.keys(T)).toEqual(['tap', 'quick', 'settle', 'travel', 'drift'])
+    for (const [name, s] of Object.entries(T)) {
+      const v = token(`t-${name}`)!
+      expect(v.endsWith('ms') ? parseFloat(v) / 1000 : parseFloat(v), name).toBe(s)
+    }
+  })
+
+  it('has the curves', () => {
+    for (const name of ['glide', 'ebb']) {
+      const curve = lib.match(new RegExp(`export const ${name} = \\[([^\\]]+)\\]`))![1]
+      expect(token(name), name).toBe(`cubic-bezier(${curve})`)
+    }
+  })
 })
 
 describe('DESIGN.md "Foundations": sizes, spaces, radii and weights come from the scale (D-59)', () => {
@@ -218,22 +244,83 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
     })
   }
 
-  // D-72: the darkest and lightest 32 px patch of each cove painting (measured 2026-11-21 from assets/cove). Light mode
-  // can show any of them; dark mode only the night.
-  const COVE: Record<keyof typeof themes, RGB[]> = {
-    light: [[1, 24, 53], [30, 80, 132], [40, 42, 55], [25, 111, 129], [254, 251, 240], [253, 227, 82]],
-    dark: [[1, 24, 53], [2, 21, 47], [237, 231, 218], [187, 191, 193]]
-  }
-  for (const [name, t] of Object.entries(themes)) {
-    it(`${name}: every text role reaches 4.5:1 on glass over any patch of the cove`, () => {
-      const low = TEXT.flatMap((fg) =>
-        COVE[name as keyof typeof themes].flatMap((under) => {
-          const back = colour(t['--glass'], under)
-          const ratio = contrast(colour(t[fg], back), back)
-          return ratio < 4.5 ? [`${fg} on glass over ${under.join(',')}: ${ratio.toFixed(2)}:1`] : []
+  describe('the cove, full bleed (D-74, Spec 07 Part 5): every word on it is readable, and the glass is no thicker than that needs', () => {
+    // From `.venv/bin/python tools/otty-art/prepare.py --patches` (2026-11-21): the darkest and lightest patch anywhere
+    // (under glass), behind the greeting (sky) and behind the header's icons (top), and the water's bottom colour.
+    // Copy its lines here when a painting changes.
+    const PAINTINGS = {
+      dawn: { glass: [[34, 83, 135], [253, 216, 159]], sky: [[161, 133, 156], [253, 206, 160]], top: [[153, 157, 202], [225, 189, 189]], deep: '#345d8d' },
+      day: { glass: [[26, 111, 133], [253, 250, 240]], sky: [[150, 166, 116], [248, 238, 208]], top: [[143, 201, 226], [254, 251, 240]], deep: '#267888' },
+      golden: { glass: [[45, 45, 56], [251, 237, 135]], sky: [[133, 78, 34], [251, 215, 65]], top: [[205, 140, 100], [245, 178, 85]], deep: '#37323a' },
+      night: { glass: [[3, 23, 49], [222, 218, 209]], sky: [[8, 36, 73], [61, 100, 145]], top: [[8, 35, 78], [230, 224, 214]], deep: '#042248' }
+    } satisfies Record<string, { glass: RGB[]; sky: RGB[]; top: RGB[]; deep: string }>
+    type Painting = keyof typeof PAINTINGS
+    const t = themes.light // the cove's tokens follow the painting, so they're set once, in :root
+    const night = (p: Painting) => p === 'night'
+    const roles = (p: Painting) =>
+      night(p)
+        ? ['--cv-night-text', '--cv-night-heading', '--cv-night-text-2', '--cv-night-brand-text', '--cv-night-straw-ink']
+        : ['--text', '--heading', '--cv-text-2', '--cv-brand-text', '--cv-straw-ink']
+    const ink = (p: Painting) => colour(t[night(p) ? '--cv-night-ink' : '--cv-ink'])
+    const sub = (p: Painting) => colour(t[night(p) ? '--cv-night-sub' : '--cv-sub'])
+
+    /** The backdrop filter's colour steps, in CSS's order (saturate, contrast, brightness), on one colour. */
+    function frost(c: RGB, filter: string): RGB {
+      const n = (f: string) => Number(filter.match(new RegExp(`${f}\\(([\\d.]+)\\)`))?.[1] ?? NaN)
+      const [s, k, b] = [n('saturate'), n('contrast'), n('brightness')]
+      expect([s, k, b].every(Number.isFinite), `Can't read the filter ${filter}`).toBe(true)
+      const clip = (v: number) => Math.min(255, Math.max(0, v))
+      const m = [
+        [0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s],
+        [0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s],
+        [0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s]
+      ]
+      return m.map((row) => clip(row[0] * c[0] + row[1] * c[1] + row[2] * c[2])).map((v) => clip(clip(((v / 255 - 0.5) * k + 0.5) * 255) * b)) as RGB
+    }
+    /** The same colour with another alpha, to find the least that passes. */
+    const withAlpha = (v: string, a: number) => v.replace(/[\d.]+\)$/, `${a})`)
+    const alpha = (v: string) => Number(v.match(/([\d.]+)\)$/)![1])
+    /** The least alpha (to .01) at which `passes` holds, or null if none does. */
+    const least = (passes: (a: number) => boolean) => [...Array(101).keys()].map((i) => i / 100).find(passes) ?? null
+
+    const glassPasses = (p: Painting, tint: string) => (a: number) =>
+      PAINTINGS[p].glass.every((under) => {
+        const back = colour(withAlpha(tint, a), frost(under, t[night(p) ? '--cv-frost-dark' : '--cv-frost-light']))
+        return roles(p).every((fg) => contrast(colour(t[fg]), back) >= 4.5)
+      })
+    const skyPasses = (p: Painting, halo: string) => (a: number) =>
+      PAINTINGS[p].sky.every((under) => {
+        const back = colour(withAlpha(halo, a), under)
+        return contrast(ink(p), back) >= 3 && contrast(sub(p), back) >= 4.5 // the greeting is large text; the rest isn't
+      })
+    const topPasses = (p: Painting, scrim: string) => (a: number) =>
+      PAINTINGS[p].top.every((under) => contrast(sub(p), colour(withAlpha(scrim, a), under)) >= 3) // icons: 3:1
+
+    const CHECKS: [string, string, (p: Painting, v: string) => (a: number) => boolean][] = [
+      ['glass', '4.5:1 for every text role on glass', glassPasses],
+      ['halo', '3:1 for the greeting and 4.5:1 for its sentence on the sky', skyPasses],
+      ['top', "3:1 for the header's icons on the sky", topPasses]
+    ]
+    for (const p of Object.keys(PAINTINGS) as Painting[]) {
+      for (const [kind, what, passes] of CHECKS) {
+        const token = `--cv-${kind}-${p}`
+        it(`${p}: ${token} gives ${what}, with at most .03 to spare`, () => {
+          const v = t[token]
+          const min = least(passes(p, v))
+          expect(min, `${token}: nothing passes`).not.toBeNull()
+          expect(passes(p, v)(alpha(v)), `${token} at ${alpha(v)} fails; it needs ${min}`).toBe(true)
+          // Never opaque just to pass: D-72's 90% glass passed by hiding the painting.
+          expect(alpha(v), `${token} at ${alpha(v)} hides more of the cove than it needs (${min})`).toBeLessThanOrEqual(min! + 0.03)
         })
-      )
-      expect(low).toEqual([])
+      }
+      it(`${p}: --cv-deep-${p} is the water's own colour`, () => {
+        expect(t[`--cv-deep-${p}`]).toBe(PAINTINGS[p].deep)
+      })
+    }
+
+    it('reads the filter the way CSS applies it', () => {
+      expect(frost([128, 128, 128], 'saturate(1) contrast(1) brightness(1)')).toEqual([128, 128, 128])
+      expect(frost([0, 0, 0], 'saturate(1) contrast(0.6) brightness(1.5)').map(Math.round)).toEqual([77, 77, 77])
     })
-  }
+  })
 })

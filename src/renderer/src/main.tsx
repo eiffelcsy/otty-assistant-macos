@@ -6,6 +6,7 @@ import { Pickup } from './pickup/Pickup'
 import { Quick } from './quick/Quick'
 import { Viewer } from './viewer/Viewer'
 import { installTooltips } from './lib/tooltips'
+import { MotionRoot } from './lib/motion'
 import './styles.css'
 
 const view = new URLSearchParams(location.search).get('view') ?? 'panel'
@@ -18,6 +19,8 @@ window.otty.onWindowVisible((visible) => document.documentElement.toggleAttribut
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {view === 'bubble' ? <Bubble /> : view === 'quick' ? <Quick /> : view === 'pickup' ? <Pickup /> : view === 'viewer' ? <Viewer /> : <Panel />}
+    <MotionRoot>
+      {view === 'bubble' ? <Bubble /> : view === 'quick' ? <Quick /> : view === 'pickup' ? <Pickup /> : view === 'viewer' ? <Viewer /> : <Panel />}
+    </MotionRoot>
   </StrictMode>
 )

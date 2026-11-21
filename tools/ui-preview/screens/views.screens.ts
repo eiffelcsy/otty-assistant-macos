@@ -36,3 +36,35 @@ for (const scheme of ['light', 'dark'] as const) {
     }
   }
 }
+
+// D-74 (Spec 07): the cove, full bleed, at the floating, medium and roomy widths, for each painting in light mode and
+// the night in dark (`&time=` pins the painting), then Home scrolled past its greeting.
+const COVE_SIZES: [w: number, h: number, state: string][] = [
+  [420, 640, ''],
+  [980, 660, '&state=roomy'],
+  [1280, 800, '&state=roomy']
+]
+const COVE_TIMES: [time: string, scheme: 'light' | 'dark'][] = [
+  ['dawn', 'light'],
+  ['day', 'light'],
+  ['golden', 'light'],
+  ['night', 'light'],
+  ['night', 'dark']
+]
+for (const scene of ['home', 'empty', 'home-scrolled']) {
+  for (const [w, h, state] of scene === 'home-scrolled' ? COVE_SIZES.slice(1, 2) : COVE_SIZES) {
+    for (const [time, scheme] of scene === 'home-scrolled' ? COVE_TIMES.slice(1, 2) : COVE_TIMES) {
+      test(`cove ${scene} ${w} ${time} ${scheme}`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' })
+        await page.clock.setFixedTime(NOW)
+        await page.setViewportSize({ width: Math.max(w + 60, 480), height: h + 60 })
+        await page.goto(`/?view=panel&scene=${scene === 'home-scrolled' ? 'home' : scene}&w=${w}&h=${h}${state}&time=${time}`)
+        await page.waitForLoadState('networkidle')
+        await page.waitForTimeout(800)
+        if (scene === 'home-scrolled') await page.locator('.home').evaluate((el) => el.scrollTo(0, el.scrollHeight))
+        await page.waitForTimeout(300)
+        await expect(page).toHaveScreenshot(`cove-${scene}-${w}-${time}-${scheme}.png`)
+      })
+    }
+  }
+}

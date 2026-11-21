@@ -32,6 +32,7 @@ Where the checks live:
 | UI work | `npm run screens` compares every preview scene, light and dark, with committed screenshots (CI job `screens`). Using tokens is `renderer.test.ts`. |
 | Pick up text | Rule test `boundaries.test.ts` "asks Apple Vision for Chinese before English". Test `ocr.test.ts`. Smoke `pickup.smoke.ts` runs the real helper on English and Chinese. |
 | Otty is painted art | Prose only: the frames are generated, and a check would only repeat the script. |
+| Motion | Rule test `renderer.test.ts` (Motion's tokens equal the CSS ones; no `repeat` in Motion). CSS-or-Motion is a review call, written in DESIGN.md. |
 | UI icons are Flaticon UIcons | Rule test `renderer.test.ts` (no emoji in renderer code; no hex colour outside the tokens). |
 | Idle budget | Rule test `renderer.test.ts` (every `infinite` animation is reviewed). Test `metrics.test.ts`. Smoke `idle.smoke.ts` fails on a smooth endless animation on the idle otter. The number itself is measured by hand with `OTTY_METRICS=1`. |
 | Whole-screen capture uses desktopCapturer | Test `wholeScreen.test.ts` "shows the friendly notice when macOS refuses…" and "hides the windows for the capture, then brings them back". |
