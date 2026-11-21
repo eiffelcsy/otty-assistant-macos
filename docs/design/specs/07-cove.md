@@ -8,7 +8,7 @@
 - **The paintings, not the vector stand-in.** They're busier and darker in places, so every contrast number below is measured on them (Part 5), not on the draft.
 - **The sidebar and rail stay paper.** The cove fills the screen area only. Navigation is the same on every screen, so it can't turn to glass on two of them without flickering as you move.
 - **No text sits on the bare painting.** The draft's greeting sits on the sky with a text shadow; on the paintings that fails at dawn, golden hour and night (the moon). The greeting gets a soft halo instead, measured per painting, the header's icons a scrim where the moon is, and the details pane's bare labels move into card heads.
-- **The night is dark glass, whatever the Mac's appearance.** White glass over the night lake glares, and it needs 69% opacity to pass; dark glass passes at 26%. So the glass follows the painting: dawn, day and golden hour are light glass, night is dark glass.
+- **The painting follows the clock; the glass follows the appearance, and the night.** Dark mode keeps the hour's painting under dark glass (it was the night picture until 2026-11-21, which showed night at noon). Words on the bare painting (the greeting, its halo, the header's icons) follow the painting, so a day sky keeps its dark ink and white halo in dark mode. The night is dark glass whatever the appearance: white glass over the night lake glares, and it needs 69% opacity to pass; dark glass passes at 26%. So light mode has light glass at dawn, day and golden hour and dark glass at night; dark mode has dark glass at every hour (`coveGlass` in `lib/cove.ts`, `data-glass` on the cove).
 - **The greeting's clock shows the date only.** A minute clock would need a minute timer on an idle window (NFR-3).
 
 ## Part 1 · Layers
@@ -78,7 +78,7 @@ Centred in the sky, three lines, `text-wrap: balance`:
 
 Hero is the only new size. It joins `rules/renderer.test.ts`'s short off-scale list, written down there as "the cove's greeting (Spec 07)". The date changes at midnight through the cove's own timer (the next painting is at 5:00, so `untilNextCove` gains midnight as a stop), never a minute timer.
 
-**Ink follows the painting**, not the Mac's appearance:
+**Ink on the bare painting follows the painting**, not the glass or the appearance:
 
 | Painting | Ink (`--cv-ink`) | Sub (`--cv-sub`) | Halo (`--cv-halo-*`) | Header scrim (`--cv-top-*`) |
 | --- | --- | --- | --- | --- |
@@ -87,7 +87,7 @@ Hero is the only new size. It joins `rules/renderer.test.ts`'s short off-scale l
 | Golden | `#3a3132` | `#50473d` | `#f4f1ea` at .64 (the far hills are dark brown behind the words) | none |
 | Night | `#f5f2ec` | `#dedad2` | `#101826` at .05 | `#101826` at .53 (the moon is behind the icons) |
 
-The night tokens are `--cv-night-ink` and `--cv-night-sub`. All are in `:root`, since they follow the painting.
+The night tokens are `--cv-night-ink` and `--cv-night-sub`. Dark mode's dawn, day and golden hour get only their own glass tint, `#18151a` at .45 / .52 / .49 (`--cv-glass-dark-*`, each the least that passes plus .02); their greeting, halo and scrim are the light ones above. All are in `:root`, and `rules/renderer.test.ts` measures every painting under each glass it can have.
 
 **The halo** is a soft ellipse behind the greeting block: `radial-gradient(closest-side, halo, halo 55%, transparent)`, 48 px wider than the block on each side and 32 px taller. Text never reaches past its 55% ring, so the test checks the full strength. It reads as the light gathering round the words; at night it's barely there.
 
@@ -95,10 +95,12 @@ The night tokens are `--cv-night-ink` and `--cv-night-sub`. All are in `:root`, 
 
 One recipe for blocks, the now line, the message box and the header's frost. It works the draft's way: the backdrop itself is softened, flattened and lifted (or smoked), so the tint over it can stay thin.
 
-| | Light glass (dawn, day, golden) | Dark glass (night) |
+Both glasses are held to **3.5:1** for every text role on them, not 4.5:1 (owner's call, 2026-11-21): at 4.5 the glass had to cover the painting to stay readable over the brightest sky a card can scroll across. Over the water, where cards usually sit, it's well above that. Words on the bare painting keep their own checks.
+
+| | Light glass (dawn, day, golden) | Dark glass (night, and dark mode at every hour) |
 | --- | --- | --- |
-| Backdrop (`--cv-frost-light`, `--cv-frost-dark`) | `blur(6px) saturate(1.45) contrast(.6) brightness(1.5)` | `blur(6px) saturate(1.45) contrast(.6) brightness(.4)` |
-| Tint (`--cv-glass-*`) | `rgba(255, 255, 255, a)`: dawn .56, day .46, golden .66 | `rgba(24, 21, 26, .26)` |
+| Backdrop (`--cv-frost-light`, `--cv-frost-dark`) | `blur(6px) saturate(1.45) contrast(.6) brightness(1.5)` | `blur(6px) saturate(1.6) contrast(.6) brightness(.65)` (2026-11-21: see-through, the painting's colour coming through) |
+| Tint (`--cv-glass-*`) | `rgba(255, 255, 255, a)`: dawn .34, day .17, golden .49 | `rgba(24, 21, 26, a)`: night .45, and in dark mode dawn .45, day .52, golden .49 |
 | Rim | 1 px, white .95 → .18 → transparent → .18 → .6 at 140°, through a mask (the draft's `.cv-glass::before`) | Warm white .32 → .04 → transparent → .04 → .14 |
 | Light | Inset 0 1px white .9 (top), inset 0 −1px white .3 (bottom) | Same at .22 and .08 |
 | Lift | `0 0 0 .5px rgb(58 49 50 / .07), 0 2px 6px −2px rgb(30 34 40 / .24), 0 18px 40px −18px rgb(30 34 40 / .24)` | Edge `rgb(0 0 0 / .25)`, shadows at `/ .55` |
@@ -117,7 +119,7 @@ The glass is its own surface, so it replaces "one edge, one separator": the rim 
 | `--brand-text` | `#566d38` | `#4a5e30` | `#a3b37f` |
 | `--straw-ink` | `#74613a` | `#5f4c22` | `#d9caa2` |
 
-On dark glass the whole dark token set applies (fills, hairlines, buttons), so a night cove in light mode looks like dark mode inside its glass. `styles.css` declares the dark set once for both `@media (prefers-color-scheme: dark) { :root }` and `.cove-scope[data-time='night']`; the token test must still find the block.
+On dark glass the whole dark token set applies (fills, hairlines, buttons), so a night cove in light mode looks like dark mode inside its glass. `styles.css` declares the dark set once for both `@media (prefers-color-scheme: dark) { :root }` and the cove's `[data-glass='dark']`; the token test must still find the block.
 
 ### Header
 

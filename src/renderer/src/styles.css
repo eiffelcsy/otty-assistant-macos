@@ -55,16 +55,19 @@
   --water: rgba(99, 124, 66, 0.12);
   /* Decoration only: the rings a touch spreads across the cove's water. */
   --ripple: rgba(255, 255, 255, 0.75);
-  /* The cove, full bleed (D-74, Spec 07). These follow the painting, not the Mac's appearance, so they're set once:
-     dawn, day and golden hour are light glass, night is dark glass. The glass clears its text by flattening and
+  /* The cove, full bleed (D-74, Spec 07). The painting follows the clock; the glass is light at dawn, day and golden
+     hour, and dark in dark mode or at night (whatever the appearance). Each pair is set once, here. The glass clears its text by flattening and
      lifting (or smoking) what's behind it, so its tint stays thin. Each tint, halo and scrim is the least that passes
      on the paintings plus .02; rules/renderer.test.ts checks every one, both ways. */
   --cv-frost-light: blur(6px) saturate(1.45) contrast(0.6) brightness(1.5);
-  --cv-frost-dark: blur(6px) saturate(1.45) contrast(0.6) brightness(0.4);
-  --cv-glass-dawn: rgba(255, 255, 255, 0.56);
-  --cv-glass-day: rgba(255, 255, 255, 0.46);
-  --cv-glass-golden: rgba(255, 255, 255, 0.66);
-  --cv-glass-night: rgba(24, 21, 26, 0.26);
+  --cv-frost-dark: blur(6px) saturate(1.6) contrast(0.6) brightness(0.65);
+  --cv-glass-dawn: rgba(255, 255, 255, 0.34);
+  --cv-glass-day: rgba(255, 255, 255, 0.17);
+  --cv-glass-golden: rgba(255, 255, 255, 0.49);
+  --cv-glass-night: rgba(24, 21, 26, 0.45);
+  --cv-glass-dark-dawn: rgba(24, 21, 26, 0.45);
+  --cv-glass-dark-day: rgba(24, 21, 26, 0.52);
+  --cv-glass-dark-golden: rgba(24, 21, 26, 0.49);
   /* Text on light glass: the paper roles one step darker. --text and --heading stay. */
   --cv-text-2: #50473d;
   --cv-brand-text: #4a5e30;
@@ -578,13 +581,10 @@ html[data-view='bubble'] body {
 .frame--roomy .frame__nav-top {
   height: 52px;
 }
-.panel--moving .frame {
-  animation: window-move var(--t-travel) var(--glide);
-}
-@keyframes window-move {
-  28% { opacity: 0.3; transform: none; }
-  72% { opacity: 0.3; transform: translateY(4px); }
-  100% { opacity: 1; transform: none; }
+/* While the panel grows between states, nothing frosts or eases: each frame is one layout of the content. */
+.panel--moving .frame * {
+  backdrop-filter: none !important;
+  transition: none !important;
 }
 .frame__expand {
   color: var(--brand-text);
@@ -1226,7 +1226,8 @@ html[data-view='bubble'] body {
   --lh-hero: 36px;
 }
 
-/* The scope: the glass, the ink and the scrims follow the painting on show, not the Mac's appearance. */
+/* The scope: words on the bare painting (greeting, halo, header icons) follow the painting, so a day sky keeps its
+   dark ink and white halo in dark mode; the glass and the words on it are dark in dark mode, or at night. */
 .frame__main--cove {
   position: relative;
   isolation: isolate;
@@ -1250,18 +1251,29 @@ html[data-view='bubble'] body {
   --cove-halo: var(--cv-halo-golden);
   --cove-top: var(--cv-top-golden);
 }
-.frame__main--cove:has(> .cove[data-time='night']) {
-  --cove-glass: var(--cv-glass-night);
+.frame__main--cove:has(> .cove[data-glass='dark']) {
   --cove-frost: var(--cv-frost-dark);
-  --cove-halo: var(--cv-halo-night);
-  --cove-top: var(--cv-top-night);
-  --cove-ink: var(--cv-night-ink);
-  --cove-sub: var(--cv-night-sub);
   --cove-rim: var(--cv-rim-dark);
   --cove-lift: var(--cv-lift-dark);
   --cove-solid: var(--cv-night-surface);
 }
-/* Text on glass: the paper roles a step darker (light glass), or the dark set (the night), wherever words sit over the
+.frame__main--cove:has(> .cove[data-time='dawn'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-dawn);
+}
+.frame__main--cove:has(> .cove[data-time='day'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-day);
+}
+.frame__main--cove:has(> .cove[data-time='golden'][data-glass='dark']) {
+  --cove-glass: var(--cv-glass-dark-golden);
+}
+.frame__main--cove:has(> .cove[data-time='night']) {
+  --cove-glass: var(--cv-glass-night);
+  --cove-halo: var(--cv-halo-night);
+  --cove-top: var(--cv-top-night);
+  --cove-ink: var(--cv-night-ink);
+  --cove-sub: var(--cv-night-sub);
+}
+/* Text on glass: the paper roles a step darker (light glass), or the dark set (dark glass), wherever words sit over the
    cove: the whole screen in full, only the header over the wash. */
 .frame__main--full,
 .frame__main--wash > .panel__header {
@@ -1269,8 +1281,8 @@ html[data-view='bubble'] body {
   --brand-text: var(--cv-brand-text);
   --straw-ink: var(--cv-straw-ink);
 }
-.frame__main--full:has(> .cove[data-time='night']),
-.frame__main--wash:has(> .cove[data-time='night']) > .panel__header {
+.frame__main--full:has(> .cove[data-glass='dark']),
+.frame__main--wash:has(> .cove[data-glass='dark']) > .panel__header {
   --text: var(--cv-night-text);
   --heading: var(--cv-night-heading);
   --text-2: var(--cv-night-text-2);
@@ -1410,7 +1422,7 @@ html[data-view='bubble'] body {
 .cove[data-time='dawn'] .cove__front {
   filter: sepia(0.1) hue-rotate(-8deg);
 }
-/* Behind the header's icons: only the night needs it (the moon), and the test holds it to that (Spec 07, Part 5). */
+/* Behind the header's icons: only dark glass needs it (the moon, or light ink on a bright sky), and the test holds it to that (Spec 07, Part 5). */
 .cove__scrim {
   position: absolute;
   inset: 0 0 auto;
@@ -1485,6 +1497,9 @@ html[data-view='bubble'] body {
 .cove-hero {
   position: relative;
   flex: none;
+  /* The greeting's halo reaches past the words, and past the window once they fill it: clipped here, so the screen
+     never scrolls sideways (clip, unlike hidden, leaves nothing to scroll). */
+  overflow-x: clip;
   height: calc(var(--horizon) + var(--hero-gap));
   padding: 0 var(--s-4);
   display: flex;

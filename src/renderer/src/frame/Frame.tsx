@@ -5,7 +5,7 @@ import { Icon } from '../components/Icon'
 import { T, ebb, glide } from '../lib/motion'
 import { Otter } from '../components/Otter'
 import { PauseButton } from '../components/PauseButton'
-import { columns, type Band, bandFor } from './bands'
+import { columns, sameLayout, type Band, bandFor } from './bands'
 
 // The frame (D-64, Spec 05): navigation, the header and the columns. Screens fill the parts; the window's width alone
 // decides where each part goes. Under 640 one screen at a time with a screen menu; from 640 a 72 px rail; from 712 a
@@ -38,7 +38,8 @@ export function useWidth(el: HTMLElement | null): number {
   useLayoutEffect(() => {
     // The observer reports once as it starts, then on every change.
     if (!el || typeof ResizeObserver === 'undefined') return
-    const watch = new ResizeObserver(([e]) => setWidth(Math.round(e.contentRect.width)))
+    // Only a width that changes the layout re-renders: during Expand the window passes through hundreds of widths.
+    const watch = new ResizeObserver(([e]) => setWidth((was) => (sameLayout(was, e.contentRect.width) ? was : Math.round(e.contentRect.width))))
     watch.observe(el)
     return () => watch.disconnect()
   }, [el])

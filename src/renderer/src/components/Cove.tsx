@@ -12,7 +12,7 @@ import cloud from '../assets/cove/cloud-wide.webp'
 import lilypad from '../assets/cove/lilypad-flower.webp'
 import reeds from '../assets/cove/reeds-low.webp'
 import float from '../assets/otty/float.webp'
-import { coveTime, untilNextCove, type CoveTime } from '../lib/cove'
+import { coveGlass, coveTime, untilNextCove, type CoveTime } from '../lib/cove'
 import { T, glide } from '../lib/motion'
 
 const PAINTINGS: Record<CoveTime, [shore: string, water: string]> = {
@@ -27,24 +27,30 @@ const isDark = () => window.matchMedia?.(DARK).matches ?? false
 
 /** The painting for now, and the one it's fading in over (null once settled). One timer, for the next hour that changes it. */
 function useCoveTime(): { time: CoveTime; before: CoveTime | null; settle: () => void } {
-  const [scene, setScene] = useState(() => ({ time: coveTime(new Date(), isDark()), before: null as CoveTime | null }))
+  const [scene, setScene] = useState(() => ({ time: coveTime(new Date()), before: null as CoveTime | null }))
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
-    const dark = window.matchMedia?.(DARK)
     const update = () => {
-      clearTimeout(timer)
-      const time = coveTime(new Date(), isDark())
+      const time = coveTime(new Date())
       setScene((s) => (s.time === time ? s : { time, before: s.time }))
       timer = setTimeout(update, untilNextCove(new Date()))
     }
     update()
-    dark?.addEventListener('change', update)
-    return () => {
-      clearTimeout(timer)
-      dark?.removeEventListener('change', update)
-    }
+    return () => clearTimeout(timer)
   }, [])
   return { ...scene, settle: () => setScene((s) => ({ ...s, before: null })) }
+}
+
+/** The Mac's appearance, as it changes. */
+function useDark(): boolean {
+  const [dark, setDark] = useState(isDark)
+  useEffect(() => {
+    const query = window.matchMedia?.(DARK)
+    const update = () => setDark(isDark())
+    query?.addEventListener('change', update)
+    return () => query?.removeEventListener('change', update)
+  }, [])
+  return dark
 }
 
 /** The cove settles into place once per window, the first time one is seen: after that, going Home is instant. */
@@ -137,6 +143,7 @@ function Rings({ x, y, onDone }: { x: number; y: number; onDone: () => void }) {
  */
 export function Cove({ mode }: { mode: 'full' | 'wash' }) {
   const { time, before, settle } = useCoveTime()
+  const glass = coveGlass(time, useDark())
   const ref = useRef<HTMLDivElement>(null)
   const touch = useTouch(ref, mode === 'full')
   // Until one has settled in where it was seen, every cove arrives; a hidden one waits, since CSS doesn't run there.
@@ -146,6 +153,7 @@ export function Cove({ mode }: { mode: 'full' | 'wash' }) {
       ref={ref}
       className={`cove cove--${mode}`}
       data-time={time}
+      data-glass={glass}
       data-arriving={arriving || undefined}
       style={touch.style}
       aria-hidden="true"

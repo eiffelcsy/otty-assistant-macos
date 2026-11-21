@@ -75,15 +75,28 @@ describe('otter moods (D-38)', () => {
     expect(face(container)).toBe('otter--idle')
   })
 
-  it('is caught while pressed, and wiggles once let go', () => {
+  it('is caught once a press moves, and wiggles once let go', () => {
     const { container } = render(<Bubble />)
     const bubble = container.querySelector('.bubble')!
     bubble.setPointerCapture = () => {}
-    fireEvent.pointerDown(bubble, { button: 0, pointerId: 1 })
+    fireEvent.pointerDown(bubble, { button: 0, pointerId: 1, screenX: 100, screenY: 100 })
+    expect(face(container)).toBe('otter--idle')
+    fireEvent.pointerMove(bubble, { pointerId: 1, screenX: 120, screenY: 100 })
     expect(face(container)).toBe('otter--caught')
     fireEvent.pointerUp(bubble, { button: 0, pointerId: 1 })
     expect(face(container)).toBe('otter--idle')
     expect(bubble.classList.contains('bubble--landed')).toBe(true)
+  })
+
+  it('stays itself through a plain click: no catch, no wiggle', () => {
+    const { container } = render(<Bubble />)
+    const bubble = container.querySelector('.bubble')!
+    bubble.setPointerCapture = () => {}
+    fireEvent.pointerDown(bubble, { button: 0, pointerId: 1, screenX: 100, screenY: 100 })
+    fireEvent.pointerMove(bubble, { pointerId: 1, screenX: 102, screenY: 101 })
+    fireEvent.pointerUp(bubble, { button: 0, pointerId: 1 })
+    expect(face(container)).toBe('otter--idle')
+    expect(bubble.classList.contains('bubble--landed')).toBe(false)
   })
 
   it('shows main’s face over its own: a head tilt when an answer fails', () => {

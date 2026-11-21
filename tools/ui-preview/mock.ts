@@ -803,6 +803,8 @@ const api: OttyApi = {
   onBubbleBadge: () => () => {},
   onWindowVisible: () => () => {},
   // D-65: `&state=roomy` draws the roomy window's header and traffic-light row.
+  onWindowGlide: () => () => {},
+  windowGlideReady: () => {},
   onWindowState: (cb) => {
     if (q.get('state') === 'roomy') setTimeout(() => cb('roomy'), 0)
     return () => {}

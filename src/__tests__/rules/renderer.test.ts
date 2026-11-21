@@ -255,14 +255,23 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
       night: { glass: [[3, 23, 49], [222, 218, 209]], sky: [[8, 36, 73], [61, 100, 145]], top: [[8, 35, 78], [230, 224, 214]], deep: '#042248' }
     } satisfies Record<string, { glass: RGB[]; sky: RGB[]; top: RGB[]; deep: string }>
     type Painting = keyof typeof PAINTINGS
-    const t = themes.light // the cove's tokens follow the painting, so they're set once, in :root
-    const night = (p: Painting) => p === 'night'
-    const roles = (p: Painting) =>
-      night(p)
+    const t = themes.light // the cove's tokens are set once, in :root, whatever the appearance
+    /** A painting under one glass, and its tokens' suffix: light glass by day, dark in dark mode, and the night only dark. */
+    type Look = { p: Painting; dark: boolean; name: string }
+    const LOOKS: Look[] = [
+      ...(['dawn', 'day', 'golden'] as const).flatMap((p) => [
+        { p, dark: false, name: p },
+        { p, dark: true, name: `dark-${p}` }
+      ]),
+      { p: 'night', dark: true, name: 'night' }
+    ]
+    const roles = ({ dark }: Look) =>
+      dark
         ? ['--cv-night-text', '--cv-night-heading', '--cv-night-text-2', '--cv-night-brand-text', '--cv-night-straw-ink']
         : ['--text', '--heading', '--cv-text-2', '--cv-brand-text', '--cv-straw-ink']
-    const ink = (p: Painting) => colour(t[night(p) ? '--cv-night-ink' : '--cv-ink'])
-    const sub = (p: Painting) => colour(t[night(p) ? '--cv-night-sub' : '--cv-sub'])
+    // Words on the bare painting follow the painting, not the glass: only the night has light ink.
+    const ink = ({ p }: Look) => colour(t[p === 'night' ? '--cv-night-ink' : '--cv-ink'])
+    const sub = ({ p }: Look) => colour(t[p === 'night' ? '--cv-night-sub' : '--cv-sub'])
 
     /** The backdrop filter's colour steps, in CSS's order (saturate, contrast, brightness), on one colour. */
     function frost(c: RGB, filter: string): RGB {
@@ -283,36 +292,43 @@ describe('DESIGN.md "Colour roles": text passes WCAG AA wherever it sits, light 
     /** The least alpha (to .01) at which `passes` holds, or null if none does. */
     const least = (passes: (a: number) => boolean) => [...Array(101).keys()].map((i) => i / 100).find(passes) ?? null
 
-    const glassPasses = (p: Painting, tint: string) => (a: number) =>
-      PAINTINGS[p].glass.every((under) => {
-        const back = colour(withAlpha(tint, a), frost(under, t[night(p) ? '--cv-frost-dark' : '--cv-frost-light']))
-        return roles(p).every((fg) => contrast(colour(t[fg]), back) >= 4.5)
+    // The cove's glass is held to 3.5:1, not 4.5:1 (owner's call, 2026-11-21): at 4.5 it has to cover the painting to stay
+    // readable over the brightest sky a card can scroll across, and it stops reading as glass. Over the water, where the
+    // cards usually sit, it's well above that. Words on the bare painting keep their own checks below.
+    const GLASS = 3.5
+    const glassPasses = (l: Look, tint: string) => (a: number) =>
+      PAINTINGS[l.p].glass.every((under) => {
+        const back = colour(withAlpha(tint, a), frost(under, t[l.dark ? '--cv-frost-dark' : '--cv-frost-light']))
+        return roles(l).every((fg) => contrast(colour(t[fg]), back) >= GLASS)
       })
-    const skyPasses = (p: Painting, halo: string) => (a: number) =>
-      PAINTINGS[p].sky.every((under) => {
+    const skyPasses = (l: Look, halo: string) => (a: number) =>
+      PAINTINGS[l.p].sky.every((under) => {
         const back = colour(withAlpha(halo, a), under)
-        return contrast(ink(p), back) >= 3 && contrast(sub(p), back) >= 4.5 // the greeting is large text; the rest isn't
+        return contrast(ink(l), back) >= 3 && contrast(sub(l), back) >= 4.5 // the greeting is large text; the rest isn't
       })
-    const topPasses = (p: Painting, scrim: string) => (a: number) =>
-      PAINTINGS[p].top.every((under) => contrast(sub(p), colour(withAlpha(scrim, a), under)) >= 3) // icons: 3:1
+    const topPasses = (l: Look, scrim: string) => (a: number) =>
+      PAINTINGS[l.p].top.every((under) => contrast(sub(l), colour(withAlpha(scrim, a), under)) >= 3) // icons: 3:1
 
-    const CHECKS: [string, string, (p: Painting, v: string) => (a: number) => boolean][] = [
-      ['glass', '4.5:1 for every text role on glass', glassPasses],
+    const CHECKS: [string, string, (l: Look, v: string) => (a: number) => boolean][] = [
+      ['glass', '3.5:1 for every text role on glass', glassPasses],
       ['halo', '3:1 for the greeting and 4.5:1 for its sentence on the sky', skyPasses],
       ['top', "3:1 for the header's icons on the sky", topPasses]
     ]
-    for (const p of Object.keys(PAINTINGS) as Painting[]) {
+    for (const l of LOOKS) {
       for (const [kind, what, passes] of CHECKS) {
-        const token = `--cv-${kind}-${p}`
-        it(`${p}: ${token} gives ${what}, with at most .03 to spare`, () => {
+        if (kind !== 'glass' && l.dark && l.p !== 'night') continue // dark mode by day shares the light halo and scrim
+        const token = `--cv-${kind}-${l.name}`
+        it(`${l.name}: ${token} gives ${what}, with at most .03 to spare`, () => {
           const v = t[token]
-          const min = least(passes(p, v))
+          const min = least(passes(l, v))
           expect(min, `${token}: nothing passes`).not.toBeNull()
-          expect(passes(p, v)(alpha(v)), `${token} at ${alpha(v)} fails; it needs ${min}`).toBe(true)
+          expect(passes(l, v)(alpha(v)), `${token} at ${alpha(v)} fails; it needs ${min}`).toBe(true)
           // Never opaque just to pass: D-72's 90% glass passed by hiding the painting.
           expect(alpha(v), `${token} at ${alpha(v)} hides more of the cove than it needs (${min})`).toBeLessThanOrEqual(min! + 0.03)
         })
       }
+    }
+    for (const p of Object.keys(PAINTINGS) as Painting[]) {
       it(`${p}: --cv-deep-${p} is the water's own colour`, () => {
         expect(t[`--cv-deep-${p}`]).toBe(PAINTINGS[p].deep)
       })

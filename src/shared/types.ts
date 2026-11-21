@@ -465,6 +465,18 @@ export interface MemoryNote {
 
 /** The Otty window's two states (D-65, Spec 06): floating beside your work, or a normal roomy Mac window. */
 export type WindowState = 'floating' | 'roomy'
+/**
+ * A step of the move between states (Spec 06), in the window's own pixels: with `from` and `to`, the window covers both
+ * places and the page grows its clip from one to the other; without them, the move has landed at this size.
+ */
+export interface WindowGlide {
+  width: number
+  height: number
+  from?: { x: number; y: number; width: number; height: number }
+  to?: { x: number; y: number; width: number; height: number }
+  /** Draw nothing for now (the next step shows the panel again): sent before a jump that moves the window's corner. */
+  blank?: boolean
+}
 
 /** What the app menu asks the Otty window to do on its own screen (D-65); navigation lives in the renderer (D-64). */
 export type FrameCommand = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
@@ -856,6 +868,9 @@ export interface OttyApi {
   onWindowVisible(cb: (visible: boolean) => void): () => void
   /** Which state the Otty window is in: on load and after every Expand or Shrink. */
   onWindowState(cb: (state: WindowState) => void): () => void
+  onWindowGlide(cb: (glide: WindowGlide) => void): () => void
+  /** The page has drawn the latest glide step at the window's size. */
+  windowGlideReady(): void
   /** The app menu asking the window to go somewhere or do something on its screen. */
   onFrameCommand(cb: (command: FrameCommand) => void): () => void
 }

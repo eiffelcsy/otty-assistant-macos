@@ -21,10 +21,11 @@ One window (`windows.ts`'s panel), two behaviours. The frame and the screens don
 | Size | Last floating size; first time 420 × 580 | Last roomy size; first time 1280 × 800, centred on the display with the pointer |
 | Position | Beside the bubble, as today | Last roomy position, if it's still on a connected display; otherwise centred |
 | Level | Floats above other windows, on every desktop and over full-screen apps | A normal window on its own desktop |
-| Traffic lights, ⌘-Tab, Dock icon, menu bar | None | Yes, while it's open |
+| Traffic lights | None | Yes |
+| ⌘-Tab, Dock icon, menu bar | None | None (2026-11-21, see "The Dock and the menu bar") |
 | Full screen | No | Yes, from the green button or ⌃⌘F |
 | Minimum | 360 × 420 | 720 × 520 |
-| Closing it (⌘W, or the close button) | Hides it | Hides it and returns it to the floating state for next time; the Dock icon leaves after the window has gone (W14) |
+| Closing it (⌘W, or the close button) | Hides it | Hides it and returns it to the floating state for next time |
 
 **Never two windows for one thing.** While the roomy window is open, clicking the bubble, "Open chat" and ↵ "continue in chat" bring the roomy window forward (on that chat) instead of opening the floating one. The quick view still opens at the cursor: it's for a few seconds, beside your work.
 
@@ -39,17 +40,19 @@ The button sits at the trailing end of the header: in the floating state "Expand
 | t (ms) | Main | Renderer |
 | --- | --- | --- |
 | 0 | The press answers at once (`--t-tap`) | |
-| 0 | Shows the Dock icon and the app menu; drops the window to the normal level and off other desktops; shows the traffic lights | The content dims to 30% over 200 ms (`--ebb`) |
+| 0 | Takes focus, then drops the window to the normal level and off other desktops | The content stays as it is; nothing frosts or eases during the move (2026-11-21: fading it out and back in read as a glitch) |
 | 0–720 | Moves and grows the window to the roomy bounds over `--t-travel` on the `--glide` curve | The header grows 44 → 52 with the window |
 | 720 | Saves the state | The new layout is in place behind the dim; the content surfaces over `--t-settle` with a 4 px rise. The first visible message stays where it was (W3) |
 
-**Shrink** is the same in reverse, except that the window first leaves full screen if it's in it, and the Dock icon and app menu go only after the window reaches its floating bounds (W14), so the Dock never flickers mid-move. Then the window goes back to floating above everything on every desktop.
+**Double-clicking the header** is macOS's zoom. It's off while floating (`setMaximizable(false)`): it would grow the window in one native resize, the very wobble the move avoids, and leave it above everything. While roomy it zooms like any Mac window.
+
+**Shrink** is the same in reverse, except that the window first leaves full screen if it's in it, and only once the window reaches its floating bounds does it go back to floating above everything on every desktop.
 
 **Kept across a switch:** the screen, the chat, every column's scroll position, the message box's words (main's draft, D-62), focus, and any card being answered. A running answer keeps streaming through the move.
 
 **Reduced motion:** the window jumps to its new bounds, and the content fades over 200 ms.
 
-**If the move can't be animated smoothly.** Electron's own animated `setBounds` has a length set by macOS. The plan is for main to step the bounds itself on the display's refresh for 720 ms; if that measures as dropping frames on a 60 Hz Mac, use the native animation instead, and keep the dim and surface timings in the renderer. Either way it's one move, never a resize followed by a reposition.
+**How the move is drawn (2026-11-21).** Resizing the window on every frame wobbles, whether macOS animates it or main steps it: a transparent window's edges move a frame or two before the page redraws to fill them. So the window changes size only twice. It jumps once to an invisible window covering both places (clicks pass through, no shadow, no traffic lights), the panel grows from the old place to the new one inside it on `--glide` over `--t-travel` (`window:glide`), its content visible and reflowing as it goes, and the window lands on its new bounds. A jump that moves the window's top-left corner would show its last picture shifted, so the page first blanks itself (`blank`) and confirms that frame is drawn, then the window jumps, and the page lays itself out only once the window is its new size (`window:glide-ready`, at most 700 ms). A stand-in window showing a picture of the panel (`capturePage`) covers the panel's place meanwhile, so nothing blinks. The window is never hidden by opacity: a fully transparent window stops drawing, and on showing again macOS put it at its old corner for a frame (a second panel at the screen's corner, 5 times in 10 recorded cycles; none in 15 after the fix). The stand-in window is prepared when the panel first shows and is never hidden, only emptied and shrunk to one pixel where it is (showing and hiding a window, or moving one, let macOS show its last picture at the new place for a frame). It moves while empty and only then draws the picture, and a picture not ready within 250 ms is dropped, never shown late (one once flashed a second panel at the screen's corner). Moves queue: Shrink pressed mid-Expand runs once Expand lands.
 
 ### The window itself
 
@@ -57,7 +60,7 @@ The floating window today is frameless and transparent, with corners the page dr
 
 ### The Dock and the menu bar
 
-**The Dock icon** is `build/icon.icns`, shown only while the roomy window is open. No badge, no bounce. Its menu (right-click):
+**No Dock icon, in either state (2026-11-21).** Only a background-only app can put windows over full-screen apps, and a background-only app has no Dock icon or menu bar. Switching between the two kinds for the roomy window (Electron's `dock.show()`/`hide()`, and `setVisibleOnAllWorkspaces` unless given `skipTransformProcessType`) hid and showed the Dock icon and handed the focus to the app behind on every move. So Otty stays background-only, every workspace call skips the switch (`SPACES` in `roomy.ts`), and the roomy window's keys are the window's own. The Dock menu and the app menu bar below are kept in the code but don't show; they come back only with a way to switch that doesn't move the focus. ~~The Dock icon~~ was to be `build/icon.icns`, shown only while the roomy window is open, no badge, no bounce. Its menu (right-click): Its menu (right-click):
 
 ```
 New chat
@@ -247,4 +250,4 @@ Home is a `main` region named "Home". The greeting is a heading (level 1) and th
 
 ## Done when
 
-Expand and Shrink move one window between the two states with the chat, scroll and draft kept; the Dock icon and menu bar come and go with the roomy window and never flicker; opening Otty from Applications opens the roomy window on Home; Home shows only blocks with something in them, all worded by main; deciding a Needs you item on Home and in the Logbook does the same thing; and the idle budget holds with Home open and nothing running.
+Expand and Shrink move one window between the two states with the chat, scroll and draft kept; the app behind never comes forward during a move, and no Dock icon appears; opening Otty from Applications opens the roomy window on Home; Home shows only blocks with something in them, all worded by main; deciding a Needs you item on Home and in the Logbook does the same thing; and the idle budget holds with Home open and nothing running.

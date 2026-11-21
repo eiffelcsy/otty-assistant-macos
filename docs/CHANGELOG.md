@@ -4,6 +4,17 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The cove keeps the hour, a smoother Expand, a calmer click (2026-11-21)
+
+- **Dark glass you can see through:** a lighter frost (6 px blur, the painting's own colour) and a tint close to the moving panel's look, so the cove shows through instead of grey. Both glasses are now held to 3.5:1 contrast instead of 4.5:1, so light glass is thinner too (day 17% white, from 46%).
+- **Fixed: the floating panel could ignore clicks after Shrink**, letting them through to the app behind. The move no longer switches the window's click-through.
+- **Fixed: a sideways scrollbar on the empty chat and Home** at the floating window's own width: the greeting's halo reached past the window. It's clipped at the screen's edge now.
+- **Double-clicking the floating window's header no longer zooms it** (macOS's own resize, which left it floating over everything); Expand is the way to grow it. The roomy window zooms as any Mac window does.
+- **Fixed: Expand could stop working after a Shrink**, leaving the glass unfrosted: the stand-in picture waited for a frame in a hidden window, which never comes. It no longer waits on frames, and gets 250 ms before the move goes on without it.
+- **Dark mode no longer means night.** The cove paints the hour on the Mac's clock in either appearance; dark mode gives its cards dark glass, while the greeting keeps the painting's own ink and halo (a white halo on a day sky), and the night is dark glass in light mode too. Each dark-mode painting's glass is measured like the rest (`rules/renderer.test.ts`).
+- **Expand and Shrink glide without the wobble.** Resizing the window on every frame made its edges shake, so now the window resizes only twice: it jumps once to an invisible area covering both places, the panel grows from one place to the other over 720 ms with its content reflowing as it goes, and the window lands. Where the window's corner has to move, a picture of the panel stands in for the few frames it's hidden, so it never blinks; the picture's window is ready before the first move, and a late picture is dropped rather than flashed. The window is no longer hidden by turning it transparent, which made macOS show it for a frame at its old corner (a second panel at the screen's corner). The window re-renders only when its layout changes. **No more flashing the app behind.** Otty stays a background-only app in both states, with no Dock icon: the roomy window's Dock icon came from switching the app's kind (Electron's Dock calls, and its workspace setting, which switches unless told not to), and every switch handed the focus to the app behind. The roomy window keeps its own keys; it loses the menu bar and ⌘Tab. Otty also leaves the floating level only once it has focus. Pressing again mid-move queues the way back.
+- **Clicking the bubble doesn't startle Otty.** The caught frame (paws up) is for being carried: it shows once a press moves, and the wiggle follows only a real drop.
+
 ### The cove, full bleed (D-74, 2026-11-21)
 
 - **Otty's place fills the window.** On Home and the empty chat the painted cove now runs behind the whole screen, under the header and the message box, as the design drew it: the date and greeting on the sky, Otty floating *in* the water at its waterline with a soft reflection, and every card, the header and the message box on clear glass that the cove shows through. It was a picture strip over a plain page.

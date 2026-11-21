@@ -3,7 +3,7 @@ import { HealthBanner } from './HealthBanner'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'motion/react'
 import { T, ebb, glide } from '../lib/motion'
-import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, Memory, PanelOpenPayload, PendingFile, PublicSettings } from '../../../shared/types'
+import type { AnswerLanguage, AppInfo, Capture, EditDraft, LogView, Memory, PanelOpenPayload, PendingFile, PublicSettings, WindowGlide, WindowState } from '../../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../../shared/captures'
 import { FileList, FileTray } from '../components/FileChips'
 import { CoveOtty } from '../components/Cove'
@@ -65,6 +65,23 @@ const TITLES: Partial<Record<string, string>> = {
   notebook: 'Notebook'
 }
 
+/** Once the window is at the glide's size and a frame has been drawn there, tell main (and then go on). */
+/**
+ * Once the window is at the glide's size, `sized` lays the panel out for it; once that's been drawn (two frames, and
+ * one more to be sure it's on screen), tell main, then `then`. Nothing is laid out for a size the window isn't yet.
+ */
+function whenDrawn(g: WindowGlide, sized: () => void, then: () => void): void {
+  const start = performance.now()
+  const frame = (f: () => void) => requestAnimationFrame(() => f())
+  const check = () => {
+    const ok = window.innerWidth === g.width && window.innerHeight === g.height
+    if (!ok && performance.now() - start < 500) return frame(check)
+    sized()
+    frame(() => frame(() => frame(() => (window.otty.windowGlideReady(), then()))))
+  }
+  check()
+}
+
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
   const [view, setView] = useState<View>('chat')
@@ -75,6 +92,7 @@ export function Panel() {
   const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null)
   /** Floating or roomy (D-65), from main; the content dims while the window moves between them. */
   const [roomy, setRoomy] = useState(false)
+  /** Moving between states (Spec 06): nothing frosts or eases while the panel grows. */
   const [moving, setMoving] = useState(false)
   const width = useWidth(frameEl)
   /** The Settings section on show; null is the list of sections. */
@@ -165,15 +183,63 @@ export function Panel() {
     return window.otty.onSettings(setSettings)
   }, [])
 
-  useEffect(
-    () =>
-      window.otty.onWindowState((state) => {
-        setRoomy(state === 'roomy')
-        setMoving(true)
-        setTimeout(() => setMoving(false), 720)
-      }),
-    []
-  )
+  useEffect(() => {
+    // Main says the state on every load too: only a change is a move, and only a move fades the content out.
+    let was: WindowState | null = null
+    return window.otty.onWindowState((state) => {
+      setRoomy(state === 'roomy')
+      if (was && was !== state) setMoving(true)
+      was = state
+    })
+  }, [])
+  // Draws the move (Spec 06): main says where the window was and where it's going inside one window covering both, and
+  // the panel grows from one place to the other there, its content reflowing as it goes, like a Mac window. It's placed
+  // straight on the element (not through a render) before the window grows, and every step is answered once it's drawn
+  // at the window's new size, so main can show the window again. Without `from`, the move has landed.
+  useEffect(() => {
+    let grow: Animation | null = null
+    return window.otty.onWindowGlide((g) => {
+      const el = frameEl
+      if (!el) return window.otty.windowGlideReady()
+      // The running animation holds the panel's place: it's let go only together with that place (a bare absolute
+      // panel shrinks to fit at the window's top left).
+      if (g.blank) {
+        // Before a jump that moves the window's corner: nothing on screen, so its last picture is empty.
+        return whenDrawn(g, () => (el.style.visibility = 'hidden'), () => {})
+      }
+      const was = grow
+      grow = null
+      if (g.from && g.to) {
+        was?.cancel()
+        const css = getComputedStyle(document.documentElement)
+        const round = (floating: boolean) => css.getPropertyValue(floating ? '--radius' : '--r-sm').trim() || '0px'
+        const box = (r: NonNullable<WindowGlide['from']>, floating: boolean) => ({
+          left: `${r.x}px`,
+          top: `${r.y}px`,
+          width: `${r.width}px`,
+          height: `${r.height}px`,
+          borderRadius: round(floating)
+        })
+        const growing = g.to.width > g.from.width
+        el.style.position = 'absolute'
+        grow = el.animate([box(g.from, growing), box(g.to, !growing)], { duration: T.travel * 1000, easing: `cubic-bezier(${glide.join(',')})`, fill: 'both' })
+        grow.pause()
+        whenDrawn(g, () => (el.style.visibility = ''), () => grow?.play())
+      } else {
+        // Landed: back to filling the window, only once the window is its new size.
+        whenDrawn(
+          g,
+          () => {
+            was?.cancel()
+            el.style.position = ''
+            el.style.visibility = ''
+            setMoving(false)
+          },
+          () => {}
+        )
+      }
+    })
+  }, [frameEl])
   // The app menu asks the window to go somewhere (D-65): the same navigation as the keys.
   useEffect(
     () =>

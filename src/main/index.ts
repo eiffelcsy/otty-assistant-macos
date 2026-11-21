@@ -23,7 +23,9 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.whenReady().then(() => {
     startLog(app.getPath('logs'), app.getVersion())
-    app.dock?.hide() // Otty lives in the bubble + menu bar, not the Dock.
+    // Otty lives in the bubble and the menu bar, never the Dock, in both window states (2026-11-21): only a
+    // background-only app can float over full-screen apps, and switching in and out of it moved the focus.
+    app.dock?.hide()
     startMetrics()
     registerIpc()
     createPanel().on('show', () => setBadge(false))

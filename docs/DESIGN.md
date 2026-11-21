@@ -370,7 +370,7 @@ Widths, screens and Expand / Shrink.
 
 | ID | Interaction | When | Then | Why | Build | Cost |
 | --- | --- | --- | --- | --- | --- | --- |
-| W1 | Expand / Shrink in one move | The Expand button or ⇧⌘E (⌃⌘F is the Mac’s full screen) | One animated setBounds over 720 ms. Content dims during the move, reflows, then surfaces back. | Keeps the “same window” promise and hides reflow. | Now | main |
+| W1 | Expand / Shrink in one move | The Expand button or ⇧⌘E (⌃⌘F is the Mac’s full screen) | One move over 720 ms on `--glide`, drawn by the page as the panel growing inside one window that covers both places, so the window itself resizes only twice (Spec 06). The content stays visible and reflows as it grows, like a Mac window. Pressing again mid-move queues the way back. | Keeps the “same window” promise and hides reflow. | Now | main |
 | W2 | Panes enter by side | Width crosses 640 or 980 | Sidebar slides from the left, details pane from the right, over 480 ms. | Shows where new things came from. | Next | brief |
 | W3 | Scroll anchor on reflow | Any width change | The message at the top of the view stays at the top. | Resizing never loses your place. | Now | on touch |
 | W4 | Push and pop | Moving between screens when narrow | Forward glides in from the right over 480 ms; Back from the left. ⌘[ goes back. | Navigation with a direction (UX #10). | Built: any other move surfaces 10 px | brief |
@@ -383,7 +383,7 @@ Widths, screens and Expand / Shrink.
 | W11 | Warm tooltips | Hovering header icons | First tooltip after 500 ms, then instant while moving between icons for 1.5 s. | Fast to scan, quiet to ignore. | Now | on touch |
 | W12 | Command bar | ⌘K when roomy | Surfaces at 0.98 scale over 280 ms; the highlighted row glides. | Power without more chrome (A7). | Later | on touch |
 | W13 | Title crossfade | The screen changes | The header title crossfades over 280 ms. | A continuous header. | Built (the new title surfaces 3 px) | brief |
-| W14 | Return to Dock hiding | The roomy window shrinks or closes | The Dock icon leaves after the shrink completes. | No Dock flicker mid-move. | Next | main |
+| W14 | ~~Return to Dock hiding~~ | — | Dropped 2026-11-21: Otty has no Dock icon in either state, because adding and removing it moved the focus to the app behind. | — | — | — |
 
 ### M. Composer
 

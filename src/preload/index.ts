@@ -136,6 +136,8 @@ const api: OttyApi = {
   onBubbleBadge: (cb) => listen('bubble:badge', cb),
   onWindowVisible: (cb) => listen('window:visible', cb),
   onWindowState: (cb) => listen('window:state', cb),
+  onWindowGlide: (cb) => listen('window:glide', cb),
+  windowGlideReady: () => ipcRenderer.send('window:glide-ready'),
   onFrameCommand: (cb) => listen('frame:command', cb)
 }
 

@@ -8,12 +8,14 @@ const STARTS: [hour: number, time: CoveTime][] = [
   [19, 'night']
 ]
 
-/** The painting for this moment on the Mac's clock. Dark mode is the night picture, never an inverted day. */
-export function coveTime(now: Date, dark: boolean): CoveTime {
-  if (dark) return 'night'
+/** The painting for this moment on the Mac's clock, whatever the appearance: dark mode changes the glass, not the hour. */
+export function coveTime(now: Date): CoveTime {
   const h = now.getHours()
   return STARTS.findLast(([start]) => h >= start)?.[1] ?? 'night'
 }
+
+/** The glass over the painting: dark in dark mode, and always at night, where light glass would glare. */
+export const coveGlass = (time: CoveTime, dark: boolean): 'light' | 'dark' => (dark || time === 'night' ? 'dark' : 'light')
 
 /** Milliseconds until the next painting starts, so one timer is enough (no polling). */
 export function untilNextCove(now: Date): number {
