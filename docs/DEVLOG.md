@@ -352,6 +352,14 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
+## D-75 · One cove: every view in the cove's language 🔨
+
+**Goal.** The whole app reads as one place at one hour, as Home does since D-74. The design, every token and the selector-by-selector surface map are in [Spec 08](design/specs/08-one-cove.md); nothing is left to the build.
+
+**Steps.** 1) Foundation: the mist tokens, paper glass, the cove's text roles everywhere, `data-time` on every window, the contrast pairs (built). 2) Five packages in parallel, by `styles.css` section (Spec 08, Part 6): the frame and header band, chat, settings and the welcome, cards, and the other windows. 3) Merge, check every scene by eye in light and dark at two hours, then the screens baseline in its own PR.
+
+**Done when.** Spec 08's "Done when"; then this entry goes, CHANGELOG keeps the summary, and smoke step 177 stays.
+
 ## D-73 · Otty's calendar, step 1: a local calendar, UI first ⏳
 
 **Goal.** A calendar that belongs to Otty, in the roomy window: the user sees their week, adds and moves events, and asks Otty to plan ("block two hours for the essay before Thursday"), every change Otty makes undoable from the Logbook. Nothing leaves the Mac. The concept, and the later steps (overlay, sharing, otters agreeing a time), are in BRAINSTORM's [Otty's own calendar](BRAINSTORM.md#ottys-own-calendar-shared-and-multi-person).
