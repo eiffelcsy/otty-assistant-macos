@@ -76,7 +76,9 @@ export function Quick() {
           setLearning(s.learn)
           setAskHotkey(s.askHotkey)
         })
-        setCaptures(p.context ? [{ id: crypto.randomUUID(), context: p.context, app: p.app ?? null }] : [])
+        // The ref too, at once: an add arriving before the next render would otherwise build on the old list.
+        capturesRef.current = p.context ? [{ id: crypto.randomUUID(), context: p.context, app: p.app ?? null }] : []
+        setCaptures(capturesRef.current)
         setApp(p.context ? null : (p.app ?? null))
         setPinned(false)
         setFull(false)
