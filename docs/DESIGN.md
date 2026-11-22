@@ -210,7 +210,7 @@ One window, layout from width alone (container queries, never viewport media que
 
 ## Screens
 
-Screen specs, written to the polish bar, in build order: [01 Decisions and receipts](design/specs/01-decisions.md) (confirm cards, receipts, the Noted line) · [02 Settings](design/specs/02-settings.md) · [03 Chat and the message box](design/specs/03-chat.md) · [04 Logbook](design/specs/04-logbook.md) · [05 The frame and layout from width](design/specs/05-frame.md) · [06 The roomy window and Home](design/specs/06-roomy-and-home.md) · [07 The cove, full bleed](design/specs/07-cove.md) · [08 One cove: the whole app in the cove's language](design/specs/08-one-cove.md). Each covers 420, 760 and 1200 px even while only the panel ships, so nothing is redone for the Otty window. The summaries below are the direction; where they differ, the spec wins.
+Screen specs, written to the polish bar, in build order: [01 Decisions and receipts](design/specs/01-decisions.md) (confirm cards, receipts, the Noted line) · [02 Settings](design/specs/02-settings.md) · [03 Chat and the message box](design/specs/03-chat.md) · [04 Logbook](design/specs/04-logbook.md) · [05 The frame and layout from width](design/specs/05-frame.md) · [06 The roomy window and Home](design/specs/06-roomy-and-home.md) · [07 The cove, full bleed](design/specs/07-cove.md) · [08 One cove: the whole app in the cove's language](design/specs/08-one-cove.md) · [09 Flow and room: one move between screens, columns you can size, page margins](design/specs/09-flow-and-room.md). Each covers 420, 760 and 1200 px even while only the panel ships, so nothing is redone for the Otty window. The summaries below are the direction; where they differ, the spec wins.
 
 ### Home
 

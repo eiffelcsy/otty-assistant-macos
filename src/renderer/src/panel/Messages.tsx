@@ -358,7 +358,7 @@ function RewindCard({ mode, plan, onGo, onCancel }: { mode: RewindMode; plan: Re
           <div className="rewind-card__label">Otty will also undo</div>
           {plan.undo.map((u) => (
             <label key={u.id} className="rewind-card__item">
-              <input type="checkbox" checked={ticked.has(u.id)} onChange={() => flip(u.id)} />
+              <input type="checkbox" className="check" checked={ticked.has(u.id)} onChange={() => flip(u.id)} />
               <span>{u.label}</span>
             </label>
           ))}

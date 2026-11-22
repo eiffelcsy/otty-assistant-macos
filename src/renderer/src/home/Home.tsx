@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 import type { HomeNeed, HomePage, LogControl, Words } from '../../../shared/types'
 import { AnimatePresence, m } from 'motion/react'
 import { Icon } from '../components/Icon'
 import { T, surface } from '../lib/motion'
 import { CoveOtty } from '../components/Cove'
+import { StillMove } from '../frame/Frame'
 
 // Home (D-66, Spec 06): the otter, how things stand in one sentence, then only the blocks with something in them.
 // Every word comes from main (`main/home/`); deciding an item sends its Logbook id through the same channels as the
@@ -31,16 +32,17 @@ async function decide(item: HomeNeed, c: LogControl, onOpenChat: (id: string) =>
   onOpenEntry(item.id)
 }
 
-/** Home arrives in reading order, 60 ms apart: the greeting, then each block. */
-const arrive = (order: number) => ({ ...surface, animate: { ...surface.animate, transition: { delay: 0.1 + order * 0.06 } } })
+/** Home arrives in reading order, 60 ms apart: the greeting, then each block; not when it takes over from the empty chat (Spec 09). */
+const arrive = (order: number, calm: boolean) =>
+  calm ? { ...surface, initial: false as const } : { ...surface, animate: { ...surface.animate, transition: { delay: 0.1 + order * 0.06 } } }
 
 /**
  * A block surfaces when it has something in it and ebbs away when it's empty; the blocks around it glide to their new
  * place (`layout="position"`, so glass and text are moved, never stretched).
  */
-function Block({ label, glyph, value, wait, order, children }: { label: string; glyph: string; value?: string; wait?: boolean; order: number; children: React.ReactNode }) {
+function Block({ label, glyph, value, wait, order, shared, children }: { label: string; glyph: string; value?: string; wait?: boolean; order: number; shared?: string; children: React.ReactNode }) {
   return (
-    <m.section layout="position" {...arrive(order)} className={`home-block${wait ? ' home-block--wait' : ''}`} aria-label={label}>
+    <m.section layout="position" {...arrive(order, false)} data-shared={shared} className={`home-block${wait ? ' home-block--wait' : ''}`} aria-label={label}>
       <h2 className="home-block__head">
         <Icon name={glyph} />
         <span className="home-block__label">{label}</span>
@@ -51,7 +53,7 @@ function Block({ label, glyph, value, wait, order, children }: { label: string; 
   )
 }
 
-function Needs({ page, onOpenChat, onOpenEntry, onOpenLogbook }: { page: HomePage; onOpenChat: (id: string) => void; onOpenEntry: (id: string) => void; onOpenLogbook: () => void }) {
+function Needs({ page, fresh, onOpenChat, onOpenEntry, onOpenLogbook }: { page: HomePage; fresh: boolean; onOpenChat: (id: string) => void; onOpenEntry: (id: string) => void; onOpenLogbook: () => void }) {
   const [open, setOpen] = useState(0)
   return (
     <Block label="Needs you" glyph="inbox-in" value={String(page.needs.total)} wait order={1}>
@@ -67,7 +69,7 @@ function Needs({ page, onOpenChat, onOpenEntry, onOpenLogbook }: { page: HomePag
                   <div className="home-need__subject">{item.subject}</div>
                   <div className="home-need__actions">
                     {item.actions.map((c) => (
-                      <button key={c.kind} className={`btn btn--small ${c.primary ? 'btn--primary' : 'btn--quiet'}`} onClick={() => void decide(item, c, onOpenChat, onOpenEntry)}>
+                      <button key={c.kind} className={`btn btn--small ${c.primary ? 'btn--primary' : 'btn--quiet'}`} disabled={!fresh} onClick={() => void decide(item, c, onOpenChat, onOpenEntry)}>
                         {c.label}
                       </button>
                     ))}
@@ -160,9 +162,25 @@ export interface HomeProps {
   suggestions: string[]
 }
 
+/** The last page shown, so Home opens on it instead of an empty frame while the next one loads (Spec 09). */
+let lastPage: HomePage | null = null
+
 export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, suggestions }: HomeProps) {
-  const [page, setPage] = useState<HomePage | null>(null)
-  const load = useCallback(() => void window.otty.home().then(setPage), [])
+  const [page, setPage] = useState<HomePage | null>(lastPage)
+  // Spec 09: taking over from the empty chat, what mounts with Home skips its arrival; anything that appears later arrives.
+  const still = useContext(StillMove)
+  const [calm] = useState(still)
+  // The cached page is shown at once, but nothing on it can be decided until the fresh one is in.
+  const [fresh, setFresh] = useState(false)
+  const load = useCallback(
+    () =>
+      void window.otty.home().then((p) => {
+        lastPage = p
+        setPage(p)
+        setFresh(true)
+      }),
+    []
+  )
   useEffect(() => {
     load()
     return window.otty.onLogbook(load)
@@ -172,8 +190,8 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
     <div className="home cove-scroll" role="main" aria-label="Home">
       {/* The greeting on the sky and Otty in the water, over the frame's cove (D-74, Spec 07). */}
       <div className="cove-hero">
-        <div className="cove-hero__words">
-          <m.div className="cove-hero__arrive" {...arrive(0)}>
+        <div className="cove-hero__words" data-shared="words">
+          <m.div className="cove-hero__arrive" data-fresh {...arrive(0, calm)}>
             <span className="cove-hero__date">{page.date}</span>
             <h1 className="cove-hero__hello">{page.greeting}</h1>
             <p className="cove-hero__sentence" aria-live="polite">
@@ -185,7 +203,7 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
       </div>
       <div className="home__column">
         {page.now.length > 0 && (
-          <m.div className="home__now" {...arrive(1)}>
+          <m.div className="home__now" {...arrive(1, calm)}>
             {page.now.map((n) => (
               <button key={n.id} className="home-now" onClick={() => onOpenEntry(n.id)}>
                 <span className={`home-now__dot${n.paused ? ' home-now__dot--paused' : ''}`} aria-hidden="true" />
@@ -197,16 +215,16 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
           </m.div>
         )}
         <div className="home__blocks">
-          <AnimatePresence>
-            {page.needs.total > 0 && <Needs key="needs" page={page} onOpenChat={onOpenChat} onOpenEntry={onOpenEntry} onOpenLogbook={() => onOpenLogbook('wait')} />}
+          <AnimatePresence initial={!calm}>
+            {page.needs.total > 0 && <Needs key="needs" page={page} fresh={fresh} onOpenChat={onOpenChat} onOpenEntry={onOpenEntry} onOpenLogbook={() => onOpenLogbook('wait')} />}
           </AnimatePresence>
           <div className="home__pair">
-            <AnimatePresence>{page.today.ticks.length + page.today.folded > 0 && <Today key="today" page={page} onOpenEntry={onOpenEntry} />}</AnimatePresence>
+            <AnimatePresence initial={!calm}>{page.today.ticks.length + page.today.folded > 0 && <Today key="today" page={page} onOpenEntry={onOpenEntry} />}</AnimatePresence>
             <div className="home__side">
-              <AnimatePresence>
+              <AnimatePresence initial={!calm}>
                 {page.after.total > 0 && <After key="after" page={page} onOpenEntry={onOpenEntry} onOpenComingUp={() => onOpenLogbook('next')} />}
               </AnimatePresence>
-              <m.section layout="position" {...arrive(4)} className="home-left" aria-label="What left your Mac">
+              <m.section layout="position" {...arrive(4, calm)} className="home-left" aria-label="What left your Mac">
                 <Icon name="arrow-up-right-from-square" />
                 <span>
                   <Said words={page.left} />{' '}
@@ -217,10 +235,10 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
               </m.section>
             </div>
           </div>
-          <AnimatePresence>
+          <AnimatePresence initial={!calm}>
             {page.firstRun && suggestions.length > 0 && (
-              <Block key="try" label="Try asking" glyph="comment" order={5}>
-                <ul className="home-try">
+              <Block key="try" label="Try asking" glyph="comment" order={5} shared="try">
+                <ul className="home-try" data-fresh>
                   {suggestions.slice(0, 3).map((t) => (
                     <li key={t}>
                       <button className="home-try__row" onClick={() => onSuggest(t)}>

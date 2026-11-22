@@ -39,6 +39,7 @@ function fakeWindow() {
     setVisibleOnAllWorkspaces: (on: boolean, o?: { skipTransformProcessType?: boolean }) =>
       void calls.push(`spaces:${on}${o?.skipTransformProcessType ? '' : ':switches-app'}`),
     setWindowButtonVisibility: (on: boolean) => void calls.push(`lights:${on}`),
+    setWindowButtonPosition: () => {},
     setFullScreenable: (on: boolean) => void calls.push(`fullscreenable:${on}`),
     setMaximizable: (on: boolean) => void calls.push(`zoom:${on}`),
     setMinimumSize: (w: number, h: number) => void calls.push(`min:${w}x${h}`),

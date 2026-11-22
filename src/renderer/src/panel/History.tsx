@@ -77,7 +77,7 @@ const KEPT: Record<KeepChats, string> = {
   forever: 'Otty keeps your chats on this Mac until you forget them.'
 }
 
-export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; focusSearch: number; keep: KeepChats }) {
+export function History({ onOpen, focusSearch, keep, shown = true }: { onOpen: () => void; focusSearch: number; keep: KeepChats; shown?: boolean }) {
   const [chats, setChats] = useState<ChatSummary[] | null>(null)
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<ChatSearchHit[] | null>(null)
@@ -86,9 +86,16 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
   const searchRef = useRef<HTMLInputElement>(null)
   const latest = useRef(0)
 
+  // The list stays mounted beside the chat (Spec 09), so it reloads whenever its chats can have changed: on show,
+  // and as a question goes out, an answer ends, a new chat starts or a saved one opens.
   useEffect(() => {
-    void window.otty.listChats().then(setChats)
-  }, [])
+    if (!shown) return
+    const reload = () => void window.otty.listChats().then(setChats)
+    reload()
+    return window.otty.onChatEvent((e) => {
+      if (e.type === 'user' || e.type === 'done' || e.type === 'reset' || e.type === 'load') reload()
+    })
+  }, [shown])
 
   const loaded = chats !== null
   useEffect(() => {
@@ -224,7 +231,7 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
             <div key={c.id} className="history__item">
               <input
                 type="checkbox"
-                className="history__pick"
+                className="check history__pick"
                 aria-label={`Select “${c.title}”`}
                 checked={picked.has(c.id)}
                 onChange={() => togglePick(c.id)}
