@@ -165,6 +165,9 @@
   --s-6: 24px;
   --s-8: 32px;
   --s-12: 48px;
+  /* The page's side margin, set per band on .frame, and the reading column's width (Spec 09, Part 4). */
+  --s-page: var(--s-4);
+  --w-page: 720px;
 
   /* Type roles: size and line height. Weights are 500, 600, 700 and 800 only. */
   --fs-display: 24px;
@@ -617,6 +620,11 @@ html[data-view='bubble'] body {
   gap: var(--s-1);
   -webkit-app-region: no-drag;
 }
+/* The main header's title starts on the page's margin from the rail up; compact keeps Spec 05's 12, so the screen
+   menu stays put (Spec 09, Part 4). */
+.frame:not(.frame--compact) > .frame__main > .panel__header {
+  padding-left: var(--s-page);
+}
 
 /* ---------- The frame (D-64, Spec 05): nav, header and columns, laid out by the window's width alone ---------- */
 .frame {
@@ -626,6 +634,7 @@ html[data-view='bubble'] body {
   flex: 1;
   min-height: 0;
   display: flex;
+  --list-now: 0px;
 }
 /* The hour's painting as a blur of its colours, behind the whole frame: the nav and the list column are frosted glass
    over it (Spec 08, Part 8). Pre-blurred by prepare.py, so nothing blurs at run time. */
@@ -645,14 +654,26 @@ html[data-view='bubble'] body {
 :root[data-time='night'] .frame__haze {
   background-image: url('./assets/cove/haze-night.webp');
 }
+/* Its line is a shadow, not a border, so shut at no width it leaves no gap for the haze to show through. */
 .frame__list {
   flex: none;
-  width: var(--list-w);
+  width: var(--list-now);
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--side-glass);
-  border-right: 1px solid var(--hairline);
+  box-shadow: inset -1px 0 var(--hairline);
   outline: none;
+}
+/* Its contents keep the list's width while it opens and closes, so they're uncovered, never squeezed (Spec 09). */
+.frame__list > :not(.frame__edge) {
+  min-width: var(--list-w);
+}
+/* Shut, it stays mounted at no width, and goes from view once its glide has finished (Spec 09, Part 2). */
+.frame__list[data-shut] {
+  visibility: hidden;
+  transition: visibility 0s linear var(--t-settle);
 }
 .frame__main {
   flex: 1;
@@ -695,9 +716,12 @@ html[data-view='bubble'] body {
   border: none;
   border-radius: var(--r-sm);
 }
-.frame--roomy .panel__header,
-.frame--roomy .frame__nav-top {
+.frame--roomy .panel__header {
   height: 52px;
+}
+/* The nav's top row only holds the traffic lights (they end 34 down), so Otty sits close under them. */
+.frame--roomy .frame__nav-top {
+  height: 40px;
 }
 /* While the panel grows between states, nothing frosts or eases: each frame is one layout of the content. */
 .panel--moving .frame * {
@@ -707,9 +731,79 @@ html[data-view='bubble'] body {
 .frame__expand {
   color: var(--brand-text);
 }
+/* Spec 09, Part 3: a column's edge, 6 px inside its right side; a brand line shows on hover, focus and drag. */
+.frame__edge {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  outline: none;
+  touch-action: none;
+  -webkit-app-region: no-drag;
+}
+.frame__edge::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--brand);
+  opacity: 0;
+  transition: opacity var(--t-quick) var(--glide);
+}
+.frame__edge:hover::after,
+.frame__edge:focus-visible::after,
+.frame__edge:active::after {
+  opacity: 0.6;
+}
+/* While an edge is dragged the whole frame keeps its cursor and nothing gets selected, wherever the hand goes. */
+.frame[data-resizing],
+.frame[data-resizing] * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+.frame[data-resizing] .frame__edge::after {
+  opacity: 0.6;
+}
+/* The sidebar button (Spec 09, Part 3): the traffic lights' size (28, a 16 px glyph), on their centre line (14 pt at
+   x 16, y 20, so 27 of the 52 px row), its glyph 16 past the last one. Beside a roomy rail it leads the next column's
+   header instead, on the cove's sky. Two classes, so it beats .icon-btn's 32 px, which comes later. */
+.icon-btn.frame__side-toggle {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  font-size: var(--i-lg);
+  -webkit-app-region: no-drag;
+}
+.frame > .icon-btn.frame__side-toggle {
+  position: absolute;
+  z-index: 6;
+  top: calc((var(--header-h) - 28px) / 2 + 1px);
+  left: var(--s-3);
+}
+.frame--nav-rail > .icon-btn.frame__side-toggle {
+  left: 22px;
+}
+.frame--roomy > .icon-btn.frame__side-toggle {
+  left: 86px;
+}
+/* Leading a header: 8 past the rail's edge, the title 8 after it. */
+.frame.frame--roomy > .frame__main > .panel__header:has(> .frame__side-toggle),
+.frame.frame--roomy > .frame__list > .panel__header:has(> .frame__side-toggle) {
+  padding-left: var(--s-2);
+}
+/* The header centres it on 25.5 (its hairline takes a pixel); the lights' centre is 27. */
+.panel__header > .icon-btn.frame__side-toggle {
+  translate: 0 1.5px;
+}
 /* The rail (640–979) and the sidebar (from 980): Otty, the screens, then Pause and Settings at the foot. */
 .frame__nav {
   flex: none;
+  position: relative;
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--hairline);
@@ -725,7 +819,7 @@ html[data-view='bubble'] body {
   padding: 0 0 var(--s-3);
 }
 .frame__nav--sidebar {
-  width: 216px;
+  width: var(--nav-w);
   padding: 0 var(--s-3) var(--s-3);
 }
 .frame__nav-top {
@@ -1338,22 +1432,16 @@ html[data-view='bubble'] body {
 .frame--roomy {
   --header-h: 52px;
 }
-/* The chat list's width. Beside it the cove keeps Home's framing (Spec 08, Part 10): laid out from the nav's edge, as
-   on Home, and clipped at the list's, so the painting doesn't change and the words and Otty move over with the column. */
-.frame {
-  --list-w: 240px;
-}
-.frame--wide {
-  --list-w: 248px;
-}
-.frame:has(> .frame__list) .frame__main--cove > .cove {
-  --cove-shift: var(--list-w);
-  left: calc(-1 * var(--list-w));
-  clip-path: inset(0 0 0 var(--list-w));
+/* The chat list's width. Its offset follows the list's live edge (--list-now), so the painting holds still while the list opens. */
+.frame__main--cove > .cove {
+  --cove-shift: var(--list-now);
+  left: calc(-1 * var(--list-now));
+  clip-path: inset(0 0 0 var(--list-now));
 }
 .frame--rail,
 .frame--medium {
   --horizon: 248px;
+  --s-page: var(--s-6);
   --otty-w: 168px;
   --waterline: 24px;
   --hero-gap: 80px;
@@ -1361,6 +1449,7 @@ html[data-view='bubble'] body {
 }
 .frame--wide {
   --horizon: 288px;
+  --s-page: var(--s-8);
   --otty-w: 200px;
   --waterline: 32px;
   --hero-gap: 88px;
@@ -1798,6 +1887,10 @@ html[data-view='bubble'] body {
 }
 .cove-otty[data-arriving] {
   animation: cove-arrive-otty var(--t-drift) var(--buoy) 160ms both;
+}
+/* Between Home and the empty chat Otty is already in the water: un-hiding the chat's screen must not replay its arrival (Spec 09, Part 2). */
+.frame__body[data-still] .cove-otty[data-arriving] {
+  animation: none;
 }
 /* Looking back down (Frame.tsx sets it while the camera lands), the stand-in in the cove carries Otty home; the hero's
    Otty takes over only when the world has landed, at the same place, so there's never two. */
@@ -2615,9 +2708,10 @@ html[data-view='bubble'] body {
   gap: var(--s-4);
   padding-bottom: var(--s-4);
 }
+/* 688 wide, like Home's blocks, so the card holds its size between the two (Spec 09, Part 2). */
 .empty .try {
   width: auto;
-  margin: 0 var(--s-4);
+  margin: 0 var(--s-3);
 }
 
 /* ---------- Composer ---------- */
@@ -3386,10 +3480,16 @@ html[data-view='bubble'] body {
 .settings {
   flex: 1;
   overflow-y: auto;
-  padding: var(--s-3) var(--s-4) var(--s-4);
+  padding: var(--s-4) var(--s-page) var(--s-8);
   display: flex;
   flex-direction: column;
   gap: var(--s-6);
+}
+/* Settings and the Notebook read in a centred column on the page's margin (Spec 09, Part 4). */
+.frame .settings > * {
+  width: 100%;
+  max-width: var(--w-page);
+  margin-inline: auto;
 }
 
 /* ---------- Settings in sections (D-61, Spec 02) ---------- */
@@ -3427,7 +3527,11 @@ html[data-view='bubble'] body {
   display: flex;
   align-items: center;
   gap: var(--s-1);
-  margin: 0 0 calc(var(--s-3) - var(--s-6)) calc(-1 * var(--s-2));
+  margin: 0 0 calc(var(--s-3) - var(--s-6));
+}
+/* The title sits on the page's margin; only a Back button hangs into it, so its glyph lines up with the content. */
+.set-bar > .icon-btn:first-child {
+  margin-left: calc(-1 * var(--s-2));
 }
 .set-bar__title {
   flex: 1;
@@ -4043,9 +4147,8 @@ html[data-view='quick'] body {
 }
 .history__pick {
   flex: none;
-  margin: 0 0 0 var(--s-2);
-  accent-color: var(--brand);
   opacity: 0;
+  transition: opacity var(--t-quick) var(--glide);
 }
 .history__item:hover .history__pick,
 .history__item:focus-within .history__pick,
@@ -4790,7 +4893,11 @@ button.menu__item:hover {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 0 var(--s-4) var(--s-4);
+  padding: 0 var(--s-page) var(--s-8);
+}
+.logbook__main > * {
+  max-width: 680px;
+  margin-inline: auto;
 }
 .logbook--open .logbook__main {
   display: none;
@@ -4800,7 +4907,7 @@ button.menu__item:hover {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: var(--s-3) var(--s-4) var(--s-4);
+  padding: var(--s-3) var(--s-page) var(--s-8);
 }
 /* The views: three one-line rows, then "Looking for…" and three two-line rows. Text rows with counts, never pills. */
 .log-view {
@@ -5258,10 +5365,6 @@ button.menu__item:hover {
   .logbook--open .logbook__main {
     display: block;
   }
-  .logbook__main > * {
-    max-width: 680px;
-    margin-inline: auto;
-  }
   .logbook__details,
   .logbook--open .logbook__details {
     display: block;
@@ -5681,12 +5784,6 @@ html[data-view='viewer'] body {
   font-size: var(--fs-small);
   line-height: var(--lh-small);
 }
-.rewind-card__item input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--brand-fill);
-}
 .rewind-card__item--lasting {
   color: var(--text-2);
 }
@@ -5896,4 +5993,75 @@ html[data-view='viewer'] body {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* ---------- The check (Spec 09, Part 5): one look for every checkbox, a native input drawn in the house style ---------- */
+/* Field glass with a fine rim; checked, it fills with the meadow, the tick draws in and the box gives one small buoyant
+   pop. Keyboard focus shows the soft ring. Reduced motion keeps the colours and drops the movement. */
+.check {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-radius: var(--r-xs);
+  background: var(--mist-field);
+  box-shadow: inset 0 0 0 1.5px var(--hairline-strong);
+  cursor: pointer;
+  transition:
+    background-color var(--t-quick) var(--glide),
+    box-shadow var(--t-quick) var(--glide),
+    transform var(--t-tap) var(--buoy);
+}
+.check:hover {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--brand) 55%, transparent);
+}
+.check:active {
+  transform: scale(0.9);
+}
+.check:checked {
+  background: var(--brand-fill);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand-fill) 70%, black), 0 1px 2px rgba(30, 34, 40, 0.18);
+  animation: check-pop var(--t-quick) var(--buoy);
+}
+.check::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2.5px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--brand-ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0.4);
+  opacity: 0;
+  transition:
+    transform var(--t-quick) var(--buoy),
+    opacity var(--t-tap) var(--glide);
+}
+.check:checked::after {
+  transform: rotate(45deg) scale(1);
+  opacity: 1;
+}
+.check:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1.5px var(--brand), var(--ring);
+}
+/* In the chat list it sits 12 in from the row's card, like the row's own inset. */
+.check.history__pick {
+  margin-left: var(--s-3);
+}
+@keyframes check-pop {
+  40% { transform: scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .check,
+  .check::after {
+    transition: background-color var(--t-quick) var(--glide), box-shadow var(--t-quick) var(--glide);
+    animation: none;
+  }
+  .check:active {
+    transform: none;
+  }
 }

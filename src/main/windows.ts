@@ -5,7 +5,7 @@ import { join } from 'path'
 import { getViewer } from './draw'
 import { readText } from './ocr'
 import { getStored, saveBubblePosition } from './settings'
-import { closeRoomy, expand, floatingSize, FLOATING, remember, sendState, shrink, windowState, SPACES, prepareStandIn } from './roomy'
+import { closeRoomy, expand, floatingSize, FLOATING, remember, sendState, shrink, windowState, SPACES, prepareStandIn, LIGHTS } from './roomy'
 
 const BUBBLE_SIZE = 84
 const QUICK_W = 420
@@ -89,7 +89,7 @@ export function createPanel(): BrowserWindow {
     // D-65: a hidden title bar, not a frameless window, so the same window can show traffic lights when it's roomy.
     // While it floats they're hidden, and the page draws its own corners on a transparent window, as before.
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 16, y: 20 },
+    trafficLightPosition: LIGHTS,
     transparent: true,
     resizable: true,
     skipTaskbar: true,

@@ -29,6 +29,7 @@ import { Notebook } from './Notebook'
 import { Home } from '../home/Home'
 import { Frame, useWidth, type Place } from '../frame/Frame'
 import { columns } from '../frame/bands'
+import { loadSides, saveSides, toggleSides, type Sides } from '../frame/sides'
 
 type View = 'home' | 'chat' | 'settings' | 'onboarding' | 'history' | 'logbook' | 'notebook'
 
@@ -87,14 +88,30 @@ export function Panel() {
   const [view, setView] = useState<View>('chat')
   /** Where Back goes: the pages pushed on top of a root screen (Spec 05). Layout, so it lives here, not in main. */
   const [stack, setStack] = useState<View[]>([])
-  /** ⌃⌘S folds the sidebar to the rail. */
-  const [sidebarHidden, setSidebarHidden] = useState(false)
+  /** The side columns' sizes and folds (Spec 09): this window's layout, kept in its localStorage. */
+  const [sides, setSidesState] = useState<Sides>(loadSides)
+  const setSides = (next: Sides) => {
+    setSidesState(next)
+    saveSides(next)
+  }
+  /** What the sidebar button needs, for the keys and the app menu, which are set up once. */
+  const sideRef = useRef({ width: 0, hasList: false })
+  const flipSides = () =>
+    setSidesState((s) => {
+      const next = toggleSides(sideRef.current.width, sideRef.current.hasList, s)
+      saveSides(next)
+      return next
+    })
   const [frameEl, setFrameEl] = useState<HTMLDivElement | null>(null)
   /** Floating or roomy (D-65), from main; the content dims while the window moves between them. */
   const [roomy, setRoomy] = useState(false)
   /** Moving between states (Spec 06): nothing frosts or eases while the panel grows. */
   const [moving, setMoving] = useState(false)
   const width = useWidth(frameEl)
+  // The sidebar button's facts for the keys and the app menu, kept after each render (refs aren't touched in render).
+  useEffect(() => {
+    sideRef.current = { width, hasList: Boolean(settings?.rememberChats) && columns(width, true).list && (view === 'chat' || view === 'history') }
+  })
   /** The Settings section on show; null is the list of sections. */
   const [settingsAt, setSettingsAt] = useState<SectionId | null>(null)
   /** Which Logbook view to open on; the header button opens Everything. */
@@ -246,7 +263,7 @@ export function Panel() {
       window.otty.onFrameCommand((c) => {
         const nav = navRef.current
         if (c === 'new') return nav.newChat()
-        if (c === 'sidebar') return setSidebarHidden((h) => !h)
+        if (c === 'sidebar') return flipSides()
         if (c === 'find') return dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true }))
         if (c === 'attach') return nav.attach()
         if (c === 'help') return nav.help()
@@ -330,7 +347,7 @@ export function Panel() {
         }
         if (e.key === 's' && e.ctrlKey) {
           e.preventDefault()
-          return setSidebarHidden((h) => !h)
+          return flipSides()
         }
       }
       // ⇧⌘E: Expand or Shrink (Spec 06).
@@ -635,14 +652,16 @@ export function Panel() {
             busy={busy}
             paused={settings.workPaused}
             onNewChat={newChat}
-            sidebarHidden={sidebarHidden}
+            sides={sides}
+            onSides={setSides}
             roomy={roomy}
             onResize={() => void window.otty.setWindowState(roomy ? 'shrink' : 'expand')}
             noChats={!settings.rememberChats}
             menuExtras={menuExtras}
             actions={chatActions}
             cove={shown === 'home' || (shown === 'chat' && messages.length === 0) ? 'full' : 'wash'}
-            list={shown === 'chat' && chatsAsColumn ? <History onOpen={() => go('chat')} focusSearch={searchFocus} keep={settings.keepChats} /> : undefined}
+            list={chatsAsColumn ? <History onOpen={() => go('chat')} focusSearch={searchFocus} keep={settings.keepChats} /> : undefined}
+            listHere={shown === 'chat'}
           >
             <div className="frame__screen frame__screen--chat" hidden={shown !== 'chat'}>
             {finding !== null && <FindBar chat={scrollRef} messages={messages} focus={finding} onClose={() => setFinding(null)} />}
@@ -692,7 +711,7 @@ export function Panel() {
               </button>
             )}
 
-            <footer className="composer">
+            <footer className="composer" data-shared="box">
               {notice && NOTICES[notice] && <NoticeCard notice={notice} onClose={() => setNotice(null)} />}
               {app && <AppTag app={app} onRemove={() => setApp(null)} />}
               <MessageBox
@@ -815,7 +834,7 @@ export function Panel() {
                   onSuggest={(text) => setHomeInput(text)}
                   suggestions={suggestionsFor(null, settings.learn, settings.readsPages, known).map((s) => s.text)}
                 />
-                <footer className="composer">
+                <footer className="composer" data-shared="box">
                   <MessageBox
                     value={homeInput}
                     onChange={setHomeInput}
@@ -873,19 +892,19 @@ function EmptyState({ settings, known, app, onSuggest }: { settings: PublicSetti
     <div className="empty">
       {/* The same cove as Home, full bleed (D-74, Spec 07): the words on the sky, Otty in the water. */}
       <div className="cove-hero">
-        <div className="cove-hero__words">
-          <h2 className="cove-hero__hello">Hi, I’m Otty</h2>
-          <p className="cove-hero__sentence">
+        <div className="cove-hero__words" data-shared="words">
+          <h2 className="cove-hero__hello" data-fresh>Hi, I’m Otty</h2>
+          <p className="cove-hero__sentence" data-fresh>
             Highlight anything and press <kbd>{prettyKey(settings.askHotkey)}</kbd>, or just ask below.
           </p>
         </div>
         <CoveOtty />
       </div>
       {suggestions.length > 0 && (
-        <div className="try">
+        <div className="try" data-shared="try">
           <span className="try__label">Try asking</span>
           {suggestions.map((s) => (
-            <button key={s.text} className="try__row" onClick={() => onSuggest(s.text)}>
+            <button key={s.text} className="try__row" data-fresh onClick={() => onSuggest(s.text)}>
               <Icon name={s.icon} />
               <span>{s.text}</span>
             </button>

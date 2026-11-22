@@ -224,7 +224,7 @@ export function History({ onOpen, focusSearch, keep }: { onOpen: () => void; foc
             <div key={c.id} className="history__item">
               <input
                 type="checkbox"
-                className="history__pick"
+                className="check history__pick"
                 aria-label={`Select “${c.title}”`}
                 checked={picked.has(c.id)}
                 onChange={() => togglePick(c.id)}

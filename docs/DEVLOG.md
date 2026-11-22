@@ -90,6 +90,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | --- | --- | --- | --- | --- |
 | D-55 | The dev harness: `EXTENDING.md`, a `feature` skill and protocol for any scope, checkable "Done when" lines, and the extension points "build your own feature" reuses | ⏳ next | D-48 | M |
 | D-54 | Connections: one layer for APIs and MCP; Canvas and Notion by pasted token, Google Calendar by OAuth, then the MCP client | ⏳ next (step 1 needs no owner decision) | D-52; an OAuth client for Google (owner) | L (step 1: M) |
+| D-76 | Flow and room (Spec 09): the header rides the sheet, Home and the empty chat as one place, sizable side columns with a sidebar button, page margins | 🔨 in build | D-64, D-74 | M |
 | D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ planned | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
@@ -351,11 +352,19 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
+## D-76 · Flow and room: one move between screens, columns you can size, pages with margins 🔨
+
+**Goal.** The owner's notes from use (2026-11-22): the header shows before the sheet it sits on rises; Home → Chats reads as a reload; the chat list can't be sized or hidden; pages crowd the sidebar. [Spec 09](design/specs/09-flow-and-room.md) decides every detail.
+
+**Design.** Part 1: on a camera tilt the main header plays the body's move (`useScreenMove`). Part 2: Home ↔ empty chat skips the whole-screen fade; the list opens by its width (`--list-now`, animated on `.frame`, which the cove is clipped at), `data-shared` pieces FLIP from their old boxes, `data-fresh` words surface, and Home skips its arrival (`StillMove`) and opens on its last page. Part 3: `frame/sides.ts` (widths, folds, `toggleSides`), an `Edge` per column, the sidebar button beside the traffic lights, ⌃⌘S and the menu's Hide sidebar through the same toggle; kept in the window's `localStorage`. Part 4: `--s-page` (16/24/32 by band) and `--w-page` (720) for Settings, the Notebook, the Logbook and the main header.
+
+**Done when.** Spec 09's "Done when" lines hold, with `sides.test.ts` and the Frame test covering the toggle, and the screens diff reviewed and accepted in its own PR.
+
 ## D-73 · Otty's calendar, step 1: a local calendar, UI first ⏳
 
 **Goal.** A calendar that belongs to Otty, in the roomy window: the user sees their week, adds and moves events, and asks Otty to plan ("block two hours for the essay before Thursday"), every change Otty makes undoable from the Logbook. Nothing leaves the Mac. The concept, and the later steps (overlay, sharing, otters agreeing a time), are in BRAINSTORM's [Otty's own calendar](BRAINSTORM.md#ottys-own-calendar-shared-and-multi-person).
 
-**Spec first (UI/UX is the point).** A screen spec, `docs/design/specs/09-calendar.md`, to DESIGN's polish bar before any code: a week view at wide and roomy widths, a day list at the floating window's width (the frame's bands decide, never a measurement), the empty week, an event's card, adding by typing a time into the row, moving by drag with a keyboard path, today's line, and how an event Otty proposed looks before it's accepted. The cove's quiet wash or a time-of-day tint in its header, so it reads as Otty's place. Every state gets a ui-preview scene.
+**Spec first (UI/UX is the point).** A screen spec, `docs/design/specs/10-calendar.md`, to DESIGN's polish bar before any code: a week view at wide and roomy widths, a day list at the floating window's width (the frame's bands decide, never a measurement), the empty week, an event's card, adding by typing a time into the row, moving by drag with a keyboard path, today's line, and how an event Otty proposed looks before it's accepted. The cove's quiet wash or a time-of-day tint in its header, so it reads as Otty's place. Every state gets a ui-preview scene.
 
 **Design.**
 - Data: an `events` table in `otty.db` (a new migration): id, title, start, end, all-day, notes, `made_by` (`you` or `otty`), and the chat it came from. Main owns it behind an `EventStore` (SQLite and memory, as `ChatStore`).

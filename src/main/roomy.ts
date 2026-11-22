@@ -2,6 +2,16 @@ import { app, BrowserWindow, Menu, screen, systemPreferences, type Rectangle } f
 import type { WindowGlide, WindowState } from '../shared/types'
 import { getStored, saveWindowBounds } from './settings'
 
+/** Where the roomy window's traffic lights sit (D-65). The page's sidebar button is placed by them (Spec 09). */
+export const LIGHTS = { x: 16, y: 20 }
+
+/** macOS drops a custom position whenever the lights are shown again, so they'd sit at its default until the next
+ *  layout: every show puts them back. */
+function showLights(win: BrowserWindow): void {
+  win.setWindowButtonVisibility(true)
+  win.setWindowButtonPosition(LIGHTS)
+}
+
 // The Otty window's two states (D-65, Spec 06): one window that floats beside your work, or a normal Mac window with
 // traffic lights. Neither has a Dock icon or menu bar (2026-11-21): only a background-only app can float over full-screen
 // apps, and switching in and out of it moved the focus to the app behind on every move. Expand and Shrink move between them in one animated move, and each
@@ -56,7 +66,7 @@ function behave(win: BrowserWindow, to: WindowState): void {
   if (to === 'roomy') {
     win.setAlwaysOnTop(false)
     win.setVisibleOnAllWorkspaces(false, SPACES)
-    win.setWindowButtonVisibility(true)
+    showLights(win)
     win.setFullScreenable(true)
     win.setMaximizable(true)
     win.setMinimumSize(ROOMY.minWidth, ROOMY.minHeight)
@@ -290,7 +300,7 @@ export const expand = (win: BrowserWindow): Promise<void> =>
     app.focus({ steal: true })
     win.focus()
     behave(win, 'roomy')
-    if (await glide(win, roomyBounds())) win.setWindowButtonVisibility(true)
+    if (await glide(win, roomyBounds())) showLights(win)
   })
 
 /**

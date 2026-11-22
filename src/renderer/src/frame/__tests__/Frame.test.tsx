@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Frame, type FrameProps } from '../Frame'
+import { SIDES } from '../sides'
 
 afterEach(cleanup)
 
@@ -11,7 +12,7 @@ function frame(over: Partial<FrameProps> = {}) {
   const onBack = vi.fn()
   ;(window as unknown as { otty: object }).otty = { saveSettings: vi.fn(async () => ({})) }
   render(
-    <Frame width={420} place="chat" title="Chat" pushed={false} onBack={onBack} onGo={onGo} needsYou={2} status="2 need you" busy={false} paused={false} onNewChat={() => {}} sidebarHidden={false} list={<p>The list</p>} {...over}>
+    <Frame width={420} place="chat" title="Chat" pushed={false} onBack={onBack} onGo={onGo} needsYou={2} status="2 need you" busy={false} paused={false} onNewChat={() => {}} sides={SIDES} onSides={() => {}} list={<p>The list</p>} {...over}>
       <p>The chat</p>
     </Frame>
   )
@@ -62,8 +63,20 @@ describe('the frame (Spec 05)', () => {
     expect(screen.getByRole('button', { name: 'Otty: 2 need you' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Logbook, 2 needs you' }).textContent).toContain('2')
     cleanup()
-    frame({ width: 1200, sidebarHidden: true })
+    frame({ width: 1200, sides: { ...SIDES, navFolded: true } })
     expect(document.querySelector('.frame__nav--rail')).not.toBeNull()
+  })
+
+  it('the sidebar button folds the nav and hides the list together, and shows them again (Spec 09)', () => {
+    const onSides = vi.fn()
+    frame({ width: 1200, onSides })
+    fireEvent.click(screen.getByRole('button', { name: 'Hide sidebar' }))
+    expect(onSides).toHaveBeenCalledWith({ ...SIDES, navFolded: true, listHidden: true })
+    cleanup()
+    frame({ width: 1200, sides: { ...SIDES, navFolded: true, listHidden: true } })
+    // Shut, the list stays mounted at no width so it can open by its width again.
+    expect(document.querySelector('.frame__list[data-shut]')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Show sidebar' })).toBeTruthy()
   })
 
   it('leaves Chats out when chats aren’t remembered', () => {
