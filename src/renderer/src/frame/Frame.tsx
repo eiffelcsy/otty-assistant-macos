@@ -255,6 +255,13 @@ export function Frame(p: FrameProps) {
                 onMove={(w) => setDrag({ side: 'nav', w })}
                 onDone={(w) => done('nav', w)}
                 onReset={() => p.onSides({ ...p.sides, navFolded: false, nav: SIDES.nav })}
+                onCancel={() => setDrag(null)}
+                onStep={(d) => {
+                  // From the keyboard the rail opens at its narrowest, and the sidebar folds past it (Spec 09, Part 3).
+                  if (s.nav === 'rail') {
+                    if (d > 0) p.onSides({ ...p.sides, navFolded: false, nav: NAV_MIN })
+                  } else p.onSides(s.navW + d * 8 < NAV_MIN ? { ...p.sides, navFolded: true } : after('nav', s.navW + d * 8))
+                }}
               />
             )
           }
@@ -280,6 +287,7 @@ export function Frame(p: FrameProps) {
             onMove={(w) => setDrag({ side: 'list', w })}
             onDone={(w) => done('list', w)}
             onReset={() => p.onSides({ ...p.sides, list: null })}
+            onCancel={() => setDrag(null)}
           />
         </section>
       )}
@@ -538,7 +546,7 @@ function NavButton({
 }
 
 /** A column's right edge (Spec 09, Part 3): drag to size it, past the line to fold or hide it, double-click for the usual width. */
-function Edge({ label, width, min, max, onMove, onDone, onReset }: { label: string; width: number; min: number; max: number; onMove: (w: number) => void; onDone: (w: number) => void; onReset: () => void }) {
+function Edge({ label, width, min, max, onMove, onDone, onReset, onCancel, onStep }: { label: string; width: number; min: number; max: number; onMove: (w: number) => void; onDone: (w: number) => void; onReset: () => void; onCancel: () => void; onStep?: (direction: 1 | -1) => void }) {
   const start = useRef<{ x: number; w: number; last: number } | null>(null)
   // Every way a drag can end ends it, so the edge never stays stuck to the pointer: let go, a lost capture (the window
   // lost focus, say), a cancel, or a move with no button held (a let-go that never arrived). A click without a move changes nothing.
@@ -547,7 +555,7 @@ function Edge({ label, width, min, max, onMove, onDone, onReset }: { label: stri
     if (!was) return
     start.current = null
     const to = w ?? was.last
-    if (Math.abs(to - was.w) < 2) onDone(was.w === width ? width : was.w)
+    if (Math.abs(to - was.w) < 2) onCancel()
     else onDone(to)
   }
   return (
@@ -581,7 +589,9 @@ function Edge({ label, width, min, max, onMove, onDone, onReset }: { label: stri
       onKeyDown={(e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
         e.preventDefault()
-        onDone(width + (e.key === 'ArrowRight' ? 8 : -8))
+        const direction = e.key === 'ArrowRight' ? 1 : -1
+        if (onStep) onStep(direction)
+        else onDone(width + direction * 8)
       }}
     />
   )

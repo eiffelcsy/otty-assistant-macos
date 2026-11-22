@@ -106,6 +106,8 @@ export function createPanel(): BrowserWindow {
   load(panel, 'panel')
   sleepWhenHidden(panel)
   const win = panel
+  // macOS lays the lights out again on its own when the window leaves full screen, at its default spot (Spec 09).
+  win.on('leave-full-screen', () => win.setWindowButtonPosition(LIGHTS))
   let quitting = false
   app.once('before-quit', () => (quitting = true))
   // The roomy window's close button and ⌘W put it away, back to floating for next time; quitting still quits.

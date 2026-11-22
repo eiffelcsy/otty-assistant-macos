@@ -4,6 +4,16 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Flow and room: one move between screens, sidebars you can size, pages with margins (D-76, Spec 09, 2026-11-22)
+
+- **Home and the empty chat feel like one place.** Going between them nothing fades: the chat list slides open from the left and Otty, the greeting, the Try asking card and the message box ride over with it, only the words that differ changing.
+- **Headers arrive with their page.** Leaving the cove for the Logbook, Settings or a chat, the header rises with the glass sheet it sits on instead of showing first over the moving painting.
+- **Size the sidebar and the chat list by their edges.** Drag them wider or narrower; pull the sidebar past its line and it folds to icons, pull the list past its line and it hides, both as you drag and back again if you change your mind. Otty remembers the sizes.
+- **A sidebar button beside the traffic lights** (or ⌃⌘S) folds both sides away for more room, and brings back whatever is hidden.
+- **The traffic lights stay put** when the window expands or leaves full screen.
+- **Pages have room to breathe.** Settings, the Notebook and the Logbook read in a centred column with a proper margin from the sidebar, wider as the window grows.
+- **Otty's own checkbox**: a soft rounded square that fills with meadow green and draws its tick, in the chat list and the Try again card.
+
 ### One cove: the whole app in the cove's language (D-75, Spec 08, 2026-11-21)
 
 - **Every screen is in Otty's place now, not just Home.** The Quick view, Pick up text and the picture viewer sit on the hour's **mist**: paper with a little of the painting in it, cooler by day, warmer at golden hour, deeper in dark mode.

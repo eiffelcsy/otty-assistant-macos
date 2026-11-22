@@ -41,9 +41,8 @@ const arrive = (order: number, calm: boolean) =>
  * place (`layout="position"`, so glass and text are moved, never stretched).
  */
 function Block({ label, glyph, value, wait, order, shared, children }: { label: string; glyph: string; value?: string; wait?: boolean; order: number; shared?: string; children: React.ReactNode }) {
-  const calm = useContext(StillMove)
   return (
-    <m.section layout="position" {...arrive(order, calm)} data-shared={shared} className={`home-block${wait ? ' home-block--wait' : ''}`} aria-label={label}>
+    <m.section layout="position" {...arrive(order, false)} data-shared={shared} className={`home-block${wait ? ' home-block--wait' : ''}`} aria-label={label}>
       <h2 className="home-block__head">
         <Icon name={glyph} />
         <span className="home-block__label">{label}</span>
@@ -54,7 +53,7 @@ function Block({ label, glyph, value, wait, order, shared, children }: { label: 
   )
 }
 
-function Needs({ page, onOpenChat, onOpenEntry, onOpenLogbook }: { page: HomePage; onOpenChat: (id: string) => void; onOpenEntry: (id: string) => void; onOpenLogbook: () => void }) {
+function Needs({ page, fresh, onOpenChat, onOpenEntry, onOpenLogbook }: { page: HomePage; fresh: boolean; onOpenChat: (id: string) => void; onOpenEntry: (id: string) => void; onOpenLogbook: () => void }) {
   const [open, setOpen] = useState(0)
   return (
     <Block label="Needs you" glyph="inbox-in" value={String(page.needs.total)} wait order={1}>
@@ -70,7 +69,7 @@ function Needs({ page, onOpenChat, onOpenEntry, onOpenLogbook }: { page: HomePag
                   <div className="home-need__subject">{item.subject}</div>
                   <div className="home-need__actions">
                     {item.actions.map((c) => (
-                      <button key={c.kind} className={`btn btn--small ${c.primary ? 'btn--primary' : 'btn--quiet'}`} onClick={() => void decide(item, c, onOpenChat, onOpenEntry)}>
+                      <button key={c.kind} className={`btn btn--small ${c.primary ? 'btn--primary' : 'btn--quiet'}`} disabled={!fresh} onClick={() => void decide(item, c, onOpenChat, onOpenEntry)}>
                         {c.label}
                       </button>
                     ))}
@@ -168,12 +167,17 @@ let lastPage: HomePage | null = null
 
 export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, suggestions }: HomeProps) {
   const [page, setPage] = useState<HomePage | null>(lastPage)
-  const calm = useContext(StillMove)
+  // Spec 09: taking over from the empty chat, what mounts with Home skips its arrival; anything that appears later arrives.
+  const still = useContext(StillMove)
+  const [calm] = useState(still)
+  // The cached page is shown at once, but nothing on it can be decided until the fresh one is in.
+  const [fresh, setFresh] = useState(false)
   const load = useCallback(
     () =>
       void window.otty.home().then((p) => {
         lastPage = p
         setPage(p)
+        setFresh(true)
       }),
     []
   )
@@ -211,13 +215,13 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
           </m.div>
         )}
         <div className="home__blocks">
-          <AnimatePresence>
-            {page.needs.total > 0 && <Needs key="needs" page={page} onOpenChat={onOpenChat} onOpenEntry={onOpenEntry} onOpenLogbook={() => onOpenLogbook('wait')} />}
+          <AnimatePresence initial={!calm}>
+            {page.needs.total > 0 && <Needs key="needs" page={page} fresh={fresh} onOpenChat={onOpenChat} onOpenEntry={onOpenEntry} onOpenLogbook={() => onOpenLogbook('wait')} />}
           </AnimatePresence>
           <div className="home__pair">
-            <AnimatePresence>{page.today.ticks.length + page.today.folded > 0 && <Today key="today" page={page} onOpenEntry={onOpenEntry} />}</AnimatePresence>
+            <AnimatePresence initial={!calm}>{page.today.ticks.length + page.today.folded > 0 && <Today key="today" page={page} onOpenEntry={onOpenEntry} />}</AnimatePresence>
             <div className="home__side">
-              <AnimatePresence>
+              <AnimatePresence initial={!calm}>
                 {page.after.total > 0 && <After key="after" page={page} onOpenEntry={onOpenEntry} onOpenComingUp={() => onOpenLogbook('next')} />}
               </AnimatePresence>
               <m.section layout="position" {...arrive(4, calm)} className="home-left" aria-label="What left your Mac">
@@ -231,7 +235,7 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
               </m.section>
             </div>
           </div>
-          <AnimatePresence>
+          <AnimatePresence initial={!calm}>
             {page.firstRun && suggestions.length > 0 && (
               <Block key="try" label="Try asking" glyph="comment" order={5} shared="try">
                 <ul className="home-try" data-fresh>

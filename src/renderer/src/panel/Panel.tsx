@@ -660,7 +660,7 @@ export function Panel() {
             menuExtras={menuExtras}
             actions={chatActions}
             cove={shown === 'home' || (shown === 'chat' && messages.length === 0) ? 'full' : 'wash'}
-            list={chatsAsColumn ? <History onOpen={() => go('chat')} focusSearch={searchFocus} keep={settings.keepChats} /> : undefined}
+            list={chatsAsColumn ? <History onOpen={() => go('chat')} focusSearch={searchFocus} keep={settings.keepChats} shown={shown === 'chat'} /> : undefined}
             listHere={shown === 'chat'}
           >
             <div className="frame__screen frame__screen--chat" hidden={shown !== 'chat'}>

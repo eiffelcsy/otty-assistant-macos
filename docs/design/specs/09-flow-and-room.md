@@ -1,6 +1,6 @@
 # Spec 09 · Flow and room: one move between screens, columns you can size, pages with margins
 
-**Status:** in build (D-76). Builds on Spec 05 (the frame), Spec 06 (roomy window and Home), Spec 08 (one cove, the camera).
+**Status:** built (D-76, 2026-11-22; CHANGELOG). Builds on Spec 05 (the frame), Spec 06 (roomy window and Home), Spec 08 (one cove, the camera).
 
 **Why.** Three things make the frame feel cheap in use. (1) Tilting from the cove to a shallow screen, the new screen's header is there at once, over the moving painting, before the sheet it sits on has risen. (2) Home and the empty chat are the same cove with the same Otty, greeting, Try asking card and message box, yet moving between them fades the whole screen out and in, so it reads as a reload; and the chat list snaps in instead of opening. (3) Pages run edge to edge with 8–12 px gutters at every width (the Notebook's heading sits 8 px from the sidebar), so wide windows look unfinished.
 
