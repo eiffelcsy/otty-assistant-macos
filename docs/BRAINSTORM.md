@@ -231,7 +231,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Tests that find what people find: invariants over every window state and width (a way to close, menus inside the window, New chat from every screen), a nav matrix, fake-world cases recorded from real sites, and a `probe` an agent can drive by hand during development | H | S–M | → D-67 (step 1 shipped: the invariants; recorded cases and the probe are steps 2 and 3) |
 | Agents check their own work: one `verify` command, a Stop hook, lint, CLAUDE.md rules as tests, a PR template with evidence for each "Done when" line | H | M | phases 1–2 shipped (D-48); phase 3 near the beta |
 | An agent "owner's summary" on each PR: what changed for users in plain words, the evidence, what still needs a person, so merging takes minutes | H | S | shipped (D-48's PR template: "What changes for people using Otty" and "Left for a person") |
-| Write "Done when" lines as checkable statements from the start (each names its test or smoke tag), so the intent check has something to match | M | S | → D-55 (part of the feature kit) |
+| Write "Done when" lines as checkable statements from the start (each names its test or smoke tag), so the intent check has something to match | M | S | idea (was part of the old D-55 plan) |
 | Extract the verify kit into its own repo (Claude Code plugin + npm package) once a second project uses it | M | M | idea, from D-48 |
 | Pick a Dockerfile (or any file with no extension) from the paperclip's first filter: macOS greys out files a filter can't match by extension | M | S | shipped: the picker has no filter now (it also opened slowly) |
 | Smoke harness extras the spec agents asked for: a results folder per run, a shared `plain(key)` seed helper, `world.hold()`/`release()`, a fake desktop switch, a recorded `app.relaunch()`, a "shortcut taken by another app" list | M | S | idea, from D-47 |
@@ -443,12 +443,14 @@ Otty can only help with what it can see, and most of a person's week lives in ot
 
 ## Build your own feature: Otty made to measure
 
-Two ideas that meet in one place. Developers (and their coding agents) need a fast, safe way to add *any* feature to Otty; people using Otty want to make *small* features of their own without code. Both should use the same parts: a feature is a set of **extension points** (a tile, a tool, a card, a trigger, a connection) that code checks, never a free-for-all. The design is in the concept note [The feature kit and your own features](#the-feature-kit-and-your-own-features).
+People using Otty make *their own* features by asking, on a separate host that can reach only the services core offers it, so adding or removing one never touches the rest of Otty. The same builder can be given other worlds later (Otty Code over Otty's repo, or over users' projects). The design is in the concept note [Your features and the builder](#your-features-and-the-builder).
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| **The feature kit** (for developers): `docs/EXTENDING.md` lists every extension point with its checklist (a tool's `toolSafety` row, an IPC channel in `CHANNELS`, a card in `Markdown.tsx` and `prompts.ts`, a setting, a migration, a smoke step), and a `feature` skill takes a BRAINSTORM row to a DEVLOG entry with checkable "Done when" lines, scaffolds what it needs, builds it and hands it to `ship` | H | M | → D-55 |
-| Scaffolds for the common shapes: `npm run new -- tool <name>` writes the table row, a stub, a test and a smoke stub, so the rules are met before the first line of logic | M | S–M | idea, part of D-55 if it pays |
+| **The feature host and its builder** (for everyone): ask "make me a pomodoro timer" and Otty builds a feature on a separate, Cordis-shaped host. Each feature reaches only the services it declared, runs sandboxed, and turns off or goes without touching core. Your features lists them, with versions | H | L | → D-55 (re-planned 2026-11-22) |
+| **Otty Code for the owner:** a second world for D-55's builder. Otty builds core features over its own repo, using an embedded, unforked open-source coding agent in a worktree, tried in a second instance and kept as a PR. Dev builds only | M | L | idea, later; parked by the owner (2026-11-22) |
+| **Otty Code for users' projects:** a third world, a folder the user picks, in a sandbox. Weigh the audience (developers already have strong free tools), the rule of two (shell, network and private code together), token cost and support first. A sandboxed folder for small non-coder projects (a personal page, a tidy-my-files script) fits better than repos | M | L | idea, later; parked by the owner (2026-11-22) |
+| Scaffolds for the common shapes: `npm run new -- tool <name>` writes the table row, a stub, a test and a smoke stub, so the rules are met before the first line of logic | M | S–M | idea, with Otty Code for the owner |
 | **My own tiles** (for everyone, the first step): a tile is a name, an icon, a prompt and which captures it shows for ("for code", "for a table"). Otty drafts it from "make me a button that turns this into flashcards"; the user edits and saves it. No new tools, so nothing new can leave or change | H | S–M | shipped (D-56) |
 | Recipes: a tile plus a trigger (a hotkey, a time, a connection's event) and a fixed list of tools picked from what a job may use. The card says it in plain words, and `ruleOfTwo` checks it before it's saved. The same recipes as Otty's chores | H | M | idea, after D-56 and D-54; overlaps chore recipes |
 | Share a tile or recipe as a small file, and import one with its plain-words card first. Imported text is outside text: it can't widen what the recipe may do | M | S | idea, after recipes |
@@ -891,22 +893,52 @@ Each state remembers its own size and position, and an **Expand / Shrink** butto
 
 **Stepping stones:** 1) the layer and Google Calendar read (D-54); 2) Canvas read; 3) Notion read; 4) writes with cards and undo; 5) the MCP client; 6) connections as event sources for Look after me ("a deadline moved").
 
-### The feature kit and your own features
+### Your features and the builder
 
-**Idea.** One set of extension points serves two audiences. A developer's coding agent can use all of them, with the checks; a person using Otty can use a small, safe subset, with no code.
+**Idea.** One builder, a `CodingEngine` given a **world**: the folder it may write in, its tools, its checks and its traffic rules. The first world is a person's own features on the feature host (D-55). Later worlds can be added without changing that one.
 
-**For developers: the feature kit (D-55).** D-48 made agents *prove* their work. The kit makes them *start* right:
-- `docs/EXTENDING.md`: each extension point, where it lives, and its checklist. A new tool needs its `toolSafety.ts` row first, a confirm card if it changes anything, a ledger row, a sent tag if it calls out, and an eval case. A new IPC channel needs its `CHANNELS` row and guards. A card needs `Markdown.tsx`, `prompts.ts` and a UI preview scene. A setting needs `settings.ts`, `PublicSettings` and the Settings view. A schema change is a new migration. A connection needs D-54's shape.
-- A `feature` skill: pick the top unblocked BRAINSTORM row (or the one named), write its DEVLOG entry with "Done when" lines that each name the test or `@step-N` that will prove them, list the extension points it touches, build, then hand over to `ship`.
-- Scaffolds only if they pay for themselves: one command that writes a tool's row, stub, test and smoke stub.
+**Later worlds (parked by the owner, 2026-11-22).**
+- **Otty Code for the owner.** The whole repo, dev builds only. An embedded open-source coding agent (OpenCode first to try) runs unforked behind the interface, so it gets better as its maintainers and the models do; it is shaped from outside through config, an instructions file, MCP tools and permissions. Each build runs in its own worktree, never in the running app, is tried in a second instance, and is kept as a PR or dropped.
+- **Otty Code for users' projects.** A folder they pick, in a sandbox, with the engine's traffic made to follow the release rules (`send`, `web: 'off'`, What left your Mac). The cons in its row above come first.
 
-**For everyone: your own features.** Limited on purpose, because the person describing the feature can't review code, and the model drafting it can be fooled:
-1. **My own tiles (D-56).** A name, an icon, a prompt and where it shows. It's a saved question, so it can't do anything a typed question can't.
-2. **Recipes.** A tile plus a trigger and a fixed list of tools from what a job may use. The card says it plainly; `ruleOfTwo` and the tool table check it. This is the same thing as a chore recipe.
-3. **Code steps** in a sealed-off sandbox, shown before they run.
-4. **Shared recipes**, imported behind their card, never wider than what the importer allows.
+**For everyone: the feature host.** A separate surface for each person's own features, shaped like Cordis (arXiv 2608.25512). Every feature is a component on its own context:
+- **Revertible:** whatever it does goes through the context, which keeps the undo, so unloading it leaves the app as it was.
+- **Declared:** it can reach only the services it named, and that list is what its card shows.
 
-The model drafts; code decides what a feature may touch. A feature is data (a manifest), never a plugin that runs its own code in main.
+Core Otty never imports a feature, and a broken one is unloaded, never fixed in place.
+
+**The host's scope.** It is a narrow, stable gateway, not a second way to build Otty.
+- **Services a feature may use.** Each is a wrapper over core code that already enforces the rules:
+  - its own screen in the frame, drawn from the design tokens and a small component kit, inside a sandboxed view;
+  - a tile;
+  - its own storage, namespaced, deleted with it;
+  - triggers (a hotkey, a time, a connection's event) through `JobRunner`, with `JOB_TOOLS`;
+  - asking the model, counted and tagged like any request (`SentTag`, the monthly limit);
+  - Otty's web tools, with their checks;
+  - notify, under the attention budget;
+  - read-only views that core features choose to offer.
+  
+  Anything that changes something goes through a confirm card, and anything outside the Mac is listed in What left your Mac.
+- **Never offered:** IPC, settings, keys, the file system, raw network, native helpers, other features' data, or core tools that change things without their card.
+- **Where it runs:** a feature's code runs in a sandboxed process or view, never in main. The paper says plainly (§6.3) that declarations alone don't stop hostile code.
+- **What unloading can't undo.** A request already sent, a Reminder already made, a message already posted. These are ledger rows that say so, never "reverted".
+- **What users manage:** a Your features list (on, off, remove, what each may reach, what it did), and the same Undo as everything else.
+
+**Core features offer services; they don't move onto the host.** The calendar stays core and *offers* a `calendar` service so a user's feature can read it. That's the Cordis part that matters: user features depend on core through declared services, and core never depends on them. Moving today's features onto the host would hurt:
+- They need what the host must deny (keys, IPC, native helpers, main).
+- They rely on static tables that trust rests on (`toolSafety.ts`, `CHANNELS`, the fixed tool order DeepSeek's cache needs).
+- It's a large rewrite with nothing new for the person using Otty.
+
+The exception is features that are already user-shaped. Tiles (D-56) should be the host's first tenant, since that proves it on something real.
+
+**Steps, each useful alone:**
+1. **My own tiles (D-56, shipped).** A saved question.
+2. **The host, the builder and Your features (D-55).** A person asks, and Otty builds, checks and previews a feature that they add, change, turn off or remove.
+3. **Tiles move onto the host**, and core features start offering read-only services (the calendar first).
+4. **Recipes.** A trigger and a fixed list of tools, with `ruleOfTwo` and the tool table checking them. The same thing as a chore recipe.
+5. **Shared features**, imported behind their card, never wider than what the importer allows.
+
+The model drafts; code decides what a feature may touch.
 
 ### Otty's own calendar: shared and multi-person
 
