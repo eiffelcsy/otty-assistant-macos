@@ -792,7 +792,7 @@ const api: OttyApi = {
     pouchStore = []
   },
   // D-66: main's own Home words, from the same samples as the Logbook.
-  home: async () => home({ ...logSources(), remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
+  home: async () => home({ ...logSources(), events: [], remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
   undoChange: async () => true,
   noteJob: async () => true,
   hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
@@ -953,6 +953,7 @@ const api: OttyApi = {
     const section = setUp[scene] ?? (titles[scene.replace('settings-', '')] ? scene.replace('settings-', '') : null)
     // React runs this twice in development, so each press happens once.
     // `exact` matches a section by its whole title: "Connection" is also the start of "Connections" (D-54).
+    // Retries every 50 ms; a section waits up to 4 s, since CI's Mac can take more than a second to draw Settings.
     const press = (sel: string, text?: string, tries = 20, exact = false): void => {
       if (pressed.has(sel + text)) return
       const el = [...document.querySelectorAll<HTMLElement>(sel)].find((e) => !text || (exact ? e.querySelector('.set-row__title')?.textContent === text : e.textContent?.includes(text)))
@@ -960,7 +961,7 @@ const api: OttyApi = {
       pressed.add(sel + text)
       el.click()
     }
-    if (section) setTimeout(() => press('.set-row--section', titles[section], 20, true), 160)
+    if (section) setTimeout(() => press('.set-row--section', titles[section], 80, true), 160)
     if (scene === 'provider') setTimeout(() => press('.set-row', 'Change service or key'), 240)
     if (scene === 'settings-recording') setTimeout(() => press('.keys-btn'), 240)
     // D-54: the own connection's form with "A key or token" chosen, or Linear's detail open.

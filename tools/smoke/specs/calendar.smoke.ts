@@ -206,3 +206,17 @@ test('an event added today shows as the current tick in Home’s Today', { tag: 
   await expect(home.getByRole('region', { name: 'Today' })).toBeVisible()
   await expect(home.getByRole('button', { name: /, now, Standup$/ })).toBeVisible()
 })
+
+test('the month: six weeks of days, Otty’s event on its day, and a day opens its week', { tag: ['@step-208'] }, async ({ otty }) => {
+  const panel = await otty.openPanel()
+  await wide(otty, panel)
+  await openCalendar(panel)
+  await addEvent(panel, { title: 'Swim practice', day: ymd(0), from: '07:00', to: '08:00' })
+  await panel.getByRole('button', { name: 'Month', exact: true }).click()
+  const now = new Date()
+  await expect(panel.getByRole('heading', { name: `${now.toLocaleString('en-GB', { month: 'long' })} ${now.getFullYear()}` })).toBeVisible()
+  await expect(panel.locator('.cal-mday')).toHaveCount(42)
+  await expect(panel.locator('.cal-mday--today').getByRole('button', { name: /^Swim practice,/ })).toBeVisible()
+  await panel.locator('.cal-mday--today .cal-mday__open').click()
+  await expect(block(panel, 'Swim practice', '07:00 to 08:00')).toBeVisible()
+})

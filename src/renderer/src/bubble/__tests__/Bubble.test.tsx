@@ -46,7 +46,7 @@ describe('the pool (D-82, Spec 13)', () => {
     act(() => mood('working'))
     expect(stateOf(container)).toBe('pool--working')
     expect(container.querySelector('.bubble__working:not(.bubble__working--waiting)')).not.toBeNull()
-    expect(container.querySelectorAll('.pool__frame').length).toBe(2)
+    expect(container.querySelectorAll('.in-water__above .pool__frame').length).toBe(2)
     expect(pool(container).getAttribute('title')).toMatch(/looking into something/)
   })
 
@@ -122,12 +122,12 @@ describe('feeding Otty (D-37)', () => {
     expect(otty.dropFiles).toHaveBeenCalledWith([pdf])
   })
 
-  it('rings twice on a text drop, and hands the text to main', () => {
+  it('rings once on a text drop, and hands the text to main', () => {
     const { container } = render(<Bubble />)
     const root = pool(container)
     fireEvent.dragOver(root, drag([], 'a line'))
     fireEvent.drop(root, drag([], '  a line  '))
-    expect(container.querySelectorAll('.pool__ring').length).toBe(2)
+    expect(container.querySelectorAll('.pool__ring').length).toBe(1)
     expect(otty.feedOttyText).toHaveBeenCalledWith('a line')
     expect(otty.dropFiles).not.toHaveBeenCalled()
   })
@@ -188,5 +188,53 @@ describe('moods and sleep (D-38)', () => {
     fireEvent.pointerEnter(pool(container))
     expect(pool(container).classList.contains('pool--bob')).toBe(true)
     expect(container.querySelector('.pool__ring')).not.toBeNull()
+  })
+})
+
+describe('the water (D-83)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    document.documentElement.removeAttribute('data-asleep')
+  })
+
+  it('dips once after a quiet spell, and arms the next dip only after it', () => {
+    vi.useFakeTimers()
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    const { container } = render(<Bubble />)
+    const dips = () => pool(container).classList.contains('pool--dip')
+    act(() => void vi.advanceTimersByTime(39_999))
+    expect(dips()).toBe(false)
+    act(() => void vi.advanceTimersByTime(1))
+    expect(dips()).toBe(true)
+    expect(container.querySelectorAll('.pool__ring').length).toBe(1)
+    act(() => void vi.advanceTimersByTime(1600))
+    expect(dips()).toBe(false)
+    // Re-armed after the dip: the next one is 40 s later (random at 0), not before.
+    act(() => void vi.advanceTimersByTime(39_999))
+    expect(dips()).toBe(false)
+    act(() => void vi.advanceTimersByTime(1))
+    expect(dips()).toBe(true)
+  })
+
+  it('does not dip while asleep, paused or asleep-flagged, and cleans up on unmount', () => {
+    vi.useFakeTimers()
+    let mood: (m: string) => void = () => {}
+    Object.assign(window.otty, { onBubbleMood: (cb: (m: string) => void) => ((mood = cb), () => {}) })
+    const { container, unmount } = render(<Bubble />)
+    act(() => mood('paused'))
+    act(() => void vi.advanceTimersByTime(70_000))
+    expect(pool(container).classList.contains('pool--dip')).toBe(false)
+    document.documentElement.dataset.asleep = '1'
+    act(() => void vi.advanceTimersByTime(70_000))
+    expect(pool(container).classList.contains('pool--dip')).toBe(false)
+    unmount()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('ripples on a hover, and the hover does not play twice', () => {
+    const { container } = render(<Bubble />)
+    fireEvent.pointerEnter(pool(container))
+    fireEvent.pointerEnter(pool(container))
+    expect(container.querySelectorAll('.pool__ring').length).toBe(1)
   })
 })

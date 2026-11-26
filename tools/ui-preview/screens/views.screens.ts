@@ -41,8 +41,9 @@ for (const scheme of ['light', 'dark'] as const) {
         const scrolled = () => page.evaluate(() => [...document.querySelectorAll('*')].map((e) => e.scrollTop).join())
         await media(page, scheme)
         await page.clock.setFixedTime(NOW)
-        // The frame's wide scenes need room for the window itself (D-64).
-        if (scene.startsWith('frame-')) await page.setViewportSize({ width: 1340, height: 800 })
+        // The frame's wide scenes, and the screens drawn in a 900 window (the calendar's week, the Pouch's wall), need room for the
+        // window itself (D-64), or the screenshot crops it.
+        if (scene.startsWith('frame-') || (/^(calendar|pouch)/.test(scene) && !scene.endsWith('-list'))) await page.setViewportSize({ width: 1340, height: 800 })
         await page.goto(`/?view=${view}&scene=${scene}`)
         // The mock plays its events over the first few hundred ms; drawings render lazily after that, and the chat
         // glides to its last message at its own pace.

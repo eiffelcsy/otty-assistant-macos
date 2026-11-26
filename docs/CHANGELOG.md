@@ -4,6 +4,30 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Calendar month, and a round of polish (2026-11-27)
+
+- **The calendar has a month view.** Switch between Week (List when narrow) and Month in the header; ⌘← and ⌘→ move a month. Each day shows its events, or a dot per event when the window is narrow, and a day's number opens its week.
+- The calendar keeps the page's margins in every width: more room around the header and the day names, and the narrow list is styled like the rest of Otty.
+- The Logbook's day names are quiet section labels now, with glass only while one is stuck to the top.
+- **New chat in the chat list works again** in the roomy window, and the whole top bar of the floating window drags it, not only the space beside its menu.
+- Otty's painted ripple spreads smoothly, like the rings on the water, and the glints are gone.
+
+### A cove with life (D-84, 2026-11-26)
+
+- **The cove has visitors now,** small, rare and brief: a dragonfly darting over the water, birds crossing the sky, fireflies blinking by the reeds after golden hour, a fish ring on the water, or a breath of wind through the reeds. Each fits its time of day and is gone in a few seconds.
+- **A leaf floats by the lily pads** and drifts a little with each gust.
+- Visits never cover the words, never come two at once, and stop when Otty's hidden or Reduce motion is on.
+- In the pool and the cove Otty now floats a little higher, and the water's surface stays still while he bobs.
+
+### Otty in the water (D-83, 2026-11-26)
+
+- **Otty floats in the water now, not on it,** in the floating pool and in the cove on Home. A soft painted line of foam wraps where he meets the surface, his belly and paws show faintly through the water, and a little shadow sits beneath him.
+- **Painted ripples.** Hovering over the pool, or pressing Otty in the cove, sends a ring of painted ripples across the surface. They go over what's underwater and behind what's above it, like real water.
+- **Sun on the water.** Glints sparkle by Otty and twinkle with each ripple.
+- **He bobs now and then:** every minute or so in the pool, a tiny dip with a ripple.
+- In the pool Otty is a little bigger and sits lower, centred, with his waterline across the middle.
+- New painted art in Otty's style: the foam line, the ripple and the glints.
+
 ### The pool (D-82, Spec 13, 2026-11-26)
 
 - **The floating otter is now a little pool** of the cove's water at the hour, with Otty floating on his back in it. It's still a picture while it rests.
