@@ -68,7 +68,7 @@ Seven days from the range's start, one group per day:
 
 ## Part 5 · The event card
 
-A card in the screen, on the cove's glass, centred over the grid at 360 wide (the full width less `--s-4` on the list band), raised with `--elev-3` (no dimmed backdrop). The first field has focus.
+A card in the screen, on the cove's glass, centred over the grid at 360 wide (the full width less `--s-4` on the list band), solid like a menu: `--surface` with `--glass-lift-float` (no dimmed backdrop). The first field has focus.
 - **Title:** "New event", "Edit event", or the event's title for a read-only one.
 - **Fields** (the `label` and `field` classes, as in ConnectForm):
   - "What": text, placeholder "Swim practice", at most 200 characters.

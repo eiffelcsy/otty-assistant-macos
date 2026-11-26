@@ -24,6 +24,20 @@ export interface Service {
 const PAGES = 'When it reads a page, your Mac opens it directly, so the site sees your internet address. It can’t see pages you’re signed in to.'
 const LOOKUPS = `When Otty looks something up, the search words go to Wikipedia and DuckDuckGo. ${PAGES}`
 
+/** D-79: the places a web look-up can go, named once. `tools/web.ts` records these names, and Settings › Privacy lists them. */
+export const LOOKUP_PLACES = {
+  search: (serviceLabel: string) => serviceLabel,
+  lookup: 'Wikipedia and DuckDuckGo',
+  page: 'the page’s own site'
+}
+
+/** The look-up places a service's setup can reach: its own search first, when it has one (DeepSeek and Claude). */
+export function lookupsGoTo(id: ServiceId): string {
+  const own = id === 'deepseek' || id === 'claude' ? [LOOKUP_PLACES.search(serviceById(id).label)] : []
+  const names = [...own, LOOKUP_PLACES.lookup, LOOKUP_PLACES.page]
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
+}
+
 export const SERVICES: Service[] = [
   {
     id: 'deepseek',

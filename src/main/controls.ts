@@ -59,6 +59,32 @@ export function registerHotkeys(): void {
   settings.setTakenHotkeys(taken)
 }
 
+/** D-80: a shortcut that works, offered when one is taken. Each candidate is tried by registering it, then unregistered. */
+const SUGGESTIONS: Record<'askHotkey' | 'snapHotkey' | 'screenHotkey', string[]> = {
+  askHotkey: ['Alt+Space', 'Control+Alt+Space', 'Alt+Shift+A', 'Control+Shift+Space', 'Command+Shift+1'],
+  snapHotkey: ['Alt+Shift+Space', 'Control+Alt+S', 'Alt+Shift+S', 'Command+Shift+2'],
+  screenHotkey: ['Command+Alt+Shift+Space', 'Control+Alt+W', 'Alt+Shift+W', 'Command+Shift+3']
+}
+
+export function suggestHotkey(key: 'askHotkey' | 'snapHotkey' | 'screenHotkey'): string | null {
+  const s = settings.getStored()
+  const others = (['askHotkey', 'snapHotkey', 'screenHotkey'] as const).filter((k) => k !== key).map((k) => s[k])
+  for (const accel of SUGGESTIONS[key]) {
+    if (others.includes(accel)) continue
+    let free = false
+    try {
+      free = globalShortcut.register(accel, () => {})
+    } catch {
+      free = false
+    } finally {
+      // Only a registration this test made is undone: Otty's own shortcuts stay as they are.
+      if (free) globalShortcut.unregister(accel)
+    }
+    if (free) return accel
+  }
+  return null
+}
+
 type Item = Electron.MenuItemConstructorOptions
 
 /** The one stop control: whatever Otty is doing on its own stops, and nothing new starts, until this is undone. The menu bar icon, the app menu and the Dock menu all build it here, so they never disagree. */
@@ -172,6 +198,7 @@ export function appMenuTemplate(): Item[] {
         { label: 'Logbook', ...shown('Cmd+3'), click: () => frame('logbook') },
         { label: 'Notebook', ...shown('Cmd+4'), click: () => frame('notebook') },
         { label: 'Calendar', ...shown('Cmd+5'), click: () => frame('calendar') },
+        { label: 'Pouch', ...shown('Cmd+6'), click: () => frame('pouch') },
         { type: 'separator' },
         { label: 'Hide sidebar', ...shown('Ctrl+Cmd+S'), click: () => frame('sidebar') },
         { type: 'separator' },

@@ -4,6 +4,57 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Calendar month, and a round of polish (2026-11-27)
+
+- **The calendar has a month view.** Switch between Week (List when narrow) and Month in the header; ⌘← and ⌘→ move a month. Each day shows its events, or a dot per event when the window is narrow, and a day's number opens its week.
+- The calendar keeps the page's margins in every width: more room around the header and the day names, and the narrow list is styled like the rest of Otty.
+- The Logbook's day names are quiet section labels now, with glass only while one is stuck to the top.
+- **New chat in the chat list works again** in the roomy window, and the whole top bar of the floating window drags it, not only the space beside its menu.
+- Otty's painted ripple spreads smoothly, like the rings on the water, and the glints are gone.
+
+### A cove with life (D-84, 2026-11-26)
+
+- **The cove has visitors now,** small, rare and brief: a dragonfly darting over the water, birds crossing the sky, fireflies blinking by the reeds after golden hour, a fish ring on the water, or a breath of wind through the reeds. Each fits its time of day and is gone in a few seconds.
+- **A leaf floats by the lily pads** and drifts a little with each gust.
+- Visits never cover the words, never come two at once, and stop when Otty's hidden or Reduce motion is on.
+- In the pool and the cove Otty now floats a little higher, and the water's surface stays still while he bobs.
+
+### Otty in the water (D-83, 2026-11-26)
+
+- **Otty floats in the water now, not on it,** in the floating pool and in the cove on Home. A soft painted line of foam wraps where he meets the surface, his belly and paws show faintly through the water, and a little shadow sits beneath him.
+- **Painted ripples.** Hovering over the pool, or pressing Otty in the cove, sends a ring of painted ripples across the surface. They go over what's underwater and behind what's above it, like real water.
+- **Sun on the water.** Glints sparkle by Otty and twinkle with each ripple.
+- **He bobs now and then:** every minute or so in the pool, a tiny dip with a ripple.
+- In the pool Otty is a little bigger and sits lower, centred, with his waterline across the middle.
+- New painted art in Otty's style: the foam line, the ripple and the glints.
+
+### The pool (D-82, Spec 13, 2026-11-26)
+
+- **The floating otter is now a little pool** of the cove's water at the hour, with Otty floating on his back in it. It's still a picture while it rests.
+- **It shows one thing at a time:** Otty paddles while he's looking into something or answering, the rim turns straw when something needs you, a piece of sea glass sits on the water when there's an answer, and Pause turns the water still and grey. He dozes off with three z's after a quiet while.
+- Hovering gives one bob and one ring. Dropping a file swells the pool and lights its rim green.
+
+### Help and feedback, and a free shortcut when yours is taken (D-79, D-80, 2026-11-26)
+
+- **How do I…** in Settings › Help: short answers for asking about a highlight, a snip or the whole screen, stopping Otty, seeing what left your Mac, connecting your apps and keeping things, with your own shortcuts in the words.
+- **Send feedback** from Settings › Help. Your note goes in a ready-made email (or onto the clipboard). Attaching the last day's log is your choice, and the whole note is shown before anything is copied. **Open the log folder** is there too.
+- **Privacy names every place a look-up can go**: your service's own search, Wikipedia and DuckDuckGo, and the page's own site.
+- **A free shortcut, offered.** When another app already has a shortcut you pick, Otty says which one is free, and "Use it" sets it. The Home banner names the free one too.
+
+### Long chats don't break (D-78, 2026-11-26)
+
+- **A long chat carries on instead of failing.** When a chat or a background look grows too long for the model, Otty sets aside old page reads, pictures and long pasted text, keeps your last two questions whole, and tries again once. The answer shows "Made room in this chat".
+- What's set aside is replaced by a plain note written by Otty, never a summary by the model, so nothing anyone else wrote turns into Otty's own words. A background look keeps every step it saved; only what it sends is shorter.
+- After room is made, re-reading a page whose address was only in a set-aside read asks first, as for any address Otty doesn't know.
+- "Too long" is now recognised from DeepSeek and OpenAI-style services too, not only from Claude.
+
+### The Pouch (D-77, Spec 12, 2026-11-26)
+
+- **Everything you keep, in one place** (⌘6). Charts, diagrams and slides you kept from answers sit on a wall, each shown as itself. Open one big, or jump back to the chat it came from.
+- **Shelves and search.** Give a kept thing a shelf like "Recipes" from its card, or find it by its name, its kind, its shelf or its chat.
+- **Kept means kept.** A kept thing stays when you delete its chat ("From a deleted chat"), when chats get old, and when you Forget all chats. Put back takes it out, with an Undo. Settings › Privacy has its own "Forget my Pouch".
+- The calendar's event card is solid now, like a menu, so the week behind it never shows through its words.
+
 ### Otty's calendar (D-73, Spec 11, 2026-11-26)
 
 - **A calendar of Otty's own** (⌘5): your week on a grid, or the next seven days as a list in a small window. Add an event with Add or by clicking a free slot, change it in its card, drag it to move it, or delete it with an Undo.

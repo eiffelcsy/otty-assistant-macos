@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { CHAT_TOOLS } from '../toolSafety'
 import { openDatabase } from '../store/db'
 import { fold, MemorySentLog, questionWhat, record, setSentLog, SqliteSentLog, type SentRow } from '../sent'
+import { LOOKUP_PLACES } from '../../shared/services'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {}, app: { isPackaged: true } }))
 vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => false, getStored: () => ({ baseUrl: 'https://api.openai.com/v1', model: 'm', learn: false }), getApiKey: () => null }))
@@ -62,7 +63,7 @@ describe('what left the Mac (D-31)', () => {
     expect(out.result).not.toContain('AKIAABCDEFGHIJKLMNOP')
     expect(out.result).not.toContain('hunter2222')
     expect(out.result).toContain('[hidden key]')
-    expect(log.list()[0]).toMatchObject({ kind: 'page', service: 'paste.example', host: 'paste.example', chatId: 'c9', what: 'https://paste.example/abc' })
+    expect(log.list()[0]).toMatchObject({ kind: 'page', service: LOOKUP_PLACES.page, host: 'paste.example', chatId: 'c9', what: 'https://paste.example/abc' })
     setSentLog(() => null)
   })
 

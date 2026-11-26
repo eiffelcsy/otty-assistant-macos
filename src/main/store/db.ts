@@ -273,6 +273,13 @@ const MIGRATIONS: string[] = [
     updated integer not null
   ) without rowid;
   create index events_start on events(start);
+  `,
+  // v13. D-77: the Pouch. A kept Pebble outlives its chat, keeping the chat's title as a name; shelves are names.
+  `
+  alter table pebbles add column chat_title text;
+  alter table pebbles add column chat_at integer;
+  alter table pebbles add column shelf text;
+  alter table pebbles add column chat_gone integer not null default 0;
   `
 ]
 

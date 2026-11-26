@@ -79,7 +79,9 @@ function Day({ day, terms, openId, onOpen, onAction }: { day: LogDay; terms: str
   return (
     <section className="log-day" aria-label={`${day.title}, ${day.count}`}>
       <h3 className="log-day__head">
-        {day.title} <span className="log-day__count">{day.count}</span>
+        <span className="log-day__bar">
+          {day.title} <span className="log-day__count">{day.count}</span>
+        </span>
       </h3>
       {shown ? (
         <ul className="log-day__list">

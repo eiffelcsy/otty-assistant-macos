@@ -3,7 +3,7 @@ import type { CapStatus, Permissions, PublicSettings } from '../../../shared/typ
 import { healthProblem } from '../../../shared/health'
 import { capNear, capPassed, monthKey } from '../../../shared/cap'
 import { Icon } from '../components/Icon'
-import { prettyKey } from '../lib/keys'
+import { keyWords, prettyKey } from '../lib/keys'
 
 /**
  * Looks again whenever the panel comes back into view, so allowing something in System Settings clears it, and the
@@ -42,7 +42,14 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
   const { perms, cap } = useHealth()
   const [dismissed, setDismissed] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
-  const problem = healthProblem(perms, settings, cap)
+  const found = healthProblem(perms, settings, cap)
+  // D-80: the free shortcut for a taken one, asked once per taken key.
+  const takenKey = found?.kind === 'hotkey' ? (['askHotkey', 'snapHotkey', 'screenHotkey'] as const).find((k) => settings[k] === found.hotkey) : undefined
+  const [free, setFree] = useState<{ key: string; accel: string | null } | null>(null)
+  useEffect(() => {
+    if (takenKey) void window.otty.suggestHotkey(takenKey).then((accel) => setFree({ key: takenKey, accel }), () => {})
+  }, [takenKey])
+  const problem = found?.kind === 'hotkey' && free?.key === takenKey ? { ...found, free: free?.accel } : found
   if (!problem) return null
   const id = problem.kind === 'hotkey' ? `hotkey:${problem.hotkey}` : problem.kind
   // Seen: the heads-up doesn't come back this month (D-57). Main saves it, and every window hears the change.
@@ -58,7 +65,7 @@ export function HealthBanner({ settings, onOpenSettings }: { settings: PublicSet
           ? capPassed(problem.cap)
           : problem.kind === 'near'
             ? capNear(problem.cap)
-            : `Another app uses ${prettyKey(problem.hotkey)}, so it won’t work for ${problem.what}.`
+            : `Another app uses ${keyWords(problem.hotkey)}, so it won’t work for ${problem.what}.${problem.kind === 'hotkey' && problem.free ? ` ${keyWords(problem.free)} is free.` : ''}`
 
   return (
     <div className={`health${open ? ' health--open' : ''}`} role="status">

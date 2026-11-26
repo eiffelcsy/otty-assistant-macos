@@ -1,5 +1,6 @@
 import type { SettableKey, SettingsUpdate } from '../../shared/types'
 import { validTiles } from '../../shared/tiles'
+import { cleanShelf } from '../pebbles'
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron'
 
 // D-44: a compromised renderer is what the sandbox is for, so main checks everything a window sends. Each channel
@@ -119,6 +120,11 @@ export const CHANNELS = {
   'app:relaunch': { views: PANEL, args: [] },
   'usage:get': { views: PANEL, args: [] },
   'diagnostics:get': { views: PANEL, args: [] },
+  // D-79: Send feedback and the log folder. D-80: a free shortcut for one that's taken.
+  'help:feedback': { views: PANEL, args: [text(4000), bool] },
+  'help:send': { views: PANEL, args: [text(4000), bool] },
+  'help:logs': { views: PANEL, args: [] },
+  'hotkeys:suggest': { views: PANEL, args: [oneOf('askHotkey', 'snapHotkey', 'screenHotkey')] },
   'connections:list': { views: CHAT, args: [] },
   'connections:connect': { views: CHAT, args: [connectRequest] },
   'connections:cancel': { views: CHAT, args: [] },
@@ -130,6 +136,12 @@ export const CHANNELS = {
   'calendar:range': { views: PANEL, args: [num(0, 8.64e15), num(0, 8.64e15)] },
   'calendar:save': { views: PANEL, args: [checkedLater] },
   'calendar:remove': { views: PANEL, args: [id] },
+  // D-77: the Pouch (`ipc/pouch.ts`). Main looks each Pebble up by its answer and place; a shelf name is checked here.
+  'pouch:list': { views: PANEL, args: [] },
+  'pouch:shelf': { views: PANEL, args: [id, int(0, 100), (x) => cleanShelf(x) !== undefined] },
+  'pouch:drop': { views: PANEL, args: [id, int(0, 100)] },
+  'pouch:undo-drop': { views: PANEL, args: [id, int(0, 100)] },
+  'pouch:forget': { views: PANEL, args: [] },
   'chat:send': { views: CHAT, args: [text(200_000), list(record, 50), optional(record)] },
   'chat:stop': { views: CHAT, args: [] },
   'chat:reset': { views: CHAT, args: [] },

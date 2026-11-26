@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Icon } from '../../components/Icon'
-import { prettyKey } from '../../lib/keys'
+import { keyWords, prettyKey } from '../../lib/keys'
 
 // Settings rows (D-61, docs/design/specs/02-settings.md, "Row anatomy"): a group of rows, each one control saved on
 // change. Kinds: switch, choice, link, value, keys and hold.
@@ -154,7 +154,21 @@ export function accelerator(e: Pick<KeyboardEvent, 'code' | 'ctrlKey' | 'altKey'
 }
 
 /** Click the keycaps to record a new shortcut. Esc cancels; the first whole chord is saved. */
-export function KeysRow({ value, clash, onChange, ...row }: RowProps & { value: string; clash?: boolean; onChange: (accel: string) => void }) {
+export function KeysRow({
+  value,
+  clash,
+  free,
+  onUse,
+  onChange,
+  ...row
+}: RowProps & {
+  value: string
+  clash?: boolean
+  /** D-80: a shortcut that works, once asked; null when none does. */
+  free?: string | null
+  onUse?: (accel: string) => void
+  onChange: (accel: string) => void
+}) {
   const ref = useFound(row.found)
   const [recording, setRecording] = useState(false)
   const [held, setHeld] = useState('')
@@ -175,7 +189,16 @@ export function KeysRow({ value, clash, onChange, ...row }: RowProps & { value: 
       <span className="set-row__text">
         <span className="set-row__title">{row.title}</span>
         {row.description && <span className="set-row__desc">{row.description}</span>}
-        {clash && <span className="set-row__failed">Another app uses this. Pick a different one.</span>}
+        {clash && (
+          <span className="set-row__failed">
+            {free ? `Another app uses this. ${keyWords(free)} is free.` : 'Another app uses this. Pick a different one.'}
+            {free && onUse && (
+              <button className="btn btn--soft btn--small" onClick={() => onUse(free)}>
+                Use it
+              </button>
+            )}
+          </span>
+        )}
         <Failed failed={row.failed} />
       </span>
       {recording ? (
@@ -201,7 +224,7 @@ export function KeysRow({ value, clash, onChange, ...row }: RowProps & { value: 
 export const HOLD_MS = 1200
 
 /** Can't be undone, so it's held: the fill sweeps over 1.2 s, and letting go early does nothing. */
-export function HoldButton({ label = 'Hold to forget', what, onDone }: { label?: string; what?: string; onDone: () => void }) {
+export function HoldButton({ label = 'Hold to forget', what, onDone, disabled = false }: { label?: string; what?: string; onDone: () => void; disabled?: boolean }) {
   const [holding, setHolding] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const start = () => {
@@ -219,6 +242,7 @@ export function HoldButton({ label = 'Hold to forget', what, onDone }: { label?:
   return (
     <button
       className={`btn btn--warn btn--small hold${holding ? ' hold--on' : ''}`}
+      disabled={disabled}
       aria-label={what ? `${label}: ${what}` : undefined}
       onPointerDown={start}
       onPointerUp={stop}
@@ -239,6 +263,7 @@ export function HoldRow({ onDone, ...row }: RowProps & { onDone: () => void }) {
       {!done && (
         <HoldButton
           what={row.title}
+          disabled={row.disabled}
           onDone={() => {
             setDone(true)
             onDone()
