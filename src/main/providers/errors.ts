@@ -24,6 +24,9 @@ export class ConnectionError extends FriendlyError {
   }
 }
 
+/** How services say a request is longer than the model's context (OpenAI-style, Anthropic, DeepSeek). */
+const TOO_LONG = /maximum context length|context_length_exceeded|prompt is too long|too many tokens|reduce the length/i
+
 /** A failed request in plain words, the same whichever API format it used. */
 export function friendlyStatus(status: number, body: string, profile: Profile): FriendlyError {
   if (status === 401) return new FriendlyError('Otty’s key doesn’t look right. Please check it in Settings.', 'key')
@@ -37,7 +40,8 @@ export function friendlyStatus(status: number, body: string, profile: Profile): 
   if (status === 404) return new FriendlyError('Otty can’t find that model. Check its name in Settings.')
   if (status === 429) return new FriendlyError('Otty is getting lots of questions right now. Give it a few seconds and try again.')
   if (status >= 500) return new FriendlyError('The AI service is having a moment. Please try again shortly.')
-  if (status === 413 || /prompt is too long/i.test(body)) return new FriendlyError('This chat has grown too long. Please start a new one.', 'too-long')
+  if ((status === 400 || status === 413) && TOO_LONG.test(body)) return new FriendlyError('This chat has grown too long. Please start a new one.', 'too-long')
+  if (status === 413) return new FriendlyError('This chat has grown too long. Please start a new one.', 'too-long')
   if (status === 400 && /image|vision|multimodal/i.test(body)) {
     return new NoVisionError('This model can’t look at pictures. Try a vision-capable model in Settings.')
   }

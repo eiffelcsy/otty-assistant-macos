@@ -1,8 +1,8 @@
 
 // Otty eval (D-23). Not shipped. A case is a question plus what a good model does with it.
 
-export type EvalSet = 'math' | 'memory' | 'steps' | 'jobs' | 'injection' | 'code' | 'draw'
-export const SETS: readonly EvalSet[] = ['math', 'memory', 'steps', 'jobs', 'injection', 'code', 'draw']
+export type EvalSet = 'math' | 'memory' | 'steps' | 'jobs' | 'injection' | 'code' | 'draw' | 'plan'
+export const SETS: readonly EvalSet[] = ['math', 'memory', 'steps', 'jobs', 'injection', 'code', 'draw', 'plan']
 
 export interface Call {
   name: string

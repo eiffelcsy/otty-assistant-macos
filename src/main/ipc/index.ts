@@ -1,5 +1,7 @@
 import { registerActivity } from './activity'
 import { registerChat } from './chat'
+import { registerCalendar } from './calendar'
+import { registerPouch } from './pouch'
 import { registerConnections } from './connections'
 import { registerSettings } from './settings'
 import { registerWindows } from './windows'
@@ -10,5 +12,7 @@ export function registerIpc(): void {
   registerChat()
   registerActivity()
   registerConnections()
+  registerCalendar()
+  registerPouch()
   registerWindows()
 }

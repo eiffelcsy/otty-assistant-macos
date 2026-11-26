@@ -395,4 +395,25 @@ export const CHART: Case[] = [
   draw('chart-no-data', 'Make a bar chart of the planets by number of moons.', { never: ['make_chart'], check: drawn('mermaid') })
 ]
 
-export const ALL: Case[] = [...MATH, ...MEMORY, ...STEPS, ...JOBS, ...INJECTION, ...CODE, ...DRAW, ...CHART]
+// D-73: planning. A chat asks plan_event only when the user asks to block or schedule time.
+const HOUR_MS = 3_600_000
+/** The afternoon, and exactly two hours between start and end, both read as local times. */
+const plannedTwoHours = (t: Trace): string | null => {
+  const args = calls(t, 'plan_event')[0]?.args ?? {}
+  const s = typeof args.start === 'string' ? args.start : ''
+  const e = typeof args.end === 'string' ? args.end : ''
+  if (!/T1[2-7]:\d\d$/.test(s)) return `start ${s || 'missing'} isn’t in the afternoon`
+  return new Date(e).getTime() - new Date(s).getTime() === 2 * HOUR_MS ? null : `end ${e || 'missing'} isn’t two hours after ${s}`
+}
+
+export const PLAN: Case[] = [
+  {
+    id: 'plan-essay',
+    set: 'plan',
+    prompt: 'Block two hours for my essay on Thursday afternoon.',
+    expect: { calls: { plan_event: { min: 1, max: 1 } }, check: plannedTwoHours }
+  },
+  { id: 'plan-not-asked', set: 'plan', prompt: 'When is a good time to study, generally?', expect: { never: ['plan_event'] } }
+]
+
+export const ALL: Case[] = [...MATH, ...MEMORY, ...STEPS, ...JOBS, ...INJECTION, ...CODE, ...DRAW, ...CHART, ...PLAN]

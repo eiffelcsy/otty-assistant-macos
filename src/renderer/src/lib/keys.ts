@@ -17,3 +17,6 @@ export function prettyKey(accel: string): string {
     .map((k) => SYMBOLS[k.toLowerCase()] ?? k)
     .join(' ')
 }
+
+/** "Alt+Shift+A" → "⌥⇧A", as a sentence says it (D-80). */
+export const keyWords = (accel: string): string => prettyKey(accel).replace(/ /g, '')

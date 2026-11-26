@@ -6,7 +6,8 @@ vi.mock('../settings', () => ({ isDev: () => true, getApiKey: () => 'key', getSt
 const { toolDefs } = await import('../tools')
 const { CHAT_TOOLS, claimOnce, JOB_TOOLS, needsOnce, OUTSIDE_TOOLS, ruleOfTwo, SAFETY } = await import('../toolSafety')
 
-const CONNECTION_TOOLS = ['calendar_events', 'calendar_free', 'reminders_due', 'canvas_due', 'canvas_announcements', 'notion_search', 'notion_page']
+// D-73: the calendar tools are offered to every chat now (Otty's own calendar is always read).
+const CONNECTION_TOOLS = ['reminders_due', 'canvas_due', 'canvas_announcements', 'notion_search', 'notion_page']
 
 /** Every tool the model can be offered, whichever service is in use. */
 function offered(): Set<string> {
@@ -42,7 +43,8 @@ describe('the Rule of Two', () => {
   })
 
   it('allows a chat turn’s whole set, which the user watches, only without private reading', () => {
-    const connections = new Set(CONNECTION_TOOLS)
+    // D-73: Otty’s own calendar tools are offered to every chat, so they’re left out of this check; a chat turn is watched.
+    const connections = new Set([...CONNECTION_TOOLS, 'calendar_events', 'calendar_free'])
     expect(() => ruleOfTwo(Object.keys(SAFETY).filter((n) => !connections.has(n)))).not.toThrow()
   })
 

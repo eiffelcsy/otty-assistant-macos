@@ -73,9 +73,11 @@ describe('which tools are offered (D-54)', () => {
     toolDefs(new Set(ALL), { web, learn: false, connections: new Set(connections as never[]) }).map((d) => d.function.name)
 
   it('offers the calendar tools for Apple at any web setting, and for Google only with the web on', () => {
+    // D-73: Otty's own calendar is always read, so both tools are offered with no connection at all.
     expect(names(['apple'], 'off')).toContain('calendar_events')
     expect(names(['google'])).toContain('calendar_events')
-    expect(names(['google'], 'off')).not.toContain('calendar_events')
+    expect(names(['google'], 'off')).toContain('calendar_events')
+    expect(names([])).toEqual(expect.arrayContaining(['calendar_events', 'calendar_free']))
   })
 
   it('with the web off, only Apple’s tools are offered (decision 15)', () => {

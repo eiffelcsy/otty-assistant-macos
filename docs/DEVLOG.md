@@ -29,6 +29,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ loop.ts        the tool loop, shared by chats and jobs │
 │ jobs/          background work: store, runner, limits  │
 │ connections/   calendars, Canvas, Notion, own MCP      │
+│ calendar/      Otty's own events, the week's range     │
 │ act/           what step cards do: paste, menu, keys   │
 │ memory/        what Otty knows: store, guard, habits   │
 │ math.ts        the calculator, mathjs behind allowlist │
@@ -89,13 +90,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ next | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
-| D-77 | The Pouch: kept Pebbles get their own screen (Pebbles step 2) | ⏳ beta | Pebbles step 1 (done) | M |
-| D-78 | Long chats don't break: compact once and retry on "too long", in chats and jobs | ⏳ beta | — | S–M |
-| D-79 | Help and feedback inside Otty: a Help page, Send feedback with an optional log, and the full list of where lookups go | ⏳ beta | where feedback goes (owner) | S |
-| D-80 | Your own shortcuts: a key recorder, and plain words when another app has the key | ⏳ beta | — | S |
-| D-81 | Turns as the unit of storage, decided before testers have data | ⏳ beta (decide first) | — | M |
-| D-82 | The pool, step 1: the bubble becomes a small pool of cove water with Otty floating in it (beta polish) | ⏳ beta | D-71 art (done) | S–M |
+| D-81 | Turns as the unit of storage: step 0 done, decided to wait (the turns can be rebuilt from today's rows) | ⏸ after the beta, by decision (2026-11-26) | branching, versions or sync being planned | M |
 | D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ after the core services (moved down 2026-11-24) | D-56 (done); services from D-54, D-73 and D-77 | L (step 0: S) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
@@ -113,7 +108,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
    - **D-78 Long chats don't break** (H, S–M). Today a chat that gets too long ends with "Something went wrong (error 400)", and a job can overflow after about a dozen long pages. Testers who use Otty for real will hit it. This entry covers compacting once and retrying (EFFICIENCY 13). The job history view (EFFICIENCY 2, 8) stays its own idea.
    - **D-79 Help and feedback** (H, S). LAUNCH_READINESS 14.5 and 15.5: a How do I… page, Send feedback with the last day's log attached if the person chooses, Open the log folder, and Settings › Privacy naming Wikipedia and DuckDuckGo, not only DeepSeek. Without these, a tester's problem stays invisible.
    - **D-80 Your own shortcuts** (M, S). Three global hotkeys will clash with some tester's other apps, and a clash today just looks like Otty doing nothing.
-   - **D-81 Turns as the unit of storage** (H, M). This one is a decision, not a feature. Once testers have chats, every message shape stays forever (the migration rule), and BRAINSTORM says to do this "before 1.0". The beta is the cheaper point to do it. If it waits, note why in the entry.
+   - **D-81 Turns as the unit of storage** (H, M). Decided 2026-11-26: wait (the entry says why). This one is a decision, not a feature. Once testers have chats, every message shape stays forever (the migration rule), and BRAINSTORM says to do this "before 1.0". The beta is the cheaper point to do it. If it waits, note why in the entry.
 
    - **D-82 The pool, step 1** (H, S–M; the owner added it as the beta's polish, 2026-11-24). The bubble is the first thing a tester sees, and it doesn't yet match the cove. The art exists.
 
@@ -374,67 +369,25 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
-## D-73 · Otty's calendar, step 1: a local calendar, UI first ⏳
+## D-81 · Turns as the unit of storage: decided to wait (2026-11-26) ⏸
 
-**Goal.** A calendar that belongs to Otty, in the roomy window: the user sees their week, adds and moves events, and asks Otty to plan ("block two hours for the essay before Thursday"), every change Otty makes undoable from the Logbook. Nothing leaves the Mac. The concept, and the later steps (overlay, sharing, otters agreeing a time), are in BRAINSTORM's [Otty's own calendar](BRAINSTORM.md#ottys-own-calendar-shared-and-multi-person).
+**Step 0, done.** `sqliteStore.ts`, `upgrade.ts` and `ChatSession.rewind` were read against BRAINSTORM's Runtime row. **The decision: don't migrate before the beta.** The entry leaves the beta list.
 
-**Spec first (UI/UX is the point).** A screen spec, `docs/design/specs/11-calendar.md`, to DESIGN's polish bar before any code: a week view at wide and roomy widths, a day list at the floating window's width (the frame's bands decide, never a measurement), the empty week, an event's card, adding by typing a time into the row, moving by drag with a keyboard path, today's line, and how an event Otty proposed looks before it's accepted. The cove's quiet wash or a time-of-day tint in its header, so it reads as Otty's place. Every state gets a ui-preview scene.
+**Why waiting costs little.**
+- A chat is saved as two position-ordered tables of JSON rows, `messages` (what the window shows) and `llm_history` (what the model sees).
+- In both, a turn starts at a user message the person typed. That's the same test the store and the eval already use to tell a typed message from a tool result sent as `user`.
+- So a later migration can group the rows of chats saved today into turns with no guesswork. The rows carry everything a turn record needs: question, model messages, answer, receipts, memories and ledger refs.
+- `upgrade.ts` already shows the pattern for reading old shapes. The number of testers' chats changes how long that migration runs, not how hard it is to write.
 
-**Design.**
-- Data: an `events` table in `otty.db` (a new migration): id, title, start, end, all-day, notes, `made_by` (`you` or `otty`), and the chat it came from. Main owns it behind an `EventStore` (SQLite and memory, as `ChatStore`).
-- IPC: `calendar:week`, `calendar:save`, `calendar:remove`, each in `CHANNELS` with guards; the renderer sends ids and fields, never SQL.
-- A tool, `plan_event` (row in `toolSafety.ts` first: changes something, sends nothing), behind a confirm card, writing a ledger row whose undo removes the event. Not in `JOB_TOOLS` in step 1.
-- A screen in the frame (`NAV` gains Calendar, `⌘4`), and Home's Today shows today's events.
+**Why doing it now costs a lot.**
+- It touches every chat path: save on send, the end-of-turn write, reopen, search, rewind, find-in-chat, and D-78's room-making rewrite.
+- That lands right before the beta, for features the beta doesn't ship (versions, branches, phone sync).
 
-**Steps.** 1) The spec and its preview scenes (S–M). 2) The store, migration and IPC (S–M). 3) The screen (M). 4) `plan_event` with its card, ledger and an eval case (S–M).
+**What keeps the door open.**
+- Writes stay prefix-shaped: rewind cuts a prefix (D-36), and D-78 rewrites history in place without reordering. So `messages` and `llm_history` keep lining up turn for turn.
+- A future change that broke that alignment would make the migration hard. So would one that stored a turn's parts somewhere other than these two tables. Either one must come with this entry reopened.
 
-**Done when.** The spec's every state has a scene in `npm run screens`; adding, moving and removing an event persist across a relaunch (smoke); "block two hours before Thursday" shows a card and, once accepted, the event, and Undo in the Logbook removes it (smoke, `ledger` test); nothing about events reaches What left your Mac unless a question carried them (`sent` test).
-
-## D-77 · The Pouch ⏳ beta
-
-**Goal.** Kept Pebbles get a screen of their own in the frame: sea glass on shelves over the cove, with search, shelves the person names, and "From a chat on…" leading back to where each Pebble came from. A kept Pebble outlives its chat, keeping its sources as names. The design is in BRAINSTORM, [Pebbles and the Pouch](BRAINSTORM.md#pebbles-and-the-pouch), step 2.
-
-**Before building:** a screen spec, `docs/design/specs/12-pouch.md`, written to the polish bar, with a ui-preview scene for each state. Also a migration that moves kept Pebbles out from under their chats, and "Forget all chats" asking whether to keep the Pouch too. Keep the Pouch's read behind D-54's service shape, so D-55's features can read it later.
-
-**Done when.** Keep → the Pouch → open big → back to the chat works and survives a relaunch (smoke). Deleting the chat leaves the Pebble, with its sources kept as names (store test). Every state has a scene in `npm run screens`.
-
-## D-78 · Long chats don't break ⏳ beta
-
-**Goal.** When a request is too long for the model, Otty compacts once and retries, and never shows "error 400". In a chat, it summarises old turns' pictures, page reads and documents in one step. In a job, old page bodies become stubs written by code. Both appear in a turn's note, never as a change to anything already sent (the cache rule). It comes from BRAINSTORM's history budget row and EFFICIENCY 13. The job history view (EFFICIENCY 2, 8) is a separate, later entry.
-
-**Done when.** A scripted "too long" from the fake world ends in an answer, not an error, in both a chat and a job (smoke). Nothing is compacted until a request fails, so DeepSeek's cache holds on every normal turn (`llm.test.ts`).
-
-## D-79 · Help and feedback inside Otty ⏳ beta
-
-**Goal.** A tester can find out how to use Otty, and tell the owner what went wrong, without leaving it (LAUNCH_READINESS 14.5, 15.5):
-- A **How do I…** page in Settings › Help: the three hotkeys, snipping, stopping Otty, and seeing what was sent, written in plain words.
-- **Send feedback**: the person's words, plus the last day's log only if they tick it. Everything is shown in full before it's sent, as Copy diagnostics does.
-- **Open the log folder.**
-- Settings › Privacy names every place a lookup can go (Wikipedia and DuckDuckGo, as well as DeepSeek).
-
-**Owner decision:** where feedback goes. A prefilled email is the simplest choice and needs no server.
-
-**Done when.** The page and the feedback sheet have scenes. A feedback note never includes a log unless the box was ticked (test). The privacy lines match what `sent.ts` can record (test).
-
-## D-80 · Your own shortcuts ⏳ beta
-
-**Goal.** The highlight, snip and whole-screen hotkeys can be changed in Settings with a key recorder, not a text field. When a key can't be registered because another app has it, Otty says so in plain words and suggests a free one, instead of seeming to do nothing.
-
-**Done when.** A changed key works after a relaunch, and a taken key shows the friendly line (smoke, through the harness's "shortcut taken by another app" list).
-
-## D-81 · Turns as the unit of storage (decide before the beta) ⏳
-
-**Goal.** Decide, and if it's yes, build, BRAINSTORM's Runtime row: each turn becomes one append-only record (question, model messages, the answer as shown, actions, run id, parent turn), and both the chat view and the model history are built from it. Rewind, versions, branching and phone sync all need it. Once testers' chats are saved, the migration rule keeps every message shape forever, so the beta is the last cheap point.
-
-**Step 0 (S):** read `sqliteStore.ts`, `upgrade.ts` and `ChatSession.rewind` closely, and write down the cost of migrating now against the cost of carrying the two-array shape forward. If the answer is to wait, say why here and drop the entry from the beta.
-
-## D-82 · The pool, step 1 ⏳ beta
-
-**Goal.** The floating bubble becomes the pool from BRAINSTORM's [concept note](BRAINSTORM.md#the-pool): a small lens of Liquid Glass holding the cove's water at the true hour, with Otty floating on its back in it. Step 1 covers the states: resting, working (two stepped paddle frames, only while something runs), needs you (sea glass held up, a straw rim), has an answer (sea glass bobbing, replacing the badge dot), paused (still, grey water) and asleep (`float-doze`). Being carried, fed a file and the edge tuck are step 2. The window growing out of the water is step 3.
-
-**Before building:** a screen spec, `docs/design/specs/13-pool.md`, to the polish bar, from the draft (`docs/design/otty-window-draft.html`, v0.8). Check the pool's art list in BRAINSTORM: a second paddle frame and a float blink are still missing, so paint them through `tools/otty-art/` or leave them out of step 1. Mark every bust frame the bubble alone uses as retired.
-
-**Done when.** Each state has a scene, light and dark, in `npm run screens`. The idle budget still holds with the pool resting, re-measured with `OTTY_METRICS=1` (✋). The bubble's smoke steps (moods, unseen dot, Feed Otty, drag) still pass. It stays a button to assistive tech, with its tooltips.
+**Reopen when** the first of these is planned: branching from an older question, keeping versions of an answer, or syncing chats to the phone.
 
 ## D-55 · Your features: Otty builds them for you ⏳
 
@@ -927,3 +880,21 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 188. Change a tool on the server, then Check again → "1 tool changed since you turned them on…", the tool shows Changed with its switch off, and it's no longer offered
 189. Ask Otty in a chat to connect something → the answer holds a card with the form already filled in (host shown); Check and add connects it, and no key ever appears in a request to the model
 190. Add your own connection that signs in in the browser → the server's sign-in page opens, and coming back adds it with its tools listed
+191. Calendar (⌘5): Add "Swim practice" tomorrow 07:00–08:00 → it shows in tomorrow's column, and after a relaunch it's still there. Change its end in its card → the new time shows; Delete → "Deleted …" with Undo, which brings it back
+192. Drag one of Otty's events down two hours in the week → it lands two hours later, snapped to 15 minutes, and stays there after a relaunch
+193. Ask Otty to block two hours for an essay tomorrow afternoon → "Add this to your calendar?" with the title and time in words; Add it → the event shows with a paw. Undo in the Logbook removes it, and nothing about it is in What left your Mac
+194. With Apple Calendar connected, its events show in the week read-only: opening one names its calendar ("From Home. Change it there.") with no Save
+195. An event happening now shows on Home's Today as the current tick
+196. Keep a chart from an answer → the Pouch (⌘6) shows it with "From “…”"; Open big opens the viewer, and Go to the chat opens the chat at that answer. After a relaunch it's still there
+197. Delete the chat a kept drawing came from → it stays in the Pouch, "From a deleted chat", with no Go to the chat. Forget all chats → it's still there
+198. Put a kept drawing on a new shelf "Sea" → the wall shows a Sea group and "Not on a shelf". Search finds by title and by shelf, and says when nothing matches
+199. Put back a stone → it goes, with Undo, which brings it back on its shelf. Settings › Privacy › Forget my Pouch → the Pouch is empty
+200. A chat with a long page read in an earlier turn: the model says the request is too long → the answer still comes, with the chip "Made room in this chat" and no error card; the next question's request carries the page as set aside
+201. A background look with a long page read: the model says it's too long → the look still finishes, and its report opens from the Logbook
+202. Settings › Help › How do I… → "Ask about something you highlighted" unfolds with your own shortcut in it. Send feedback, type a note, and with no address the button reads Copy it → the clipboard holds only the note
+203. Send feedback with "Attach the last day's log" ticked → the sheet shows the diagnostics and "— Log, last 24 hours —" before anything is copied. Open the log folder opens Otty's log folder
+204. A taken shortcut → the Home banner says "is free." with the free one; Change it → Shortcuts says it too, and Use it saves that shortcut and the banner goes
+205. The floating otter is a small pool of the hour's water with Otty floating in it. While something runs he paddles; when something needs you the rim turns straw; a new answer puts sea glass on the water; Pause greys the water. ✋ A person checks it by eye at dawn, day, golden hour and night, and re-measures the idle budget with OTTY_METRICS=1 while it rests, because neither the look nor the CPU can be asserted by a spec
+206. Otty floats *in* the water in the pool and on Home: a soft foam line where he meets the surface, his belly faintly under the teal, and a painted ripple on a hover (pool) or a press (cove), spreading over what's underwater and behind what's above. The pool gives a small dip with a ripple now and then. ✋ A person checks the look at real size at all four times of day, and re-measures the idle budget with OTTY_METRICS=1 with the pool resting and Home open, because neither can be asserted by a spec
+207. Leave Home open for a few minutes: now and then something small happens in the cove and is gone in a few seconds, chosen by the time of day. A dragonfly darts over the water (dawn, day), birds cross the sky (dawn to golden hour), fireflies blink by the reeds (golden hour, night), a fish ring spreads on the water, or a breath of wind leans the reeds and nudges the leaf. Never two at once, nothing over the words, and nothing while Otty's hidden or with Reduce motion on. ✋ A person watches each time of day and re-measures the idle budget, because chance and look can't be asserted by a spec
+208. Calendar › Month → this month's name and six weeks of days, today marked, with each day's events as chips (dots when the window is narrow). ⌘→ moves a month. Click a day's number → its week, with the day's events in their columns

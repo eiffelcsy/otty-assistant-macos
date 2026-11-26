@@ -6,6 +6,7 @@ import { connectedKinds } from '../connections/store'
 import { BUILT_IN_TOOLS, ownTool, ownToolDefs } from '../connections/tools'
 import { calculateTool, forgetTool, makeChartTool, rememberTool, scheduleJobTool, showStepsTool, startJobTool } from './chat'
 import { copyTool, openUrlTool, reminderTool } from './mac'
+import { planEventTool } from './calendar'
 import { readPageTool, searchWebTool, webSetup } from './web'
 import type { Args, Setup, Tool, ToolContext, ToolDef, ToolLabel, ToolOutcome } from './types'
 
@@ -34,7 +35,9 @@ export const TOOLS = {
   start_job: startJobTool,
   schedule_job: scheduleJobTool,
   // D-54: connections, in this order (new ones go at the end).
-  ...BUILT_IN_TOOLS
+  ...BUILT_IN_TOOLS,
+  // D-73: Otty's own calendar, at the end.
+  plan_event: planEventTool
 } as const satisfies Record<ToolName, Tool>
 
 const toolNamed = (name: string): Tool | undefined => (Object.hasOwn(TOOLS, name) ? TOOLS[name as ToolName] : ownTool(name))

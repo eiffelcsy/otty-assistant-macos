@@ -46,11 +46,16 @@ export function reminderCard(item: string, when: Date | null): ConfirmCard {
   return { kind: 'reminder', title: 'Add this reminder?', yes: 'Add it', item: cut(item, 200), ...(at ? { when: at[0].toUpperCase() + at.slice(1) } : {}), list: 'In Reminders' }
 }
 
+/** D-73: a plan_event card. `when` is the time in words, e.g. "Thu 4 Dec, 14:00–16:00". */
+export function eventCard(title: string, when: string): ConfirmCard {
+  return { kind: 'event', title: 'Add this to your calendar?', yes: 'Add it', item: cut(title, 200), when }
+}
+
 export function jobCard(title: string, item: string, detail: string, later: boolean, overCap: boolean): ConfirmCard {
   return { kind: 'job', title, yes: later ? 'Schedule it' : 'Start it', item, detail, ...(overCap ? { unusual: 'cap' as const } : {}) }
 }
 
-const DONE: Record<ConfirmCard['kind'], string> = { read: 'Read', open: 'Opened', search: 'Searched for', reminder: 'Added', job: 'Started', use: 'Used' }
+const DONE: Record<ConfirmCard['kind'], string> = { read: 'Read', open: 'Opened', search: 'Searched for', reminder: 'Added', job: 'Started', use: 'Used', event: 'Added to your calendar' }
 
 /** A tool of a connection of the user's own, or a built-in that sends words out (D-54). `reads`: a read, not a change. */
 export function connectionCard(service: string, item: string, args: string, reads = false): ConfirmCard {

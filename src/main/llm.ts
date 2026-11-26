@@ -22,7 +22,9 @@ import type {
 import { capturedText } from '../shared/captures'
 import { HIDDEN, maskSecrets } from '../shared/secrets'
 import { questionWhat } from './sent'
-import { jobCard, receiptFor } from './cards'
+import { eventCard, jobCard, receiptFor } from './cards'
+import { cleanFields, parseLocal, whenWords } from './calendar/fields'
+import type { EventStore, StoredEvent } from './calendar/store'
 import { tablesIn, type Table } from '../shared/table'
 import { buildChart } from './chart'
 import { mathTier } from '../shared/math'
@@ -71,7 +73,7 @@ interface LiveTurn {
   /** The confirm card on show, so coming back to the chat shows it again. */
   asking?: { confirmId: string; card: ConfirmCard }
   /** The receipt of a card just allowed, which gets its Undo once the tool says how (D-60). */
-  undoable?: { at: number; kind: 'reminder' | 'job' }
+  undoable?: { at: number; kind: 'reminder' | 'job' | 'event' }
   /** The user pressed Stop, as opposed to the turn giving way to a new question. */
   stopped?: boolean
 }
@@ -274,6 +276,8 @@ export interface SessionDeps {
   keepHidden(id: string, lines: string[]): void
   /** How this chat's tools reach the Mac: open a page, copy, add a reminder. */
   mac: MacHands
+  /** D-73: Otty's own calendar. Always the database's, whatever "Remember my chats" says. */
+  eventStore(): EventStore
 }
 
 export class ChatSession {
@@ -711,6 +715,8 @@ export class ChatSession {
     this.live.set(thread.id, live)
     this.hooks.onTurn?.(false)
     let finished = false
+    // Set when the history was shortened to fit (D-78); its stored rows are then rewritten from the start.
+    let roomed = false
 
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
@@ -780,6 +786,7 @@ export class ChatSession {
           makeChart: (args) => this.makeChart(thread, answer, args),
           startJob: (args) => this.offerJob(live, answer, args, language),
           scheduleJob: (args) => this.offerJob(live, answer, args, language, true),
+          planEvent: (args) => this.planEvent(live, answer, thread, args),
           learn: {
             remember: (args) => learning(() => remember(this.deps.memory(), args, heard, place)),
             forget: (args) => learning(() => forgetMemory(this.deps.memory(), args, heard))
@@ -788,6 +795,12 @@ export class ChatSession {
         maxRounds: MAX_TOOL_ROUNDS,
         signal: abort.signal,
         reasoning,
+        onRoom: () => {
+          roomed = true
+          const chip = { callId: `room-${Date.now()}`, label: 'Made room in this chat', icon: 'compress', status: 'done' as const }
+          answer.tools = [...answer.tools, chip]
+          this.tell(thread, { type: 'tool', id, ...chip })
+        },
         onEvent: (e) => {
           if (e.type === 'text') {
             answer.text += e.text
@@ -833,7 +846,7 @@ export class ChatSession {
       this.hooks.onTurn?.(finished && thread.id !== this.thread.id)
       thread.updatedAt = Date.now()
       // Only this turn's rows: the cost doesn't grow with the length of the chat.
-      this.persist(thread, { messages: answerAt, history: turnStart })
+      this.persist(thread, { messages: answerAt, history: roomed ? 0 : turnStart })
       void this.deps.pruneChats().catch((err) => console.error('Could not forget old chats', err))
       if (finished) this.afterAnswer(thread, answer, answerAt === 1)
     }
@@ -870,7 +883,7 @@ export class ChatSession {
       turn.confirms.set(confirmId, (allowed, why) => {
         const receipt = receiptFor(card, allowed, why)
         const at = (turn.answer.receipts = [...(turn.answer.receipts ?? []), receipt]).length - 1
-        turn.undoable = allowed && (card.kind === 'reminder' || card.kind === 'job') ? { at, kind: card.kind } : undefined
+        turn.undoable = allowed && (card.kind === 'reminder' || card.kind === 'job' || card.kind === 'event') ? { at, kind: card.kind } : undefined
         this.tell(turn.thread, { type: 'receipt', id: turn.answerId, at, receipt })
         resolve(allowed)
       })
@@ -897,13 +910,16 @@ export class ChatSession {
     const receipt = answer?.role === 'assistant' ? answer.receipts?.[at] : undefined
     if (!receipt?.undo || receipt.undone) return false
     const { kind, ref } = receipt.undo
-    try {
-      if (kind === 'job') await this.hooks.withdrawJob?.(ref)
-      else await this.deps.mac.unremind(ref)
-    } catch (err) {
-      console.error('Could not undo from a receipt', err)
-      return false
-    }
+    if (kind === 'event') {
+      if (!this.deps.eventStore().remove(ref)) return false
+    } else
+      try {
+        if (kind === 'job') await this.hooks.withdrawJob?.(ref)
+        else await this.deps.mac.unremind(ref)
+      } catch (err) {
+        console.error('Could not undo from a receipt', err)
+        return false
+      }
     this.deps.ledger()?.markUndone(thread.id, kind, ref)
     receipt.undone = true
     this.persist(thread, { messages: index, history: thread.history.length })
@@ -934,13 +950,16 @@ export class ChatSession {
       this.tell(thread, { type: 'memory', id: answer.id, note: undone })
       return true
     }
-    try {
-      if (row.undo === 'job') await this.hooks.withdrawJob?.(ref)
-      else await this.deps.mac.unremind(ref)
-    } catch (err) {
-      console.error('Could not undo from the Logbook', err)
-      return false
-    }
+    if (row.undo === 'event') {
+      if (!this.deps.eventStore().remove(ref)) return false
+    } else
+      try {
+        if (row.undo === 'job') await this.hooks.withdrawJob?.(ref)
+        else await this.deps.mac.unremind(ref)
+      } catch (err) {
+        console.error('Could not undo from the Logbook', err)
+        return false
+      }
     ledger!.markUndone(chatId, row.undo, ref)
     const at = answer?.role === 'assistant' ? (answer.receipts?.findIndex((r) => r.undo?.ref === ref && !r.undone) ?? -1) : -1
     if (thread && answer?.role === 'assistant' && at >= 0) {
@@ -950,6 +969,42 @@ export class ChatSession {
       this.tell(thread, { type: 'receipt', id: answer.id, at, receipt })
     }
     return true
+  }
+
+  /**
+   * D-73: the model only asks. The times are checked here, never trusted, and the card is what adds the event. An all-day
+   * end written as a day is the last day, so it's stored as the midnight after it.
+   */
+  private async planEvent(turn: LiveTurn, answer: Answer, thread: Thread, args: Record<string, unknown>): Promise<ToolOutcome> {
+    const bad: ToolOutcome = { result: 'That needs a title, and a start before its end in YYYY-MM-DDTHH:MM, at most 14 days long.', status: 'error' }
+    const s = typeof args.start === 'string' ? args.start : ''
+    const e = typeof args.end === 'string' ? args.end : ''
+    const start = parseLocal(s)
+    const parsedEnd = parseLocal(e)
+    if (start === null || parsedEnd === null) return bad
+    const allDay = args.all_day === true || (!s.includes('T') && !e.includes('T'))
+    const endDay = new Date(parsedEnd)
+    const end = allDay && !e.includes('T') ? new Date(endDay.getFullYear(), endDay.getMonth(), endDay.getDate() + 1).getTime() : parsedEnd
+    const fields = cleanFields({ title: args.title, start, end, allDay, notes: args.notes })
+    if (!fields) return bad
+    const when = whenWords(fields.start, fields.end, fields.allDay)
+    if (!(await this.askConfirm(turn, eventCard(fields.title, when)))) return { result: 'The user declined.', status: 'denied' }
+    const now = Date.now()
+    const event: StoredEvent = {
+      id: randomUUID(),
+      title: fields.title,
+      start: fields.start,
+      end: fields.end,
+      allDay: fields.allDay,
+      ...(fields.notes ? { notes: fields.notes } : {}),
+      madeBy: 'otty',
+      chatId: thread.id,
+      answerId: answer.id,
+      created: now,
+      updated: now
+    }
+    this.deps.eventStore().save(event)
+    return { result: `Added “${fields.title}” to the calendar: ${when}.`, status: 'done', undo: { ref: event.id, label: `Remove “${fields.title}” from the calendar` } }
   }
 
   /** The model only asks. The card is what starts a job, so a hostile page can't. */
@@ -1009,10 +1064,10 @@ export class ChatSession {
   }
 
   /** A Pebble in an answer of the chat on show (charts, then drawings), for Keep. */
-  pebbleAt(answerId: string, index: number): { chatId: string; pebble: Pebble } | null {
+  pebbleAt(answerId: string, index: number): { chatId: string; title: string; updatedAt: number; pebble: Pebble } | null {
     const answer = this.thread.messages.find((m) => m.id === answerId)
     const pebble = answer?.role === 'assistant' ? pebblesOf(answer)[index] : undefined
-    return pebble ? { chatId: this.thread.id, pebble } : null
+    return pebble ? { chatId: this.thread.id, title: this.thread.title, updatedAt: this.thread.updatedAt, pebble } : null
   }
 
   private card(answerId: string, index: number): { at: number; card: StepCard } | null {

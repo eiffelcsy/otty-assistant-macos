@@ -264,6 +264,8 @@ export interface SettingsCounts {
   /** How many chats each "Keep chats for" choice would forget now. */
   olderThan: Record<KeepChats, number>
   notes: number
+  /** D-77: Pebbles in the Pouch. */
+  pebbles: number
 }
 
 /** A setting Settings saves on its own as it changes (`SETTABLE` in main checks each). */
@@ -366,7 +368,7 @@ export type Unusual = 'alphabet' | 'http' | 'private' | 'cap'
  */
 export interface ConfirmCard {
   /** `use`: a tool of a connection of the user's own (D-54). */
-  kind: 'read' | 'open' | 'search' | 'reminder' | 'job' | 'use'
+  kind: 'read' | 'open' | 'search' | 'reminder' | 'job' | 'use' | 'event'
   title: string
   /** The primary button's words; the other is always Skip. */
   yes: string
@@ -378,9 +380,9 @@ export interface ConfirmCard {
   /** search: the words as the model will send them, and where they go. use: the arguments, and the connection's name. */
   query?: string
   service?: string
-  /** reminder and job: what it's called. use: the tool's title. */
+  /** reminder and job: what it's called. use: the tool's title. event: the event's title. */
   item?: string
-  /** reminder: when, in words, and where it goes. */
+  /** reminder and event: when, in words. reminder: where it goes. */
   when?: string
   list?: string
   /** job: the card's longer words. */
@@ -398,7 +400,7 @@ export interface Receipt {
   /** Why it was skipped, when it wasn't the user's Skip: "you asked something else". */
   why?: string
   /** How to take it back, when Otty can (a reminder, a look). The renderer only sends the receipt's place. */
-  undo?: { kind: 'reminder' | 'job'; ref: string; label: string }
+  undo?: { kind: 'reminder' | 'job' | 'event'; ref: string; label: string }
   undone?: boolean
 }
 
@@ -480,7 +482,7 @@ export interface WindowGlide {
 }
 
 /** What the app menu asks the Otty window to do on its own screen (D-65); navigation lives in the renderer (D-64). */
-export type FrameCommand = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
+export type FrameCommand = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'calendar' | 'pouch' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
 
 /** The Logbook's views (D-63, Spec 04). The last three are the "Looking for…" ones. */
 export type LogView = 'wait' | 'next' | 'all' | 'sent' | 'changed' | 'noted'
@@ -793,6 +795,60 @@ export interface ConnectResult {
 /** A ```connection block from the model, once `connectionDraft` has checked it. Never holds a key. */
 export type ConnectionDraft = { kind: Exclude<ConnectionKind, 'mcp'> } | { kind: 'mcp'; name: string; url: string; auth: McpAuth }
 
+/** D-73: one event on the Calendar screen, from Otty's own calendar or a connected one (read-only). */
+export interface CalendarItem {
+  id: string
+  title: string
+  /** Epoch ms. An all-day event runs from local midnight to the next local midnight. */
+  start: number
+  end: number
+  allDay: boolean
+  notes?: string
+  /** Otty's own events only: who added it. */
+  madeBy?: 'you' | 'otty'
+  /** 'Otty' for Otty's own; otherwise the connection, such as 'Apple Calendar'. */
+  source: 'Otty' | 'Apple Calendar' | 'Google Calendar'
+  /** The connected calendar's own name, such as "Home". */
+  calendar?: string
+  /** True for anything not Otty's own: it can't be changed here. */
+  readOnly: boolean
+}
+
+/** What the event card sends to save. `id` only for one of Otty's own events. Main checks every field. */
+export interface EventFields {
+  id?: string
+  title: string
+  start: number
+  end: number
+  allDay: boolean
+  notes?: string
+}
+
+export interface CalendarRange {
+  items: CalendarItem[]
+  /** A connected calendar that couldn't be read, in plain words. */
+  note?: string
+}
+
+/** D-77: one kept Pebble in the Pouch. Keyed by its answer and its place in that answer's Pebbles. */
+export interface PouchItem {
+  answerId: string
+  index: number
+  kind: 'chart' | 'deck' | 'diagram' | 'picture'
+  title: string
+  /** The fence language and source, drawn by Otty's own renderer. */
+  drawing: 'mermaid' | 'svg' | 'slides'
+  code: string
+  /** Absent when no shelf. */
+  shelf?: string
+  /** Absent once the chat was deleted. */
+  chatId?: string
+  chatTitle: string
+  /** When the chat was last updated, as the keep saw it. Epoch ms. */
+  chatAt: number
+  kept: number
+}
+
 export interface OttyApi {
   getSettings(): Promise<PublicSettings>
   saveSettings(update: SettingsUpdate): Promise<PublicSettings>
@@ -807,6 +863,13 @@ export interface OttyApi {
   getUsage(): Promise<UsageReport>
   /** D-50: facts about the Mac and Otty, and the log's last lines, to show and then copy. */
   getDiagnostics(): Promise<string>
+  /** D-79: the feedback text as it would be copied, and the build's address (null when there isn't one). Sends nothing. */
+  feedbackPreview(note: string, withLog: boolean): Promise<{ text: string; email: string | null }>
+  /** D-79: copies the text and opens a pre-filled email when there's an address. */
+  sendFeedback(note: string, withLog: boolean): Promise<{ mailed: boolean }>
+  openLogFolder(): Promise<void>
+  /** D-80: a shortcut that works, to offer in place of one another app uses; null when none does. */
+  suggestHotkey(key: 'askHotkey' | 'snapHotkey' | 'screenHotkey'): Promise<string | null>
   /** D-54: Settings › Connections and the chat's connection card. */
   connections(): Promise<ConnectionsState>
   /** Resolves when it's connected or has failed; a browser sign-in waits for the browser. */
@@ -817,6 +880,19 @@ export interface OttyApi {
   recheckConnection(id: string): Promise<ConnectResult>
   signInAgain(id: string): Promise<ConnectResult>
   removeConnection(id: string): Promise<ConnectionsState>
+  /** D-73: the Calendar screen. `from` and `to` are epoch ms, at most 42 days apart. */
+  calendarRange(from: number, to: number): Promise<CalendarRange>
+  /** Null when main refused it. */
+  saveEvent(fields: EventFields): Promise<CalendarItem | null>
+  removeEvent(id: string): Promise<boolean>
+  /** D-77: the Pouch, newest first. */
+  pouch(): Promise<PouchItem[]>
+  /** `shelf` null takes it off its shelf. Resolves to the Pouch as it is now. */
+  setShelf(answerId: string, index: number, shelf: string | null): Promise<PouchItem[]>
+  /** Put back: out of the Pouch, with 30 s to undo. */
+  putBack(answerId: string, index: number): Promise<boolean>
+  undoPutBack(answerId: string, index: number): Promise<boolean>
+  forgetPouch(): Promise<void>
 
   sendMessage(text: string, captures: Capture[], opts?: SendOptions): Promise<void>
   stop(): Promise<void>

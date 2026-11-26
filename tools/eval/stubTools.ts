@@ -54,6 +54,9 @@ export function wrap<T extends { runTool: (name: string, args: Record<string, un
           return ok(`Opened ${String(args.url)}`)
         case 'create_reminder':
           return ok('Reminder added.')
+        // D-73: the card is the real gate; the eval only records the call.
+        case 'plan_event':
+          return ok(`Added “${String(args.title)}” to the calendar.`)
         case 'copy_to_clipboard':
           return ok('Copied.')
         default:

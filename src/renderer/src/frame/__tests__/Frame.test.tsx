@@ -25,7 +25,7 @@ describe('the frame (Spec 05)', () => {
     expect(screen.queryByText('The list')).toBeNull()
     expect(screen.queryByRole('navigation')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Chat, switch screen, 2 needs you' }))
-    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Home⌘1', 'Chat⌘2', 'Chats⇧⌘F', 'Logbook2⌘3', 'Notebook⌘4', 'Settings⌘,'])
+    expect(screen.getAllByRole('menuitem').map((m) => m.textContent)).toEqual(['Home⌘1', 'Chat⌘2', 'Chats⇧⌘F', 'Logbook2⌘3', 'Notebook⌘4', 'Calendar⌘5', 'Pouch⌘6', 'Settings⌘,'])
     fireEvent.click(screen.getByRole('menuitem', { name: /^Logbook/ }))
     expect(onGo).toHaveBeenCalledWith('logbook')
   })

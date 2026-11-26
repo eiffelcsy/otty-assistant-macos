@@ -1,7 +1,7 @@
 // D-66: Home's one read-only query. The status sentence follows Spec 06's priority; Needs you is the Logbook's own
 // view; today's ticks come in order and fold past six; what left the Mac is counted from the logs.
 import { describe, expect, it } from 'vitest'
-import type { SentItem, Words } from '../../../shared/types'
+import type { CalendarItem, SentItem, Words } from '../../../shared/types'
 import type { Job } from '../../jobs/types'
 import type { ActionRow } from '../../ledger'
 import { logbook } from '../../logbook'
@@ -14,7 +14,7 @@ const sent = (over: Partial<SentItem>): SentItem => ({ id: 1, at: NOW - H, kind:
 const act = (over: Partial<ActionRow>): ActionRow => ({ id: 1, at: NOW - H, tool: 'create_reminder', chatId: 'c1', summary: 'Reminder added', undo: 'reminder', ref: 'R1', status: 'done', ...over })
 
 function sources(over: Partial<HomeSources> = {}): HomeSources {
-  return { now: NOW, jobs: [], held: false, pausedUntil: null, overCap: false, sent: [], changes: [], chats: new Map([['c1', 'Trip']]), cards: [], remembered: true, webOff: false, service: 'DeepSeek', asked: true, ...over }
+  return { now: NOW, jobs: [], held: false, pausedUntil: null, overCap: false, sent: [], changes: [], chats: new Map([['c1', 'Trip']]), cards: [], remembered: true, webOff: false, service: 'DeepSeek', asked: true, events: [], ...over }
 }
 const plain = (w: Words) => w.map((p) => p.text).join('')
 
@@ -106,4 +106,31 @@ describe('what left your Mac', () => {
 it('offers things to try only until the first question', () => {
   expect(home(sources({ asked: false })).firstRun).toBe(true)
   expect(home(sources()).firstRun).toBe(false)
+})
+
+describe('today’s events (D-73, Spec 11 Part 7)', () => {
+  const event = (over: Partial<CalendarItem>): CalendarItem => ({ id: 'e1', title: 'Essay', start: NOW - H / 2, end: NOW + H / 2, allDay: false, source: 'Otty', readOnly: false, ...over })
+
+  it('shows an event on now as a now tick, and one that has ended as done', () => {
+    const page = home(sources({ events: [event({}), event({ id: 'e2', title: 'Standup', start: NOW - 3 * H, end: NOW - 2 * H })] }))
+    expect(page.today.ticks.find((t) => t.id === 'event:e1')).toMatchObject({ state: 'now', title: 'Essay', time: expect.any(String) })
+    expect(page.today.ticks.find((t) => t.id === 'event:e2')).toMatchObject({ state: 'done' })
+  })
+
+  it('shows an event before it starts as next, and an all-day event as All day', () => {
+    const page = home(sources({ events: [event({ id: 'later', title: 'Gym', start: NOW + H, end: NOW + 2 * H }), event({ id: 'day', title: 'Trip', allDay: true, start: NOW - 5 * H, end: NOW + 20 * H })] }))
+    expect(page.today.ticks.find((t) => t.id === 'event:later')).toMatchObject({ state: 'next' })
+    expect(page.today.ticks.find((t) => t.id === 'event:day')).toMatchObject({ time: 'All day', state: 'now' })
+  })
+
+  it('gives a connected event its calendar as the sub line, and Otty’s own none', () => {
+    const page = home(sources({ events: [event({ id: 'a', title: 'Lunch', source: 'Apple Calendar', calendar: 'Home', readOnly: true }), event({})] }))
+    expect(page.today.ticks.find((t) => t.id === 'event:a')).toMatchObject({ sub: 'Home', title: 'Lunch' })
+    expect(page.today.ticks.find((t) => t.id === 'event:e1')).not.toHaveProperty('sub')
+  })
+
+  it('orders events with the jobs by time', () => {
+    const page = home(sources({ jobs: [job({ id: 'w', title: 'Train times', status: 'working', createdAt: NOW - 2 * H, updatedAt: NOW - H })], events: [event({ id: 'e', start: NOW + H, end: NOW + 2 * H, title: 'Gym' })] }))
+    expect(page.today.ticks.map((t) => t.id)).toEqual(['job:w', 'event:e'])
+  })
 })

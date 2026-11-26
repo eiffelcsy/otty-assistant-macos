@@ -3,6 +3,7 @@ import { serviceAt, serviceById } from '../../shared/services'
 import type { ConnectionKind, ConnectionOffer, ConnectionsState, ConnectionToolView, ConnectionView, ConnectRequest, ConnectResult } from '../../shared/types'
 import { getStored } from '../settings'
 import { webOff } from '../tools'
+import { clearCalendarCache } from '../calendar/range'
 import { appleAccess } from './apple'
 import { canvasOrigin, checkCanvas } from './canvas'
 import { googleClient, revokeGoogle, signInGoogle } from './google'
@@ -144,7 +145,8 @@ async function connectNow(req: ConnectRequest): Promise<ConnectResult> {
 }
 
 export function connect(req: ConnectRequest): Promise<ConnectResult> {
-  return guarded(() => connectNow(req))
+  // D-73: a new connection's calendar shows at once, not after the cached read runs out.
+  return guarded(() => connectNow(req)).finally(clearCalendarCache)
 }
 
 export function cancelConnect(): void {
@@ -212,6 +214,7 @@ export async function removeConnection(id: string): Promise<ConnectionsState> {
   }
   if (c?.kind === 'mcp') forgetClient(id)
   dropConnection(id)
+  clearCalendarCache()
   return connectionsState()
 }
 

@@ -8,6 +8,10 @@ import { maskSecrets } from '../../shared/secrets'
 import { needsCard } from '../toolSafety'
 import { pageCard, searchCard } from '../cards'
 import { declined, hostOf, text, type Setup, type Tool, type ToolContext } from './types'
+import { LOOKUP_PLACES } from '../../shared/services'
+
+// D-79: every service name recorded here comes from LOOKUP_PLACES (or a service's own label), so Settings can list them.
+const DEEPSEEK = LOOKUP_PLACES.search('DeepSeek')
 
 // The tools that bring in the open web. Every request still leaves through `send` (D-52).
 
@@ -90,7 +94,7 @@ export const searchWebTool: Tool = {
     const query = text(args, 'query')
     // D-41: once private data and outside words meet, the model's own query is shown before it leaves. The other
     // tools that send words out always ask (open_url, jobs), or only go to addresses Otty already knows (read_page).
-    if (needsCard('search_web', ctx.taint) && !(await ctx.confirm(searchCard(query, webConfig() ? 'DeepSeek' : 'Wikipedia and DuckDuckGo')))) return declined
+    if (needsCard('search_web', ctx.taint) && !(await ctx.confirm(searchCard(query, webConfig() ? DEEPSEEK : LOOKUP_PLACES.lookup)))) return declined
     return { result: await searchWeb(query, noter(ctx, 'search', query)), status: 'done' }
   }
 }
@@ -110,7 +114,7 @@ export const readPageTool: Tool = {
       throw err
     }
     if (!ctx.knownUrl(url) && !(await ctx.confirm(pageCard('read', url), url))) return declined
-    noter(ctx, 'page', url)(web ? 'DeepSeek' : hostOf(url), web ? hostOf(web.baseUrl) : hostOf(url))
+    noter(ctx, 'page', url)(web ? DEEPSEEK : LOOKUP_PLACES.page, web ? hostOf(web.baseUrl) : hostOf(url))
     try {
       // Someone else's page can hold a key too (a leaked config, a paste site), and it shouldn't be passed on.
       return { result: maskSecrets(await (web ? deepseekFetch(web, url) : readPageFromMac(url))).text, status: 'done' }
@@ -134,7 +138,7 @@ async function getJson(url: string): Promise<any> {
 async function searchWeb(query: string, note: Noter): Promise<string> {
   const web = webConfig()
   if (!web) return lookup(query, note)
-  note('DeepSeek', hostOf(web.baseUrl))
+  note(DEEPSEEK, hostOf(web.baseUrl))
   try {
     return await deepseekSearch(web, query)
   } catch (err) {
@@ -146,7 +150,7 @@ async function searchWeb(query: string, note: Noter): Promise<string> {
 }
 
 async function lookup(query: string, note: Noter): Promise<string> {
-  note('Wikipedia and DuckDuckGo', 'wikipedia.org')
+  note(LOOKUP_PLACES.lookup, 'wikipedia.org')
   const q = encodeURIComponent(query)
   const parts: string[] = []
 

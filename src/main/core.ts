@@ -16,12 +16,16 @@ import { setLocalOnly } from './net'
 import { activeProfile } from './providers'
 import { MemoryLedger, setLedger, SqliteLedger } from './ledger'
 import { forgetHidden } from './hiddenLines'
-import { MemoryPebbles, SqlitePebbles } from './pebbles'
+import { MemoryPebbles, SqlitePebbles, putBack as putBackPebble, undoPutBack as undoPutBackPebble, pouchItems } from './pebbles'
+import { eventStore } from './calendar/hub'
+import { calendarRange } from './calendar/range'
+import { setOttyCalendar } from './connections/tools'
 import { capStatus } from '../shared/cap'
 import { retentionCutoff } from './store/retention'
 import { forward, tellActivity, tellLogbook, tellSettings } from './notify'
 import type { LogSources } from './logbook'
 import type { HomeSources } from './home'
+import type { CalendarItem } from '../shared/types'
 import { serviceAt, serviceById } from '../shared/services'
 import { shownWindows } from './windows'
 import { refreshAll } from './connections'
@@ -81,11 +85,10 @@ export function ledger() {
 }
 setLedger(ledger, () => logged())
 
-/** Kept Pebbles, kept like the chats they came from. */
+/** Kept Pebbles (D-77): always in `otty.db` once it opens, whatever "Remember my chats" says; memory only if it fails. */
 let savedPebbles: SqlitePebbles | null = null
 const unsavedPebbles = new MemoryPebbles()
 export function pebbles() {
-  if (!settings.getStored().rememberChats) return unsavedPebbles
   try {
     return (savedPebbles ??= new SqlitePebbles(database()))
   } catch (err) {
@@ -98,9 +101,41 @@ export function pebbles() {
 export function keepPebble(answerId: string, index: number, keep: boolean): boolean {
   const found = chat.pebbleAt(answerId, index)
   if (!found) return false
-  if (keep) pebbles().keep({ ...found.pebble, chatId: found.chatId, answerId, index, kept: Date.now() })
+  if (keep) pebbles().keep({ ...found.pebble, chatId: found.chatId, answerId, index, kept: Date.now(), chatTitle: found.title, chatAt: found.updatedAt })
   else pebbles().drop(answerId, index)
   return true
+}
+
+/** D-77: the Pouch screen's reads and changes. Main looks every item up by its answer and place. */
+export function pouch() {
+  return pouchItems(pebbles())
+}
+export function putBack(answerId: string, index: number): boolean {
+  return putBackPebble(pebbles(), answerId, index)
+}
+export function undoPutBack(answerId: string, index: number): boolean {
+  return undoPutBackPebble(pebbles(), answerId, index)
+}
+/** "Forget my Pouch": the only thing that empties it. */
+export function forgetPouch(): void {
+  pebbles().clear()
+  unsavedPebbles.clear()
+}
+
+// D-73: Otty's own calendar, kept whatever "Remember my chats" says. Plugged in for the connections' reads and the chat.
+export { eventStore }
+setOttyCalendar(eventStore)
+
+/** Today's events from every calendar, for Home's Today. A failed read gives none, and the rest of Home still shows. */
+async function todaysEvents(now: number): Promise<CalendarItem[]> {
+  const d = new Date(now)
+  const from = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const to = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime()
+  try {
+    return (await calendarRange(eventStore(), from, to)).items
+  } catch {
+    return []
+  }
 }
 
 /** What Home reads (D-66): the Logbook's sources, and what Home's sentences need besides. */
@@ -109,6 +144,7 @@ export async function homeSources(): Promise<HomeSources> {
   const s = settings.getStored()
   return {
     ...base,
+    events: await todaysEvents(base.now),
     remembered: s.rememberChats,
     webOff: activeProfile().web === 'off',
     service: serviceById(serviceAt(s.baseUrl)).label,
@@ -187,8 +223,6 @@ export async function forgetAllChats(): Promise<void> {
   unsavedSent.clear()
   ledger().clear()
   unsavedLedger.clear()
-  pebbles().clear()
-  unsavedPebbles.clear()
   forgetHidden()
 }
 
@@ -200,7 +234,7 @@ export async function deleteChat(id: string): Promise<void> {
   await chatStore().delete(id)
   sentLog().forgetChat(id)
   ledger().forgetChat(id)
-  pebbles().forgetChat(id)
+  pebbles().chatGone(id)
   if (open) forward({ type: 'reset' })
 }
 
@@ -227,7 +261,6 @@ export async function tidyOldChats(): Promise<void> {
     await jobs.prune(cutoff)
     sentLog().prune(cutoff)
     ledger().prune(cutoff)
-    pebbles().prune(cutoff)
   }
 }
 

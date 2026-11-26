@@ -1,4 +1,4 @@
-import type { HomeAfter, HomeNeed, HomePage, HomeTick, LogControl, Words } from '../../shared/types'
+import type { CalendarItem, HomeAfter, HomeNeed, HomePage, HomeTick, LogControl, Words } from '../../shared/types'
 import { repeatWords } from '../../shared/repeat'
 import type { Job } from '../jobs/types'
 import { entryDetails, needsYouEntries, typicalPages, type LogSources } from '../logbook'
@@ -17,6 +17,8 @@ export interface HomeSources extends LogSources {
   service: string
   /** Has the user asked Otty anything, ever? Until then Home offers things to try. */
   asked: boolean
+  /** D-73: today's events from every calendar, Otty's and the connected ones. */
+  events: CalendarItem[]
 }
 
 const NUMBERS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine']
@@ -69,7 +71,7 @@ function need(s: HomeSources, id: string, glyph: string, first: string, second: 
 
 function ticks(s: HomeSources): { ticks: HomeTick[]; folded: number } {
   const expected = typicalPages(s.jobs)
-  const all = todaysJobs(s)
+  const jobTicks: (HomeTick & { at: number })[] = todaysJobs(s)
     .map((j): HomeTick & { at: number } => {
       const at = j.status === 'scheduled' ? j.dueAt! : j.createdAt
       const title = j.title
@@ -85,7 +87,20 @@ function ticks(s: HomeSources): { ticks: HomeTick[]; folded: number } {
       const sub = state === 'now' ? `Page ${Math.min(j.lookups + 1, Math.max(expected, j.lookups + 1))} of about ${Math.max(expected, j.lookups + 1)}` : state === 'failed' ? 'Couldn’t finish' : undefined
       return { id: `job:${j.id}`, at, time: state === 'now' ? 'now' : clock(at), state, title, text, ...(sub ? { sub } : {}) }
     })
-    .sort((a, b) => a.at - b.at)
+  // D-73 (Spec 11, Part 7): today's events are ticks too, ordered with the jobs by time.
+  const eventTicks = s.events.map((item): HomeTick & { at: number } => {
+    const state: HomeTick['state'] = item.end <= s.now ? 'done' : item.start <= s.now ? 'now' : 'next'
+    return {
+      id: `event:${item.id}`,
+      at: item.start,
+      time: item.allDay ? 'All day' : clock(item.start),
+      state,
+      title: item.title,
+      text: [{ text: item.title, strong: true }],
+      ...(item.source !== 'Otty' && item.calendar ? { sub: item.calendar } : {})
+    }
+  })
+  const all = [...jobTicks, ...eventTicks].sort((a, b) => a.at - b.at)
   // More than six: the earliest finished ones fold into one "N earlier" tick.
   const done = all.filter((t) => t.state === 'done')
   const folded = all.length > 6 ? Math.min(done.length, all.length - 6) : 0

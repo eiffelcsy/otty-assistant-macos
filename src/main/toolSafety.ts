@@ -43,7 +43,9 @@ export const SAFETY = {
   canvas_due: row('private', true, false, 'nothing'),
   canvas_announcements: row('private', true, false, 'nothing'),
   notion_search: row('private', true, true, 'nothing'),
-  notion_page: row('private', true, true, 'nothing')
+  notion_page: row('private', true, true, 'nothing'),
+  // D-73: adds an event to Otty's own calendar, behind a card. Nothing leaves; Undo removes it.
+  plan_event: row('none', false, false, 'undoable')
 } as const satisfies Record<string, Safety>
 
 export type ToolName = keyof typeof SAFETY

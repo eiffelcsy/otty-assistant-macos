@@ -398,7 +398,9 @@ export class JobRunner {
 
     // The brief is the model's own text, so it never counts as knowing an address, and a steering note only narrows.
     // Only what's seeded or found does.
-    const known = (url: string) => job.seedUrls.includes(normalized(url)) || isKnownUrl(url, history.slice(1).filter((m) => !isSteering(m)))
+    // `history` is shortened when a request is too long (D-78), so trust reads everything the job has seen, in full.
+    const everything: Message[] = [...history]
+    const known = (url: string) => job.seedUrls.includes(normalized(url)) || isKnownUrl(url, everything.slice(1).filter((m) => !isSteering(m)))
 
     // A job holds only its brief, but the tools it was given are checked every time one is built.
     ruleOfTwo(JOB_TOOLS)
@@ -435,10 +437,11 @@ export class JobRunner {
         steer: () => {
           const note = this.notes.get(job.id) ?? job.note
           const said = note && steeringNote(note)
-          return said && !history.some((m) => m.role === 'user' && m.content === said) ? said : null
+          return said && !everything.some((m) => m.role === 'user' && m.content === said) ? said : null
         },
         resume: true,
         idleMs: this.limits.idleMs,
+        onRoom: (setAside) => console.warn('Made room in a job', setAside),
         onEvent: (e) => {
           if (e.type === 'usage') job.tokens = (job.tokens ?? 0) + e.usage.input + e.usage.output
           if ((e.type === 'tool-result' && JOB_TOOLS.has(e.name)) || (e.type === 'search' && e.status === 'done')) {
@@ -447,6 +450,7 @@ export class JobRunner {
           }
         },
         onMessage: (m) => {
+          everything.push(m)
           // Something came through, so any "trying again" note is out of date.
           if (job.error && job.status === 'working') {
             delete job.error

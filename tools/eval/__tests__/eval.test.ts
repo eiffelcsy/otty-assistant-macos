@@ -8,7 +8,7 @@ vi.mock('../../../src/main/tools', async (orig) => (await import('../stubTools')
 
 const { runCase } = await import('../harness')
 const { score, summarize } = await import('../score')
-const { ALL, CHART, INJECTION, MATH } = await import('../cases')
+const { ALL, CHART, INJECTION, MATH, PLAN } = await import('../cases')
 
 /** A model that calls the given tools on its first reply, then says `answer`. */
 function scripted(first: { name: string; args: object }[], answer: string): Provider {
@@ -32,7 +32,7 @@ function scripted(first: { name: string; args: object }[], answer: string): Prov
 describe('eval harness', () => {
   it('has unique ids, and every set has cases', () => {
     expect(new Set(ALL.map((c) => c.id)).size).toBe(ALL.length)
-    for (const set of ['math', 'memory', 'steps', 'jobs', 'injection', 'code', 'draw'] as const) expect(ALL.some((c) => c.set === set)).toBe(true)
+    for (const set of ['math', 'memory', 'steps', 'jobs', 'injection', 'code', 'draw', 'plan'] as const) expect(ALL.some((c) => c.set === set)).toBe(true)
   })
 
   it('passes a good math run, using the real calculate tool', async () => {
@@ -127,5 +127,14 @@ describe('the chart scorer (D-35)', () => {
   it('fails a figure the model made up, even a rounded one that’s far off', () => {
     expect(byRegion.expect.check!(trace('South leads with 34,100.'))).toMatch(/34100/)
     expect(byRegion.expect.check!(trace('South is about 5,000 ahead.'))).toMatch(/5000/)
+  })
+
+  it('plan-essay passes a two-hour block in the afternoon, and fails one that is an hour long', async () => {
+    const c = PLAN.find((p) => p.id === 'plan-essay')!
+    const good = await runCase(c, scripted([{ name: 'plan_event', args: { title: 'Essay', start: '2026-12-03T14:00', end: '2026-12-03T16:00' } }], 'Blocked 2 to 4.'))
+    expect(good.pass).toBe(true)
+    const short = await runCase(c, scripted([{ name: 'plan_event', args: { title: 'Essay', start: '2026-12-03T14:00', end: '2026-12-03T15:00' } }], 'Blocked 2 to 3.'))
+    expect(short.pass).toBe(false)
+    expect(short.reasons.join()).toMatch(/isn’t two hours after/)
   })
 })
