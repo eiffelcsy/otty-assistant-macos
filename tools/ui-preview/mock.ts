@@ -740,7 +740,7 @@ const api: OttyApi = {
     return true
   },
   // D-66: main's own Home words, from the same samples as the Logbook.
-  home: async () => home({ ...logSources(), remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
+  home: async () => home({ ...logSources(), events: [], remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
   undoChange: async () => true,
   noteJob: async () => true,
   hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
