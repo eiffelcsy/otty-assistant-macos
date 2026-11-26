@@ -2,7 +2,7 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
-## Unreleased
+## 0.6.0 — The cove, a calendar of its own, connections and the Logbook (2026-11-27)
 
 ### Calendar month, and a round of polish (2026-11-27)
 
