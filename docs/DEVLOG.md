@@ -88,9 +88,15 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ next (re-planned 2026-11-22) | D-56 (done) | L (step 0: S) |
-| D-54 | Connections: one layer for APIs and MCP; Canvas and Notion by pasted token, Google Calendar by OAuth, then the MCP client | ⏳ next (step 1 needs no owner decision) | D-52; an OAuth client for Google (owner) | L (step 1: M) |
-| D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ planned | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
+| D-54 | Connections: one layer for APIs and MCP; Canvas and Notion by pasted token, Apple Calendar and Reminders through EventKit, Google Calendar by OAuth, then the MCP client | ⏳ next (steps 1–3 and EventKit need no owner decision) | D-52; an OAuth client for Google (owner) | L (step 1: M) |
+| D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ next | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
+| D-77 | The Pouch: kept Pebbles get their own screen (Pebbles step 2) | ⏳ beta | Pebbles step 1 (done) | M |
+| D-78 | Long chats don't break: compact once and retry on "too long", in chats and jobs | ⏳ beta | — | S–M |
+| D-79 | Help and feedback inside Otty: a Help page, Send feedback with an optional log, and the full list of where lookups go | ⏳ beta | where feedback goes (owner) | S |
+| D-80 | Your own shortcuts: a key recorder, and plain words when another app has the key | ⏳ beta | — | S |
+| D-81 | Turns as the unit of storage, decided before testers have data | ⏳ beta (decide first) | — | M |
+| D-82 | The pool, step 1: the bubble becomes a small pool of cove water with Otty floating in it (beta polish) | ⏳ beta | D-71 art (done) | S–M |
+| D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ after the core services (moved down 2026-11-24) | D-56 (done); services from D-54, D-73 and D-77 | L (step 0: S) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
 | D-67 | Tests that find what people find: window invariants and a nav matrix (step 1), recorded fake-world cases, and a probe for agents | 🔨 step 1 built | — | S–M (step 1: S) |
@@ -98,6 +104,23 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | D-1 | Context-aware intents (local encoder classifier); re-scored H → M on 2026-11-20 | ⏳ later | its step 0, OCR helper (`intent_feedback`, with embeddings, is in schema v1) | L |
 | D-14 | Otty's own snip: a cute paw cursor on a frozen screen and instant crop | ⏸ skipped for now, by choice | — | M |
 | D-25 | Fast and Best: two model slots | ⏸ much later, by choice | — | S |
+
+**Priority (2026-11-24): core first, then the closed beta, then Your features.** The owner moved D-55 down: a person's features need something in Otty to connect to, and BRAINSTORM's own rule is that core features *offer* services and never move onto the host. So the order is:
+1. **D-54 Connections**, steps 1–3 (the layer, Canvas, Notion, Settings › Connections), then **Apple Calendar and Reminders through EventKit**, which is new to the plan. EventKit needs no OAuth client and no Google verification, and it also reads any Google calendar the person has already added to macOS Calendar. For most beta testers, that makes Google Calendar's OAuth step optional.
+2. **D-73 Otty's calendar, step 1**, local.
+3. **The closed beta's must-haves**, pulled from BRAINSTORM: a first product for real people has to keep what it promises, survive long use, and tell people how to get help.
+   - **D-77 The Pouch** (H, M). Keep already exists on drawings and charts, but kept Pebbles have nowhere to be seen. A promise with no place to keep it reads as broken, and the Pouch is what most sets Otty apart from a chat app.
+   - **D-78 Long chats don't break** (H, S–M). Today a chat that gets too long ends with "Something went wrong (error 400)", and a job can overflow after about a dozen long pages. Testers who use Otty for real will hit it. This entry covers compacting once and retrying (EFFICIENCY 13). The job history view (EFFICIENCY 2, 8) stays its own idea.
+   - **D-79 Help and feedback** (H, S). LAUNCH_READINESS 14.5 and 15.5: a How do I… page, Send feedback with the last day's log attached if the person chooses, Open the log folder, and Settings › Privacy naming Wikipedia and DuckDuckGo, not only DeepSeek. Without these, a tester's problem stays invisible.
+   - **D-80 Your own shortcuts** (M, S). Three global hotkeys will clash with some tester's other apps, and a clash today just looks like Otty doing nothing.
+   - **D-81 Turns as the unit of storage** (H, M). This one is a decision, not a feature. Once testers have chats, every message shape stays forever (the migration rule), and BRAINSTORM says to do this "before 1.0". The beta is the cheaper point to do it. If it waits, note why in the entry.
+
+   - **D-82 The pool, step 1** (H, S–M; the owner added it as the beta's polish, 2026-11-24). The bubble is the first thing a tester sees, and it doesn't yet match the cove. The art exists.
+
+   LAUNCH_READINESS §19's P0s (a private repo, the bundle id, signing and notarization, auto-update, a privacy notice and terms) run alongside and are mostly owner work.
+4. **D-55 Your features**, built on the services above. Its step 3 starts with a read-only calendar, and the Pouch gives features something to read and make. Note that LAUNCH_READINESS 13.2 freezes features for the beta, so D-55 most likely lands in Stage 2.
+
+**Otty as an MCP-like connection (assessed 2026-11-24).** The verdict is in BRAINSTORM, [Agentic collaboration](BRAINSTORM.md#agentic-collaboration-runs-that-work-together). In short: MCP stays a narrow door for outside tools, which is cheap if core's services share one typed shape. D-54's design gains that rule. Collaboration between Otties gets its own protocol, **O2O**: A2A 1.0 with Otty's extensions, where each shared feature is one message kind. It's planned in BRAINSTORM, [O2O](BRAINSTORM.md#o2o-otty-to-otty-built-on-a2a), for after Stage 2.
 
 **Priority (2026-11-21): the place, the reach, the kit, the calendar.** The owner named four next, ahead of the BRAINSTORM score. Each was checked against the vision (alive, a place not a chat clone, trust as the ceiling, autonomy grown with undo) and the rest of the roadmap re-ordered around them:
 1. ✅ **D-72 The living cove** (H, M; CHANGELOG). The art was painted (D-71), so nothing blocked it, and it's the clearest answer to "a place, not a chat clone". Steps 1–2 (cove, hero, glass, parallax) shipped together; step 3, weather and season, and the quiet wash behind a chat with content stay in BRAINSTORM. **Re-opened (2026-11-21) as D-74:** beside the draft it ships as a picture strip over an opaque page, with near-opaque cards, so it reads as a banner rather than a place. Spec 07 lays it out full bleed and takes in the wash. ✅ Built (CHANGELOG, D-74).
@@ -384,11 +407,62 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - **Pasted tokens** (Canvas personal access token with its school's address, Notion internal integration token): kept in the Keychain like OAuth tokens, shown once as dots, and checked with one read before they're saved. Canvas tools: `canvas_due` (assignments due in a range, at most 30) and `canvas_announcements` (latest, at most 10). Notion: `notion_search` and `notion_page` (text only, at most a page's first 4,000 words), reading only what the user shared with the integration.
 - **MCP client** (last): a server is a connection whose tools come from it; each starts off, its description is outside text, and its schema is pinned when turned on, so a change asks again.
 
-**Steps.** 1) The layer, the Keychain store and the fake world, with Canvas by pasted token (M). 2) Notion by pasted token (S–M). 3) Settings › Connections (S–M). 4) OAuth and Google Calendar's two tools, when the owner's client exists (S–M). 5) The MCP client (M–L). Eval cases and smoke steps ship with each step.
+- **EventKit** (added 2026-11-24): Apple Calendar and Reminders, read-only, as a connection with a local source (`auth: none`, a macOS permission prompt instead of a token). It goes through a Swift helper beside `otty-ocr`. The same `calendar_events` and `calendar_free` tools are offered for either source. Nothing in it leaves the Mac until a question carries it. It also reads Google calendars the person has added to macOS, so for the beta it covers most of what step 5 would.
+- **One service shape** (2026-11-24): each connection's reads, and core's own (D-73's events, D-77's Pebbles), are typed, read-only services: a name, typed arguments, typed rows, and their taint. Model tools wrap them today. D-55's features would call the same services through the host, and a narrow MCP server could later serve shared ones (BRAINSTORM, [Agentic collaboration](BRAINSTORM.md#agentic-collaboration-runs-that-work-together)). Neither of those is built here, but neither should need a second copy of any read.
+
+**Steps.** 1) The layer, the Keychain store and the fake world, with Canvas by pasted token (M). 2) Notion by pasted token (S–M). 3) Settings › Connections (S–M). 4) Apple Calendar and Reminders through EventKit (M). 5) OAuth and Google Calendar's two tools, when the owner's client exists (S–M). 6) The MCP client (M–L). Eval cases and smoke steps ship with each step.
 
 **Done when.** Connecting, asking "what's on tomorrow?" and disconnecting work against the fake world in smoke; an invite with instructions in its title is answered as data (eval); a search after reading the calendar shows the card (`runGuards.test.ts`); the token is never in `settings.json` or the renderer (`preload.test.ts`, `settings.test.ts`); with a model on this Mac the tools aren't offered.
 
+## D-77 · The Pouch ⏳ beta
+
+**Goal.** Kept Pebbles get a screen of their own in the frame: sea glass on shelves over the cove, with search, shelves the person names, and "From a chat on…" leading back to where each Pebble came from. A kept Pebble outlives its chat, keeping its sources as names. The design is in BRAINSTORM, [Pebbles and the Pouch](BRAINSTORM.md#pebbles-and-the-pouch), step 2.
+
+**Before building:** a screen spec, `docs/design/specs/11-pouch.md`, written to the polish bar, with a ui-preview scene for each state. Also a migration that moves kept Pebbles out from under their chats, and "Forget all chats" asking whether to keep the Pouch too. Keep the Pouch's read behind D-54's service shape, so D-55's features can read it later.
+
+**Done when.** Keep → the Pouch → open big → back to the chat works and survives a relaunch (smoke). Deleting the chat leaves the Pebble, with its sources kept as names (store test). Every state has a scene in `npm run screens`.
+
+## D-78 · Long chats don't break ⏳ beta
+
+**Goal.** When a request is too long for the model, Otty compacts once and retries, and never shows "error 400". In a chat, it summarises old turns' pictures, page reads and documents in one step. In a job, old page bodies become stubs written by code. Both appear in a turn's note, never as a change to anything already sent (the cache rule). It comes from BRAINSTORM's history budget row and EFFICIENCY 13. The job history view (EFFICIENCY 2, 8) is a separate, later entry.
+
+**Done when.** A scripted "too long" from the fake world ends in an answer, not an error, in both a chat and a job (smoke). Nothing is compacted until a request fails, so DeepSeek's cache holds on every normal turn (`llm.test.ts`).
+
+## D-79 · Help and feedback inside Otty ⏳ beta
+
+**Goal.** A tester can find out how to use Otty, and tell the owner what went wrong, without leaving it (LAUNCH_READINESS 14.5, 15.5):
+- A **How do I…** page in Settings › Help: the three hotkeys, snipping, stopping Otty, and seeing what was sent, written in plain words.
+- **Send feedback**: the person's words, plus the last day's log only if they tick it. Everything is shown in full before it's sent, as Copy diagnostics does.
+- **Open the log folder.**
+- Settings › Privacy names every place a lookup can go (Wikipedia and DuckDuckGo, as well as DeepSeek).
+
+**Owner decision:** where feedback goes. A prefilled email is the simplest choice and needs no server.
+
+**Done when.** The page and the feedback sheet have scenes. A feedback note never includes a log unless the box was ticked (test). The privacy lines match what `sent.ts` can record (test).
+
+## D-80 · Your own shortcuts ⏳ beta
+
+**Goal.** The highlight, snip and whole-screen hotkeys can be changed in Settings with a key recorder, not a text field. When a key can't be registered because another app has it, Otty says so in plain words and suggests a free one, instead of seeming to do nothing.
+
+**Done when.** A changed key works after a relaunch, and a taken key shows the friendly line (smoke, through the harness's "shortcut taken by another app" list).
+
+## D-81 · Turns as the unit of storage (decide before the beta) ⏳
+
+**Goal.** Decide, and if it's yes, build, BRAINSTORM's Runtime row: each turn becomes one append-only record (question, model messages, the answer as shown, actions, run id, parent turn), and both the chat view and the model history are built from it. Rewind, versions, branching and phone sync all need it. Once testers' chats are saved, the migration rule keeps every message shape forever, so the beta is the last cheap point.
+
+**Step 0 (S):** read `sqliteStore.ts`, `upgrade.ts` and `ChatSession.rewind` closely, and write down the cost of migrating now against the cost of carrying the two-array shape forward. If the answer is to wait, say why here and drop the entry from the beta.
+
+## D-82 · The pool, step 1 ⏳ beta
+
+**Goal.** The floating bubble becomes the pool from BRAINSTORM's [concept note](BRAINSTORM.md#the-pool): a small lens of Liquid Glass holding the cove's water at the true hour, with Otty floating on its back in it. Step 1 covers the states: resting, working (two stepped paddle frames, only while something runs), needs you (sea glass held up, a straw rim), has an answer (sea glass bobbing, replacing the badge dot), paused (still, grey water) and asleep (`float-doze`). Being carried, fed a file and the edge tuck are step 2. The window growing out of the water is step 3.
+
+**Before building:** a screen spec, `docs/design/specs/12-pool.md`, to the polish bar, from the draft (`docs/design/otty-window-draft.html`, v0.8). Check the pool's art list in BRAINSTORM: a second paddle frame and a float blink are still missing, so paint them through `tools/otty-art/` or leave them out of step 1. Mark every bust frame the bubble alone uses as retired.
+
+**Done when.** Each state has a scene, light and dark, in `npm run screens`. The idle budget still holds with the pool resting, re-measured with `OTTY_METRICS=1` (✋). The bubble's smoke steps (moods, unseen dot, Feed Otty, drag) still pass. It stays a button to assistive tech, with its tooltips.
+
 ## D-55 · Your features: Otty builds them for you ⏳
+
+**Moved down (2026-11-24).** It comes after D-54, D-73 and the beta's must-haves, so a feature has core services to declare and read: the calendar, connections and the Pouch. LAUNCH_READINESS 13.2's feature freeze means it most likely lands in Stage 2.
 
 **Goal.** Someone who can't code says "make me a pomodoro timer", and a working feature appears in Otty. It looks like the rest of Otty, they can change it by asking, and they can turn it off or remove it without touching the rest of the app. Otty's core stays as it is. Features live on a separate **feature host**, and the builder is designed so that other worlds can be added later: the owner's Otty Code over Otty's own repo, or users' own projects. Neither of those is part of this entry.
 

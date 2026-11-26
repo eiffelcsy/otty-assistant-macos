@@ -22,7 +22,7 @@ Sizes use the DEVLOG's effort scale (S, M, L, defined under "How to use this doc
 4. **The unshipped stack** (§13). PRs 51, 52 and 53 (D-29 to D-36) are stacked and unmerged, and D-31 to D-36 haven't been run in the real app. Merge, run the smoke test and freeze features for the beta.
 5. **A privacy policy and terms** (§12). Otty reads people's screens, highlights and files, and remembers things about them. Testers deserve to know in writing what happens to that, and you need the terms to limit your own liability.
 
-**Add these before taking money:** the hosted AI service, accounts, payments through a merchant of record, a website and a support channel.
+**Add these before taking money:** the hosted AI service, accounts, payments through a merchant of record, a website and a support channel. The pool model, prices, onboarding, moat and order are in **§22, Monetisation roadmap**.
 
 ---
 
@@ -116,6 +116,8 @@ Decide before you have users, and add a `LICENSE` file either way.
 
 ## 3. Business model and pricing
 
+The first sketch. Where they differ, §22 wins: a usage pool priced in cost (22.4), the plans in 22.7, and memory free on every plan (22.2, 22.9).
+
 ### 3.1 Plans (a sketch for model C)
 
 | Plan | For | Includes |
@@ -173,8 +175,10 @@ A free hosted allowance will be farmed by people creating many accounts to get f
 | Apple Intelligence (Writing Tools, Siri) | Proofreading and summaries built into macOS, free | Explains *why*, works in any app including where Writing Tools don't, any language pair, any model |
 | Raycast AI and similar launchers | Power-user AI at a hotkey | Built for non-technical people; no commands to learn |
 | Browser extensions | Explain this page | Works across every app, not just the browser |
+| Meta's Muse (US-only since 2026-09-08; free, plus $20 and $100 plans) | A personal agent with goals, background work, approvals, an activity log, artifacts, connectors with read or write, memory, an avatar and a name, macOS control, and building its own tools | Muse runs in Meta's cloud, acts (buys, calls, emails) and trains on queries unless you opt out. Otty lives on your Mac and sees your screen; it prepares and asks, undoes what it does, shows everything that left, works in Cantonese for SG and HK, and is a pet in a place rather than an assistant with a face. BRAINSTORM, [Learning from Muse](BRAINSTORM.md#learning-from-muse-2026-11-24) |
 
 **Risks to the position:**
+- **A free personal agent with huge distribution** (Muse, inside WhatsApp). Otty can't win on how much it can do. It wins on what Muse's design can't offer: local and inspectable, undo, the screen you're looking at, and the relationship. Its public incidents (shared chats found through DNS, an account it read without being given access, a retailer blocking it as an unidentified agent) are exactly the trust story to tell, without naming anyone.
 - **Apple and OpenAI ship features into the OS for free.** Otty's defence is the character, teaching and trust, not any one feature. Lead with those.
 - **"Why pay when ChatGPT is free?"** needs a one-sentence answer on the website. Something like: *"Otty explains what's on your screen, wherever you are, in words you'll understand, and shows you everything it sends."*
 - **Hotkey clash.** ChatGPT's Mac app is known to use ⌥Space (**verify**), Otty's default. `takenHotkeys` reports a failed registration; make sure onboarding notices a clash and offers another shortcut in friendly words.
@@ -427,7 +431,7 @@ Goal: find out whether people get through onboarding, come back, and what breaks
 | P1 | In-app feedback and a beta channel for testers | 14.5, 14.7 | S |
 | ✅ | No plain-text key fallback, env key only in dev (D-51) | 10.2, 10.3 | S |
 | P1 | Hide local models from onboarding | 2.5 | S |
-| P1 | Opt-in, counts-only analytics of onboarding and weekly use | 14.4 | M |
+| P1 | Opt-in, counts-only analytics of onboarding and weekly use, including cost per user and cache hit rate | 14.4, 22.11 | M |
 | P1 | Key provision for non-technical testers (a capped key from your account) | 2.1 | S |
 
 ### Stage 2 — Paid public beta
@@ -436,7 +440,9 @@ Goal: prove people will pay, and what it costs to serve them.
 
 | Priority | Item | Section | Size |
 | --- | --- | --- | --- |
-| P0 | Unit economics from the closed beta, then prices | 3.3, 3.1 | S |
+| P0 | Unit economics from the closed beta, then prices | 3.3, 3.1, 22.5 | S |
+| P0 | Gateway with a key per user, the pool as a cap unit on the server, `shared/plan.ts` entitlements cached offline | 22.4, 22.6, 22.10 (M1) | L |
+| P0 | Free (daily), Plus, Own key (yearly), top-ups and Founding member, a reverse trial with its recap; Pro later | 22.7, 22.8, 22.13, 8.6 | M |
 | P0 | Merchant of record, refund policy | 3.4 | S–M |
 | P0 | Accounts or licence keys (by model) | 8.1–8.6 | M–L |
 | P0 | The hosted AI proxy with server-side limits, no content in logs (model B/C) | 9.1–9.4 | L |
@@ -488,7 +494,10 @@ Run the docs pass at the end of each week, as usual.
 Settled on 2026-11-16 (see **Decisions so far**): hybrid model, DeepSeek default, Singapore and Hong Kong first, private repo, individual for now, AI-free features free forever.
 
 Still open:
-- How big is the free tier's hosted allowance, and what do the paid and own-key plans cost in SGD and HKD? (Needs the closed beta's numbers, §3.3.)
+- How big is the free tier's hosted allowance, and what do the paid and own-key plans cost in SGD and HKD? (Starting points in 22.7; needs the closed beta's numbers, §3.3 and 22.5.)
+- Founding member: how many places, and does it need a cap at all?
+- Model weights in the pool (22.4): are Careful and Deepest labels enough, or do people need the estimate per model?
+- Can OpenRouter's per-user key limits reset monthly, and which data-retention filter does Otty require (22.6)?
 - Does the own-key plan include every feature, or leave some for the full plan?
 - What revenue or risk level makes you form a company?
 - Which merchant of record accepts an individual seller in your country and pays out there?
@@ -496,3 +505,315 @@ Still open:
 - Students: when, if ever, does Otty serve under-18s?
 - Does the mascot need redrawing by an artist before the brand is filed?
 - Connections (D-54): a Google Cloud OAuth client for Google Calendar, and whether to go through Google's verification for a sensitive scope before the beta or stay in testing mode with named testers (**verify** the limits). For Canvas at NUS, whether students may make their own tokens (**verify**). Tokens stay on the Mac by default; does the hosted service ever need one?
+
+---
+
+## 22. Monetisation roadmap
+
+How Otty goes from free to paid without VC money, built on the decisions above (hybrid plans, everyone signs in, AI-free features free forever, DeepSeek default, Singapore and Hong Kong first). §3 is the sketch; this is the plan. Revised 2026-11-26: a usage pool priced in cost instead of a fixed number of questions, a gateway for many models, higher prices, the onboarding and conversion flow, and the moat.
+
+Market and model prices were checked on 2026-11-26 from public pricing pages and trackers. Trackers often disagree, and many of these companies changed plans in 2026, so every figure is **verify** before it goes on a pricing page.
+
+**The one constraint behind every choice here: no plan may lose money on its heaviest user.** A funded company can subsidise inference to win users; a bootstrapped one can't, so a margin floor is built into how the pool works (22.4), not hoped for.
+
+### 22.1 What the market charges
+
+| Product | Model | Prices (USD unless stated) | What to learn from it |
+| --- | --- | --- | --- |
+| ChatGPT | Free and Go with ads being tested, then tiers | Go about S$11/month in Singapore; Plus about S$30; Pro from $100 | S$11 is the anchor most SG users have in mind. Ads on Free and Go are a contrast Otty can draw: no ads, ever |
+| Claude | Subscription by usage multiple | Pro $20 ($17 yearly); Max $100 and $200 (reports say renamed Max and Ultra) | Plans named by how much you get. These are subsidised: Otty can't match their frontier-model volume at their price |
+| Google AI Plus / Pro | Bundle with storage | AI Plus S$10.98/month at SG launch; US price reportedly down to $4.99. SG students get AI Pro free for a year | Bundles make AI feel free. Students in Otty's first market have a free alternative |
+| Perplexity | Subscription | Pro $20; Max $200 | The $20 slot is crowded |
+| Meta Muse | Free plus paid | Free, $20 and $100 (US only) | Can't be beaten on price at the bottom |
+| Raycast | Mac app, **credits** | Pro $10 (500 credits); Pro+ $20 (3,000); Max $50 (7,500). AI stops at zero from 2026-12-17 | Closest Mac comparison, and it moved from rate limits to a usage pool for the same reason Otty must. Users were upset (German Mac press covered it), mostly because AI *stops* and because credits are abstract |
+| Cursor | Pool in dollars | Pro $20 with $20 of usage; Pro+ $60; Ultra $200 | Its 2025 switch to usage pricing caused unexpected charges, an apology and refunds. Lesson: never surprise anyone with a bill, show the pool before it's spent |
+| Grammarly | Writing subscription | Pro $12/month yearly, $30 monthly | People already pay real money for writing help. "Check my writing" is a proven paid category |
+| Setapp | Bundle, AI credits on every plan | Mac $14.99/month; developers share a usage pool | A second channel later (§2.3) |
+| Superwhisper | Mac utility, freemium | Pro $8.49/month, $84.99/year, lifetime $249.99 | Single-purpose Mac AI clears under $10 a month |
+| BoltAI / TypingMind | Bring your own key, one-time | BoltAI lifetime $239; TypingMind $39 | Power users pay once for a good native client |
+| Replika | Companion | $7.99–$14.99/month, mostly sold yearly | People pay for a relationship with a character |
+
+### 22.2 What people pay for (sentiment and surveys)
+
+| Finding | Source | What it means for Otty |
+| --- | --- | --- |
+| Only about 3% of US households pay for AI (median $20/month); people pay when AI saves time, simplifies decisions or combines tasks | Bank of America, 2026 | Sell time saved in the app you're already in, not "AI". One place instead of switching to a chat window |
+| Users who connect AI to their own data convert to paid at about 3× the rate of basic users | Recon Analytics, 120,000+ respondents | Connections (D-54: Calendar, Canvas), memory and repeating looks are the paid engine, not more questions |
+| 54% think AI pricing is becoming "a rip-off"; 56% can't afford all the tools they want | Bango (vendor survey) | One simple plan beats a menu. A visible pool and no surprise charges |
+| Memory across sessions is the most wanted feature; privacy is the most raised worry | Reddit roundups (secondary) | Otty's memory is local, inspectable and undoable: the feature people want, without the worry |
+| 70% of Singaporeans doubt companies will protect their data (62% globally); privacy and misuse top concerns in Hong Kong | EY 2026; KPMG and GS1 HK | The trust design isn't a nice extra in SG and HK, it's the pitch |
+| Apple Intelligence sees weak engagement; Writing Tools fall short for serious writers | TidBITS | The free OS features don't close the gap Otty fills (explaining why, in any app) |
+| Freemium converts about 3–5% (good) to 8–12% (great); reverse trials land in the same range, with too small a sample to call a winner | ChartMogul 2026 (mostly B2B) | Plan on a few percent of free users paying. Test a reverse trial, but don't expect magic |
+
+### 22.3 The moat
+
+Being honest about what isn't one: **the models** (anyone can call them, and the gateway in 22.6 makes that even easier) and **any single feature** (a competent team copies a feature quickly). What compounds:
+
+| Moat | Why it holds | How to deepen it |
+| --- | --- | --- |
+| **What Otty knows about you, kept on your Mac** | Memories, saved chats, habits, Pebbles and repeating looks grow every week. Moving to another app means starting over | Weekly recap on Home ("this week I explained 14 terms…"); Connections; memory that feels earned. Keep export: being free to leave is part of the trust |
+| **Trust you can check** | The ledger, Undo, What left the Mac, Rule of Two and confirm cards are architecture, not settings. Cloud and ad-funded assistants can't retrofit "everything stays inspectable on your Mac" | Lead the marketing with it in SG and HK (22.2). A public security page and red-team results |
+| **At the cursor, in every app** | Accessibility, OCR and Apple Events outside the App Store sandbox. Store apps can't; Apple moves slowly and only in its own apps | Polish the quick view until it's faster than switching windows |
+| **The otter** | People pay for characters (Replika). A pet in a place isn't a chat box with a face | Trademark (12.5), artist-owned art (12.7), moods tied to real use |
+| **Local fit** | Cantonese and zh-HK, SGD and HKD prices, support in the same time zone. The giants treat SG and HK as afterthoughts | zh-HK interface (15.6) in the paid beta, not 1.0 |
+
+The weak point is **distribution**: the giants are already installed. The moat only works once people try Otty, which is why 22.8 matters as much as the price.
+
+### 22.4 Recommendation: a usage pool priced in cost, shown in plain words
+
+**Yes, use a pool.** A fixed number of questions only works when every question costs about the same. With several models it doesn't: on the numbers in 22.5, one Fable answer costs as much as 100 or more quick ones. A question count either starves the cheap models or loses money on the expensive ones.
+
+How it works:
+
+1. **Inside, the pool is money.** Each plan gets a monthly budget in US dollars of model and search cost. Every request is charged its real cost, read from the gateway's usage accounting (22.6), at a dated price table. Nothing is estimated.
+2. **The pool is sized from the price, so the margin can't go negative:** `pool ≈ 40% of the yearly plan's monthly net revenue`, after Singapore's GST, payment fees and refunds (the yearly plan is the lowest revenue per month, so it sets the size). A user who spends all of it still leaves about 50% gross margin; a typical user leaves about 80% (22.13). This is the bootstrapping guarantee.
+3. **Outside, nobody sees dollars, tokens or credits.** Settings shows a gauge ("62% left this month") and a plain estimate in the user's usual kind of question ("about 400 everyday questions, or 18 careful ones"). Each model has a friendly weight label: *Quick*, *Careful* (about 20× quick), *Deepest* (about 40–100×). This keeps the CLAUDE.md rule that money is never shown without a dated price table.
+4. **When the pool runs out, Otty doesn't stop.** It keeps answering on the Quick model at the Free plan's rate, tells the user once in friendly words, and offers a top-up or the next plan. This is the difference from Raycast's "AI stops at zero" that upset people, and it costs almost nothing (22.5).
+5. **Safety rails stay in code:** a per-hour rate limit against abuse, the monthly limit (D-33) for background work, and the near-limit heads-up (D-57) at 80%.
+6. **No rollover, monthly reset, top-ups expire with the plan's year.** Simple to explain, and it stops one cheap month funding a heavy one.
+
+The existing code is most of it: `shared/cap.ts` (limit, near, passed), the usage meter's per-request counts, `errors.ts` mapping 402 and 429. The pool becomes a third `MonthlyCap` unit next to `questions` and `tokens`, enforced on the server and mirrored on the Mac.
+
+### 22.5 What a question costs, by model
+
+Illustrative highlight question: 8,000 input tokens, 6,000 of them a cache hit (the byte-for-byte prefix, `llm.test.ts`), and 600 output tokens, or 2,000 when the model thinks. Cache writes (Anthropic bills them at about 1.25×), pictures and searches are extra.
+
+| Model | Price per million: in / cache read / out | Everyday (600 out) | Thinking (2,000 out) | Weight vs Quick |
+| --- | --- | --- | --- | --- |
+| DeepSeek V4-Flash | $0.14 / $0.0028 / $0.28 | $0.0005 | $0.0009 | 1 (Quick) |
+| Claude Haiku 5.5 | $0.10 / about $0.01 / $0.50 | $0.0006 | $0.0013 | 1 (Quick) |
+| GPT-5 (reported) | $1.25 / $0.125 / $10 | $0.009 | $0.023 | about 20 |
+| Claude Sonnet 5.5 | $2 / $0.10 / $10 | $0.011 | $0.025 | about 20 (Careful) |
+| Claude Opus 5.5 | $4 / $0.20 / $20 | $0.021 | $0.049 | about 45 (Deepest) |
+| Claude Fable 5.2 | $8 / $0.20 / $40 | $0.041 | $0.097 | about 100 (Deepest+) |
+
+Claude prices are Anthropic's first-party list prices; DeepSeek's are from its pricing page, and InfoWorld reported in 2026 that some V4 prices rose by more than ten times under demand. GPT-5's are from trackers, and GPT-5.5 is reported at roughly double. All **verify**.
+
+What this means:
+- **Quick models are nearly free to serve.** A Free user's 10 quick questions a day cost at most about $0.15 a month. That's why the free plan can be generous and why "never locked out" (22.4, point 4) is affordable.
+- **Frontier models are the whole risk.** A Plus pool spent only on Opus is about 60 answers. That's fine for "a careful answer when it matters", and wrong for someone who wants Claude all day.
+- **Heavy frontier users belong on Own key.** Claude Pro and ChatGPT Plus are subsidised by funded companies; Otty can't match their volume at their price and shouldn't try. Own key, including an OpenRouter or Anthropic key, gives those users every Otty feature at a price that's almost pure margin.
+- Measure the real sizes in the closed beta: pictures (snips are far larger than highlights), tool loops with searches and pages, explain-card warm-ups and titles, and background looks. The usage meter already counts `requests`, `input`, `output`, `cached`, `searches`, `pages` and `jobs` per day.
+
+### 22.6 The gateway: OpenRouter
+
+A gateway gives one integration, many models, one bill and one place that reports cost per request. For a solo developer that's a real saving.
+
+| | Detail | What to do |
+| --- | --- | --- |
+| **Cost** | No markup on tokens; 5.5% on credit purchases ($0.80 minimum on card), 5% with crypto; BYOK free for the first $25,000 a month of list-price usage, then 5% | Negligible next to payment fees: about $0.20 on a $4 Plus pool |
+| **Fits the code** | Speaks OpenAI's API format, which `providers/openai.ts` already sends, through `send` in `net.ts` | The hosted service is a new preset in `services.ts`, not a new adapter. Claude-only fields (`claudeExtras`) and Claude's own web search may not pass through: check, and keep Otty's own search tools as the default for hosted users |
+| **DeepSeek's cache** | OpenRouter routes each model to one of several hosts. It keeps a conversation on one host ("sticky routing", keyed by `session_id`, else `prompt_cache_key`; it expires after 60 minutes idle and is skipped when you set `provider.order`) | Send the chat's thread id as `session_id`. Re-run the cache test against the gateway and watch the `cached` count in the beta: a lower hit rate multiplies cost |
+| **Where data goes** | One more company sees every question, and each request may go to a different host, some outside China | Name it honestly in What left the Mac ("Otty's service, then OpenRouter, then DeepSeek") and in the privacy policy. Use its data-retention filters to allow only hosts that don't keep or train on prompts (**verify** the option). This can also answer §2.2: the same DeepSeek model from a host outside China |
+| **Regions** | OpenAI's and Anthropic's own region rules apply through a gateway too | Check what Hong Kong users can reach before offering Careful and Deepest there (Decisions) |
+| **Keys** | The gateway key must never ship in the app | Two ways, below |
+
+**Two ways to wire it**, smallest first:
+
+- **M1-lite: a key per user.** OpenRouter can create API keys through its API with a spending limit on each (**verify** that limits can reset monthly). A small server signs the user in, creates their key with the plan's pool as its limit, and hands it to the Mac's Keychain; Otty calls OpenRouter directly. No streaming proxy to run, and a stolen key is capped and revocable. Downsides: OpenRouter sees each user's key separately, the pool is enforced by OpenRouter rather than by you, and you can't change a request on the way (which suits the cache rule anyway).
+- **M1-full: your own proxy** (9.1) in front of the gateway: one gateway key on the server, metering and pool in your database, routing and failover yours. More work (L), more control. Move to it when M1-lite's limits bite.
+
+Start with M1-lite, keep the gateway behind Otty's own service name so it can be swapped for direct provider accounts later (cheaper at scale, with each provider's own data terms) without a new build.
+
+### 22.7 Plans and prices (revised after the margin check in 22.13)
+
+SGD first; HKD at about 5.8× rounded to local price points. SGD prices include Singapore's 9% GST, which the merchant of record collects; Hong Kong has none. "Pool" is the monthly cost budget (22.4), never shown in dollars.
+
+| Plan | Monthly | Yearly | What it gives | For |
+| --- | --- | --- | --- | --- |
+| **Free** | — | — | The whole of Otty in small doses (22.14): 10 quick questions a day (resets daily), explain cards and memory without counting, **one repeating look** (up to weekly, on the quick model), **one Connection**, 3 careful answers a month, every AI-free feature unlimited. An internal cost cap of $0.20 a month per user: past it Free slows, it never costs more | Everyone, after the trial |
+| **Reverse trial** | — | — | 14 days of Plus for every new account, with a $0.75 trial pool | Showing the proactive features once |
+| **Plus** | S$14.90 / HK$88 | S$129 / HK$768 (about 28% off) | $3 pool: quick answers that feel unlimited, about 120 careful or 60 deepest; background looks, three repeating looks at once (`LIMITS.series`), every Connection, drawings and slides | The persona |
+| **Own key** | — | S$69 / HK$398, yearly only | Every Plus feature with your own key (DeepSeek, Claude, OpenAI, OpenRouter, custom) | Power users and the privacy-minded |
+| **Top-up** | S$7.90 / HK$45 | — | +$1.50 to this month's pool, about 60 careful answers | Anyone past their pool |
+| **Founding member** | — | S$99 / HK$588 for the first year, held while it doesn't lapse; first 200 places | Plus | Waitlist and closed-beta testers |
+| **Pro** (designed, not launched) | S$34.90 / HK$198 | S$329 / HK$1,888 | $8 pool (about 320 careful or 160 deepest), Careful as the default, more repeating looks at once, bigger files | Launch only when top-ups show the demand (22.13) |
+
+What changed from the first revision, and why (details in 22.13):
+- **GST.** The first draft forgot it. It takes 8% of every SGD price and pushed yearly plans below the margin floor, so the Plus pool is $3, not $4.
+- **Free is daily, not monthly.** 150 a month ran out mid-month for exactly the people most likely to pay, and looked stingy next to ChatGPT's free text chat. Ten a day is fairer, builds a habit, and costs no more.
+- **Free gets one of each power.** A Free tier that only answers questions looks like ChatGPT at the cursor and gives nobody a reason to come back. One repeating look and one Connection cost about $0.02 a month on the quick model and keep the habit going (22.14).
+- **Plus yearly is S$129** (S$10.75 a month), just under ChatGPT Go and Google AI Plus. Two kinds of buyer, both pushing the price down. People who already pay for an AI would be adding a second, and only 13% of AI payers pay for another AI tool (a16z, 2026). Most of the persona pays for no AI at all (about 4.5% of consumers pay, same source), so their comparison is free ChatGPT, not ChatGPT Plus. Either way, the price has to feel small next to "free is good enough".
+- **Top-up is S$7.90.** The payment fee's fixed $0.50 made the S$4.90 top-up a 28% margin.
+- **Own key is yearly only.** Monthly, payment fees took about 17% of a S$6.90 charge.
+- **Pro waits.** It gave the same pool per dollar as Plus, and power users compare it with subsidised Claude Pro and ChatGPT Plus. Launch it once top-ups prove the demand.
+
+### 22.8 Onboarding and conversion
+
+The goal: **an answer at the cursor in the user's own app within the first few minutes**, with nothing asked of them that isn't needed yet.
+
+**The first minutes, for everyone:**
+
+| Step | What happens | Why |
+| --- | --- | --- |
+| 1. Hello | The otter, one line on what Otty does, and where it lives (menu bar, the bubble) | People new to Macs think a menu-bar app quit (15.2) |
+| 2. Value before anything is asked | Inside the onboarding window, a sample picture with words: "pick up the text" works at once, on the Mac, no sign-in (AI-free, free forever) | First success in seconds, and a quiet proof that some of Otty never leaves the Mac |
+| 3. One-tap sign-in | Sign in with Apple, or an email link. Never a password, never an API key (Decisions: everyone signs in) | The key wall is what loses the persona today (§0) |
+| 4. A live answer on a sample | A short paragraph with a hard term; the user highlights it in the onboarding window and gets a live explain card. Pick the sample from step 5's answer | The core idea lands before any macOS permission dialog |
+| 5. What do you mostly do? | Study, work, reading in another language, helping family. Sets the home language (zh-HK first for HK) and the try-asking chips | Personal from the first minute; feeds the recap later |
+| 6. Now in your own app | Ask for Accessibility only now, with a picture of what to switch on, then "highlight anything in Safari and press ⌥Space". Screen Recording is asked the first time they snip, not here | Permission requests that come with a reason convert far better than a wall of them |
+| 7. The first look, and the trial | Set up one repeating look that fits step 5 (a Monday look at the week's deadlines for students). It stays on Free after the trial. Then: "You've got Plus free for 14 days: try a second look, or a careful answer." | Otty coming back by itself is what makes it more than a chat box, so every user gets it (22.14) |
+
+**Power users** skip the tour from step 1 ("I know what I'm doing"): change the hotkeys, paste their own key (straight to the Own key trial), choose a model. Never hide the own-key path, and never make it the default.
+
+**Conversion moments**, each from the otter, in friendly words, once, with one button; never a pop-up at launch:
+
+| Moment | What Otty says | Code it builds on |
+| --- | --- | --- |
+| End of the reverse trial | A recap of what Plus did: "I explained 23 terms, checked 9 pieces of writing, and ran your Monday look twice." Then: keep Plus, or carry on free | Usage meter, Logbook, Home |
+| The trial ends with more than one repeating look | "I'll keep your Monday look going. Your other two are paused: keep them with Plus?" The user picks which one stays; nothing disappears | `JobRunner`, `shared/repeat.ts` |
+| Pool at 80% | The heads-up, with Plus or a top-up | `nearCap` (D-57) |
+| Pool used up | "I'll keep answering with my quick brain. Want the careful one back?" | 22.4, point 4 |
+| A Careful answer on Free | After one of the 3 free careful answers: "That was my careful brain. Plus gets plenty of those." | Model weights (22.4) |
+| A weekly recap on Home | Value receipts for free users too, so the upgrade has evidence behind it | Home (D-66) |
+| A Connection is added | Connected users convert at about 3× (22.2); Connections and their repeating looks are Plus | D-54 |
+
+**Measure in the beta:** reaching step 6 (an answer in another app) inside the first session, day-1 and day-7 return, trial-to-paid, free-to-paid, and where people stop in onboarding. Too few testers for statistics, so watch several first sessions in person (§20) and treat numbers as direction.
+
+### 22.9 What the beta and the launch focus on
+
+From 22.2 and 22.3, in order. These are what the website, the onboarding and the demo video show; everything else stays in the app but out of the pitch (2.5).
+
+| # | Feature | Why people pay | Plan |
+| --- | --- | --- | --- |
+| 1 | **Ask at the cursor** (highlight, snip, whole screen) with explain cards | Time saved in the app you're in; the thing nobody else does in every app | Free (volume), Plus (plenty) |
+| 2 | **Check my writing**, with the why | A category people already pay $12–30 a month for | Free (volume), Plus |
+| 3 | **Looks Otty does for you** (background and repeating, Home's Needs you) and **Connections** | Proactive work on your own data converts best | Free: one of each; Plus: more |
+| 4 | **Memory you can see and undo** | The most wanted feature, without the privacy worry | Free: it's the relationship |
+| 5 | **Careful and Deepest answers** | The best models when it matters, no key needed | Plus (some), top-ups, Pro later |
+| 6 | **What left the Mac, Undo, no ads** | The reason to choose Otty in SG and HK; never a paid feature | Free |
+
+Out of the pitch for the beta: drawings, slides and charts (keep, call them Labs), local models, step cards beyond the basics.
+
+### 22.10 The roadmap
+
+| Phase | Goal | Work | Size | Exit when |
+| --- | --- | --- | --- | --- |
+| **M0. Closed beta, free** | Learn usage and whether people come back | Opt-in counts-only analytics (14.4) including cost per request and cache hit rate; a capped key for testers (2.1); the onboarding in 22.8 with BYOK until M1 lands; a waitlist; an exit question on price | M | Real cost per user per model, and retention for people who match the persona |
+| **M1. Plumbing** | Make plans real before any price is shown | Accounts and sign-in (8.2, 8.3); the gateway with keys per user (22.6, M1-lite); the pool as a `MonthlyCap` unit enforced on the server and mirrored on the Mac; the hosted preset in `services.ts` with an honest privacy line and a `SentTag` (9.7); a pure `shared/plan.ts` like `shared/cap.ts`, so Settings, `JobRunner` and the health banner agree; signed entitlements cached in the Keychain so offline never locks anyone out | L | A tester signs in, spends a Free pool, runs out, keeps getting quick answers, and nothing is lost |
+| **M2. Paid beta** | Prove people pay | Merchant of record with SGD and HKD and an individual seller (3.4, Decisions); checkout in the browser and back through `otty://`; the account screen with the gauge (8.4); Free, Plus, Own key, top-ups and Founding member (Pro later, 22.13); the reverse trial and its recap; refund window (**verify** SG and HK rules); free-plan abuse defences (3.5) | M–L | Paying users, a known conversion rate, refund rate and cost per user |
+| **M3. Tune** | Find the right numbers | One change at a time: pool sizes, model weights, trial length, the yearly discount. Grandfather every subscriber on a price change and announce it early | S per change | Margin floor holds and conversion is stable for a full billing cycle |
+| **M4. 1.0 and beyond** | Grow without hurting trust | Own proxy if M1-lite's limits bite (22.6, M1-full); direct provider accounts when volume makes the gateway fee matter; family plan (one payer, separate accounts); student pricing; Setapp; team and education plans after the company exists (12.1) | M each | — |
+
+### 22.11 Numbers to watch
+
+| Metric | Target or use | Source |
+| --- | --- | --- |
+| Answer in another app during the first session | The activation number; the onboarding exists to raise it | Onboarding counts (14.4) |
+| Day-7 and week-4 return | People pay for what they still use a month later | Daily active counts |
+| Trial to paid, free to paid | Plan on a few percent free to paid (22.2) | Merchant plus accounts |
+| Pool used, median and 95th percentile, per plan | Should sit well under 100% for the median; resize pools from this | Gateway usage |
+| Gross margin per plan | At least 50% at full pool use, 70%+ typical | Revenue minus fees, pool spend, hosting (18.2) |
+| Cache hit rate through the gateway | Falls → cost rises; check sticky routing | `cached` against `input` |
+| Top-up buyers | Many → pools too small or weights wrong | Merchant |
+| Refunds and churn reasons | What the price or the product is missing | Merchant, exit question |
+
+### 22.12 Risks
+
+- **Provider price shocks.** Prices are read per request and pools are in dollars, so a rise shrinks the gauge instead of the margin. Raise weights or switch hosts on the server; tell users plainly if their everyday estimate drops.
+- **The pool feeling like credits.** The gauge, the plain estimate and "never stops, just slows" are there to prevent it. If testers still talk about credits, simplify further.
+- **The gateway as a dependency and a data processor.** Keep it behind Otty's service name, so it can be replaced; list it in the privacy policy and in What left the Mac.
+- **Frontier-heavy users on Plus.** The pool caps them; top-ups and Own key are their homes until Pro launches (22.13).
+- **Free giants and subsidised frontier plans.** Don't compete on volume or price; sell 22.3.
+- **Hong Kong and providers' supported regions** (Decisions). Quick models for HK users until Claude and OpenAI terms are checked.
+- **Changing prices later.** Raycast's and Cursor's 2025–2026 changes are the warning: announce early, explain plainly, keep existing subscribers' terms.
+- **Charging as an individual.** Personal liability and the merchant's seller rules (Decisions, 12.1). Revisit forming a company before revenue is meaningful.
+
+### 22.13 Pricing check: satisfaction, scarcity and margin
+
+The question: does each tier satisfy the people on it, leave enough scarcity that the right people upgrade, and keep the business solvent without outside money? The numbers come from a small model with these assumptions, each to replace with beta data:
+
+- S$1 = US$0.77, HK$1 = US$0.128 (**verify**).
+- SGD prices include 9% GST; the merchant takes 5% + $0.50 per payment; refunds and chargebacks 2%.
+- Gateway fee 5.5% on pool spend; sign-in, hosting and logs $0.15 per paying user a month.
+- A typical payer uses 25% of their pool, a heavy one 100%. Consumer AI spend is very concentrated: in a16z's 2026 panel the top 1% of payers averaged about $903 a month against a median of $25. The cap is what makes that survivable.
+- An active Free user costs about $0.10 a month: about 3 quick questions a day, one careful answer, and one weekly look plus Connection questions on the quick model (about $0.02).
+
+**1. Each plan on its own (US$ per subscriber per month)**
+
+| Plan | Market | Revenue after tax | Net after fees and refunds | Profit, typical use | Profit, full pool |
+| --- | --- | --- | --- | --- | --- |
+| Plus monthly | SG | $10.53 | $9.22 | $8.28 (79%) | $5.91 (56%) |
+| Plus monthly | HK | $11.26 | $9.98 | $9.03 (80%) | $6.66 (59%) |
+| Plus yearly | SG | $7.59 | $6.97 | $6.03 (79%) | $3.66 (48%) |
+| Plus yearly | HK | $8.19 | $7.58 | $6.64 (81%) | $4.26 (52%) |
+| Own key yearly | SG | $4.06 | $3.71 | $3.56 (88%) | $3.56 (88%) |
+| Founding yearly | SG | $5.83 | $5.34 | $4.40 (76%) | $2.03 (35%) |
+| Top-up (one-off) | SG | $5.58 | $4.65 | — | $2.92 (52%) |
+| Pro yearly (later) | SG | $19.37 | $17.85 | $15.59 (80%) | $9.26 (48%) |
+
+Every plan stays profitable when its pool is fully spent. The weakest is Founding member at full use (35%), which is why its places are capped: early adopters use more than most.
+
+**2. The free tier is the real cost.** Each payer carries the active Free users around them, plus the reverse trial they came through. With 75% of payers on Plus (half yearly) and 25% on Own key, a payer contributes $6.26 a month before that subsidy:
+
+| Free to paid | Active Free users per payer | Free cost per payer | Trial cost per payer (over 12 months) | Left per payer | Payers to cover about $60 a month of fixed costs | Payers to also pay you about US$3,850 (S$5,000) a month |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2% | 49 | $5.10 | $1.15 | about $0 | — | not reachable |
+| 4% | 24 | $2.50 | $0.58 | $3.19 | 19 | 1,227 (about 31,000 active users) |
+| 8% | 12 | $1.20 | $0.29 | $4.78 | 13 | 819 (about 10,000 active users) |
+
+Fixed costs are a rough guess: the Apple Developer fee, domain and email, a small server, and macOS CI minutes for a private repository (**verify** each; sign-in and crash reporting fit free tiers at beta scale).
+
+What this says:
+- **Covering costs is easy; paying yourself is hard.** About twenty paying users cover the running costs. A salary needs over a thousand, and tens of thousands of active users at a typical conversion rate.
+- **Conversion matters more than price.** At 2% conversion the free tier eats everything. Moving conversion from 2% to 4% does more than any price change, which is why the onboarding (22.8) and the conversion moments carry as much weight as the price list.
+- **Free must stay cheap to serve, never generous with expensive models.** Three careful answers, not five. Quick answers on whichever of DeepSeek V4-Flash and Claude Haiku 5.5 is cheaper that month (two suppliers at about the same price is the hedge). The $0.20 internal cap per Free user is not optional.
+- **A price shock hits Free first.** If quick-model prices rose ten times, the Free subsidy at 4% conversion would be about $20 per payer: a loss. Paid plans would only see a smaller gauge, because their pools are in dollars. Have the plan ready: Free slows to fewer questions a day before it costs more, and the gateway moves to the other supplier.
+- **Paid acquisition doesn't pay.** LTV = profit per payer ÷ monthly churn. Assuming 7% monthly churn (an assumption, not researched; measure it), $3.67 a month is a lifetime of about $52 per payer. That leaves little room for ads, so growth has to be organic: the waitlist, Product Hunt, communities in SG and HK, word of mouth from the otter, and later a family plan that lets people invite each other.
+- **Yearly plans help cash flow.** S$129 up front is about $85 in hand on day one, against costs that arrive monthly and are capped. For a business with no outside money, that up-front cash pays for the next build. Default checkout to yearly, and keep monthly as the low-commitment way in.
+- **Ads would fix the free subsidy and break the brand.** ChatGPT is testing ads on Free and Go; Otty's answer is "never". Keep it.
+
+**3. Is each tier satisfied?**
+
+| Tier | Who's on it | What they get | Where it pinches | Verdict |
+| --- | --- | --- | --- | --- |
+| Free | People trying Otty, light users, people who mostly want pick up text and math | 10 quick a day, one repeating look, one Connection, every AI-free feature | A daily user asking more than ten times a day; anyone who wants a second look or Connection | Satisfying for light use. Tighter than ChatGPT's free text chat on a pure count, but Otty is at the cursor and the AI-free features are unlimited. The pinch lands on the heaviest free users, who are the best upgrade candidates |
+| Plus | The persona | Quick answers that never feel counted, about 4 careful a day, all proactive features | Someone who makes Careful their default | Very satisfying if Quick is the default and Careful is chosen when it matters. Check in the beta how often people pick Careful |
+| Own key | Power users | Everything, on their own bill | Nothing from Otty; their own provider's limits | Satisfying and profitable. Not for the persona, and never the default path |
+| Pro (later) | Frontier-heavy users | About 320 careful a month | Compared with subsidised Claude Pro or ChatGPT Plus, it gives less frontier volume for more money | Not yet: it would disappoint the people it's for. Point them to Own key until it has more than pool to offer |
+
+**4. Is there enough scarcity to upgrade?** Good scarcity is felt only by the people with the most reason to pay, and is invisible to everyone else. Fence the value, not the volume:
+
+- **Free to Plus:** three fences, each aimed at a different group. The daily cap catches daily users. A second repeating look or Connection catches people Otty already works for, and users who connect their own data convert at about 3× (22.2). These are fences on how many, not on whether: every Free user has felt the feature first. Careful answers catch people who saw the difference. The reverse trial shows all three once, so losing them is felt. All three are already in the conversion moments (22.8).
+- **The richer Free tier is a bet on conversion.** Its one look and one Connection add about $0.02 per active Free user. That pays for itself if conversion is about 4.75% instead of 4% (22.14), which is plausible if those features keep people from drifting away after the trial. Measure both arms in the beta if numbers allow; otherwise watch week-4 return.
+- **Plus to more:** top-ups first. They're the price discovery for Pro. **Launch Pro when about 15% of Plus users buy a top-up in a month, or the same users top up three months running.** Then Pro needs more than pool: Careful as the default, more repeating looks at once (`LIMITS.series`), bigger file budgets, and more pool per dollar than Plus (the $8 pool is about 5% more on yearly plans and 14% more on monthly), so upgrading is clearly better than topping up.
+- **The ladder to show at checkout:** Plus yearly in the middle and highlighted, Plus monthly on one side, Own key behind "I have my own key". Two choices for the persona, not five. 54% of AI subscribers in one survey (Bango) say AI pricing is becoming a rip-off; a short list helps.
+
+**5. What would change the answer**
+
+| If the beta shows | Then |
+| --- | --- |
+| Free to paid under 3% | Tighten Free (8 a day), make the trial recap stronger, and move Connections earlier in onboarding. Don't drop the Plus price: margin isn't the problem, conversion is |
+| Median Plus user above 50% of the pool | Raise Plus to S$16.90, or make Quick models do more of the work (routing, 9.6) |
+| Cache hit rate through the gateway under 60% | Quick-question cost roughly doubles: fix sticky routing before anything else (22.6) |
+| Own key above 40% of payers | Fine for margin. It means the audience is more technical than the persona, so check who is signing up |
+| Monthly churn above 10% | The product isn't sticky enough yet; no price fixes that. Look at week-4 return and the recap |
+
+**Verdict.** On its own, every paid plan is healthy: about 80% margin for a typical user, and positive even when someone spends their whole pool. The risk is not the price list. It's the ratio of free to paying users, and quick-model prices that two suppliers can hedge. With the changes in 22.7, a daily Free tier, the reverse trial and Pro held back, the tiers balance satisfaction and scarcity reasonably well. Whether the business works now depends on conversion and retention, which only the beta can measure.
+
+### 22.14 A Free tier that hooks
+
+A Free tier that only answers questions shows the least special part of Otty: on its own, that's "ChatGPT at the cursor". The things nobody else has are the relationship, the trust, and Otty coming back to you. A free user should feel all of them. The paid tiers then sell **more**, not **access**.
+
+The habit loop (trigger, action, reward, investment, from Nir Eyal's *Hooked*), mapped to what Otty already has:
+
+| Step | What it is in Otty | Cost to serve | On Free? |
+| --- | --- | --- | --- |
+| Trigger from outside | A repeating look's result waiting on Home; the bubble's moods (sleepy, hungry, munch, D-38); the weekly recap | A weekly look on the quick model: about $0.01 a month. Moods and recap: nothing | Yes: one look, moods, recap |
+| Trigger from inside | "I don't get this word", "is this email OK?" at the cursor, in any app | Quick answers: fractions of a cent | Yes: 10 a day |
+| Reward that varies | Explain cards teaching a new term; the proofread card showing why; "Noted" when Otty learns something; a chart from a pasted table | Explain cards are cached (`explainCache.ts`) and run on the quick model | Yes, explain cards uncounted |
+| Investment | Memories, saved chats, Pebbles, a repeating look, a Connection. Each makes Otty more yours and harder to leave (the moat, 22.3) | Nothing (local) or cents | Yes: memory in full, one look, one Connection |
+
+So Free becomes "**the whole of Otty in small doses**": one repeating look, one Connection, memory in full, explain cards without counting, three careful answers a month, ten quick questions a day. Plus is three looks at once, every Connection, a pool of careful answers and long answers like drawings and slides.
+
+**Show the power in the first minutes, not only in the trial.** Onboarding (22.8) already reaches a live answer in the user's own app. Add one step at the end that every Free user keeps: **set up their first repeating look**, picked from what they said they do. A student gets "every Monday, what's due this week" from Canvas; an office worker "each morning, today's meetings and anything to prepare"; someone reading in another language "a word of the day from what I read". The first time Otty comes back to them by itself is the moment it stops being a chat box, and it happens on Free.
+
+**Why it's worth the cost.** The extra features cost about $0.02 per active Free user a month, so at 4% conversion the subsidy per payer rises from about $2.01 to $2.50. To come out even, conversion has to rise from 4% to about 4.75%. That's a modest bet: without a look running, nothing brings a Free user back after the trial ends, and a user who drifts away never converts. It also builds the moat, since every look and Connection is something they'd lose by leaving.
+
+**Guardrails that keep it cheap:**
+- Free's look runs only on the quick model, at most weekly, with a small cap on pages per run (a free-plan line in `LIMITS`).
+- Connection questions count against the 10 a day; reading a Connection costs nothing.
+- Explain cards stay uncounted but sit inside the $0.20 monthly cost cap, so a script can't farm them.
+- When the trial ends, the user picks which look stays. Nothing is deleted.
+
+Sources checked on 2026-11-26 (all **verify** before use): [ChatGPT SG prices](https://comparesing.com/claude-vs-chatgpt-pricing-singapore/), [ChatGPT Go by country](https://geosub.org/en/ai-pricing/chatgpt/go), [ChatGPT ads on Free and Go](https://www.marketing-interactive.com/chatgpt-go-rolls-out-globally-ads-to-be-tested-on-free-and-go-tiers), [Claude plans](https://tokenkarma.app/blog/claude-pro-max-team-pricing-september-2026/), [Claude Max](https://support.claude.com/en/articles/11049741-what-is-the-max-plan), [Google AI Plus in Singapore](https://www.techedt.com/google-launches-ai-plus-subscription-in-singapore-with-expanded-gemini-features-and-200gb-storage), [Google AI Plus price drop](https://www.techrepublic.com/article/news-google-ai-plus-price-drops/), [Google AI Pro for SG students](https://www.techedt.com/google-offers-singapore-students-free-one-year-access-to-the-ai-pro-plan), [Perplexity](https://www.finout.io/blog/perplexity-pricing-in-2026), [Raycast billing](https://manual.raycast.com/billing), [Raycast on its change](https://www.raycast.com/blog/changing-how-raycast-ai-is-priced), [Raycast backlash](https://www.ifun.de/raycast-veraergert-nutzer-mit-neuem-ki-preismodell-288857/), [Cursor pricing and apology](https://www.vantage.sh/blog/cursor-pricing-explained), [Grammarly](https://www.eesel.ai/blog/grammarly-ai-pricing), [Setapp](https://pricingsaas.com/companies/setapp), [Superwhisper](https://usevoicy.com/blog/superwhisper-pricing), [BoltAI](https://boltai.com/pricing), [TypingMind](https://www.typingmind.com/buy), [Replika](https://www.usagepricing.com/blueprint/activity/replika-2026-10-05-pricing-page-404-app-store-prices), [DeepSeek pricing](https://api-docs.deepseek.com/quick_start/pricing), [DeepSeek price rises](https://www.infoworld.com/article/4209439/deepseek-raises-some-v4-prices-by-more-than-10x-as-ai-demand-strains-capacity.html), [GPT-5 pricing](https://www.developersdigest.tech/models/gpt-5), [GPT-5.5 pricing](https://apidog.com/blog/gpt-5-5-pricing/), [OpenRouter fees](https://www.maximem.ai/blog/openrouter-pricing-2026), [OpenRouter sticky routing](https://openrouter.ai/docs/guides/features/prompt-caching), [OpenRouter for DeepSeek](https://openrouter.ai/blog/insights/why-openrouter-for-deepseek/), [merchant of record fees](https://alexcloudstar.com/md/blog/merchant-of-record-indie-saas-2026/), [Bank of America on AI spending](https://moneywise.com/news/top-stories/ai-subscribers-households-bank-america-2026), [Recon Analytics](https://www.reconanalytics.com/ai-revenue-paid-adoption-requires-data-not-better-models/), [Bango survey](https://bango.com/its-not-a-bubble-over-three-quarters-say-their-ai-subscriptions-are-now-essential-to-everyday-life/), [Reddit roundup](https://www.vellum.ai/blog/best-ai-assistant-reddit), [EY Singapore](https://www.ey.com/en_sg/newsroom/2026/05/autonomous-ai-is-no-longer-theoretical-as-adoption-grows-despite-ongoing-trust-concerns), [Hong Kong trust](https://www.thestandard.com.hk/finance/article/315245/Mainland-GBA-consumers-show-greater-trust-in-AI-than-Hong-Kong-peers-survey-finds), [Apple Intelligence engagement](https://tidbits.com/tag/writing-tools/), [ChartMogul conversion report](https://chartmogul.com/reports/saas-conversion-report/), [free tier limits compared](https://theaicareerlab.com/blog/ai-usage-limits-compared-2026/raw), [ChatGPT free text limits](https://tech-insider.org/chatgpt-vs-claude-vs-gemini-free-tier-2026/), [a16z spend concentration](https://fourweekmba.com/ai-a16z-top-1-percent-ai-payers-19-5-percent-observed-us-spend/), [AI cost and app margins, RevenueCat](https://www.revenuecat.com/blog/growth/ai-feature-cost-subscription-app-margins), [middle tiers and plan mix, Adapty](https://adapty.io/blog/tiered-pricing/), [Singapore GST and Paddle](https://www.paddle.com/billing/singapore), [GST shown inclusive, Stripe](https://stripe.com/resources/more/singapore-gst-rate-explained-for-businesses-selling-in-singapore). Claude prices are Anthropic's list prices as of 2026-11-03.
