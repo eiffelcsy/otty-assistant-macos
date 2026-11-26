@@ -4,6 +4,15 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Otty in the water (D-83, 2026-11-26)
+
+- **Otty floats in the water now, not on it,** in the floating pool and in the cove on Home. A soft painted line of foam wraps where he meets the surface, his belly and paws show faintly through the water, and a little shadow sits beneath him.
+- **Painted ripples.** Hovering over the pool, or pressing Otty in the cove, sends a ring of painted ripples across the surface. They go over what's underwater and behind what's above it, like real water.
+- **Sun on the water.** Glints sparkle by Otty and twinkle with each ripple.
+- **He bobs now and then:** every minute or so in the pool, a tiny dip with a ripple.
+- In the pool Otty is a little bigger and sits lower, centred, with his waterline across the middle.
+- New painted art in Otty's style: the foam line, the ripple and the glints.
+
 ### The pool (D-82, Spec 13, 2026-11-26)
 
 - **The floating otter is now a little pool** of the cove's water at the hour, with Otty floating on his back in it. It's still a picture while it rests.

@@ -35,7 +35,8 @@ OTTER = 790  # width of Otty on the tile; the shoulders run off its bottom edge
 COVE_OUT = ROOT / 'src/renderer/src/assets/cove'
 HORIZON, FEATHER = 506, 8
 FLOAT_W = 768  # width of the floating Otty frames
-PIECES = ('reeds', 'stones', 'lilypad', 'cloud')  # the cove's foreground pieces
+PIECES = ('reeds', 'stones', 'lilypad', 'cloud', 'waterline', 'ripple', 'glints', 'dragonfly', 'leaf', 'birds')  # the cove's pieces
+LIGHTS = ('cloud', 'waterline', 'ripple', 'glints')  # painted white on black: their brightness is their opacity
 PIECE_MAX = 768  # longest side of a piece
 JOIN_FROM = 0.45  # a sky is shifted onto its cove's top colour from here down (join)
 HAZE, HAZE_BLUR = (192, 128), 6  # the haze's size and its blur radius, in its own pixels
@@ -162,10 +163,10 @@ def whole(rgb: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
 
 def piece(f: Path) -> None:
-    """A foreground piece of the cove (D-71 step 4), cut to its own box. Clouds are painted white on black, so their
-    opacity is their brightness; everything else is a whole figure on white."""
+    """A foreground piece of the cove (D-71 step 4), cut to its own box. Lights (clouds, the waterline, ripples,
+    glints) are painted white on black, so their opacity is their brightness; everything else is a whole figure on white."""
     rgb = load(f.name)
-    if f.stem.startswith('cloud'):
+    if f.stem.startswith(LIGHTS):
         alpha = rgb.max(axis=2) / 255
         color = np.clip(rgb / np.maximum(alpha, 1e-3)[..., None], 0, 255)
     else:

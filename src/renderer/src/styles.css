@@ -550,13 +550,17 @@ html[data-view='bubble'] body {
 .pool--paused .pool__water img {
   filter: saturate(0.25) brightness(0.92);
 }
-/* Otty: the float frame, 104 wide (a little oversized, for cuteness), centred at 52% across the pool, its top 14px above the rim. */
+/* Otty: the float frame, 112 wide (D-83), centred at 52% across the pool, his waterline on the pool's centre line (y 52). */
 .pool__otty {
   position: absolute;
-  top: 4px;
-  left: calc(50% + 2px - 52px);
-  width: 104px;
+  top: 9px;
+  left: calc(50% + 2px - 56px);
+  width: 112px;
   pointer-events: none;
+}
+/* The submerged copy sits in the pool's own box (inset 8px sides, 18px top), so it's 18px higher and the same left (D-83). */
+.pool__otty--under {
+  top: -9px;
 }
 .pool__frame {
   display: block;
@@ -586,6 +590,14 @@ html[data-view='bubble'] body {
   from { opacity: 1; }
   50% { opacity: 0; }
 }
+/* The idle dip (D-83): 2px down and back, in four steps, once every 40 to 70 s. */
+.pool--dip .pool__otty {
+  animation: pool-dip 1600ms steps(4) 1;
+}
+@keyframes pool-dip {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(2px); }
+}
 /* A hover, a feed or a landing: one bob, then still. */
 .pool--bob .pool__otty {
   animation: pool-bob var(--t-settle) steps(3) 1;
@@ -594,23 +606,24 @@ html[data-view='bubble'] body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
 }
-/* One ring, from the pool's size to 1.15x, fading. The second (a feed) comes 120 ms later. */
-.pool__ring {
-  position: absolute;
-  inset: 18px 8px 10px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
-  opacity: 0;
-  pointer-events: none;
-  animation: pool-ring 600ms var(--glide);
+/* The water's ripples and glints (D-83): painted, placed by their parent. The ripple is centred on Otty's waterline,
+   112% of his width; the glints sit on the water either side of him. */
+.pool__water .in-water__ripple {
+  left: calc(50% + 2px);
+  /* the waterline (66% of Otty's height) in the pool's water box: 9 + 0.66 x 65.2 - 18 */
+  top: 34px;
+  /* 96% of Otty's width, read against the water box (also 112 wide) */
+  width: 96%;
+  height: auto;
 }
-.pool__ring--late {
-  animation-delay: 120ms;
-  animation-fill-mode: both;
+.pool__water .pool__frame {
+  height: auto;
 }
-@keyframes pool-ring {
-  from { transform: scale(1); opacity: 1; }
-  to { transform: scale(1.15); opacity: 0; }
+.pool__water .in-water__glints {
+  left: 12px;
+  top: 40px;
+  width: calc(100% - 24px);
+  height: auto;
 }
 /* Working: a small wake behind Otty's feet, still. Needs you: the straw ring, as an element. */
 .bubble__working {
@@ -701,6 +714,95 @@ html[data-view='bubble'] body {
   0% { opacity: 0; transform: translateY(0); }
   40% { opacity: 1; }
   100% { opacity: 0; transform: translateY(-8px); }
+}
+
+
+/* ---------- Otty in the water (D-83, components/InWater.tsx) ---------- */
+.in-water {
+  position: relative;
+}
+.in-water__above {
+  position: relative;
+}
+.in-water__under {
+  position: absolute;
+  inset: 0;
+  /* the refraction, shifted and faded under the waterline (D-83, Tuned) */
+  filter: url(#otty-refract) saturate(0.6) brightness(0.92);
+  opacity: 0.7;
+  translate: 1.5px 1px;
+  mask: linear-gradient(transparent 65%, black 68%, rgba(0, 0, 0, 0.3) 88%, transparent 95%);
+}
+.in-water__under.in-water__under--flow {
+  position: relative;
+}
+.in-water__tint {
+  position: absolute;
+  inset: 0;
+  background: center 30% / 260% auto no-repeat;
+  mix-blend-mode: color;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.in-water__shadow {
+  position: absolute;
+  left: 8%;
+  right: 4%;
+  top: calc(var(--waterline) + 1px);
+  height: 10%;
+  background: radial-gradient(closest-side, rgba(18, 50, 64, 0.34), transparent);
+  pointer-events: none;
+}
+.in-water__line {
+  position: absolute;
+  left: 4%;
+  width: 92%;
+  height: auto;
+  top: calc(var(--waterline) - 3px);
+  mix-blend-mode: screen;
+  opacity: 0.8;
+  pointer-events: none;
+}
+.in-water__filter {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+/* One ripple: from 0.6x to 1.4x, faded in and out, in six steps over 1.2 s. Centred on its spot. */
+.in-water__ripple {
+  position: absolute;
+  top: 66%;
+  left: 50%;
+  translate: -50% -50%;
+  height: auto;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0;
+  animation: in-water-ripple 1200ms steps(6) 1 both;
+}
+/* Full strength early (white rings on pale water need it), then a long fade as it spreads. */
+@keyframes in-water-ripple {
+  from { scale: 0.6; opacity: 0; }
+  30% { opacity: 1; }
+  to { scale: 1.4; opacity: 0; }
+}
+/* The glints: faint at rest, one twinkle in three steps (600 ms) each time they change. */
+.in-water__glints {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: auto;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.in-water__glints--twinkle {
+  animation: in-water-twinkle 600ms steps(3) 1;
+}
+@keyframes in-water-twinkle {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
 }
 
 
@@ -2017,7 +2119,7 @@ html[data-view='bubble'] body {
   background: var(--fill-strong);
 }
 
-/* Otty, placed by its waterline (70% down the float pose, which is 768 × 447), faded below it, with its reflection. */
+/* Otty, placed by its waterline (70% down the float pose, which is 768 × 447), in the water (InWater, D-83), with its reflection. */
 .cove-otty {
   position: absolute;
   z-index: 1;
@@ -2060,7 +2162,28 @@ html[data-view='bubble'] body {
   position: relative;
   display: block;
   width: 100%;
-  mask: linear-gradient(black 64%, rgba(0, 0, 0, 0.35) 76%, transparent 90%);
+}
+/* Otty's glints and ripple at his waterline (D-83): the glints 1.4x his width. */
+.cove-otty__body .in-water__glints {
+  left: 50%;
+  top: 66%;
+  width: 140%;
+  translate: -50% -50%;
+}
+.cove-otty__body .in-water__ripple {
+  width: 112%;
+}
+/* In the cove the water picture is darker than the patch behind Otty, so the underwater wash is lighter and shorter
+   than the pool's, or it reads as a dark bowl (tuned by eye, D-83). */
+.cove-otty .in-water__tint {
+  opacity: 0.35;
+}
+.cove-otty .in-water__under {
+  opacity: 0.55;
+  mask: linear-gradient(transparent 65%, black 68%, rgba(0, 0, 0, 0.25) 82%, transparent 90%);
+}
+.cove-otty .in-water__shadow {
+  opacity: 0.6;
 }
 .cove-otty__refl {
   position: absolute;
@@ -2070,7 +2193,7 @@ html[data-view='bubble'] body {
   transform: scaleY(-0.6);
   opacity: 0.25;
   filter: blur(1.5px);
-  mask: linear-gradient(transparent 15%, black 55%, black 69%, transparent 70%);
+  mask: linear-gradient(transparent 66%, black 68%, black 69%, transparent 70%);
 }
 .frame__main--cove:has(> .cove[data-time='night']) .cove-otty {
   filter: brightness(0.80) saturate(0.85);

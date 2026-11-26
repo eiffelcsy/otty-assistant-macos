@@ -83,6 +83,11 @@ PIECE = (
     'No otter, no animals. The object alone, whole and centred with space all round, nothing cut off, on a plain pure '
     'white background with no shadow, no ground and no water: '
 )
+LIGHT = (
+    'Paint light on water for Otty\'s lake cove, in the SAME soft dry-brush style as the reference: visible brush '
+    'strokes, soft feathered edges, gentle and storybook, never photographic. Paint it in pure white and light greys '
+    'only, centred with plenty of space all round, on a plain, flat, pure black background, nothing else: '
+)
 CLOUD = (
     'Paint a single soft cloud for a storybook sky, in the SAME soft dry-brush style as the reference: visible brush '
     'strokes, soft feathered edges. Paint it in pure white and light greys only, centred with plenty of space all '
@@ -163,6 +168,28 @@ RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
     'lilypad-flower': (PIECE + 'Two overlapping lily pads lying flat, seen from a low angle as wide flattened ovals, '
                        'with one soft pink water-lily flower open on the bigger pad. Sage greens. No water drawn.',
                        '1536x1024'),
+    # D-83: Otty in the water. Light pieces, white on black like the clouds, laid over the water with `screen`.
+    'waterline': (LIGHT + 'the soft line of light where calm water meets a floating animal\'s body, seen from the side: '
+                  'one long, thin, gently wavy horizontal band of foam and sparkle, a little broken in two or three '
+                  'places, brightest in the middle third and fading away at both ends, with a few tiny foam dabs just '
+                  'below it. Much wider than tall.', '1536x1024'),
+    'ripple': (LIGHT + 'one set of three soft concentric ripple rings spreading on calm water, seen from a low angle so '
+               'each ring is a very wide, flat ellipse about six times wider than tall. The rings are thin, uneven and '
+               'a little broken, like real ripples painted with a dry brush, the inner ring brightest and the outer '
+               'one faintest. The centre is empty.', '1536x1024'),
+    'glints': (LIGHT + 'a loose scatter of about nine small sparkles of sunlight on rippling water, each a tiny soft '
+               'dab or a short horizontal stroke, a few with a faint four-point twinkle, spread across a wide, '
+               'flat oval area. Only the sparkles: no haze, no mist, no glow patch and no grey wash between them; the '
+               'background stays pure black everywhere else.', '1536x1024'),
+    # D-84: a cove with life. Small visitors, rare and brief, cut out like the other pieces.
+    'dragonfly': (PIECE + 'A small dragonfly seen from above at a slight angle, wings spread flat, four long pale '
+                  'translucent wings with soft veins, a slender soft-teal body with a few warm amber marks.',
+                  '1024x1024'),
+    'leaf': (PIECE + 'A single small willow leaf, soft butter-yellow with a hint of green, lying flat as if floating '
+             'on water, seen from a low angle so it looks like a narrow flattened shape. No water drawn.', '1024x1024'),
+    'birds': (PIECE + 'Three small birds flying together far away, seen from below against the sky: simple soft '
+              'dark-grey brush shapes with gently curved wings, one slightly ahead and higher, like a quiet '
+              'storybook sky. No sky drawn.', '1536x1024'),
     'cloud-wide': (CLOUD + 'One long, low, wispy cloud, much wider than tall.', '1536x1024'),
     'cloud-puff': (CLOUD + 'One soft, rounded, puffy cloud, a little wider than tall.', '1536x1024'),
 }

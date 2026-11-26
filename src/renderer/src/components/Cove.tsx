@@ -18,6 +18,7 @@ import reeds from '../assets/cove/reeds-low.webp'
 import float from '../assets/otty/float.webp'
 import { coveGlass, coveTime, untilNextCove, type CoveTime } from '../lib/cove'
 import { T, glide } from '../lib/motion'
+import { Glints, InWater, Ripple, RefractFilter } from './InWater'
 
 const PAINTINGS: Record<CoveTime, [shore: string, water: string, sky: string]> = {
   dawn: [dawnShore, dawnWater, dawnSky],
@@ -94,13 +95,13 @@ function useTouch(cove: React.RefObject<HTMLDivElement | null>, on: boolean) {
     const leave = () => (px.set(0), py.set(0))
     const down = (e: PointerEvent) => {
       const target = e.target as Element
-      const otty = target.closest('.cove-otty')
-      if (!otty && !target.closest('.cove-hero') && !target.classList.contains('cove-scroll')) return
+      // Otty's own press is his painted ripple at his waterline (CoveOtty), so the water here skips him.
+      if (target.closest('.cove-otty')) return
+      if (!target.closest('.cove-hero') && !target.classList.contains('cove-scroll')) return
       const r = el.getBoundingClientRect()
-      const o = otty?.getBoundingClientRect()
-      // Otty's waterline, or wherever the water was touched; the sky doesn't ripple.
-      const at = o ? { x: o.left + o.width / 2, y: o.top + o.height * 0.7 } : { x: e.clientX, y: e.clientY }
-      if (!o && at.y - r.top < parseFloat(getComputedStyle(el).getPropertyValue('--horizon'))) return
+      // Wherever the water was touched; the sky doesn't ripple.
+      const at = { x: e.clientX, y: e.clientY }
+      if (at.y - r.top < parseFloat(getComputedStyle(el).getPropertyValue('--horizon'))) return
       const id = next.current++
       setRipples((rs) => [...rs.slice(-3), { id, x: at.x - r.left, y: at.y - r.top }])
     }
@@ -164,6 +165,7 @@ export function Cove({ mode }: { mode: 'full' | 'wash' }) {
       onAnimationEnd={(e) => e.animationName === 'cove-arrive-front' && ((arrived = true), setArriving(false))}
     >
       {/* The world the camera tilts across (Spec 08, Part 9): the sky above, the cove at the horizon. `wash` looks up. */}
+      <RefractFilter />
       <div className="cove__world">
       {[before, time].map(
         (t) =>
@@ -192,7 +194,7 @@ export function Cove({ mode }: { mode: 'full' | 'wash' }) {
       {/* Otty, still, where the hero's Otty floats: it rides the water out of view as the camera looks up, and back. */}
       <span className="cove__ghost">
         <img className="cove-otty__refl" src={float} alt="" draggable={false} />
-        <img className="cove-otty__img" src={float} alt="" draggable={false} />
+        <InWater water={PAINTINGS[time][1]} maskSrc={float} frames={<img className="cove-otty__img" src={float} alt="" draggable={false} />} />
       </span>
       </div>
       <div className="cove__scrim" />
@@ -207,12 +209,15 @@ export function Cove({ mode }: { mode: 'full' | 'wash' }) {
 export function CoveOtty() {
   const [squish, setSquish] = useState(0)
   const [arriving] = useState(() => !arrived)
+  const { time } = useCoveTime()
   return (
     <button className="cove-otty" aria-label="Otty" data-arriving={arriving || undefined} onClick={() => setSquish((n) => n + 1)}>
       <span key={squish} className={`cove-otty__squish${squish ? ' cove-otty__squish--on' : ''}`}>
         <span className="cove-otty__body">
           <img className="cove-otty__refl" src={float} alt="" draggable={false} />
-          <img className="cove-otty__img" src={float} alt="" draggable={false} />
+          <InWater water={PAINTINGS[time][1]} maskSrc={float} frames={<img className="cove-otty__img" src={float} alt="" draggable={false} />} />
+          <Glints twinkle={squish} className="cove-otty__glints" />
+          <Ripple trigger={squish} className="cove-otty__ripple" />
         </span>
       </span>
     </button>
