@@ -553,14 +553,14 @@ html[data-view='bubble'] body {
 /* Otty: the float frame, 112 wide (D-83), centred at 52% across the pool, his waterline on the pool's centre line (y 52). */
 .pool__otty {
   position: absolute;
-  top: 9px;
+  top: 5px;
   left: calc(50% + 2px - 56px);
   width: 112px;
   pointer-events: none;
 }
 /* The submerged copy sits in the pool's own box (inset 8px sides, 18px top), so it's 18px higher and the same left (D-83). */
 .pool__otty--under {
-  top: -9px;
+  top: -13px;
 }
 .pool__frame {
   display: block;
@@ -591,7 +591,7 @@ html[data-view='bubble'] body {
   50% { opacity: 0; }
 }
 /* The idle dip (D-83): 2px down and back, in four steps, once every 40 to 70 s. */
-.pool--dip .pool__otty {
+.pool--dip .in-water__frames {
   animation: pool-dip 1600ms steps(4) 1;
 }
 @keyframes pool-dip {
@@ -599,7 +599,7 @@ html[data-view='bubble'] body {
   50% { transform: translateY(2px); }
 }
 /* A hover, a feed or a landing: one bob, then still. */
-.pool--bob .pool__otty {
+.pool--bob .in-water__frames {
   animation: pool-bob var(--t-settle) steps(3) 1;
 }
 @keyframes pool-bob {
@@ -610,7 +610,7 @@ html[data-view='bubble'] body {
    112% of his width; the glints sit on the water either side of him. */
 .pool__water .in-water__ripple {
   left: calc(50% + 2px);
-  /* the waterline (66% of Otty's height) in the pool's water box: 9 + 0.66 x 65.2 - 18 */
+  /* the waterline (72% of Otty's height) in the pool's water box: 5 + 0.72 x 65.2 - 18 */
   top: 34px;
   /* 96% of Otty's width, read against the water box (also 112 wide) */
   width: 96%;
@@ -724,6 +724,9 @@ html[data-view='bubble'] body {
 .in-water__above {
   position: relative;
 }
+.in-water__frames {
+  position: relative;
+}
 .in-water__under {
   position: absolute;
   inset: 0;
@@ -731,7 +734,7 @@ html[data-view='bubble'] body {
   filter: url(#otty-refract) saturate(0.6) brightness(0.92);
   opacity: 0.7;
   translate: 1.5px 1px;
-  mask: linear-gradient(transparent 65%, black 68%, rgba(0, 0, 0, 0.3) 88%, transparent 95%);
+  mask: linear-gradient(transparent 71%, black 74%, rgba(0, 0, 0, 0.3) 90%, transparent 96%);
 }
 .in-water__under.in-water__under--flow {
   position: relative;
@@ -771,7 +774,7 @@ html[data-view='bubble'] body {
 /* One ripple: from 0.6x to 1.4x, faded in and out, in six steps over 1.2 s. Centred on its spot. */
 .in-water__ripple {
   position: absolute;
-  top: 66%;
+  top: 72%;
   left: 50%;
   translate: -50% -50%;
   height: auto;
@@ -1862,7 +1865,7 @@ html[data-view='bubble'] body {
   position: absolute;
   /* Centred on the column, as the hero's Otty is, not on the (wider) cove beside the chat list. */
   left: calc(50% + var(--cove-shift, 0px) / 2);
-  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074);
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.419);
   width: var(--otty-w);
   translate: -50% 0;
   opacity: 0;
@@ -1960,6 +1963,115 @@ html[data-view='bubble'] body {
   right: 12%;
   top: calc(var(--horizon) + 48px);
   width: 72px;
+}
+/* The leaf rests by the lily pad and drifts with each gust, in four steps (D-84). */
+.cove__leaf {
+  position: absolute;
+  right: calc(12% + 96px);
+  top: calc(var(--horizon) + 96px);
+  width: 22px;
+  height: auto;
+  transition: translate 1.6s steps(4);
+}
+/* The visitors (D-84): one element each, placed on the cove's layers and removed when its life ends. Each is stepped. */
+.cove__visit {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  animation: cove-visit-life 1.6s linear both;
+}
+.cove__visit--dragonfly { animation-duration: 3.6s; }
+.cove__visit--birds { animation-duration: 4.8s; }
+.cove__visit--fireflies { animation-duration: 4s; }
+.cove__visit--fish { animation-duration: 1.2s; }
+@keyframes cove-visit-life {
+  from { opacity: 1; }
+  to { opacity: 1; }
+}
+/* The dragonfly darts over the water's upper third in three hops, with two pauses. */
+.cove__dragonfly {
+  position: absolute;
+  top: calc(var(--horizon) + 24px);
+  width: 28px;
+  height: auto;
+}
+.cove__dragonfly--ltr { animation: cove-dragonfly-ltr 3.6s steps(12) both; }
+.cove__dragonfly--rtl { animation: cove-dragonfly-rtl 3.6s steps(12) both; }
+@keyframes cove-dragonfly-ltr {
+  0% { left: -5%; }
+  30% { left: 22%; }
+  45% { left: 22%; }
+  60% { left: 55%; }
+  75% { left: 55%; }
+  100% { left: 104%; }
+}
+@keyframes cove-dragonfly-rtl {
+  0% { left: 105%; }
+  30% { left: 78%; }
+  45% { left: 78%; }
+  60% { left: 45%; }
+  75% { left: 45%; }
+  100% { left: -4%; }
+}
+/* The birds cross one third of the sky above the hills, rising a little, and fade at the end. */
+.cove__birds {
+  position: absolute;
+  width: 60px;
+  height: auto;
+}
+.cove__birds--ltr { animation: cove-birds-ltr 4.8s steps(16) both; }
+.cove__birds--rtl { animation: cove-birds-rtl 4.8s steps(16) both; }
+@keyframes cove-birds-ltr {
+  0% { left: -8%; top: calc(var(--horizon) - 96px); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { left: 30%; top: calc(var(--horizon) - 108px); opacity: 0; }
+}
+@keyframes cove-birds-rtl {
+  0% { left: 108%; top: calc(var(--horizon) - 96px); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { left: 70%; top: calc(var(--horizon) - 108px); opacity: 0; }
+}
+/* Fireflies: warm dots by the reeds, each blinking twice as it drifts up, staggered. */
+.cove__firefly {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--straw), transparent 70%);
+  animation: cove-firefly 2.8s steps(8) both;
+}
+@keyframes cove-firefly {
+  0% { opacity: 0; translate: 0 0; }
+  25% { opacity: 1; }
+  50% { opacity: 0; }
+  75% { opacity: 1; }
+  100% { opacity: 0; translate: 0 -10px; }
+}
+/* The fish ring: the painted ripple at 0.7 of its 128 px base, centred on its spot. */
+.cove__fish {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.cove__fish .in-water__ripple {
+  top: 0;
+  left: 0;
+  width: 90px;
+}
+/* The reeds lean 2 degrees and back, in four steps, on a wind visit. */
+.cove__reeds--lean {
+  transform-origin: bottom center;
+  animation: cove-lean 1.6s steps(4);
+}
+@keyframes cove-lean {
+  50% { rotate: 2deg; }
+}
+/* The wind's glints sit on the water and twinkle once. */
+.cove__glints {
+  top: var(--horizon);
 }
 /* The pieces were painted in daylight, so they take the light of the hour they're in. */
 .cove[data-time='night'] .cove__front {
@@ -2124,7 +2236,7 @@ html[data-view='bubble'] body {
   position: absolute;
   z-index: 1;
   left: 50%;
-  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074);
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.419);
   width: var(--otty-w);
   padding: 0;
   border: none;
@@ -2155,7 +2267,8 @@ html[data-view='bubble'] body {
 .cove-otty__squish--on {
   animation: squish var(--t-settle) var(--buoy);
 }
-.cove-otty__body {
+.cove-otty .in-water__frames {
+  /* Only Otty bobs; the waterline, foam and shadow stay on the water (D-83). */
   animation: float 6s steps(10) infinite;
 }
 .cove-otty__img {
@@ -2166,7 +2279,7 @@ html[data-view='bubble'] body {
 /* Otty's glints and ripple at his waterline (D-83): the glints 1.4x his width. */
 .cove-otty__body .in-water__glints {
   left: 50%;
-  top: 66%;
+  top: 72%;
   width: 140%;
   translate: -50% -50%;
 }
@@ -2180,7 +2293,7 @@ html[data-view='bubble'] body {
 }
 .cove-otty .in-water__under {
   opacity: 0.55;
-  mask: linear-gradient(transparent 65%, black 68%, rgba(0, 0, 0, 0.25) 82%, transparent 90%);
+  mask: linear-gradient(transparent 71%, black 74%, rgba(0, 0, 0, 0.25) 86%, transparent 93%);
 }
 .cove-otty .in-water__shadow {
   opacity: 0.6;
@@ -2189,11 +2302,12 @@ html[data-view='bubble'] body {
   position: absolute;
   inset: 0;
   width: 100%;
-  transform-origin: 50% 70%;
+  /* The part above the waterline (72%), mirrored at the waterline. */
+  transform-origin: 50% 72%;
   transform: scaleY(-0.6);
   opacity: 0.25;
   filter: blur(1.5px);
-  mask: linear-gradient(transparent 66%, black 68%, black 69%, transparent 70%);
+  mask: linear-gradient(transparent 15%, black 55%, black 71%, transparent 72%);
 }
 .frame__main--cove:has(> .cove[data-time='night']) .cove-otty {
   filter: brightness(0.80) saturate(0.85);
@@ -2249,7 +2363,7 @@ html[data-view='bubble'] body {
   margin-top: var(--hero-top);
 }
 .frame__main--full .frame__screen:has(> .health) .cove-otty {
-  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.4074 - var(--header-h));
+  top: calc(var(--horizon) + var(--waterline) - var(--otty-w) * 0.419 - var(--header-h));
 }
 /* The message box sits under the reading column, as in a chat. */
 .frame__main--full .composer {

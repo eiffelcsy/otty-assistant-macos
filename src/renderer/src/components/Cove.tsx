@@ -15,8 +15,12 @@ import nightSky from '../assets/cove/sky-night.webp'
 import cloud from '../assets/cove/cloud-wide.webp'
 import lilypad from '../assets/cove/lilypad-flower.webp'
 import reeds from '../assets/cove/reeds-low.webp'
+import birdsArt from '../assets/cove/birds.webp'
+import dragonflyArt from '../assets/cove/dragonfly.webp'
+import leafArt from '../assets/cove/leaf.webp'
 import float from '../assets/otty/float.webp'
 import { coveGlass, coveTime, untilNextCove, type CoveTime } from '../lib/cove'
+import { leafShift, nextVisit, type Visit } from '../lib/visitors'
 import { T, glide } from '../lib/motion'
 import { Glints, InWater, Ripple, RefractFilter } from './InWater'
 
@@ -139,6 +143,79 @@ function Rings({ x, y, onDone }: { x: number; y: number; onDone: () => void }) {
   )
 }
 
+const REDUCED = '(prefers-reduced-motion: reduce)'
+/** The fish ring's spots: open water, away from Otty's centre and the lily pad (D-84). */
+const FISH: [left: string, top: string][] = [
+  ['14%', 'calc(var(--horizon) + 96px)'],
+  ['34%', 'calc(var(--horizon) + 132px)'],
+  ['72%', 'calc(var(--horizon) + 112px)'],
+  ['88%', 'calc(var(--horizon) + 150px)']
+]
+const FIREFLIES = [0, 1, 2, 3, 4]
+
+interface Live {
+  kind: Visit
+  id: number
+}
+
+/**
+ * The visits (D-84, decision 1): one timer, a chain of `setTimeout`s, on while the cove is on show. A visit is skipped,
+ * not queued, when the window sleeps, the page is hidden, or reduced motion is on. `gusts` counts the wind visits so far.
+ */
+function useVisits(on: boolean, time: CoveTime) {
+  const [live, setLive] = useState<Live | null>(null)
+  const [gusts, setGusts] = useState(0)
+  const now = useRef(time)
+  useEffect(() => {
+    now.current = time
+  }, [time])
+  useEffect(() => {
+    if (!on) return
+    let timer: ReturnType<typeof setTimeout>
+    let last: Visit | null = null
+    let id = 0
+    let pick = nextVisit(now.current, null, Math.random)
+    const fire = () => {
+      const still = document.documentElement.dataset.asleep !== undefined || document.hidden || !!window.matchMedia?.(REDUCED)?.matches
+      if (!still) {
+        setLive({ kind: pick.visit, id: ++id })
+        if (pick.visit === 'wind') setGusts((n) => n + 1)
+        last = pick.visit
+      }
+      pick = nextVisit(now.current, last, Math.random)
+      timer = setTimeout(fire, pick.delay)
+    }
+    timer = setTimeout(fire, pick.delay)
+    return () => clearTimeout(timer)
+  }, [on])
+  return { live, gusts, done: () => setLive(null) }
+}
+
+/** One visit's element. Its own life (`cove-visit-life`, the length of its animation) ends it; children's animations don't. */
+function VisitView({ live, onDone }: { live: Live; onDone: () => void }) {
+  const { kind, id } = live
+  const ltr = id % 2 === 1
+  const [left, top] = FISH[id % FISH.length]
+  return (
+    <span className={`cove__visit cove__visit--${kind}`} onAnimationEnd={(e) => {
+        if (e.animationName === 'cove-visit-life') onDone()
+      }}>
+      {kind === 'dragonfly' && <img className={`cove__dragonfly cove__dragonfly--${ltr ? 'ltr' : 'rtl'}`} src={dragonflyArt} alt="" draggable={false} />}
+      {kind === 'birds' && <img className={`cove__birds cove__birds--${ltr ? 'ltr' : 'rtl'}`} src={birdsArt} alt="" draggable={false} />}
+      {kind === 'fireflies' &&
+        FIREFLIES.map((i) => (
+          <span key={i} className="cove__firefly" style={{ left: `calc(4% + ${i * 10}px)`, top: `calc(var(--horizon) + ${40 + i * 9}px)`, animationDelay: `${i * 300}ms` }} />
+        ))}
+      {kind === 'fish' && (
+        <span className="cove__fish" style={{ left, top }}>
+          <Ripple trigger={id} />
+        </span>
+      )}
+      {kind === 'wind' && <Glints twinkle={id} className="cove__glints" />}
+    </span>
+  )
+}
+
 /**
  * The living cove (D-72), full bleed (D-74, Spec 07): the painted sky and shore, the water, a few foreground pieces,
  * and the water's own colour under them, from assets/cove (made by tools/otty-art/prepare.py). It's the backdrop of the
@@ -151,6 +228,7 @@ export function Cove({ mode }: { mode: 'full' | 'wash' }) {
   const glass = coveGlass(time, useDark())
   const ref = useRef<HTMLDivElement>(null)
   const touch = useTouch(ref, mode === 'full')
+  const visits = useVisits(mode === 'full', time)
   // Until one has settled in where it was seen, every cove arrives; a hidden one waits, since CSS doesn't run there.
   const [arriving, setArriving] = useState(() => !arrived)
   return (
@@ -187,9 +265,11 @@ export function Cove({ mode }: { mode: 'full' | 'wash' }) {
           <Rings key={r.id} x={r.x} y={r.y} onDone={() => touch.done(r.id)} />
         ))}
       </div>
+      {visits.live && <VisitView key={visits.live.id} live={visits.live} onDone={visits.done} />}
       <div className="cove__front">
-        <img className="cove__reeds" src={reeds} alt="" draggable={false} />
+        <img className={`cove__reeds${visits.live?.kind === 'wind' ? ' cove__reeds--lean' : ''}`} src={reeds} alt="" draggable={false} />
         <img className="cove__lilypad" src={lilypad} alt="" draggable={false} />
+        <img className="cove__leaf" src={leafArt} alt="" draggable={false} style={{ translate: `${leafShift(visits.gusts)}px 0` }} />
       </div>
       {/* Otty, still, where the hero's Otty floats: it rides the water out of view as the camera looks up, and back. */}
       <span className="cove__ghost">

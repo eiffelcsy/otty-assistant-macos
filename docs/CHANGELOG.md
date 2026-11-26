@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### A cove with life (D-84, 2026-11-26)
+
+- **The cove has visitors now,** small, rare and brief: a dragonfly darting over the water, birds crossing the sky, fireflies blinking by the reeds after golden hour, a fish ring on the water, or a breath of wind through the reeds. Each fits its time of day and is gone in a few seconds.
+- **A leaf floats by the lily pads** and drifts a little with each gust.
+- Visits never cover the words, never come two at once, and stop when Otty's hidden or Reduce motion is on.
+- In the pool and the cove Otty now floats a little higher, and the water's surface stays still while he bobs.
+
 ### Otty in the water (D-83, 2026-11-26)
 
 - **Otty floats in the water now, not on it,** in the floating pool and in the cove on Home. A soft painted line of foam wraps where he meets the surface, his belly and paws show faintly through the water, and a little shadow sits beneath him.

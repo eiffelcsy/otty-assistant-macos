@@ -43,7 +43,7 @@ interface InWaterProps {
 }
 
 /** Otty in the water (D-83): above the waterline, under it (refracted and faded), the tint, a contact shadow, the waterline. */
-export function InWater({ frames, water, maskSrc, waterline = 0.66, className, part = 'all' }: InWaterProps) {
+export function InWater({ frames, water, maskSrc, waterline = 0.72, className, part = 'all' }: InWaterProps) {
   const wave = waveMask(waterline)
   const frame = `url("${maskSrc}")`
   const showAbove = part !== 'under'
@@ -51,14 +51,15 @@ export function InWater({ frames, water, maskSrc, waterline = 0.66, className, p
   return (
     <div className={`in-water${className ? ` ${className}` : ''}`} style={{ '--waterline': `${waterline * 100}%` } as CSSProperties}>
       {showAbove && (
+        // The mask stays on the water; only the frames inside move when Otty bobs, so the waterline never rides along.
         <div className="in-water__above" style={{ maskImage: wave, maskSize: '100% 100%' }}>
-          {frames}
+          <div className="in-water__frames">{frames}</div>
         </div>
       )}
       {showUnder && (
         // Alone, the under layer is in flow, so this box keeps the same size as the full one.
         <div className={`in-water__under${part === 'under' ? ' in-water__under--flow' : ''}`} aria-hidden="true">
-          {frames}
+          <div className="in-water__frames">{frames}</div>
         </div>
       )}
       {showUnder && (

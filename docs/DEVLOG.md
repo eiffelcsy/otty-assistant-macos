@@ -91,7 +91,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-81 | Turns as the unit of storage: step 0 done, decided to wait (the turns can be rebuilt from today's rows) | ⏸ after the beta, by decision (2026-11-26) | branching, versions or sync being planned | M |
-| D-84 | A cove with life: rare, brief visitors (dragonfly, birds, fireflies, a fish ring), wind in the reeds, a drifting leaf | 🔨 beta, building (2026-11-26) | D-83 | M |
 | D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ after the core services (moved down 2026-11-24) | D-56 (done); services from D-54, D-73 and D-77 | L (step 0: S) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
@@ -499,30 +498,6 @@ Step 4's art is painted too. `cove-day-clear` took the kept day picture's clouds
 **Done when (step 1).** `npm run screens` runs the invariants in CI; each one fails on the bug it's for (checked by reverting that part of #81 locally: no Close, Pause's menu at rail width, New chat from Home); they add no screenshots.
 
 
-## D-84 · A cove with life 🔨 beta
-
-**Goal.** The living cove feels less sparse and more alive: small visitors and a breath of wind, each rare and brief, never a loop. It covers BRAINSTORM's "Small visitors in the cove" and part of the living cove's step 3. Weather and season stay in BRAINSTORM: Otty has no weather without sending a location somewhere, and it's never sent anywhere.
-
-**Decisions (2026-11-26).**
-1. **One scheduler, `lib/visitors.ts`,** as pure functions plus one timer in `Cove.tsx`.
-   - `nextVisit(time, rand)` picks the next event and its delay: 25 to 70 s. It's chosen from what the time of day allows, and never the same event twice in a row.
-   - The timer runs only while the cove is on show, the window isn't `data-asleep`, and reduced motion is off. A visit is one element with a finite CSS animation, removed when the animation ends.
-2. **The visits,** each stepped and under 5 s:
-   - **Dragonfly** (day, dawn): the painted `dragonfly.webp`, 28 wide, darting across the water's upper third in three hops, with pauses. 12 steps over 3.6 s.
-   - **Birds** (dawn, day, golden): the painted `birds.webp`, 60 wide, crossing the sky band from one side, slightly rising. 16 steps over 4.8 s.
-   - **Fireflies** (golden, night): five warm dots, a radial gradient in `--straw`, each blinking twice as it drifts up a little near the reeds. 4 s, stepped.
-   - **Fish ring** (any time): one painted ripple somewhere on the open water, away from Otty and the words.
-   - **Wind** (any time): the reeds lean 2° and back (stepped in 4, 1.6 s), and the glints twinkle once across the water.
-3. **A leaf on the water:** the painted `leaf.webp`, resting near the lily pads. It drifts 12 px across the whole of a visit cycle, by one stepped move per wind gust, and nothing more.
-4. **Nothing in front of the words:** visits keep out of the greeting and the cards (the hero's safe area, from Spec 07), and live on the cove's own layers.
-5. **Assets:** `dragonfly`, `birds` and `leaf` are cut as pieces by `prepare.py`.
-
-**Done when.**
-- `visitors.test.ts` covers that the time of day limits the choice, the delays stay in range, and an event never repeats twice in a row.
-- A `cove-visit-*` scene for each visit, frozen mid-way.
-- `idle.smoke.ts` passes.
-- ✋ A person watches the cove for a few minutes at each time of day, and re-measures the budget.
-
 ## D-14 · Otty's own snip: a paw cursor and a frozen screen ⏸
 
 **Goal.** Snipping should feel like Otty, not like a system tool, and be faster too. The whole-screen shortcut shipped ahead of this in 0.5.0.
@@ -921,3 +896,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 204. A taken shortcut → the Home banner says "is free." with the free one; Change it → Shortcuts says it too, and Use it saves that shortcut and the banner goes
 205. The floating otter is a small pool of the hour's water with Otty floating in it. While something runs he paddles; when something needs you the rim turns straw; a new answer puts sea glass on the water; Pause greys the water. ✋ A person checks it by eye at dawn, day, golden hour and night, and re-measures the idle budget with OTTY_METRICS=1 while it rests, because neither the look nor the CPU can be asserted by a spec
 206. Otty floats *in* the water in the pool and on Home: a soft foam line where he meets the surface, his belly faintly under the teal, glints on the water, and a painted ripple on a hover (pool) or a press (cove), spreading over what's underwater and behind what's above. The pool gives a small dip with a ripple now and then. ✋ A person checks the look at real size at all four times of day, and re-measures the idle budget with OTTY_METRICS=1 with the pool resting and Home open, because neither can be asserted by a spec
+207. Leave Home open for a few minutes: now and then something small happens in the cove and is gone in a few seconds, chosen by the time of day. A dragonfly darts over the water (dawn, day), birds cross the sky (dawn to golden hour), fireflies blink by the reeds (golden hour, night), a fish ring spreads on the water, or a breath of wind leans the reeds and nudges the leaf. Never two at once, nothing over the words, and nothing while Otty's hidden or with Reduce motion on. ✋ A person watches each time of day and re-measures the idle budget, because chance and look can't be asserted by a spec
