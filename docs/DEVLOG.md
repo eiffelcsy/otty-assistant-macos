@@ -91,7 +91,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
 | D-81 | Turns as the unit of storage: step 0 done, decided to wait (the turns can be rebuilt from today's rows) | ⏸ after the beta, by decision (2026-11-26) | branching, versions or sync being planned | M |
-| D-82 | The pool, step 1: the bubble becomes a small pool of cove water with Otty floating in it (beta polish) | ⏳ beta | D-71 art (done) | S–M |
 | D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ after the core services (moved down 2026-11-24) | D-56 (done); services from D-54, D-73 and D-77 | L (step 0: S) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
 | D-48 | Agents check their own work: a reusable verify kit (one command, hooks, lint, rules as tests, intent evidence, earned auto-merge) | 🔨 phases 1–2 built; phase 3 near the beta | phase 2 uses D-47's harness | M–L (phase 1: S–M) |
@@ -389,14 +388,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - A future change that broke that alignment would make the migration hard. So would one that stored a turn's parts somewhere other than these two tables. Either one must come with this entry reopened.
 
 **Reopen when** the first of these is planned: branching from an older question, keeping versions of an answer, or syncing chats to the phone.
-
-## D-82 · The pool, step 1 ⏳ beta
-
-**Goal.** The floating bubble becomes the pool from BRAINSTORM's [concept note](BRAINSTORM.md#the-pool): a small lens of Liquid Glass holding the cove's water at the true hour, with Otty floating on its back in it. Step 1 covers the states: resting, working (two stepped paddle frames, only while something runs), needs you (sea glass held up, a straw rim), has an answer (sea glass bobbing, replacing the badge dot), paused (still, grey water) and asleep (`float-doze`). Being carried, fed a file and the edge tuck are step 2. The window growing out of the water is step 3.
-
-**Before building:** a screen spec, `docs/design/specs/13-pool.md`, to the polish bar, from the draft (`docs/design/otty-window-draft.html`, v0.8). Check the pool's art list in BRAINSTORM: a second paddle frame and a float blink are still missing, so paint them through `tools/otty-art/` or leave them out of step 1. Mark every bust frame the bubble alone uses as retired.
-
-**Done when.** Each state has a scene, light and dark, in `npm run screens`. The idle budget still holds with the pool resting, re-measured with `OTTY_METRICS=1` (✋). The bubble's smoke steps (moods, unseen dot, Feed Otty, drag) still pass. It stays a button to assistive tech, with its tooltips.
 
 ## D-55 · Your features: Otty builds them for you ⏳
 
@@ -903,3 +894,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 202. Settings › Help › How do I… → "Ask about something you highlighted" unfolds with your own shortcut in it. Send feedback, type a note, and with no address the button reads Copy it → the clipboard holds only the note
 203. Send feedback with "Attach the last day's log" ticked → the sheet shows the diagnostics and "— Log, last 24 hours —" before anything is copied. Open the log folder opens Otty's log folder
 204. A taken shortcut → the Home banner says "is free." with the free one; Change it → Shortcuts says it too, and Use it saves that shortcut and the banner goes
+205. The floating otter is a small pool of the hour's water with Otty floating in it. While something runs he paddles; when something needs you the rim turns straw; a new answer puts sea glass on the water; Pause greys the water. ✋ A person checks it by eye at dawn, day, golden hour and night, and re-measures the idle budget with OTTY_METRICS=1 while it rests, because neither the look nor the CPU can be asserted by a spec
+206. Otty floats *in* the water in the pool and on Home: a soft foam line where he meets the surface, his belly faintly under the teal, and a painted ripple on a hover (pool) or a press (cove), spreading over what's underwater and behind what's above. The pool gives a small dip with a ripple now and then. ✋ A person checks the look at real size at all four times of day, and re-measures the idle budget with OTTY_METRICS=1 with the pool resting and Home open, because neither can be asserted by a spec
+207. Leave Home open for a few minutes: now and then something small happens in the cove and is gone in a few seconds, chosen by the time of day. A dragonfly darts over the water (dawn, day), birds cross the sky (dawn to golden hour), fireflies blink by the reeds (golden hour, night), a fish ring spreads on the water, or a breath of wind leans the reeds and nudges the leaf. Never two at once, nothing over the words, and nothing while Otty's hidden or with Reduce motion on. ✋ A person watches each time of day and re-measures the idle budget, because chance and look can't be asserted by a spec
+208. Calendar › Month → this month's name and six weeks of days, today marked, with each day's events as chips (dots when the window is narrow). ⌘→ moves a month. Click a day's number → its week, with the day's events in their columns

@@ -6,7 +6,7 @@ import type { CalendarItem, EventFields, OttyApi } from '../../../../shared/type
 import { Calendar } from '../Calendar'
 import { EventCard } from '../EventCard'
 import { layoutLanes, snapMinutes } from '../Week'
-import { addDays, atMinute, dayStart, longDay, mondayOf } from '../time'
+import { addDays, atMinute, dayStart, longDay, mondayOf, monthOf, monthTitle } from '../time'
 
 const MON = mondayOf(Date.now())
 const at = (day: number, h: number, m = 0) => atMinute(addDays(MON, day), h * 60 + m)
@@ -109,5 +109,29 @@ describe('overlap lanes and snapping', () => {
 
   it('snaps to the nearest quarter hour', () => {
     expect([snapMinutes(7), snapMinutes(8), snapMinutes(22), snapMinutes(23), snapMinutes(60)]).toEqual([0, 15, 15, 30, 60])
+  })
+})
+
+describe('the month', () => {
+  it('reads six weeks from the Monday before the 1st, and a day opens its week', async () => {
+    const first = monthOf(Date.now())
+    const range = vi.fn(async () => ({ items }))
+    window.otty.calendarRange = range
+    const { container } = render(<Calendar band="medium" />)
+    await screen.findByRole('button', { name: /^Essay draft,/ })
+    fireEvent.click(screen.getByRole('button', { name: 'Month' }))
+    expect(screen.getByText(monthTitle(first))).toBeTruthy()
+    expect(container.querySelectorAll('.cal-mday')).toHaveLength(42)
+    expect(range).toHaveBeenLastCalledWith(mondayOf(first), addDays(mondayOf(first), 42))
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${longDay(first)},`) }))
+    expect(container.querySelector('.cal-week')).toBeTruthy()
+    expect(range).toHaveBeenLastCalledWith(mondayOf(first), addDays(mondayOf(first), 7))
+  })
+
+  it('moves a month at a time', async () => {
+    render(<Calendar band="compact" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Month' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Later' }))
+    expect(screen.getByText(monthTitle(monthOf(Date.now(), 1)))).toBeTruthy()
   })
 })
