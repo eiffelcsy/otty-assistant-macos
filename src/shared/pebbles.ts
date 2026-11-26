@@ -21,6 +21,12 @@ export interface KeptPebble extends Pebble {
   /** Its place in the answer's `pebblesOf` list. */
   index: number
   kept: number
+  /** D-77: the chat's title and last-updated time when kept, so the Pouch can name it after the chat is gone. */
+  chatTitle?: string
+  chatAt?: number
+  /** D-77: the shelf the person put it on. Absent when none. */
+  shelf?: string
+  chatGone?: boolean
 }
 
 export const KIND_LABELS: Record<PebbleKind, string> = { chart: 'Chart', deck: 'Slides', diagram: 'Diagram', picture: 'Picture' }

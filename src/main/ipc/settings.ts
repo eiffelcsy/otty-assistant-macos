@@ -6,7 +6,7 @@ import type { KeepChats, PermissionKind, SettingsCounts, SettingsUpdate, UsageRe
 import { serviceAt, serviceById } from '../../shared/services'
 import * as settings from '../settings'
 import { applySettings } from '../controls'
-import { cap, usageMeter } from '../core'
+import { cap, pebbles, usageMeter } from '../core'
 import { testConnection } from '../llm'
 import { getPermissions, openPermissionSettings } from '../permissions'
 import { chatStore } from '../store'
@@ -26,7 +26,7 @@ export function registerSettings(): void {
       const cutoff = retentionCutoff(keep)
       return cutoff === null ? 0 : chats.filter((c) => c.updatedAt < cutoff).length
     }
-    return { chats: chats.length, olderThan: { '30d': older('30d'), '1y': older('1y'), forever: 0 }, notes: memoryStore().list().length }
+    return { chats: chats.length, olderThan: { '30d': older('30d'), '1y': older('1y'), forever: 0 }, notes: memoryStore().list().length, pebbles: pebbles().count() }
   })
   handle('settings:test', () => testConnection())
   handle('permissions:get', () => getPermissions())

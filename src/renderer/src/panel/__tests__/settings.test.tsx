@@ -37,7 +37,7 @@ const base: PublicSettings = {
   canOpenAtLogin: true,
   myTiles: []
 }
-const counts: SettingsCounts = { chats: 142, olderThan: { '30d': 23, '1y': 0, forever: 0 }, notes: 18 }
+const counts: SettingsCounts = { chats: 142, olderThan: { '30d': 23, '1y': 0, forever: 0 }, notes: 18, pebbles: 0 }
 
 const otty = {
   setSetting: vi.fn(async (key: string, value: unknown): Promise<PublicSettings | null> => ({ ...base, [key]: value })),

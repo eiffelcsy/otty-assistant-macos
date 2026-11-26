@@ -90,8 +90,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-77 | The Pouch: kept Pebbles get their own screen (Pebbles step 2) | ⏳ beta | Pebbles step 1 (done) | M |
-| D-78 | Long chats don't break: compact once and retry on "too long", in chats and jobs | ⏳ beta | — | S–M |
+| D-78 | Long chats don't break: make room once with code-written stubs and retry on "too long", in chats and jobs | 🔨 beta, building (2026-11-26) | — | S–M |
 | D-79 | Help and feedback inside Otty: a Help page, Send feedback with an optional log, and the full list of where lookups go | ⏳ beta | where feedback goes (owner) | S |
 | D-80 | Your own shortcuts: a key recorder, and plain words when another app has the key | ⏳ beta | — | S |
 | D-81 | Turns as the unit of storage, decided before testers have data | ⏳ beta (decide first) | — | M |
@@ -374,19 +373,29 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
-## D-77 · The Pouch ⏳ beta
+## D-78 · Long chats don't break 🔨 beta
 
-**Goal.** Kept Pebbles get a screen of their own in the frame: sea glass on shelves over the cove, with search, shelves the person names, and "From a chat on…" leading back to where each Pebble came from. A kept Pebble outlives its chat, keeping its sources as names. The design is in BRAINSTORM, [Pebbles and the Pouch](BRAINSTORM.md#pebbles-and-the-pouch), step 2.
+**Goal.** When a request is too long for the model, Otty makes room once and retries, and never shows "error 400" or "This chat has grown too long". It comes from EFFICIENCY 13, with item 2's stubs. The job history view (EFFICIENCY 2 and 8) stays its own later entry.
 
-**Before building:** a screen spec, `docs/design/specs/12-pouch.md`, written to the polish bar, with a ui-preview scene for each state. Also a migration that moves kept Pebbles out from under their chats, and "Forget all chats" asking whether to keep the Pouch too. Keep the Pouch's read behind D-54's service shape, so D-55's features can read it later.
+**Decisions (2026-11-26).**
+1. **Recognising it.** `friendlyStatus` reads more as too long: a 400 or 413 whose body says "maximum context length" (DeepSeek and OpenAI-style servers), `context_length_exceeded`, "prompt is too long" (Anthropic), "too many tokens" or "reduce the length". All of them give `kind: 'too-long'`.
+2. **Making room is code, never the model.** `compactHistory(history, keepTurns = 2)` in `src/main/compact.ts` is pure. Everything before the last two user messages the user typed gets these changes:
+   - A tool result longer than 500 characters becomes "[An earlier result (N characters) was set aside to fit the chat. Ask for it again if it’s needed.]".
+   - A picture part in a user message becomes the text "[A picture was here; it was set aside to fit the chat.]".
+   - A user message's text over 4,000 characters keeps its first 1,000, then "[… about N more characters were set aside to fit the chat.]".
+   - An assistant message loses its `reasoning_content`.
 
-**Done when.** Keep → the Pouch → open big → back to the chat works and survives a relaunch (smoke). Deleting the chat leaves the Pebble, with its sources kept as names (store test). Every state has a scene in `npm run screens`.
+   Nothing else changes, and every message, tool call and id stays in place, so the history stays valid for both API formats. It returns `{ history, setAside }`, where `setAside` counts what it changed.
+3. **Once, in the loop.** `runLoop` gains `onRoom?(setAside: number): void`. When a request fails as too long and this run hasn't made room yet, it compacts `o.history` in place and sends the same round again. A second failure, or nothing to set aside, throws as before, and the old words stay as the last resort.
+4. **Chats keep the room.** `ChatSession` rewrites the thread's stored history after making room, so the next turn doesn't fail again. This rewrites what was sent, once, on purpose: it costs one cache write, and every later turn caches as before. The answer shows a chip, "Made room in this chat", with the `compress` icon (or the nearest that exists).
+5. **Jobs keep their steps.** `JobRunner` passes `onRoom`, but `JobStore`'s rows stay whole: the compacted history is only what's sent. A resume rebuilds from the full rows and makes room again if it has to. So `isKnownUrl`, taint and the ledger keep reading everything (EFFICIENCY 2's trust rule).
+6. **Nothing is compacted until a request fails,** so DeepSeek's cache holds on every normal turn (`llm.test.ts`).
 
-## D-78 · Long chats don't break ⏳ beta
-
-**Goal.** When a request is too long for the model, Otty compacts once and retries, and never shows "error 400". In a chat, it summarises old turns' pictures, page reads and documents in one step. In a job, old page bodies become stubs written by code. Both appear in a turn's note, never as a change to anything already sent (the cache rule). It comes from BRAINSTORM's history budget row and EFFICIENCY 13. The job history view (EFFICIENCY 2, 8) is a separate, later entry.
-
-**Done when.** A scripted "too long" from the fake world ends in an answer, not an error, in both a chat and a job (smoke). Nothing is compacted until a request fails, so DeepSeek's cache holds on every normal turn (`llm.test.ts`).
+**Done when.**
+- A scripted "too long" from the fake world ends in an answer, not an error, in a chat and in a job (smoke).
+- The next turn in that chat sends the compacted history (smoke).
+- `compactHistory` keeps ids, tool calls and the last two turns (unit).
+- A job's stored steps are unchanged (unit).
 
 ## D-79 · Help and feedback inside Otty ⏳ beta
 
@@ -916,3 +925,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 193. Ask Otty to block two hours for an essay tomorrow afternoon → "Add this to your calendar?" with the title and time in words; Add it → the event shows with a paw. Undo in the Logbook removes it, and nothing about it is in What left your Mac
 194. With Apple Calendar connected, its events show in the week read-only: opening one names its calendar ("From Home. Change it there.") with no Save
 195. An event happening now shows on Home's Today as the current tick
+196. Keep a chart from an answer → the Pouch (⌘6) shows it with "From “…”"; Open big opens the viewer, and Go to the chat opens the chat at that answer. After a relaunch it's still there
+197. Delete the chat a kept drawing came from → it stays in the Pouch, "From a deleted chat", with no Go to the chat. Forget all chats → it's still there
+198. Put a kept drawing on a new shelf "Sea" → the wall shows a Sea group and "Not on a shelf". Search finds by title and by shelf, and says when nothing matches
+199. Put back a stone → it goes, with Undo, which brings it back on its shelf. Settings › Privacy › Forget my Pouch → the Pouch is empty

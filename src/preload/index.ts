@@ -61,6 +61,12 @@ const api: OttyApi = {
   saveEvent: (fields) => ipcRenderer.invoke('calendar:save', fields),
   removeEvent: (id) => ipcRenderer.invoke('calendar:remove', id),
 
+  pouch: () => ipcRenderer.invoke('pouch:list'),
+  setShelf: (answerId, index, shelf) => ipcRenderer.invoke('pouch:shelf', answerId, index, shelf),
+  putBack: (answerId, index) => ipcRenderer.invoke('pouch:drop', answerId, index),
+  undoPutBack: (answerId, index) => ipcRenderer.invoke('pouch:undo-drop', answerId, index),
+  forgetPouch: () => ipcRenderer.invoke('pouch:forget'),
+
   sendMessage: (text, captures, opts) => ipcRenderer.invoke('chat:send', text, captures, opts),
   stop: () => ipcRenderer.invoke('chat:stop'),
   resetChat: () => ipcRenderer.invoke('chat:reset'),

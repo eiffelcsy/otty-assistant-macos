@@ -1056,10 +1056,10 @@ export class ChatSession {
   }
 
   /** A Pebble in an answer of the chat on show (charts, then drawings), for Keep. */
-  pebbleAt(answerId: string, index: number): { chatId: string; pebble: Pebble } | null {
+  pebbleAt(answerId: string, index: number): { chatId: string; title: string; updatedAt: number; pebble: Pebble } | null {
     const answer = this.thread.messages.find((m) => m.id === answerId)
     const pebble = answer?.role === 'assistant' ? pebblesOf(answer)[index] : undefined
-    return pebble ? { chatId: this.thread.id, pebble } : null
+    return pebble ? { chatId: this.thread.id, title: this.thread.title, updatedAt: this.thread.updatedAt, pebble } : null
   }
 
   private card(answerId: string, index: number): { at: number; card: StepCard } | null {

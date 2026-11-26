@@ -201,7 +201,7 @@ export function KeysRow({ value, clash, onChange, ...row }: RowProps & { value: 
 export const HOLD_MS = 1200
 
 /** Can't be undone, so it's held: the fill sweeps over 1.2 s, and letting go early does nothing. */
-export function HoldButton({ label = 'Hold to forget', what, onDone }: { label?: string; what?: string; onDone: () => void }) {
+export function HoldButton({ label = 'Hold to forget', what, onDone, disabled = false }: { label?: string; what?: string; onDone: () => void; disabled?: boolean }) {
   const [holding, setHolding] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const start = () => {
@@ -219,6 +219,7 @@ export function HoldButton({ label = 'Hold to forget', what, onDone }: { label?:
   return (
     <button
       className={`btn btn--warn btn--small hold${holding ? ' hold--on' : ''}`}
+      disabled={disabled}
       aria-label={what ? `${label}: ${what}` : undefined}
       onPointerDown={start}
       onPointerUp={stop}
@@ -239,6 +240,7 @@ export function HoldRow({ onDone, ...row }: RowProps & { onDone: () => void }) {
       {!done && (
         <HoldButton
           what={row.title}
+          disabled={row.disabled}
           onDone={() => {
             setDone(true)
             onDone()

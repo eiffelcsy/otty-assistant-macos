@@ -45,6 +45,7 @@ const FINDABLE: { id: string; section: SectionId; title: string; words?: string 
   { id: 'changed', section: 'privacy', title: 'See what Otty changed', words: 'ledger undo' },
   { id: 'forgetChats', section: 'privacy', title: 'Forget all chats', words: 'delete clear' },
   { id: 'forgetNotes', section: 'privacy', title: 'Forget everything in the Notebook', words: 'memory delete clear' },
+  { id: 'forgetPouch', section: 'privacy', title: 'Forget my Pouch', words: 'pebbles kept delete clear' },
   { id: 'monthlyCap', section: 'usage', title: 'Set a monthly limit', words: 'cap budget cost' },
   { id: 'usage', section: 'usage', title: 'This month', words: 'questions cost usage' },
   { id: 'service', section: 'conn', title: 'Your AI service', words: 'api key model deepseek claude openai' },
@@ -335,6 +336,8 @@ function Privacy({ shown, settings, row, save, onOpenLogbook, onOpenNotebook }: 
   const [forgot, setForgot] = useState<{ chats?: boolean; notes?: boolean }>({})
   const chatsRow = Boolean(counts?.chats) || forgot.chats
   const notesRow = Boolean(counts?.notes) || forgot.notes
+  /** D-77: the Pouch's hold is always here, disabled while nothing is kept. */
+  const pouchCount = counts?.pebbles ?? 0
   /** The counts as they are now: the prompt must never be skipped because they hadn't arrived yet. */
   const fresh = () =>
     window.otty.settingsCounts().then((c) => {
@@ -391,13 +394,12 @@ function Privacy({ shown, settings, row, save, onOpenLogbook, onOpenNotebook }: 
         <LinkRow {...row('sent')} title="See what left my Mac" onClick={() => onOpenLogbook('sent')} />
         <LinkRow {...row('changed')} title="See what Otty changed" onClick={() => onOpenLogbook('changed')} />
       </Group>
-      {(chatsRow || notesRow) && (
-        <Group label="Can’t be undone">
+      <Group label="Can’t be undone">
           {chatsRow && (
             <HoldRow
               {...row('forgetChats')}
               title="Forget all chats"
-              description={`${plural(counts?.chats ?? 0, 'chat')}.`}
+              description={`${plural(counts?.chats ?? 0, 'chat')}. Your Pouch and calendar are kept.`}
               onDone={() => (setForgot((f) => ({ ...f, chats: true })), void window.otty.clearChats().then(refresh))}
             />
           )}
@@ -409,8 +411,14 @@ function Privacy({ shown, settings, row, save, onOpenLogbook, onOpenNotebook }: 
               onDone={() => (setForgot((f) => ({ ...f, notes: true })), void window.otty.clearMemories().then(refresh))}
             />
           )}
+          <HoldRow
+            {...row('forgetPouch')}
+            title="Forget my Pouch"
+            description={pouchCount ? `${plural(pouchCount, 'kept thing')}. Chats aren’t touched.` : 'Nothing kept yet.'}
+            disabled={!pouchCount}
+            onDone={() => void window.otty.forgetPouch().then(refresh)}
+          />
         </Group>
-      )}
     </>
   )
 }

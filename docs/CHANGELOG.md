@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The Pouch (D-77, Spec 12, 2026-11-26)
+
+- **Everything you keep, in one place** (⌘6). Charts, diagrams and slides you kept from answers sit on a wall, each shown as itself. Open one big, or jump back to the chat it came from.
+- **Shelves and search.** Give a kept thing a shelf like "Recipes" from its card, or find it by its name, its kind, its shelf or its chat.
+- **Kept means kept.** A kept thing stays when you delete its chat ("From a deleted chat"), when chats get old, and when you Forget all chats. Put back takes it out, with an Undo. Settings › Privacy has its own "Forget my Pouch".
+- The calendar's event card is solid now, like a menu, so the week behind it never shows through its words.
+
 ### Otty's calendar (D-73, Spec 11, 2026-11-26)
 
 - **A calendar of Otty's own** (⌘5): your week on a grid, or the next seven days as a list in a small window. Add an event with Add or by clicking a free slot, change it in its card, drag it to move it, or delete it with an Undo.

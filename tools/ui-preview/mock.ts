@@ -16,6 +16,7 @@ import type {
   Memory,
   OttyApi,
   PanelOpenPayload,
+  PouchItem,
   PublicSettings,
   SentItem
 } from '../../src/shared/types'
@@ -28,7 +29,7 @@ import { home } from '../../src/main/home'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|pouch|pouch-list|pouch-empty|pouch-card|pouch-search|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -70,7 +71,12 @@ const FRAME_SIZES: Record<string, [number, number]> = {
   'calendar-list': [420, 720],
   'calendar-empty': [900, 720],
   'calendar-edit': [900, 720],
-  'calendar-note': [900, 720]
+  'calendar-note': [900, 720],
+  pouch: [900, 720],
+  'pouch-list': [420, 720],
+  'pouch-empty': [900, 720],
+  'pouch-card': [900, 720],
+  'pouch-search': [900, 720]
 }
 const size: [number, number] | undefined = FRAME_SIZES[scene]
 if (root && (q.get('w') || size)) root.style.width = `${Number(q.get('w') ?? size?.[0])}px`
@@ -318,6 +324,19 @@ const cards: Record<string, ConfirmCard> = {
   'confirm-unusual': { kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'xn--pple-43d.com', readable: 'аpple.com', rest: '/account/verify', unusual: 'alphabet' },
   'confirm-event': { kind: 'event', title: 'Add this to your calendar?', yes: 'Add it', item: 'Essay', when: 'Thu 4 Dec, 14:00–16:00' }
 }
+/** D-77: the Pouch's sample stones. Two shelves, some loose ones, and one whose chat is gone. */
+const POUCH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140"><circle cx="160" cy="30" r="16" fill="#c7b58b"/><rect x="50" y="70" width="80" height="60" fill="#8c9b6a"/><path d="M40 72 L90 30 L140 72 Z" fill="#637c42"/></svg>'
+const POUCH_SAMPLE: PouchItem[] = [
+  { answerId: 'p1', index: 0, kind: 'chart', title: 'Rainfall by month', drawing: 'mermaid', code: 'pie title Rainfall\n  "Jan" : 30\n  "Feb" : 45\n  "Mar" : 25', shelf: 'Budget', chatId: 'c1', chatTitle: 'Trip budget', chatAt: Date.now() - 2 * 86_400_000, kept: Date.now() - 2 * 86_400_000 },
+  { answerId: 'p2', index: 0, kind: 'chart', title: 'Spending by week', drawing: 'mermaid', code: 'xychart-beta\n  title "Spending"\n  x-axis [Wk1, Wk2, Wk3]\n  bar [120, 95, 140]', shelf: 'Budget', chatId: 'c1', chatTitle: 'Trip budget', chatAt: Date.now() - 2 * 86_400_000, kept: Date.now() - 86_400_000 },
+  { answerId: 'p3', index: 0, kind: 'deck', title: 'How otters stay together', drawing: 'slides', code: DECK, shelf: 'Class', chatId: 'c2', chatTitle: 'Otters for class', chatAt: Date.now() - 5 * 86_400_000, kept: Date.now() - 5 * 86_400_000 },
+  { answerId: 'p4', index: 0, kind: 'diagram', title: 'From idea to law', drawing: 'mermaid', code: FLOW, chatId: 'c3', chatTitle: 'Civics homework', chatAt: Date.now() - 9 * 86_400_000, kept: Date.now() - 3 * 86_400_000 },
+  { answerId: 'p5', index: 0, kind: 'picture', title: 'A little house', drawing: 'svg', code: POUCH_SVG, chatAt: Date.now() - 20 * 86_400_000, kept: Date.now() - 4 * 86_400_000 }
+]
+let pouchStore: PouchItem[] = structuredClone(POUCH_SAMPLE)
+let lastDropped: PouchItem | null = null
+const pouchView = (): PouchItem[] => structuredClone(pouchStore)
+
 /** D-73: the Calendar screen's sample week, on this week's Monday, so the now line and today show whichever day it is. */
 const CAL_MONDAY = (() => {
   const d = new Date()
@@ -639,7 +658,7 @@ const api: OttyApi = {
   },
   setDraft: () => {},
   setSetting: async (key, value) => ({ ...Object.assign(settings, { [key]: value }) }),
-  settingsCounts: async () => ({ chats: 142, olderThan: { '30d': 23, '1y': 4, forever: 0 }, notes: 18 }),
+  settingsCounts: async () => ({ chats: 142, olderThan: { '30d': 23, '1y': 4, forever: 0 }, notes: 18, pebbles: scene === 'pouch-empty' ? 0 : POUCH_SAMPLE.length }),
   testConnection: async () => ({ ok: true, message: 'Connected to deepseek-flash! Otty is ready to help.' }),
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: scene === 'near' || scene === 'cap' }),
   openPermissionSettings: noop,
@@ -738,6 +757,25 @@ const api: OttyApi = {
   removeEvent: async (id) => {
     calStore = calStore.filter((i) => i.id !== id)
     return true
+  },
+  // D-77: the Pouch, in memory. `pouch-empty` has nothing kept.
+  pouch: async () => (scene === 'pouch-empty' ? [] : pouchView()),
+  setShelf: async (answerId, index, shelf) => {
+    pouchStore = pouchStore.map((i) => (i.answerId === answerId && i.index === index ? { ...i, shelf: shelf ?? undefined } : i))
+    return pouchView()
+  },
+  putBack: async (answerId, index) => {
+    lastDropped = pouchStore.find((i) => i.answerId === answerId && i.index === index) ?? null
+    pouchStore = pouchStore.filter((i) => !(i.answerId === answerId && i.index === index))
+    return true
+  },
+  undoPutBack: async () => {
+    if (lastDropped) pouchStore = [...pouchStore, lastDropped]
+    lastDropped = null
+    return true
+  },
+  forgetPouch: async () => {
+    pouchStore = []
   },
   // D-66: main's own Home words, from the same samples as the Logbook.
   home: async () => home({ ...logSources(), remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
@@ -846,6 +884,18 @@ const api: OttyApi = {
     if (cards[scene]) setTimeout(() => playCard(cb, cards[scene]), 50)
     // D-73: `calendar-edit` opens the card on Otty's first event once the week has loaded.
     if (scene === 'calendar-edit') setTimeout(() => clickWhenThere('.cal-block:not(.cal-block--ext)'), 400)
+    // D-77: `pouch-card` opens the first stone; `pouch-search` searches "rain" and puts one back, so the Put back line shows.
+    if (scene === 'pouch-card') setTimeout(() => clickWhenThere('.stone'), 400)
+    if (scene === 'pouch-search') {
+      setTimeout(() => {
+        const input = document.querySelector<HTMLInputElement>('.pouch-find input')
+        if (!input) return
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'rain')
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }, 400)
+      setTimeout(() => clickWhenThere('.stone'), 700)
+      setTimeout(() => clickWhenThere('.pouch-card__put'), 1000)
+    }
     // D-62: an answer on its way, stopped, or failed in a way its card can help with.
     if (scene === 'thinking')
       setTimeout(() => {
@@ -960,6 +1010,7 @@ const api: OttyApi = {
   onFrameCommand: (cb) => {
     if (scene.startsWith('home')) setTimeout(() => cb('home'), 120)
     if (scene.startsWith('calendar')) setTimeout(() => cb('calendar'), 120)
+    if (scene.startsWith('pouch')) setTimeout(() => cb('pouch'), 120)
     return () => {}
   },
   setWindowState: noop
