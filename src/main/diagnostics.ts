@@ -33,3 +33,9 @@ export function diagnosticsReport(f: DiagnosticFacts): string {
     ...f.log.map((l) => f.hide.filter(Boolean).reduce((line, name) => line.split(name).join('your service'), l))
   ].join('\n')
 }
+
+/** D-79: the note, and with the log ticked, the diagnostics and the last day's log under their headings. Nothing else. */
+export function feedbackText(note: string, withLog: boolean, report: string, log: string[]): string {
+  if (!withLog) return note
+  return [note, '', '— Diagnostics —', report, '', '— Log, last 24 hours —', ...log].join('\n')
+}

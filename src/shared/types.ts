@@ -863,6 +863,13 @@ export interface OttyApi {
   getUsage(): Promise<UsageReport>
   /** D-50: facts about the Mac and Otty, and the log's last lines, to show and then copy. */
   getDiagnostics(): Promise<string>
+  /** D-79: the feedback text as it would be copied, and the build's address (null when there isn't one). Sends nothing. */
+  feedbackPreview(note: string, withLog: boolean): Promise<{ text: string; email: string | null }>
+  /** D-79: copies the text and opens a pre-filled email when there's an address. */
+  sendFeedback(note: string, withLog: boolean): Promise<{ mailed: boolean }>
+  openLogFolder(): Promise<void>
+  /** D-80: a shortcut that works, to offer in place of one another app uses; null when none does. */
+  suggestHotkey(key: 'askHotkey' | 'snapHotkey' | 'screenHotkey'): Promise<string | null>
   /** D-54: Settings › Connections and the chat's connection card. */
   connections(): Promise<ConnectionsState>
   /** Resolves when it's connected or has failed; a browser sign-in waits for the browser. */

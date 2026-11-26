@@ -120,6 +120,11 @@ export const CHANNELS = {
   'app:relaunch': { views: PANEL, args: [] },
   'usage:get': { views: PANEL, args: [] },
   'diagnostics:get': { views: PANEL, args: [] },
+  // D-79: Send feedback and the log folder. D-80: a free shortcut for one that's taken.
+  'help:feedback': { views: PANEL, args: [text(4000), bool] },
+  'help:send': { views: PANEL, args: [text(4000), bool] },
+  'help:logs': { views: PANEL, args: [] },
+  'hotkeys:suggest': { views: PANEL, args: [oneOf('askHotkey', 'snapHotkey', 'screenHotkey')] },
   'connections:list': { views: CHAT, args: [] },
   'connections:connect': { views: CHAT, args: [connectRequest] },
   'connections:cancel': { views: CHAT, args: [] },

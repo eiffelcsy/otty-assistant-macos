@@ -22,14 +22,15 @@ import type {
 } from '../../src/shared/types'
 import { searchThreads } from '../../src/main/store/search'
 import { draw } from '../../src/renderer/src/draw/render'
-import type { DrawingView } from '../../src/shared/types'
+import type { BubbleMood, DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 import { entryDetails, logbook, type LogSources } from '../../src/main/logbook'
 import { home } from '../../src/main/home'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|pouch|pouch-list|pouch-empty|pouch-card|pouch-search|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-feedback|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|pouch|pouch-list|pouch-empty|pouch-card|pouch-search|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
+//   ?view=bubble&scene=pool|pool-working|pool-waiting|pool-answer|pool-paused|pool-night (Spec 13, the pool)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -42,7 +43,8 @@ const clickWhenThere = (sel: string, tries = 40): void => {
 
 // D-74: `&time=dawn|day|golden|night` pins the cove's painting (and Home's greeting) by moving the clock to that hour.
 const HOURS: Record<string, number> = { dawn: 6, day: 14, golden: 17, night: 21 }
-const pinned = HOURS[q.get('time') ?? '']
+// Spec 13: the pool's scenes are at day, and pool-night at night, unless `&time=` says otherwise.
+const pinned = HOURS[q.get('time') ?? (scene === 'pool-night' ? 'night' : scene.startsWith('pool') ? 'day' : '')]
 if (pinned !== undefined) {
   const Real = Date
   const at = new Real()
@@ -663,6 +665,18 @@ const api: OttyApi = {
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: scene === 'near' || scene === 'cap' }),
   openPermissionSettings: noop,
   relaunch: noop,
+  // D-79: the feedback text as it would be copied; the log's lines come after the diagnostics, only when ticked.
+  feedbackPreview: async (note, withLog) => ({
+    text: withLog ? `${note}\n\n— Diagnostics —\nOtty 0.5.0 · macOS 26.1 · arm64\n\n— Log, last 24 hours —\n2026-11-18T09:00:00.000Z info Otty 0.5.0 started` : note,
+    email: null
+  }),
+  sendFeedback: async (note) => {
+    ;(window as any).__copied = note
+    return { mailed: false }
+  },
+  openLogFolder: noop,
+  // D-80: a free shortcut for a taken one (the sample's taken key is Command+Alt+Shift+Space, so this is free).
+  suggestHotkey: async () => 'Alt+Shift+A',
   getDiagnostics: async () =>
     'Otty 0.5.0 · macOS 26.1 · arm64\nInstalled app: yes · in Applications: yes\nService: DeepSeek · model deepseek-flash · web deepseek\nAccessibility: yes · Screen Recording: yes · paused: no\n\nLast 2 log lines:\n2026-11-18T09:00:00.000Z info Otty 0.5.0 started\n2026-11-18T09:12:04.120Z warn Refused chat:send: argument 2 doesn’t fit',
   connections: async () => structuredClone(links),
@@ -778,7 +792,7 @@ const api: OttyApi = {
     pouchStore = []
   },
   // D-66: main's own Home words, from the same samples as the Logbook.
-  home: async () => home({ ...logSources(), remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
+  home: async () => home({ ...logSources(), events: [], remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
   undoChange: async () => true,
   noteJob: async () => true,
   hiddenLines: async () => ['OPENAI_API_KEY=sk-…3456', 'DB_PASSWORD="…"'],
@@ -935,10 +949,11 @@ const api: OttyApi = {
     if (scene.startsWith('settings') || scene === 'provider' || scene.startsWith('connections')) setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
     // D-61: `&section=you|keys|privacy|usage|conn|help` opens a section; the other settings scenes set one up.
     const titles: Record<string, string> = { you: 'You & Otty', tiles: 'My tiles', keys: 'Shortcuts', privacy: 'Privacy', usage: 'Usage & limit', links: 'Connections', conn: 'Connection', help: 'Help' }
-    const setUp: Record<string, string> = { 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn', connections: 'links', 'connections-add': 'links', 'connections-mcp': 'links', 'connections-off': 'links' }
+    const setUp: Record<string, string> = { 'settings-feedback': 'help', 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn', connections: 'links', 'connections-add': 'links', 'connections-mcp': 'links', 'connections-off': 'links' }
     const section = setUp[scene] ?? (titles[scene.replace('settings-', '')] ? scene.replace('settings-', '') : null)
     // React runs this twice in development, so each press happens once.
     // `exact` matches a section by its whole title: "Connection" is also the start of "Connections" (D-54).
+    // Retries every 50 ms; a section waits up to 4 s, since CI's Mac can take more than a second to draw Settings.
     const press = (sel: string, text?: string, tries = 20, exact = false): void => {
       if (pressed.has(sel + text)) return
       const el = [...document.querySelectorAll<HTMLElement>(sel)].find((e) => !text || (exact ? e.querySelector('.set-row__title')?.textContent === text : e.textContent?.includes(text)))
@@ -946,12 +961,14 @@ const api: OttyApi = {
       pressed.add(sel + text)
       el.click()
     }
-    if (section) setTimeout(() => press('.set-row--section', titles[section], 20, true), 160)
+    if (section) setTimeout(() => press('.set-row--section', titles[section], 80, true), 160)
     if (scene === 'provider') setTimeout(() => press('.set-row', 'Change service or key'), 240)
     if (scene === 'settings-recording') setTimeout(() => press('.keys-btn'), 240)
     // D-54: the own connection's form with "A key or token" chosen, or Linear's detail open.
     if (scene === 'connections-add') setTimeout(() => (press('.set-row', 'Your own connection'), setTimeout(() => (() => { const s = document.querySelector<HTMLSelectElement>('select[aria-label="How it signs in"]'); if (s) { Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(s, 'token'); s.dispatchEvent(new Event('change', { bubbles: true })) } })(), 80)), 240)
     if (scene === 'connections-mcp') setTimeout(() => press('.set-row', 'Linear'), 240)
+    // D-79: the feedback sheet open, with the log ticked, so the preview shows.
+    if (scene === 'settings-feedback') setTimeout(() => (press('.set-row', 'Send feedback'), setTimeout(() => document.querySelector<HTMLInputElement>('.set-conn input[type="checkbox"]')?.click(), 240)), 240)
     if (scene === 'settings-retention')
       setTimeout(() => {
         const keep = document.querySelector<HTMLSelectElement>('select[aria-label="Keep chats for"]')
@@ -997,8 +1014,16 @@ const api: OttyApi = {
     return () => {}
   },
   onBubbleState: () => () => {},
-  onBubbleMood: () => () => {},
-  onBubbleBadge: () => () => {},
+  // Spec 13, Part 5: the pool's scenes set its mood or badge once it has rendered.
+  onBubbleMood: (cb: (mood: BubbleMood) => void) => {
+    const mood: BubbleMood = scene === 'pool-working' ? 'working' : scene === 'pool-waiting' ? 'waiting' : scene === 'pool-paused' ? 'paused' : null
+    if (mood) setTimeout(() => cb(mood), 50)
+    return () => {}
+  },
+  onBubbleBadge: (cb: (on: boolean) => void) => {
+    if (scene === 'pool-answer') setTimeout(() => cb(true), 50)
+    return () => {}
+  },
   onWindowVisible: () => () => {},
   // D-65: `&state=roomy` draws the roomy window's header and traffic-light row.
   onWindowGlide: () => () => {},
