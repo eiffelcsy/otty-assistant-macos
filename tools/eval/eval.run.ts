@@ -22,7 +22,7 @@ vi.mock('../../src/main/settings', () => ({ isDev: () => true,
     apiFormat: 'auto',
     thinking: false,
     learn: true
-  })
+  }), getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s })
 }))
 vi.mock('../../src/main/tools', async (orig) => (await import('./stubTools')).wrap(await orig<typeof import('../../src/main/tools')>()))
 

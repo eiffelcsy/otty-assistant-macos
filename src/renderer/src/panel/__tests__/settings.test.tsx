@@ -44,7 +44,8 @@ const otty = {
   settingsCounts: vi.fn(async () => counts),
   getUsage: vi.fn(async () => ({ days: 30, questions: 4, tokens: 0, searches: 0, pages: 0, jobs: 0, service: 'DeepSeek', month: { questions: 4, tokens: 0 } })),
   clearChats: vi.fn(async () => {}),
-  clearMemories: vi.fn(async () => {})
+  clearMemories: vi.fn(async () => {}),
+  connections: vi.fn(async () => ({ connected: [], offers: [], online: true }))
 }
 
 beforeEach(() => {
@@ -148,10 +149,11 @@ describe('forgetting needs the hold, with the real count', () => {
 })
 
 describe('the list and Find a setting', () => {
-  it('shows seven sections with their summaries, and finds rows by other words', () => {
+  it('shows eight sections with their summaries, and finds rows by other words', async () => {
     open(null)
-    expect(screen.getAllByRole('button').filter((b) => b.classList.contains('set-row--section'))).toHaveLength(7)
+    expect(screen.getAllByRole('button').filter((b) => b.classList.contains('set-row--section'))).toHaveLength(8)
     expect(screen.getByText('⌥ Space to ask about highlighted text')).toBeTruthy()
+    expect(await screen.findByText('None yet')).toBeTruthy()
     fireEvent.change(screen.getByRole('textbox', { name: 'Find a setting' }), { target: { value: 'memory' } })
     expect(screen.getByText('Open the Notebook')).toBeTruthy()
     expect(screen.getByText('Forget everything in the Notebook')).toBeTruthy()

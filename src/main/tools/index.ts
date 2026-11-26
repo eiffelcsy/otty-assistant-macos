@@ -1,13 +1,19 @@
 import { getStored } from '../settings'
 import { ToolPause } from '../pause'
 import { begin } from '../ledger'
-import { needsOnce, SAFETY, type ToolName } from '../toolSafety'
+import { needsOnce, safetyOf, type ToolName } from '../toolSafety'
+import { connectedKinds } from '../connections/store'
+import { BUILT_IN_TOOLS, ownTool, ownToolDefs } from '../connections/tools'
 import { calculateTool, forgetTool, makeChartTool, rememberTool, scheduleJobTool, showStepsTool, startJobTool } from './chat'
 import { copyTool, openUrlTool, reminderTool } from './mac'
 import { readPageTool, searchWebTool, webSetup } from './web'
 import type { Args, Setup, Tool, ToolContext, ToolDef, ToolLabel, ToolOutcome } from './types'
 
 export type { MacHands, Setup, Tool, ToolContext, ToolDef, ToolLabel, ToolOutcome } from './types'
+// D-54: connections reach these through the tools index, which keeps the tools/ path out of other folders' imports.
+export { declined, hostOf, text } from './types'
+export type { Args } from './types'
+export { webOff } from './web'
 
 /**
  * Every tool, in the order the model is offered them. Keyed by `toolSafety.ts`'s names, so a tool can't exist without
@@ -26,22 +32,25 @@ export const TOOLS = {
   remember: rememberTool,
   forget: forgetTool,
   start_job: startJobTool,
-  schedule_job: scheduleJobTool
+  schedule_job: scheduleJobTool,
+  // D-54: connections, in this order (new ones go at the end).
+  ...BUILT_IN_TOOLS
 } as const satisfies Record<ToolName, Tool>
 
-const toolNamed = (name: string): Tool | undefined => (Object.hasOwn(TOOLS, name) ? TOOLS[name as ToolName] : undefined)
+const toolNamed = (name: string): Tool | undefined => (Object.hasOwn(TOOLS, name) ? TOOLS[name as ToolName] : ownTool(name))
 
 /** What decides which tools are offered right now. Read per request, so a settings change applies at once. */
 function currentSetup(): Setup {
-  return { web: webSetup(), learn: Boolean(getStored().learn) }
+  return { web: webSetup(), learn: Boolean(getStored().learn), connections: connectedKinds() }
 }
 
 /** The tools offered to the model: the allowed ones this setup offers. */
 export function toolDefs(allowed: ReadonlySet<string>, setup: Setup = currentSetup()): ToolDef[] {
-  return Object.entries(TOOLS).flatMap(([name, tool]) => {
+  const statics = Object.entries(TOOLS).flatMap(([name, tool]) => {
     const def = allowed.has(name) ? tool.offer(setup) : null
     return def ? [def] : []
   })
+  return [...statics, ...ownToolDefs(allowed)]
 }
 
 export function toolLabel(name: string, args: Args): ToolLabel {
@@ -55,7 +64,7 @@ export async function runTool(name: string, args: Args, ctx: ToolContext, callId
   // A resumed job reruns its unanswered call, which may already have run before a restart.
   if (ctx.runId && needsOnce(name) && !(await ctx.claims?.claim(ctx.runId, callId))) return { result: 'This was already done once, so it wasn’t done again.', status: 'denied' }
   // D-46: a change is written down before it runs, and marked once it's done.
-  if (SAFETY[name as ToolName].changes === 'nothing') return runOne(tool, args, ctx)
+  if (safetyOf(name)?.changes === 'nothing') return runOne(tool, args, ctx)
   const done = begin({ tool: name, ...ctx.cause, summary: tool.label(args).label, undo: tool.undo ?? 'none' })
   const out = await runOne(tool, args, ctx)
   done({ status: out.status === 'error' ? 'failed' : out.status, summary: out.result, ...(out.undo ? { ref: out.undo.ref, undoLabel: out.undo.label } : {}) })

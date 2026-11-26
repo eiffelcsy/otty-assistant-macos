@@ -5,7 +5,8 @@
     "tools/smoke/specs/*.smoke.ts",
     "tools/smoke/*.mjs",
     "tools/verify/**/*.mjs",
-    "tools/ui-preview/screens/*.screens.ts"
+    "tools/ui-preview/screens/*.screens.ts",
+    "src/main/env.ts"
   ],
   "project": ["src/**/*.{ts,tsx}", "tools/**/*.{ts,mts,mjs}", "*.{ts,mts,mjs}"],
   "ignoreBinaries": ["swiftc", "lipo", "pbcopy", "pbpaste"],

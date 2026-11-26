@@ -231,7 +231,7 @@ export interface UsageReport {
 }
 
 /** Why something left the Mac (D-31). */
-export type SentKind = 'question' | 'job' | 'title' | 'explain' | 'check' | 'search' | 'page'
+export type SentKind = 'question' | 'job' | 'title' | 'explain' | 'check' | 'search' | 'page' | 'connection'
 
 /** One row of "What Otty changed" (D-46): a change Otty made, in plain words. */
 /** One row of "What left your Mac". Built in code from what was sent, never the text itself. */
@@ -290,7 +290,7 @@ export interface Permissions {
   screen: boolean
 }
 
-export type PermissionKind = 'accessibility' | 'screen'
+export type PermissionKind = 'accessibility' | 'screen' | 'calendars'
 
 /** Main's say in the otter's face: `happy` when an answer lands, `oops` (a head tilt) when one fails (D-38). */
 export type BubbleState = 'idle' | 'thinking' | 'happy' | 'oops'
@@ -365,7 +365,8 @@ export type Unusual = 'alphabet' | 'http' | 'private' | 'cap'
  * is the host the tool will use (D-60).
  */
 export interface ConfirmCard {
-  kind: 'read' | 'open' | 'search' | 'reminder' | 'job'
+  /** `use`: a tool of a connection of the user's own (D-54). */
+  kind: 'read' | 'open' | 'search' | 'reminder' | 'job' | 'use'
   title: string
   /** The primary button's words; the other is always Skip. */
   yes: string
@@ -374,10 +375,10 @@ export interface ConfirmCard {
   /** The host in letters people read, when it uses another alphabet. */
   readable?: string
   rest?: string
-  /** search: the words as the model will send them, and where they go. */
+  /** search: the words as the model will send them, and where they go. use: the arguments, and the connection's name. */
   query?: string
   service?: string
-  /** reminder and job: what it's called. */
+  /** reminder and job: what it's called. use: the tool's title. */
   item?: string
   /** reminder: when, in words, and where it goes. */
   when?: string
@@ -723,6 +724,75 @@ export interface PickupPicture {
   height: number
 }
 
+/** D-54: the kinds of connection. `mcp` is one of the user's own, by its MCP address. */
+export type ConnectionKind = 'apple' | 'google' | 'canvas' | 'notion' | 'mcp'
+
+/** How one of the user's own connections signs in. */
+export type McpAuth = 'none' | 'token' | 'oauth'
+
+/** One tool of a connection of the user's own, as Settings shows it. Its words are the server's: outside text. */
+export interface ConnectionToolView {
+  name: string
+  title: string
+  description: string
+  on: boolean
+  /** False when the server says it can change something: it always asks first. */
+  readOnly: boolean
+  /** Turned itself off because the server changed it since it was turned on. */
+  changed: boolean
+}
+
+/** A connection as a window sees it. Never a token. Built by main (`connections/index.ts`). */
+export interface ConnectionView {
+  id: string
+  kind: ConnectionKind
+  label: string
+  /** The host it reaches ('' for Apple). */
+  host: string
+  /** `needs-sign-in`: a sign-in ran out; `changed`: a tool turned itself off; `off`: the web is off. */
+  status: 'on' | 'needs-sign-in' | 'changed' | 'off'
+  /** One line on what Otty can read. */
+  reads: string
+  /** One line on where what it reads goes. */
+  privacy: string
+  tools: ConnectionToolView[]
+}
+
+/** A built-in connection that can be added, and whether this build and setup allow it. */
+export interface ConnectionOffer {
+  kind: Exclude<ConnectionKind, 'mcp'>
+  /** False with no Google client in this build, or an online one while the web is off. */
+  available: boolean
+  /** Why not, in plain words, when it isn't available. */
+  why?: string
+}
+
+export interface ConnectionsState {
+  connected: ConnectionView[]
+  /** Built-ins not yet connected, in Settings' order (apple, google, canvas, notion). */
+  offers: ConnectionOffer[]
+  /** False while a model on this Mac keeps everything on it: no own connection can be added. */
+  online: boolean
+}
+
+/** What a form sends to connect. Checked by `connections:connect`'s guard and again in main. */
+export type ConnectRequest =
+  | { kind: 'apple' }
+  | { kind: 'google' }
+  | { kind: 'canvas'; url: string; token: string }
+  | { kind: 'notion'; token: string }
+  | { kind: 'mcp'; name: string; url: string; auth: McpAuth; token?: string }
+
+export interface ConnectResult {
+  ok: boolean
+  /** Friendly words for the form: what went wrong, or what to do next. */
+  message: string
+  view?: ConnectionView
+}
+
+/** A ```connection block from the model, once `connectionDraft` has checked it. Never holds a key. */
+export type ConnectionDraft = { kind: Exclude<ConnectionKind, 'mcp'> } | { kind: 'mcp'; name: string; url: string; auth: McpAuth }
+
 export interface OttyApi {
   getSettings(): Promise<PublicSettings>
   saveSettings(update: SettingsUpdate): Promise<PublicSettings>
@@ -737,6 +807,16 @@ export interface OttyApi {
   getUsage(): Promise<UsageReport>
   /** D-50: facts about the Mac and Otty, and the log's last lines, to show and then copy. */
   getDiagnostics(): Promise<string>
+  /** D-54: Settings › Connections and the chat's connection card. */
+  connections(): Promise<ConnectionsState>
+  /** Resolves when it's connected or has failed; a browser sign-in waits for the browser. */
+  connect(request: ConnectRequest): Promise<ConnectResult>
+  /** Stops waiting for a browser sign-in. */
+  cancelConnect(): Promise<void>
+  setConnectionTool(id: string, tool: string, on: boolean): Promise<ConnectResult>
+  recheckConnection(id: string): Promise<ConnectResult>
+  signInAgain(id: string): Promise<ConnectResult>
+  removeConnection(id: string): Promise<ConnectionsState>
 
   sendMessage(text: string, captures: Capture[], opts?: SendOptions): Promise<void>
   stop(): Promise<void>

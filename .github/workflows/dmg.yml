@@ -16,6 +16,7 @@ on:
       - package.json
       - package-lock.json
       - tools/otty-ocr/**
+      - tools/otty-calendar/**
       - tools/smoke/packaged.mjs
 
 concurrency:

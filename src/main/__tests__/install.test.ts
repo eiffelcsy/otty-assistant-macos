@@ -20,7 +20,7 @@ vi.mock('electron', () => ({
   },
   dialog: { showMessageBox }
 }))
-vi.mock('../settings', () => ({ getStored: () => ({ moveDeclined: mac.declined }), saveMoveDeclined }))
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), getStored: () => ({ moveDeclined: mac.declined }), saveMoveDeclined }))
 
 const { offerMove } = await import('../install')
 const platform = process.platform

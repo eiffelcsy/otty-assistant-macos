@@ -4,6 +4,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Connections: your calendar, Canvas, Notion and your own (D-54, Spec 10, 2026-11-26)
+
+- **Otty can read your other apps when you ask.** Settings › Connections connects **Apple Calendar and Reminders** (on this Mac, including Google calendars you've added to Calendar), **Google Calendar** (sign in in the browser), **Canvas** and **Notion** (paste a token). Then "what's on tomorrow?", "when am I free on Thursday?", "what's due this week?" or "what did I write about kelp?" just work.
+- **Add your own connection.** Any app that gives you a connection address (MCP) can be added by its address, with no sign-in, a key, or a sign-in in the browser. Its tools arrive **off**; you turn on the ones Otty may use. A tool that changes something always asks first ("Let Linear do this?").
+- **Or ask in a chat.** "Connect my Canvas" or "add Linear as a connection" gives you a card with the form already filled in. Keys go in the card's own field, straight to Otty, never into the chat.
+- **Nothing changes behind your back.** Turning a tool on locks in what it does. If the app changes it later, Otty turns it off and marks it **Changed** until you look. Keys live in your Mac's Keychain, and Hold to disconnect forgets them (and signs out at Google).
+- **Read-only, visible and contained.** Built-in connections only read. What they return counts as your own data and someone else's words at once, so a web search after it shows its words first. Every read shows in What left your Mac. Background look-ups never use connections, and with a model on this Mac only Apple Calendar is offered.
+
 ### Flow and room: one move between screens, sidebars you can size, pages with margins (D-76, Spec 09, 2026-11-22)
 
 - **Home and the empty chat feel like one place.** Going between them nothing fades: the chat list slides open from the left and Otty, the greeting, the Try asking card and the message box ride over with it, only the words that differ changing.

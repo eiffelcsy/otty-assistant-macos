@@ -50,11 +50,23 @@ export function jobCard(title: string, item: string, detail: string, later: bool
   return { kind: 'job', title, yes: later ? 'Schedule it' : 'Start it', item, detail, ...(overCap ? { unusual: 'cap' as const } : {}) }
 }
 
-const DONE: Record<ConfirmCard['kind'], string> = { read: 'Read', open: 'Opened', search: 'Searched for', reminder: 'Added', job: 'Started' }
+const DONE: Record<ConfirmCard['kind'], string> = { read: 'Read', open: 'Opened', search: 'Searched for', reminder: 'Added', job: 'Started', use: 'Used' }
+
+/** A tool of a connection of the user's own, or a built-in that sends words out (D-54). `reads`: a read, not a change. */
+export function connectionCard(service: string, item: string, args: string, reads = false): ConfirmCard {
+  return {
+    kind: 'use',
+    title: reads ? `Send this to ${service}?` : `Let ${service} do this?`,
+    yes: reads ? 'Send' : 'Go ahead',
+    service,
+    item: cut(item, 200),
+    query: cut(args, 300)
+  }
+}
 
 /** The line a card leaves behind. `why` is set when the card ended without the user's Skip. */
 export function receiptFor(card: ConfirmCard, allowed: boolean, why?: string): Receipt {
-  const what = card.host ?? (card.query !== undefined ? `“${cut(card.query, 60)}”` : `“${card.item ?? ''}”`)
+  const what = card.kind === 'use' ? `${card.service}: ${card.item}` : card.host ?? (card.query !== undefined ? `“${cut(card.query, 60)}”` : `“${card.item ?? ''}”`)
   const verb = !allowed ? 'Skipped' : card.kind === 'job' && card.yes === 'Schedule it' ? 'Scheduled' : DONE[card.kind]
   return { allowed, verb, what, ...(why && !allowed ? { why } : {}) }
 }

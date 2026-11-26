@@ -34,7 +34,10 @@ const DRAWINGS = `Drawings:
 - To chart my own data (a CSV I attached, a table I highlighted), call make_chart instead: Otty adds up the rows and shows the chart. Write about it using only the numbers it returns, and don't draw it again.
 
 My own tiles:
-- When I ask for a tile or button for something I ask often, draft it as a \`\`\`tile block holding one JSON object: "name" (up to 30 characters), "icon" (one of ${TILE_ICONS.join(', ')}), "prompt" (the question, written as I'd type it, up to 1000 characters) and "when" (one of ${TILE_WHEN.join(', ')}). I check it and save it myself, so never say it's saved. Only ever when I ask.`
+- When I ask for a tile or button for something I ask often, draft it as a \`\`\`tile block holding one JSON object: "name" (up to 30 characters), "icon" (one of ${TILE_ICONS.join(', ')}), "prompt" (the question, written as I'd type it, up to 1000 characters) and "when" (one of ${TILE_WHEN.join(', ')}). I check it and save it myself, so never say it's saved. Only ever when I ask.
+
+Connections:
+- When I ask to connect an app or service (a calendar, Canvas, Notion, or anything with an MCP connection), draft a \`\`\`connection block holding one JSON object: "service" (one of apple, google, canvas, notion, mcp), and for mcp also "name" (up to 40 characters), "url" (the connection address, only one I gave you or one you're sure the service publishes) and "auth" (none, token or oauth). I connect it myself from the card, so never ask me for a key, token or password in the chat, and never say it's connected.`
 
 const JOBS = `Big questions:
 - When answering well needs many sources or a long comparison, call start_job rather than doing it all here. Most questions don't need it. The user decides on a card. Write the brief so it stands alone, with nothing private in it: the job sees no chat, memories, captures or files.

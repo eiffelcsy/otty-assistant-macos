@@ -16,7 +16,7 @@ vi.mock('electron', () => ({
   systemPreferences: { getAnimationSettings: () => ({ prefersReducedMotion: false }) },
   screen: { getAllDisplays: () => [display], getDisplayNearestPoint: () => display, getCursorScreenPoint: () => ({ x: 10, y: 10 }) }
 }))
-vi.mock('../settings', () => ({
+vi.mock('../settings', () => ({getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), 
   getStored: () => stored,
   saveWindowBounds: (state: string, b: { x: number; y: number; width: number; height: number }) => void (stored.windowBounds = { ...stored.windowBounds, [state]: b })
 }))

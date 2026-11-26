@@ -82,6 +82,27 @@ const SAVABLE: Partial<Record<keyof SettingsUpdate, Guard>> = {
 
 const savable: Guard = (x) => record(x) && Object.entries(x as object).every(([k, v]) => Object.hasOwn(SAVABLE, k) && SAVABLE[k as keyof SettingsUpdate]!(v))
 
+/** What `connections:connect` may send (D-54): a built-in's fields, or one of the user's own. Unknown keys are refused. */
+export const connectRequest: Guard = (x) => {
+  if (!record(x)) return false
+  const r = x as Record<string, unknown>
+  const only = (allowed: string[]) => Object.keys(r).every((k) => allowed.includes(k))
+  const str = (max: number) => (v: unknown) => typeof v === 'string' && v.length <= max
+  switch (r.kind) {
+    case 'apple':
+    case 'google':
+      return only(['kind'])
+    case 'canvas':
+      return only(['kind', 'url', 'token']) && str(2000)(r.url) && str(2000)(r.token)
+    case 'notion':
+      return only(['kind', 'token']) && str(2000)(r.token)
+    case 'mcp':
+      return only(['kind', 'name', 'url', 'auth', 'token']) && str(100)(r.name) && str(2000)(r.url) && oneOf('none', 'token', 'oauth')(r.auth) && optional(str(2000))(r.token)
+    default:
+      return false
+  }
+}
+
 const CHAT: View[] = ['panel', 'quick']
 const PANEL: View[] = ['panel']
 const LANGUAGE = oneOf('en', 'zh-HK')
@@ -94,10 +115,17 @@ export const CHANNELS = {
   'settings:counts': { views: PANEL, args: [] },
   'settings:test': { views: PANEL, args: [] },
   'permissions:get': { views: PANEL, args: [] },
-  'permissions:open': { views: CHAT, args: [oneOf('accessibility', 'screen')] },
+  'permissions:open': { views: CHAT, args: [oneOf('accessibility', 'screen', 'calendars')] },
   'app:relaunch': { views: PANEL, args: [] },
   'usage:get': { views: PANEL, args: [] },
   'diagnostics:get': { views: PANEL, args: [] },
+  'connections:list': { views: CHAT, args: [] },
+  'connections:connect': { views: CHAT, args: [connectRequest] },
+  'connections:cancel': { views: CHAT, args: [] },
+  'connections:tool': { views: PANEL, args: [id, text(200), bool] },
+  'connections:recheck': { views: PANEL, args: [id] },
+  'connections:sign-in': { views: PANEL, args: [id] },
+  'connections:remove': { views: PANEL, args: [id] },
   'chat:send': { views: CHAT, args: [text(200_000), list(record, 50), optional(record)] },
   'chat:stop': { views: CHAT, args: [] },
   'chat:reset': { views: CHAT, args: [] },

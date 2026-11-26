@@ -18,6 +18,6 @@ export async function openPermissionSettings(kind: PermissionKind): Promise<void
     // Shows the system prompt (once) and adds the app to the list.
     systemPreferences.isTrustedAccessibilityClient(true)
   }
-  const pane = kind === 'accessibility' ? 'Privacy_Accessibility' : 'Privacy_ScreenCapture'
+  const pane = kind === 'accessibility' ? 'Privacy_Accessibility' : kind === 'calendars' ? 'Privacy_Calendars' : 'Privacy_ScreenCapture'
   await shell.openExternal(`x-apple.systempreferences:com.apple.preference.security?${pane}`)
 }

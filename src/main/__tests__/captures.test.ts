@@ -3,7 +3,7 @@ import type { Capture } from '../../shared/types'
 import { addCapture, MAX_CAPTURES } from '../../shared/captures'
 
 vi.mock('electron', () => ({ nativeImage: {}, app: { getPath: () => '' } }))
-vi.mock('../settings', () => ({ isDev: () => true, getStored: () => ({}), getApiKey: () => '' }))
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => true, getStored: () => ({}), getApiKey: () => '' }))
 const { titleFor, userContent } = await import('../llm')
 
 const text = (id: string, t: string, app: Capture['app'] = null): Capture => ({ id, context: { kind: 'text', text: t }, app })

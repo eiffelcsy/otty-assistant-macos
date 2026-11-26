@@ -1,6 +1,6 @@
 import type { UndoKind } from '../ledger'
 import type { RunTaint } from '../toolSafety'
-import type { ConfirmCard } from '../../shared/types'
+import type { ConfirmCard, ConnectionKind } from '../../shared/types'
 
 // What every tool is made of. A tool is one entry in `TOOLS` (`index.ts`), next to its row in `toolSafety.ts`: the
 // definition the model sees and when it's offered, its chip, how the ledger can undo it, and how it runs.
@@ -91,6 +91,8 @@ export interface Setup {
   web: 'deepseek' | 'server' | 'lookup' | 'off'
   /** "Let Otty learn about me". */
   learn: boolean
+  /** The connections that are on and working (D-54). */
+  connections: ReadonlySet<ConnectionKind>
 }
 
 export interface Tool {

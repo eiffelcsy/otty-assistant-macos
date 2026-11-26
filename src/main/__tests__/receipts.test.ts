@@ -11,7 +11,7 @@ vi.mock('electron', () => ({
   nativeImage: {},
   app: { isPackaged: true, getPath: () => '' }
 }))
-vi.mock('../settings', () => ({ isDev: () => false,
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => false,
   getStored: () => ({ baseUrl: 'https://api.deepseek.com/', apiFormat: 'auto', model: 'm', thinking: false, homeLanguage: null, rememberChats: true, learn: false }),
   getApiKey: () => 'key'
 }))
@@ -147,5 +147,15 @@ describe('the card shows the host the tool reaches (D-60)', () => {
     expect(pageCard('read', 'http://bank.example/').unusual).toBe('http')
     expect(pageCard('read', 'https://accounts.google.com@evil.example/login')).toEqual({ kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'evil.example', rest: '/login' })
     expect(pageCard('read', 'https://jreast.co.jp/en/timetable/tokyo-sendai/with/a/very/long/path/that/goes/on?and=a&query=too').rest).toMatch(/^\/en\/timetable.*….*query=too$/)
+  })
+})
+
+describe('use cards (D-54)', () => {
+  it('leaves “Used” with the service and the tool, and “Skipped” when refused', async () => {
+    const { connectionCard, receiptFor } = await import('../cards')
+    const card = connectionCard('Notion', 'Open a page', 'abc', true)
+    expect(card).toMatchObject({ kind: 'use', title: 'Send this to Notion?', yes: 'Send' })
+    expect(receiptFor(card, true)).toEqual({ allowed: true, verb: 'Used', what: 'Notion: Open a page' })
+    expect(receiptFor(connectionCard('Tasks', 'Create issue', '{}'), false, 'Skipped')).toMatchObject({ allowed: false, verb: 'Skipped' })
   })
 })

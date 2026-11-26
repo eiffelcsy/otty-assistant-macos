@@ -100,7 +100,7 @@ The five promoted on value per effort are in DEVLOG ("Priority, 2026-11-20").
 | Attach the file selected in Finder with ⌥Space | M | S | idea (left out of D-6 v1) |
 | Attach files in the quick view: it hides on blur, so a drag from Finder closes it. Needs "don't hide while dragging" or a paperclip there | M | S | idea |
 | File quick actions answer in the document's language (a Chinese PDF → a Chinese summary when 繁體中文 is the other language); today actions default to English | M | S | shipped (with D-29) |
-| History budget for long chats (D-13, proposed): compact old pictures, page reads and documents in rare single steps; recover from a context-length error, which today shows "Something went wrong (error 400)" | M | S | considering, after D-12 step 0 |
+| History budget for long chats (D-13, proposed): compact old pictures, page reads and documents in rare single steps; recover from a context-length error, which today shows "Something went wrong (error 400)" | H | S | → D-78 (the recovery; beta, 2026-11-24) |
 | OCR for scanned PDFs with the `otty-ocr` helper | M | S | idea, after D-1 |
 | Scanned PDFs on vision models: render pages to images (needs a canvas in the utility process) | M | M | idea, D-6 v1 says "can't read scans yet" |
 | A token-budget setting for attachments, or derive it from the model (v1: fixed ~48K tokens per message) | L | S | idea |
@@ -220,7 +220,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | --- | --- | --- | --- |
 | Launch at login | H | S | shipped (D-28); check it on an unsigned installed build |
 | "What Otty sent" transparency view per message (context, app note) | M | S | shipped with D-31, per turn in Activity |
-| Say where web lookups really go: with another provider, or when DeepSeek's search fails, queries go to Wikipedia and DuckDuckGo, but Settings → Privacy only mentions DeepSeek | M | S | partly shipped: D-31 names Wikipedia and DuckDuckGo; Settings › Privacy still only mentions DeepSeek |
+| Say where web lookups really go: with another provider, or when DeepSeek's search fails, queries go to Wikipedia and DuckDuckGo, but Settings → Privacy only mentions DeepSeek | M | S | partly shipped: D-31 names Wikipedia and DuckDuckGo; Settings › Privacy → D-79 |
 | Sign and notarize (Developer ID) so permissions survive updates | H | M | considering, needed before sharing builds |
 | Auto-update (electron-updater) | M | M | idea |
 | Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | shipped (counts and tokens; money needs a price table, see below) |
@@ -249,9 +249,9 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Say in code what the hosted proxy can see: its own profile and privacy line in `services.ts`, decided before it's built (passes content through without keeping it, or doesn't), and shown in "What left your Mac" like any other service | M | S | idea, with the hosted service |
 | Move to /Applications on first launch, so permissions and updates don't break when run from the DMG | M | S | shipped (D-53) |
 | Refuse to save a key in plain text when the Keychain isn't available, and read `DEEPSEEK_API_KEY` only in dev | M | S | shipped (D-51) |
-| Open the log folder from Settings › Help, and attach the last day's log to an in-app feedback note (LAUNCH_READINESS 14.5) | M | S | idea, from D-50 |
+| Open the log folder from Settings › Help, and attach the last day's log to an in-app feedback note (LAUNCH_READINESS 14.5) | M | S | → D-79 (beta, 2026-11-24) |
 | Check at the door that every request was tagged: `send` takes the `SentTag` too, so What left your Mac can't miss a new call site | M | S | idea, from D-52 |
-| A "Help" page in the panel beyond diagnostics: permissions, shortcuts and keys explained in plain words, from the FAQ (LAUNCH_READINESS 14.6) | M | S | idea, from D-50 |
+| A "Help" page in the panel beyond diagnostics: permissions, shortcuts and keys explained in plain words, from the FAQ (LAUNCH_READINESS 14.6) | M | S | → D-79 (beta, 2026-11-24) |
 
 ## UX polish backlog
 
@@ -266,7 +266,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Rewind a chat to any earlier message: the chat-sized version of Rewind. Lists what the removed turns did, undo ticked by default and untickable, because a rewind is often just a typo fix and shouldn't silently forget what was said later | H | M | idea, after the action ledger |
 | Copy on your own messages, beside the Copy that answers already have | M | S | idea |
 | Keep each version after a retry, an edit or a rewind, with ‹ 1/2 › to switch between them, as other chat apps do. Needs branching history in `otty.db` | M | M | idea, after retry and edit |
-| Customisable hotkeys with a key recorder (not a text field) | M | S | idea |
+| Customisable hotkeys with a key recorder (not a text field) | M | S | → D-80 (beta, 2026-11-24) |
 | File picker's filter leaves out TIFF, BMP and code files that Otty can read (they only show under All files) | L | S | shipped (D-29) |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |
@@ -430,16 +430,19 @@ Otty can only help with what it can see, and most of a person's week lives in ot
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| The connection layer: one `Connection` interface, its token in the Keychain, a sign-in through the browser, its tools in `toolSafety.ts`, and its content tainting the run as private and outside at once | H | M–L | → D-54 (with Google Calendar) |
-| **Google Calendar**, read-only: "what's on tomorrow?", "when am I free on Thursday?", and the material for Look after me's focus list | H | M | → D-54 |
-| **Canvas** (NUS's Canvas first): assignments, due dates and announcements, so "what's due this week?" works and deadlines can feed the focus list. Needs a token or an OAuth developer key from the school (**verify** what NUS allows) | H | M | → D-54 (step 1, pasted token) |
-| **Notion**, read-only: search and read pages and databases the user shares with Otty's integration (Notion only shows an integration the pages it's added to) | M | M | → D-54 (step 2, pasted token) |
-| Apple Calendar and Reminders through EventKit, on the Mac with no account: the same `Connection` shape with a local source. Reminders can already be added | M | M | idea, after D-54; needs the Swift helper |
-| An MCP client for everything else: add a remote MCP server (or a local one) as a connection, with every tool off until the user turns it on, its descriptions treated as outside text, and a changed tool asked about again | H | M–L | → D-54 (step 5); advanced, off by default |
+| The connection layer: one `Connection` interface, its token in the Keychain, a sign-in through the browser, its tools in `toolSafety.ts`, and its content tainting the run as private and outside at once | H | M–L | shipped (D-54) |
+| **Google Calendar**, read-only: "what's on tomorrow?", "when am I free on Thursday?", and the material for Look after me's focus list | H | M | shipped (D-54) |
+| **Canvas** (NUS's Canvas first): assignments, due dates and announcements, so "what's due this week?" works and deadlines can feed the focus list. Needs a token or an OAuth developer key from the school (**verify** what NUS allows) | H | M | shipped (D-54, pasted token) |
+| **Notion**, read-only: search and read pages and databases the user shares with Otty's integration (Notion only shows an integration the pages it's added to) | M | M | shipped (D-54, pasted token) |
+| Apple Calendar and Reminders through EventKit, on the Mac with no account: the same `Connection` shape with a local source. Reminders can already be added. It also reads Google calendars added to macOS, so the beta needs no OAuth | H | M | shipped (D-54, `otty-calendar`) |
+| An MCP client for everything else: add a remote MCP server (or a local one) as a connection, with every tool off until the user turns it on, its descriptions treated as outside text, and a changed tool asked about again | H | M–L | shipped (D-54): remote addresses, in Settings or from a chat card; tools off until turned on, pinned |
 | Writes, one tool at a time: "add this to my calendar", "append to my Notion page", each behind a card, with the ledger's undo where the service allows it (delete the event Otty made) | H | M | idea, after reads have a record |
-| Connections in What left your Mac: "Sent 4 calendar events to DeepSeek", so moving data from one service to another is as visible as a search | H | S | idea, ships with D-54 |
+| Connections in What left your Mac: "Sent 4 calendar events to DeepSeek", so moving data from one service to another is as visible as a search | H | S | shipped (D-54): a row per read, "Read 6 events" |
 | A connection's own limits: which calendars or Notion pages, how far ahead, and a "never send this one to the model" list | M | S | idea, with the second connection |
 | Gmail read-only, as the most useful and the most dangerous source: every email is outside text | M | M | idea, last; needs the policy decision (Runtime) first |
+| Connections of your own that are programs on this Mac (MCP over stdio). Left out of D-54: a packaged app has no shell `PATH`, and a program runs outside every limit Otty checks, its own network use included. Needs a sandboxed runner first | M | M–L | idea |
+| A connection tool that's on can be set to "always ask" or "never ask", per tool, like the reach ladder's levels | M | S | idea, after D-54 has a record |
+| Connections show in Home's Today: the next event and what's due, from the same reads, without asking | H | S–M | idea, after D-73 |
 
 ## Build your own feature: Otty made to measure
 
@@ -491,7 +494,7 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | Phone app: Otty goes with you, one relationship across devices | H | L | considering, after the core split ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)); reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
 | **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | → D-73 (step 1, local, no account); sharing needs the hosted service and sign-in |
-| Otties that talk to each other: yours finds a meeting time with a colleague's | M | L | idea, the last step of [Otty's own calendar](#ottys-own-calendar-shared-and-multi-person), and an otter-to-otter part of [Raft](#raft-otty-together) |
+| Otties that talk to each other: yours finds a meeting time with a colleague's | M | L | idea, the first O2O kind ([O2O](#o2o-otty-to-otty-built-on-a2a)); the last step of [Otty's own calendar](#ottys-own-calendar-shared-and-multi-person) |
 
 ## The far horizon: the dream, unconstrained
 
@@ -584,7 +587,7 @@ The plumbing that AUTONOMY.md's "shape to build towards" needs. The pillar for e
 | Rules into code: work through CLAUDE.md's "never do X" lines and turn the trust-critical ones into types or failing tests, as `toolSafety`'s missing-row test and `SentTag` already do. A rule that only lives in a doc gets broken by whoever hasn't read it, person or AI | M | S | idea |
 | Several looks at once: `JobRunner` runs one job at a time (the `current` slot), so three research questions wait in line. A small concurrency limit (2–3), with the monthly limit, the sent log and Pause covering all of them, and never two runs of one series together | M | S | idea |
 | One timer for everything due: the job timer becomes a small scheduler for scheduled looks, the end of Pause until (D-39), series and Look after me's next look. Still one timer, no polling | M | S | idea: D-39 shipped with its own timer in `controls.ts`; fold both into one scheduler when Look after me needs a third |
-| Turns as the unit of storage: each turn is one append-only record (question, model messages, answer as shown, actions, run id, parent turn), and both the chat view and the model history are built from it. Rewind moves the head, and a version or branch is a turn with the same parent. Do it before 1.0: once shipped, the migration rule keeps every shape forever | H | M | considering, before 1.0; read `sqliteStore.ts` closely first |
+| Turns as the unit of storage: each turn is one append-only record (question, model messages, answer as shown, actions, run id, parent turn), and both the chat view and the model history are built from it. Rewind moves the head, and a version or branch is a turn with the same parent. Do it before 1.0: once shipped, the migration rule keeps every shape forever | H | M | → D-81 (decide before the beta, 2026-11-24); read `sqliteStore.ts` closely first |
 | Event log and dispatcher (AUTONOMY idea 3): one typed record per thing that happened (question, timer, wake, job finished, app switch, later connections) in `otty.db`, a consent check per source, and a plain-code dispatcher. The first users are sleep and wake and the job timer, which already exist, so the shape is tested before Stage 3. Much of it falls out of runs that record their cause and an append-only turn store | H | M | considering, before Stage 3 |
 | One policy decision with saved grants: `decide(run, tool, args)` returns allow, ask or refuse from the tool's label, the run's taint and the user's grants (a known address, a trusted site, an agreed recipe, "approved 10 times"). Cards are how "ask" looks, and every decision is logged with its reason. Grants can be seen and taken back in one place, and widening a limit is only ever adding a grant | H | M | considering, after D-41 and D-42; the gate for any new level of reach |
 | Job kinds: a `kind` column, so research, a series run, a goal and Look after me are separate executors behind D-43's state table, not more branches in one runner. Becomes the run kind once runs exist | H | M | idea, D-43's state table has shipped |
@@ -613,7 +616,7 @@ Research and reasoning in [EFFICIENCY.md](EFFICIENCY.md) (2026-11-20). The bill 
 | Cost beside score: keep cached, uncached, cache-write and output tokens apart in `Usage`, per job and per eval case, with the cache hit rate, compared with the baseline (1). Step 0 for everything else here | H | S | considering |
 | Fewer turns: a progress check in `Supervisor` that ends tools after rounds with nothing new, a stub for a page the job already holds, and asking for pages together (3) | H | S | idea, after the cost columns |
 | Thinking per step: `normal` for a job's first round and report, `least` for reading rounds, decided in the runner; check each service's cache hit rate first (5) | M | S | idea, after the cost columns |
-| Recover from "too long": compact once and retry, instead of failing the chat or job (13) | M | S | idea, after the job history view |
+| Recover from "too long": compact once and retry, instead of failing the chat or job (13) | H | S | → D-78 (beta, 2026-11-24) |
 | Job history view: when a job passes a share of `contextTokens`, hide old page bodies behind code-written stubs in one step, keep `JobStore` complete, and keep `isKnownUrl` reading the full steps. Today a job can overflow after about a dozen long pages (2, 8) | H | M | considering, the fix for long jobs |
 | Lighter pages: strip boilerplate in `web.ts` before the 24,000-character cut, and maybe a smaller first read with `from` if the eval shows fewer total tokens (4) | M | S–M | idea |
 | Series remember: a series run starts with a code-written note of the last run's useful addresses and headline, known only because the same series found them (7) | M | S–M | idea, with Look after me |
@@ -630,7 +633,7 @@ What makes Otty feel expensive and unlike a chat app with an avatar. The design 
 | A high-contrast deck theme, picked on the slides card, for projectors and low vision: the same template with `--text` on white and the series at their darkest steps | M | S | idea, from D-70 |
 | **The liquid capsule:** the message box as a drop of water. Its outline is an SVG path whose control points ease towards a resting shape; each key press nudges them (a few px, on touch only), and it settles in `--t-settle`. On send, a drop separates and travels up to the chat. Nothing moves while idle | M | S–M | shipped (2026-11-20); a ✋ check of idle with `OTTY_METRICS=1` still to do |
 | **The rippling message box:** a regular rounded glass box whose outline is an SVG path of springs coupled to their neighbours. Each key press pushes the edge near the caret and the ripple runs round the outline, with the rim lit while it moves, then settles and stops. On send, a drop separates and travels up to the chat. Nothing moves while idle | M | S–M | considering; working concept in the design draft (v0.7); measure with `OTTY_METRICS=1` |
-| **The pool:** the floating bubble reworked for the cove. A small lens of Liquid Glass lying on the desktop, holding the cove's water at the true hour, with Otty floating on its back in it; clicking grows the window out of the water and closing pours it back. State lives in Otty and the water (paddling, holding up sea glass, a Pebble bobbing beside it, still grey water, dozing), never in badges. Concept note: [The pool](#the-pool) | H | M | considering; drawn in `docs/design/otty-window-draft.html` (v0.8, with the painted float frames and cove water) |
+| **The pool:** the floating bubble reworked for the cove. A small lens of Liquid Glass lying on the desktop, holding the cove's water at the true hour, with Otty floating on its back in it; clicking grows the window out of the water and closing pours it back. State lives in Otty and the water (paddling, holding up sea glass, a Pebble bobbing beside it, still grey water, dozing), never in badges. Concept note: [The pool](#the-pool) | H | M | → D-82 (step 1, beta polish, 2026-11-24); drawn in `docs/design/otty-window-draft.html` (v0.8, with the painted float frames and cove water) |
 | **The living cove, step 1:** a painted cove behind Home and the empty chat, one picture per time of day (dawn, day, golden hour, night), cross-faded on the hour, with the otter floating in an unobstructed hero header above the headline. Painted through `tools/otty-art/`, never generated in CSS | H | M | shipped (D-72), full bleed (D-74) |
 | **The living cove, step 2:** scroll-driven parallax (the far shore moves slower than the near water) and frosted-glass cards (`backdrop-filter`) that refract the cove as content scrolls over it. On touch only | H | M | shipped (D-72), clear glass measured on the paintings (D-74) |
 | **One cove:** carry the cove's language to every view: the hour's mist on every window, the cove behind every header, one glass family for every card | H | M | shipped (D-75, Spec 08) |
@@ -661,7 +664,7 @@ Otty already makes drawings, decks and charts, but they live inside a chat and s
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
 | **Pebbles:** compact, tactile cards for what Otty gathered or built (a chart, a deck, a comparison, a checklist, a page it read, a plan, a word list), each a typed record with a kind, a title, its data and its sources. The answer refers to them; they sit in a strip under it, open big, and can be copied, exported and kept | H | L (step 1: M) | step 1 shipped (Keep on drawing and chart cards; step cards wait for step 3); the Pouch is next |
-| **Otty's Pouch:** kept Pebbles as a visual collection (stones of different shapes and colours by kind, on the cove's sand), with search, a few shelves the user names, and "where did this come from?" back to its chat | H | M | considering, after Pebbles step 1 |
+| **Otty's Pouch:** kept Pebbles as a visual collection (stones of different shapes and colours by kind, on the cove's sand), with search, a few shelves the user names, and "where did this come from?" back to its chat | H | M | → D-77 (beta, 2026-11-24) |
 | A Pebble that stays fresh: a kept Pebble from a look-up can be refreshed by a job (a read-only look, behind its card), and says when it was last checked | H | M | idea, after the Pouch; uses repeating looks (D-34) |
 | **Otty slides:** a deck as a document you edit, not only a card: reorder, retitle, change a slide's layout, pick a theme, present, export `.pptx` and PDF. The model edits by proposing a new version that the user accepts | H | M–L | idea, grows from D-30 and D-70 |
 | **Otty docs:** a page Otty and you write together (headings, lists, tables, Pebbles inline), saved in `otty.db`, with versions and Markdown and `.docx` export. Otty proposes edits as marked changes, as the proofread card does | H | L | idea, after Pebbles |
@@ -677,8 +680,43 @@ Otty is one person's otter first. These rows are about otters and agents working
 | **Raft:** a shared, real-time group chat where each person brings their own Otty. People talk; otters answer only when called by name; Pebbles, docs, slides and sheets are shared in the raft and edited together | H | L | stretch goal; needs the hosted service, sign-in and end-to-end encryption (LAUNCH_READINESS §8–9) |
 | Raft, step 0, on one Mac: share a Pebble or a doc as a read-only link or a file, so the format is settled before anything is live | M | M | idea, after the Pouch |
 | Runs that work together: a goal splits into sub-runs that hand typed results to each other (the researcher hands sources to the writer, which never sees the web), shown as one item in the Logbook | H | M–L | considering; the sub-runs row in Runtime, after one kind of run and the policy decision |
+| **O2O, the Otty-to-Otty protocol:** A2A 1.0 with Otty's own versioned extensions for identity by pairing, relationships and grants, a table of typed message kinds, consent as Needs you cards, groups, an end-to-end encrypted relay and provenance. Every shared feature (a time, a group plan, a shared Pouch, asking someone's otter, Raft) is one new kind. Outside A2A agents can use the same layer at the stranger level | H | L | considering (owner's plan, 2026-11-24); after the hosted service, sign-in, the policy decision with grants and the Pouch ([concept note](#o2o-otty-to-otty-built-on-a2a)) |
 | Otty and outside agents: Otty can call an agent the user connects (another assistant, a coding agent) as a tool behind a card, and be called by one through a narrow, typed API that only reads what the user shares | M | L | idea, after the MCP client (connections) |
+| **Otty as an MCP server, narrowly:** "Share with other apps" serves only Pebbles the person shared, and later calendar free and busy times, read-only, to an MCP client they connect (Claude Desktop, a coding agent). Every read appears in What left your Mac, and each client can be cut off in one tap. Built as an adapter over D-54's service shape, so it adds no second copy of any read. Assessed 2026-11-24: it's a door for power users, not the base for collaboration (concept note) | M | S–M | idea, after the Pouch (D-77) and D-54's service shape; Stage 2 or later |
 | A shared scratchpad per goal: the Pebbles a goal's runs made, visible to all of them and to the user, so work isn't repeated | M | M | idea, with goals |
+
+## Learning from Muse (2026-11-24)
+
+Meta's Muse (launched 2026-09-08, US only) is the closest thing on the market to where Otty is heading, so it's worth reading closely. Sources: Meta's page, Wikipedia, DataCamp and MindStudio (2026-11-24), the last three secondary; **verify** before quoting any number. What it has: goals with a plan and progress, grouped by life area; work that carries on after the app closes; an approvals queue, an activity log, an artifacts section and a feed of suggestions; memory you can see and tell to forget; connectors with read or write chosen per app, and its own tools when none exists; a per-user cloud VM with a full browser, and a separate gatekeeper (Sentinel) that every outside request passes; payments through one-time cards, behind a confirmation; phone calls to businesses, its own email address, a WhatsApp chat, a realtime video avatar, macOS control and a small device (Muse Charm); a free plan, plus $20 and $100 plans.
+
+**It confirms the direction.** Muse's screens map almost one to one onto Otty's: approvals is Needs you, the activity log is the Logbook, artifacts are the Pouch, memory is the Notebook, its tools are D-55, the feed is Otty noticed and Look after me, connectors are D-54, and goals are goals. Otty planned these on its own, and a company with Meta's reach shipping the same shape says it's the right shape.
+
+**Where Otty differs on purpose:**
+- **Local, not a cloud computer.** Muse keeps connected data and credentials in its VM; Otty keeps them on the Mac, in the Keychain. A private VM with a key only the user holds is still on Muse's roadmap. "It's mine" is already true for Otty.
+- **Code bounds the worst case, not an agent.** Sentinel is a model guarding a model. Otty's limits live in code (`toolSafety.ts`, `ruleOfTwo`, the one door out), and a model check may only add to them (Parked: agents checking agents).
+- **Undo, not only approvals.** None of the sources describes undo or a stop control in Muse. Otty has the ledger, Pause everything and Try again's plan.
+- **Prepare, don't act in your name.** Muse buys, calls and emails. Otty prepares and asks, and acting in your name stays "not a goal for now".
+- **No profile from your accounts.** Muse builds one at onboarding from connected accounts. Otty's memory guard keeps only what the person said, and Look after me says plainly what it reads.
+- **No training on your words**, where Muse trains on queries unless you opt out.
+- **A pet in a place,** not an assistant with a face, and Cantonese help for SG and HK, where Muse isn't available.
+- **Together.** None of the sources describes Muse talking to other people's agents. O2O is open ground.
+
+**Its incidents, as tests for Otty:**
+- Shared chats were found through passive DNS and subdomain lists, and the feature was suspended. → Raft step 0's share links need unguessable addresses that expire, and O2O needs pairing rather than public cards.
+- It referred to a message in an app it was never given access to, and Meta said other details it gave were invented. → The "Used" line, the memory guard and provenance on every Pebble. Add an eval case where Otty is asked about an app it can't see, and it should say so.
+- A large retailer blocked it as an unidentified agent. → `read_page` should name itself honestly to sites and never look like a person's browser.
+- Some beta phone calls were reportedly finished by people in a call centre. → Otty says who did the work; nothing is passed off as the otter's.
+
+| Idea | Impact | Effort | Status |
+| --- | --- | --- | --- |
+| Goals grouped by life area (health, money, study, people, work) on Home, so a goal list doesn't read as a to-do app | M | S | idea, with goals |
+| Reach Otty from a chat app before the phone app: a WhatsApp or Telegram channel to ask and get Needs you cards, through the hosted service. WhatsApp is how SG and HK talk. Every message is outside text, and identity is by pairing | H | M–L | idea, after the hosted service; weigh against the iOS shell |
+| An address to forward to: email something to your Otty and it becomes an event in Needs you ("a deadline in this email"), never an instruction | M | M | idea, with the event log and the hosted service (AUTONOMY: inputs become events) |
+| Turn a saved thing into a useful one: a screenshot of a recipe becomes a shopping list, a poster becomes a calendar event, as a Pebble | M | S | idea; mostly a try-asking chip over today's tools |
+| Muse in the eval's threat model: a case where Otty is asked about an app or account it was never given, and must say it can't see it rather than guess | H | S | idea, add to the eval's next batch |
+| `read_page` names itself to sites ("Otty, reading a page for its user") and never pretends to be a person's browser | M | S | idea; check what `pageReader.ts` sends today |
+| Share links that can't be found: unguessable, expiring, revocable, and never listed in DNS or by a subdomain per share | H | S | idea, a rule for Raft step 0 |
+| Weigh one-time cards for payments (Stripe Link-style) only if acting in your name is ever reopened; noted so the option isn't forgotten | L | M | parked: acting in your name is not a goal for now |
 
 ## Parked / rejected (with reasons)
 
@@ -951,7 +989,7 @@ The model drafts; code decides what a feature may touch.
 2. **Overlay and export**: show connected calendars beside it (D-54), import and export `.ics`. S–M.
 3. **Share a calendar**: a read-only link for a study group or family. Needs the hosted service and sign-in (decided in LAUNCH_READINESS), with sharing off by default. M.
 4. **Multi-person**: a shared calendar several people edit, each change attributed and undoable. M–L.
-5. **Otties talking to each other**: your Otty and a friend's find a time together. They exchange **free and busy times only**, never titles or notes, through a typed protocol (propose, counter, accept), never free text. A message from another Otty is outside text, so it can't tell yours what to do. Both people confirm the result. L.
+5. **Otties talking to each other**: your Otty and a friend's find a time together. They exchange **free and busy times only**, never titles or notes, through O2O's `free-busy` kind (propose, counter, accept; [O2O](#o2o-otty-to-otty-built-on-a2a)), never free text. A message from another Otty is outside text, so it can't tell yours what to do. Both people confirm the result. L.
 
 **Rules:**
 - Another person's Otty is a stranger's words, however friendly. Typed messages, fixed fields, and nothing it says widens what yours may do.
@@ -1068,7 +1106,7 @@ Step 1 is D-73 (2026-11-21), in the roomy window, which now exists.
 | **Cost** | Each otter runs on its own person's plan; calling someone else's otter is never possible |
 | **Realtime edits** | Docs, slides and sheets merge as proposed versions (above), not live character-by-character editing, at least at first |
 
-**Steps.** 0) Share a Pebble or doc as a file or a read-only link (one Mac, no live service). 1) A raft of people with no otters (the hosted service, sign-in, E2E). 2) Otters in the raft, called by name. 3) Shared docs, slides and sheets. 4) Otters that talk to each other (the free/busy protocol from Otty's own calendar).
+**Steps.** 0) Share a Pebble or doc as a file or a read-only link (one Mac, no live service). 1) A raft of people with no otters (the hosted service, sign-in, E2E). 2) Otters in the raft, called by name. 3) Shared docs, slides and sheets. 4) Otters that talk to each other, over [O2O](#o2o-otty-to-otty-built-on-a2a).
 
 **Depends on:** the hosted service and sign-in (LAUNCH_READINESS §8–9), Pebbles, and the iOS core split (a raft is most useful on a phone). It's a stretch goal, after Stage 2.
 
@@ -1084,6 +1122,75 @@ Step 1 is D-73 (2026-11-21), in the roomy window, which now exists.
 5. **Outside agents**, both ways and both narrow: Otty calls a connected agent as a tool behind a card (its reply is outside text), and an outside agent can call a small, typed, read-only Otty API that serves only Pebbles the user shared with it.
 
 **Rules (from "Parked / rejected"):** authority only narrows on the way down; hand-offs carry their source; agents never check agents as the safety net; workers never speak to the user.
+
+**Should Otty itself be an MCP-like connection? (assessed 2026-11-24)** The owner asked whether Otty should expose itself the way an MCP server does, as a base for collaborative agents. The verdict: **not as that base, but yes as a narrow door later, if core's services share one shape now.**
+- **Between Otty's own runs, it adds nothing.** Sub-runs live in one process, under one policy decision, with typed hand-offs whose grants can only narrow. Going through MCP would make the hand-offs looser, not safer: tool descriptions and results there are text for a model to read, where Otty's rule is fields for code to check.
+- **Between Otties (Raft, finding a time together), it's the wrong shape.** MCP is one client calling one server's tools, with no notion of two people or of consent. That was first answered with a one-off scheduling protocol. Once the owner planned many collaborative features, it became one Otty-to-Otty protocol built on A2A (decided 2026-11-24): [O2O](#o2o-otty-to-otty-built-on-a2a).
+- **To outside agents (Claude Desktop, a coding agent), it does help,** and only here. It gives reach without building any UI, and it's a standard those tools already speak. But Otty holds the most private things on the Mac (memories, chats, what was on screen) and the Accessibility and Screen Recording permissions, and an agent on the other end may be carrying injected text and have its own ways out. That would be the Rule of Two broken across a process boundary Otty can't see past. So the door would be:
+  - read-only, because outside text never chooses what Otty does;
+  - limited to what the person shared, starting with Pebbles, then free and busy times, never memories or chats wholesale;
+  - granted per client, listed in What left your Mac, and revocable in one tap;
+  - a local server with its own secret, never an open port, because D-49's fuses exist precisely so another process can't borrow Otty's permissions.
+- **Audience:** the people Otty is for don't run MCP clients. This is for power users and the owner, so it's Stage 2 at the earliest, behind an advanced switch.
+
+**What to do now:** nothing new to build. D-54's design gains one rule: connections' reads and core's own (the calendar, the Pouch) are **typed, read-only services**, and model tools wrap them. Then D-55's features, and later an MCP adapter, call the same services, with no second copy of any read and one place for taint and What left your Mac.
+
+### O2O: Otty-to-Otty, built on A2A
+
+**Idea (owner's plan, 2026-11-24).** Many shared features are coming: finding a time is only the first. So Otties talk through **one protocol, O2O**, and each new shared feature is a new **message kind**, the way each tool is one row in `toolSafety.ts`. O2O is [A2A](https://a2a-protocol.org/latest/specification/) adapted to Otty, not a protocol written from scratch.
+
+**Why A2A as the base.**
+- It's built for agents talking to agents as peers.
+- It's an open standard: v1.0, Apache 2.0, under the Linux Foundation's Agentic AI Foundation since August 2026.
+- It has most of the shapes O2O needs: Agent Cards that can be signed (JWS), Tasks with a lifecycle, Messages made of text, file and data Parts, Artifacts, streaming and push updates, and an `INPUT_REQUIRED` state for a person's answer.
+- It has an extension mechanism (versioned URIs a card declares, which can be marked required), so Otty's rules go in extensions instead of a fork.
+
+MCP stays the door for outside *tools* (A2A itself calls the two complementary).
+
+**What A2A leaves to us, which O2O adds as required extensions:**
+
+| Gap in A2A | O2O's answer |
+| --- | --- |
+| **Identity** (A2A leaves it to auth; agents are opaque) | An Otty is a person's agent. Its card is signed with a key kept in the Keychain and exchanged only when two people **pair** (an invite link or QR code through the hosted service). Never a public `/.well-known` card that anyone can find |
+| **Consent** (not covered) | `INPUT_REQUIRED` becomes a **Needs you** card on the receiving person's Mac. A joint result (a time, a split, a plan) is only final once each person confirms on their own Mac |
+| **Relationships and grants** (authorisation is implementation-defined) | Contacts, groups and rafts, each with **grants per kind** ("Mei may see my free and busy times without asking"). These are the same saved grants as the policy decision (Runtime). A grant is only ever added by its person, can be seen and taken back, and blocking someone is one tap |
+| **What a message may carry** (free text is normal in A2A) | Every kind has a schema, and its payload is a **DataPart checked by code**. Text Parts are only for people to read; to the receiving model they're outside text and never instructions. A kind's row says what it reveals, whether it asks the other side to act, and whether code or a model writes the reply |
+| **More than two parties** (A2A is client and server; chains only by delegation) | A **group task**: one Otty, or the relay running no model, sends a task to each member under one `contextId`, and **code** combines the results (an overlap of free times, a budget range). No Otty sees another member's raw data |
+| **Macs aren't servers** (A2A assumes HTTP endpoints and webhooks) | An **end-to-end encrypted relay** on the hosted service holds tasks for Otties that are asleep. It sees only ciphertext and routing, and push goes through it. A Mac never opens a port |
+| **Provenance** | Every Artifact is **Pebble-shaped** (kind, data, sources), so a result comes back as fields with its source attached |
+| **Visibility and undo** | Every send is a row in What left your Mac, every change it causes is a ledger row, and a `withdraw` kind takes back what was shared wherever the other side allows it |
+| **Attention** | Incoming requests spend the attention budget. A person who keeps asking gets folded into one card, and quiet mode always wins |
+
+**The kinds**, grouped by how they work (each group's risk sets its default consent):
+1. **Work it out together from private inputs.** Free and busy times, a group plan (dates, budget, food limits), gift coordination, a fair split of costs or chores (never paying), matching study partners or shifts. Each Otty answers from granted data, code combines the answers, and everyone confirms.
+2. **Things made together.** Share a Pebble, a shared Pouch shelf for a project, a proposed edit to a doc, slides or a sheet (a new version, never a silent change), a group's flashcards.
+3. **Asking someone's otter.** A question answered only from what its person shared, an away mode that answers from chosen notes, handing over a half-done look-up, meeting prep (agenda items in, one brief out). This group is the riskiest: it always lands as a card unless a standing grant covers that kind from that person.
+4. **Otters in a raft.** Answering when called by name, translating between people, the group's memory ("what did we decide?") read only from the raft, polls, and catching up someone who missed the thread.
+5. **Standing relationships.** Family logistics, a team status update (drafted, and sent only after its person approves), a tutor or parent seeing progress (both sides opt in, and it's the most sensitive kind).
+6. **Following together.** A shared watch (a flight's price, a course's announcements), or subscribing to someone's published Pebbles.
+
+**Rules (AUTONOMY):**
+- Another Otty is a stranger's words, however friendly.
+- An incoming message can only produce a card, or a reply that code builds from granted data. It never runs a tool or picks a recipient because it says to.
+- Workers never talk to the other person; only the otter does, through its person.
+- Authority only narrows. A kind can't ask for more than its row allows, and a group task carries the narrowest grant in the group.
+
+**Outside agents.** Because the base is A2A, an agent that isn't an Otty can talk to O2O too, but only at the **stranger** level: kinds that read what the person published, and nothing that asks Otty to act. An outside A2A agent is a tool behind a card, the same as the MCP row.
+
+**Pin and subset.** Pin A2A 1.0 and the O2O extension URIs by version, and implement only the subset O2O uses (likely HTTP+JSON, streaming through the relay, no third-party webhooks). A2A changed between 0.3 and 1.0, so a change upstream gets its own entry, never a silent bump. The spec also warns that passing credentials along a chain shows them to every agent in it. O2O never passes credentials along: each hop is authorised by its own relationship.
+
+**Steps** (each useful alone; all after Stage 2):
+0. **Prerequisites:** the hosted service with sign-in and end-to-end encryption (LAUNCH_READINESS §8–9), the policy decision with saved grants, Pebbles and the Pouch, and D-54's typed services (a kind's reply reads through them).
+1. **Pairing and the `free-busy` kind** between two people: identity, the relay, cards, ledger rows and What left your Mac. This is Otty's own calendar, step 5.
+2. **`share-pebble`** and **`withdraw`.**
+3. **`ask`** (group 3), behind a card on every request.
+4. **Group tasks:** group plans and splits.
+5. **Otters in a raft** (Raft step 2).
+6. **Outside A2A agents** at the stranger level.
+
+Every step ships with its attack tests first: a kind whose payload hides instructions, a forged card, a replayed task, an Otty that leaves a group and keeps asking, and an outside agent that tries a kind above its level.
+
+**Open questions:** whether the relay or the first Otty coordinates group tasks; how long the relay keeps a task that nobody has answered; whether pairing needs both people at once (a QR code) or an invite link is enough; and the name people see. "O2O" is for the docs; to people, it's just their otter talking to a friend's.
 
 ### TOON: fewer tokens for tables of things
 

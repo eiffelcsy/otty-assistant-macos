@@ -49,7 +49,12 @@ await acquire()
 let status = 0
 try {
   if (!skipBuild) {
-    const build = spawnSync('npm', ['run', 'build:smoke', '--silent'], { cwd: root, stdio: 'inherit' })
+    const build = spawnSync('npm', ['run', 'build:smoke', '--silent'], {
+      cwd: root,
+      stdio: 'inherit',
+      // D-54: a fake Google client, so Sign in with Google runs against the world. Never a real one.
+      env: { ...process.env, MAIN_VITE_GOOGLE_CLIENT_ID: 'smoke-google-client', MAIN_VITE_GOOGLE_CLIENT_SECRET: 'smoke-google-secret' }
+    })
     if (build.status !== 0) throw new Error('build:smoke failed')
   }
   const run = spawnSync('npx', ['playwright', 'test', '-c', 'tools/smoke/playwright.config.ts', ...args], { cwd: root, stdio: 'inherit' })

@@ -155,7 +155,8 @@ export class Otty {
       if (await list.isVisible()) break
       await back.click()
     }
-    await page.locator('.set-row--section', { hasText: section }).click()
+    // By its exact title: "Connection" is also the start of "Connections" (D-54).
+    await page.locator('.set-row--section').filter({ has: page.locator('.set-row__title', { hasText: new RegExp(`^${section.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }) }).click()
     await expect(page.getByRole('heading', { name: section })).toBeVisible()
   }
 

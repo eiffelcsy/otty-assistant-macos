@@ -11,6 +11,8 @@ files:
 extraResources:
   - from: build/bin/otty-ocr
     to: otty-ocr
+  - from: build/bin/otty-calendar
+    to: otty-calendar
 mac:
   category: public.app-category.productivity
   target:
@@ -26,6 +28,10 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     LSUIElement: true
+    NSCalendarsUsageDescription: Otty reads your calendars when you ask about your week. It never changes them.
+    NSCalendarsFullAccessUsageDescription: Otty reads your calendars when you ask about your week. It never changes them.
+    NSRemindersUsageDescription: Otty reads your reminders when you ask what's due. It never changes them.
+    NSRemindersFullAccessUsageDescription: Otty reads your reminders when you ask what's due. It never changes them.
     NSAppleEventsUsageDescription: Otty uses this to copy the text you highlight, to see which app or web page you're asking about, and to add reminders when you ask.
 dmg:
   title: Otty

@@ -2,6 +2,8 @@ import { runLoop } from '../../src/main/loop'
 import { turnHints } from '../../src/main/hints'
 import { systemPrompt } from '../../src/main/prompts'
 import { toolDefs } from '../../src/main/tools'
+import { webSetup } from '../../src/main/tools/web'
+import { getStored } from '../../src/main/settings'
 import { CHAT_TOOLS } from '../../src/main/toolSafety'
 import type { ToolOutcome } from '../../src/main/tools'
 import type { Provider, Message } from '../../src/main/providers'
@@ -35,11 +37,12 @@ export async function runCase(c: Case, provider: Provider, opts: { timeoutMs?: n
   let error: string | undefined
   const cards: string[] = []
   try {
-    await inScene({ search: c.search, page: c.page }, () => runLoop({
+    await inScene({ search: c.search, page: c.page, calendar: c.calendar, notion: c.notion }, () => runLoop({
       provider: () => provider,
       system: systemPrompt(null, true, true),
       history,
-      tools: () => toolDefs(CHAT_TOOLS),
+      // As currentSetup() in the app, except the connections are the case's own (D-54), so no real settings are read.
+      tools: () => toolDefs(CHAT_TOOLS, { web: webSetup(), learn: Boolean(getStored().learn), connections: new Set(c.connections ?? []) }),
       context: {
         allowed: CHAT_TOOLS,
         // As in the app (llm.ts): a capture or a known fact puts the user's own data in the run.

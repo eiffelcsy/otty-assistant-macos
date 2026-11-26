@@ -5,7 +5,7 @@ import type { ChatRequest, Message, Provider, ProviderEvent } from '../providers
 
 const { search, page } = vi.hoisted(() => ({ search: vi.fn(async () => 'Results'), page: vi.fn(async () => 'Page text') }))
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {} }))
-vi.mock('../settings', () => ({ isDev: () => true, getApiKey: () => 'sk-test', getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-flash' }) }))
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => true, getApiKey: () => 'sk-test', getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'deepseek-flash' }) }))
 vi.mock('../web', async (original) => ({ ...(await original<object>()), deepseekSearch: search, deepseekFetch: page }))
 const { runTool } = await import('../tools')
 const { runLoop } = await import('../loop')
@@ -59,6 +59,22 @@ describe('the Rule of Two in a chat turn (D-41)', () => {
       expect(taint.outside).toBe(true)
       expect(requests.map((r) => r.serverSearch)).toEqual([true, !priv])
     }
+  })
+})
+
+describe('connections taint a run (D-54)', () => {
+  it('a calendar read marks the run private and outside, so a following search asks first', async () => {
+    const { provider } = (() => {
+      const calendar: ProviderEvent = { type: 'tool', call: { id: 'c1', type: 'function', function: { name: 'calendar_events', arguments: '{"from":"2026-12-01","to":"2026-12-01"}' } } }
+      const search: ProviderEvent = { type: 'tool', call: { id: 's1', type: 'function', function: { name: 'search_web', arguments: '{"query":"q"}' } } }
+      const turns = [[calendar, { type: 'done', stop: 'tools' }], [search, { type: 'done', stop: 'tools' }], [{ type: 'done', stop: 'end' }]] as ProviderEvent[][]
+      return { provider: { name: 'p', stream: async function* () { yield* turns.shift() ?? [{ type: 'done', stop: 'end' }] }, complete: async () => ({ text: '' }) } }
+    })()
+    const taint = { private: false, outside: false }
+    const confirm = vi.fn(async () => false)
+    const ctx = { allowed: new Set(['calendar_events', 'search_web']), taint, confirm, knownUrl: () => true }
+    await runLoop({ provider: () => provider, system: 's', history: [], tools: () => [], context: ctx, maxRounds: 3, signal: new AbortController().signal, onEvent: () => {} })
+    expect(taint).toEqual({ private: true, outside: true })
   })
 })
 

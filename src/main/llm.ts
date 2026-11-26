@@ -37,7 +37,8 @@ import { resolveLanguage, turnNote, withNote } from './language'
 import { actionPrompt, explainPrompt, systemPrompt, titlePrompt } from './prompts'
 import { createExplainCache, termsToWarm } from './explainCache'
 import { toolDefs, type MacHands, type ToolOutcome } from './tools'
-import { CHAT_TOOLS, LASTING_TOOLS, OUTSIDE_TOOLS, type RunTaint } from './toolSafety'
+import { CHAT_TOOLS, isLasting, isOutside, type RunTaint } from './toolSafety'
+import { ownToolNames } from './connections/tools'
 import { runLoop } from './loop'
 import { begin, canUndo, type Ledger } from './ledger'
 import { count } from './usage'
@@ -760,13 +761,15 @@ export class ChatSession {
 
     try {
       const sent = { kind: 'question' as const, chatId: thread.id, group: id, what: turn.sent }
+      // D-54: the user's own tools that are on, fixed for this turn.
+      const allowed = new Set([...CHAT_TOOLS, ...ownToolNames()])
       await runLoop({
         provider: () => this.deps.provider(sent),
         system,
         history,
-        tools: () => toolDefs(CHAT_TOOLS),
+        tools: () => toolDefs(allowed),
         context: {
-          allowed: CHAT_TOOLS,
+          allowed,
           taint,
           cause: { chatId: thread.id, answerId: id },
           sent: { chatId: thread.id, group: id },
@@ -790,9 +793,9 @@ export class ChatSession {
             answer.text += e.text
             this.tell(thread, { type: 'delta', id, text: e.text })
           }
-          if (e.type === 'tool-result' && LASTING_TOOLS.has(e.name) && e.outcome.status === 'done') answer.lasting = [...(answer.lasting ?? []), e.outcome.result.slice(0, 160)]
+          if (e.type === 'tool-result' && isLasting(e.name) && e.outcome.status === 'done') answer.lasting = [...(answer.lasting ?? []), e.outcome.result.slice(0, 160)]
           if (e.type === 'tool-result' && live.undoable) this.receiptUndo(live, e.outcome)
-          if (e.type === 'tool-result' && OUTSIDE_TOOLS.has(e.name)) {
+          if (e.type === 'tool-result' && isOutside(e.name)) {
             heard.hadOutside = true
             heard.outside += `\n${e.outcome.result}`
           }

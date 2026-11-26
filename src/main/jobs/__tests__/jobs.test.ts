@@ -12,10 +12,10 @@ import { assertMove, MOVES } from '../states'
 import type { Job, JobStatus, JobStore } from '../types'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {}, app: { isPackaged: true } }))
-vi.mock('../../settings', () => ({ isDev: () => false, getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm' }), getApiKey: () => 'k' }))
+vi.mock('../../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => false, getStored: () => ({ baseUrl: 'https://api.deepseek.com', model: 'm' }), getApiKey: () => 'k' }))
 
 /** Reads like the real tool: an unknown address asks first. */
-vi.mock('../../tools', () => ({
+vi.mock('../../tools', () => ({webOff: () => false, 
   toolLabel: () => ({ label: 'x', icon: 'x' }),
   runTool: async (name: string, args: { url?: string }, ctx: { allowed?: ReadonlySet<string>; knownUrl(u: string): boolean; confirm(t: string, d: string): Promise<boolean> }) => {
     if (ctx.allowed && !ctx.allowed.has(name)) return { result: 'refused', status: 'error' }

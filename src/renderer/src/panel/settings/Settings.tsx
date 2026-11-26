@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { KeepChats, MonthlyCap, PublicSettings, SettableKey, SettingsCounts, UsageReport } from '../../../../shared/types'
+import type { ConnectionsState, KeepChats, MonthlyCap, PublicSettings, SettableKey, SettingsCounts, UsageReport } from '../../../../shared/types'
 import { serviceAt, serviceById } from '../../../../shared/services'
 import { findRanges, parseQuery } from '../../../../shared/match'
 import { connectionReady, ConnectionFields } from '../../components/ConnectionFields'
 import { Icon } from '../../components/Icon'
 import { prettyKey } from '../../lib/keys'
+import { Connections } from './Connections'
 import { MyTiles } from './Tiles'
 import { ChoiceRow, CustomRow, Group, HoldButton, HoldRow, KeysRow, LinkRow, SwitchRow, ValueRow } from './rows'
 
@@ -12,13 +13,14 @@ import { ChoiceRow, CustomRow, Group, HoldButton, HoldRow, KeysRow, LinkRow, Swi
 // no draft: each control saves itself through `setSetting`, and what main sends back is what's shown. Forgetting is
 // always behind a hold, with the real count from main.
 
-export type SectionId = 'you' | 'tiles' | 'keys' | 'privacy' | 'usage' | 'conn' | 'help'
+export type SectionId = 'you' | 'tiles' | 'keys' | 'privacy' | 'links' | 'usage' | 'conn' | 'help'
 
 const SECTIONS: { id: SectionId; title: string; icon: string }[] = [
   { id: 'you', title: 'You & Otty', icon: 'paw' },
   { id: 'tiles', title: 'My tiles', icon: 'apps' },
   { id: 'keys', title: 'Shortcuts', icon: 'keyboard' },
   { id: 'privacy', title: 'Privacy', icon: 'shield-check' },
+  { id: 'links', title: 'Connections', icon: 'plug-connection' },
   { id: 'usage', title: 'Usage & limit', icon: 'stats' },
   { id: 'conn', title: 'Connection', icon: 'brain' },
   { id: 'help', title: 'Help', icon: 'life-ring' }
@@ -47,6 +49,12 @@ const FINDABLE: { id: string; section: SectionId; title: string; words?: string 
   { id: 'usage', section: 'usage', title: 'This month', words: 'questions cost usage' },
   { id: 'service', section: 'conn', title: 'Your AI service', words: 'api key model deepseek claude openai' },
   { id: 'thinking', section: 'conn', title: 'Always think deeper', words: 'reasoning' },
+  { id: 'connections', section: 'links', title: 'Connections', words: 'calendar canvas notion google mcp connector app' },
+  { id: 'addOwn', section: 'links', title: 'Add your own connection', words: 'mcp server custom connector address' },
+  { id: 'apple', section: 'links', title: 'Apple Calendar and Reminders', words: 'eventkit' },
+  { id: 'google', section: 'links', title: 'Google Calendar', words: 'gmail account' },
+  { id: 'canvas', section: 'links', title: 'Canvas', words: 'school course assignment nus' },
+  { id: 'notion', section: 'links', title: 'Notion', words: 'notes pages' },
   { id: 'diagnostics', section: 'help', title: 'Copy diagnostics', words: 'help support problem log' }
 ]
 
@@ -73,7 +81,7 @@ interface Props {
 }
 
 /** The one-line summaries in the list, from the saved settings. */
-function summary(id: SectionId, s: PublicSettings, usage: UsageReport | null): { text: string; warn?: boolean } {
+function summary(id: SectionId, s: PublicSettings, usage: UsageReport | null, links: ConnectionsState | null): { text: string; warn?: boolean } {
   switch (id) {
     case 'you':
       return { text: [`Otter ${s.showBubble ? 'on' : 'off'}`, `notifications ${s.notifyDone ? 'on' : 'off'}`, ...(s.openAtLogin ? ['opens at login'] : [])].join(' · ') }
@@ -85,6 +93,14 @@ function summary(id: SectionId, s: PublicSettings, usage: UsageReport | null): {
     }
     case 'privacy':
       return { text: `${s.rememberChats ? `Chats kept ${KEEP.find((k) => k.value === s.keepChats)?.label.toLowerCase()}` : 'Chats not kept'} · notes ${s.learn ? 'on' : 'off'}` }
+    case 'links': {
+      if (!links) return { text: '' }
+      const need = links.connected.find((c) => c.status === 'needs-sign-in' || c.status === 'changed')
+      if (need) return { text: `${need.label} needs you`, warn: true }
+      const names = links.connected.map((c) => c.label)
+      if (!names.length) return { text: 'None yet' }
+      return { text: names.length <= 2 ? `${names.join(' and ')} on` : `${names[0]} and ${names.length - 1} more on` }
+    }
     case 'usage':
       if (!usage) return { text: '' }
       return { text: s.monthlyCap?.unit === 'questions' ? `${usage.month.questions.toLocaleString()} of ${s.monthlyCap.limit.toLocaleString()} this month` : `${plural(usage.month.questions, 'question')} this month` }
@@ -105,7 +121,10 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
   const [clash, setClash] = useState<SettableKey | null>(null)
   /** What a control shows while main saves it, so a switch moves at once and goes back if the save fails. */
   const [pending, setPending] = useState<Partial<PublicSettings>>({})
+  /** D-54: the connections, for the list's summary and the Connections section. Never throws into the list. */
+  const [links, setLinks] = useState<ConnectionsState | null>(null)
   useEffect(() => void window.otty.getUsage().then(setUsage), [])
+  useEffect(() => void Promise.resolve().then(() => window.otty.connections()).then(setLinks, () => {}), [])
   const shown = { ...settings, ...pending }
 
   const save = async <K extends SettableKey>(key: K, value: PublicSettings[K]) => {
@@ -165,7 +184,7 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
                 </button>
               ))
             : SECTIONS.map((s) => {
-                const sum = summary(s.id, settings, usage)
+                const sum = summary(s.id, settings, usage, links)
                 return (
                   <button key={s.id} className="set-row set-row--tap set-row--section" onClick={() => open(s.id)}>
                     <Icon name={s.icon} className="set-row__glyph" />
@@ -244,6 +263,7 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
         </Group>
       )}
       {section === 'privacy' && <Privacy shown={shown} settings={settings} row={row} save={save} onOpenLogbook={onOpenLogbook} onOpenNotebook={onOpenNotebook} />}
+      {section === 'links' && links && <Connections state={links} onChange={setLinks} />}
       {section === 'usage' && <Usage usage={usage} cap={shown.monthlyCap} row={row} save={save} />}
       {section === 'conn' && <Conn settings={settings} shown={shown} row={row} save={save} onSaved={onSaved} />}
       {section === 'help' && <Help />}

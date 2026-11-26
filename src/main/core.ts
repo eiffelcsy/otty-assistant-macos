@@ -1,5 +1,6 @@
-import { screen } from 'electron'
+import { app, screen, shell } from 'electron'
 import { randomUUID } from 'crypto'
+import { join } from 'path'
 import type { ActivityItem, Capture } from '../shared/types'
 import * as settings from './settings'
 import { macSettings } from './settingsOnMac'
@@ -23,6 +24,9 @@ import type { LogSources } from './logbook'
 import type { HomeSources } from './home'
 import { serviceAt, serviceById } from '../shared/services'
 import { shownWindows } from './windows'
+import { refreshAll } from './connections'
+import { setCalendarHelper } from './connections/apple'
+import { setOpener } from './connections/oauth'
 
 // D-45: the chat, the jobs and the stores around them, made once. Windows, menus and IPC reach them from here.
 
@@ -211,6 +215,10 @@ export async function stuckOnStep(answerId: string, index: number, check = false
   void chat.send(question, captures, null)
 }
 
+// D-54: the connections layer reaches the Mac only through these plug-ins.
+setCalendarHelper(() => (app.isPackaged ? join(process.resourcesPath, 'otty-calendar') : join(app.getAppPath(), 'build/bin/otty-calendar')))
+setOpener((url) => shell.openExternal(url))
+
 /** Chats past the "Keep chats" setting, and the finished jobs from the same time. */
 export async function tidyOldChats(): Promise<void> {
   await pruneOldChats()
@@ -236,4 +244,6 @@ export function startServices(): void {
   void loadMath()
   void tidyOldChats().catch((err) => console.error('Could not tidy old jobs', err))
   void jobs.launch().catch((err) => console.error('Could not resume background work', err))
+  // D-54: connections of the user's own are checked again at launch.
+  void refreshAll().catch((err) => console.error('Could not check connections', err))
 }

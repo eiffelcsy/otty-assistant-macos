@@ -1,5 +1,6 @@
 import { registerActivity } from './activity'
 import { registerChat } from './chat'
+import { registerConnections } from './connections'
 import { registerSettings } from './settings'
 import { registerWindows } from './windows'
 
@@ -8,5 +9,6 @@ export function registerIpc(): void {
   registerSettings()
   registerChat()
   registerActivity()
+  registerConnections()
   registerWindows()
 }
