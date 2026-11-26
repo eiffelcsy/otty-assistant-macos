@@ -5,7 +5,9 @@ const SCENES: Record<string, string[]> = {
   panel: ['chat', 'compose', 'empty', 'tray', 'settings', 'provider', 'page', 'proofread', 'memory', 'memories', 'math', 'code', 'drawing', 'chart', 'cap', 'steps', 'logbook', 'logbook-wait', 'logbook-next', 'logbook-sent', 'logbook-changed', 'logbook-noted', 'logbook-empty', 'logbook-running', 'logbook-paused', 'logbook-entry', 'logbook-search', 'logbook-none', 'history', 'find', 'onboarding', 'settings-you', 'settings-keys', 'settings-privacy', 'settings-usage', 'settings-conn', 'settings-help', 'settings-feedback', 'settings-find', 'settings-retention', 'settings-broken', 'settings-recording', 'connections', 'connections-add', 'connections-mcp', 'connections-off', 'connect-card', 'confirm-read', 'confirm-open', 'confirm-search', 'confirm-reminder', 'confirm-unusual', 'receipts', 'rewind', 'noted', 'thinking', 'stopped', 'failed-key', 'failed-long', 'near', 'typography', 'paused', 'frame-menu', 'frame-pushed', 'frame-rail', 'frame-medium', 'frame-wide', 'frame-min', 'home', 'home-quiet', 'home-first', 'home-running', 'home-paused', 'calendar', 'calendar-list', 'calendar-empty', 'calendar-edit', 'calendar-note', 'confirm-event', 'pouch', 'pouch-list', 'pouch-empty', 'pouch-card', 'pouch-search'],
   quick: ['chat', 'compose', 'page', 'tray', 'proofread', 'steps'],
   pickup: ['reading', 'nowords', 'failed'],
-  viewer: ['picture', 'slides']
+  viewer: ['picture', 'slides'],
+  // Spec 13, Part 5: the pool (asleep is left out: the mock can't start Otty asleep without a change to the app).
+  bubble: ['pool', 'pool-working', 'pool-waiting', 'pool-answer', 'pool-paused', 'pool-night']
 }
 
 /** Scenes with Chinese text, which each macOS draws a little differently (about 0.7% of the picture). A moved card is

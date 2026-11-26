@@ -25,7 +25,9 @@ describe('CLAUDE.md "Web safety": the renderer never loads anything remote', () 
     // Reviewed: each of these is a data: URL made in main (snips, thumbnails, drawings) or an imported asset.
     const OK = new Set(['dataUrl', 'picture.dataUrl', 'file.thumb', 'FRAMES[state]', 'idleBlink', 'view.dataUrl', 'drawn.dataUrl',
       // the cove's imported paintings (D-72)
-      'PAINTINGS[t][0]', 'PAINTINGS[t][1]', 'PAINTINGS[t][2]', 'cloud', 'reeds', 'lilypad', 'float'])
+      'PAINTINGS[t][0]', 'PAINTINGS[t][1]', 'PAINTINGS[t][2]', 'cloud', 'reeds', 'lilypad', 'float',
+      // the pool's water and bundled Otty frames (D-82, Spec 13)
+      'WATER[time]', 'frame', 'floatPaddle'])
     const found = CODE.flatMap((f) =>
       [...withoutComments(read(f)).matchAll(/<img\b[^>]*\bsrc=\{([^}]+)\}/g)].filter((m) => !OK.has(m[1].trim())).map((m) => `${f}  src={${m[1]}}`)
     )
@@ -96,7 +98,8 @@ describe('CLAUDE.md "Idle budget (NFR-3)": every infinite animation is reviewed'
     glow: 'while working only',
     dots: 'typing dots, stepped, while an answer runs',
     caret: 'the streaming caret: two steps every 1.2 s, only while an answer streams',
-    'log-step': 'the Logbook’s Now dot: two steps every 2.4 s, only while a look-up runs and the Logbook is open'
+    'log-step': 'the Logbook’s Now dot: two steps every 2.4 s, only while a look-up runs and the Logbook is open',
+    'pool-swap': 'the pool’s Otty: two frames stepped every 700 ms, only while a job works (Spec 13, Part 3)'
   }
 
   it('adds no infinite animation without measuring it', () => {
@@ -146,7 +149,8 @@ describe('DESIGN.md "Foundations": sizes, spaces, radii and weights come from th
     { selector: '.ask', prop: 'gap', why: 'confirm card glyph to title, 10 (Spec 01, Confirm card)' },
     { selector: '.log-entry__open', prop: 'padding', why: 'Logbook entry, 10 0, so one line is 40 and two are 58 (Spec 04, Entry)' },
     { selector: '.log-entry__open', prop: 'gap', why: 'Logbook entry columns, 10 apart (Spec 04, Entry)' },
-    { selector: '.log-now__progress', prop: 'gap', why: 'progress segments, 3 apart (Spec 04, Now)' }
+    { selector: '.log-now__progress', prop: 'gap', why: 'progress segments, 3 apart (Spec 04, Now)' },
+    { selector: '.bubble__badge', prop: 'border-radius', why: 'sea glass, 40% 60% 50% 50% (Spec 13, Part 2)' }
   ]
   const RADIUS = /^(0|50%|25%|var\(--(r-\w+|radius)\)|calc\(var\(--(r-\w+|radius)\) [+-] var\(--s-\w+\)\))$/
   const OK: [RegExp, RegExp][] = [

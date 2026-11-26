@@ -9,7 +9,6 @@
   --grass: #8c9b6a;
   --straw: #c7b58b;
   --silver: #d8d7d2;
-  --bubble-shine: #c9d2ae; /* the highlight on the floating otter's bubble */
   --shadow-ink: #221f20;
 
   /* Surfaces: warm paper. Neutrals do most of the work; green is saved for actions and accents. */
@@ -453,14 +452,9 @@ kbd {
   opacity: 1;
   animation: rise 1.6s ease-in-out infinite;
 }
-.otter--happy .otter-body,
-.bubble--landed .otter-body {
+.otter--happy .otter-body {
   animation: wiggle 0.6s ease-in-out 2;
   transform-origin: 50% 90%;
-}
-/* Let go after a drag: one wiggle, not a cheer. */
-.bubble--landed .otter-body {
-  animation-iteration-count: 1;
 }
 
 @keyframes blink {
@@ -503,59 +497,210 @@ html[data-asleep] *::after {
   }
 }
 
-/* ---------- Bubble ---------- */
+/* ---------- Bubble: the pool (D-82, Spec 13): the cove's water at the hour, with Otty floating in it ---------- */
 html[data-view='bubble'] body {
   overflow: hidden;
 }
-.bubble {
+/* The window is 128 x 88; the pool is its 112 x 68 ellipse, inset 10px 8px, and Otty sits above its rim. */
+.pool {
   position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: radial-gradient(circle at 35% 28%, var(--bubble-shine), var(--grass) 58%, var(--meadow));
-  box-shadow: 0 4px 12px rgba(34, 31, 32, 0.35), inset 0 -4px 10px rgba(34, 31, 32, 0.22), inset 0 3px 6px rgba(255, 255, 255, 0.35);
-  transition: transform var(--t-quick) var(--glide);
+  inset: 0;
   cursor: grab;
+  transition: transform var(--t-quick) var(--glide);
 }
-.bubble:hover {
-  transform: scale(1.06);
-}
-/* D-37: something to eat is over the otter. */
-.bubble--feeding {
-  transform: scale(1.12);
-}
-.bubble:active {
+.pool:active {
   cursor: grabbing;
+}
+.pool:active:not(.pool--carried) {
   transform: scale(0.97);
   transition-duration: var(--t-tap);
 }
-/* Otty peeks up from the bottom of the bubble, clipped to its circle. */
-.bubble__avatar {
+/* D-37: something to eat is over the pool. */
+.pool--feeding {
+  transform: scale(1.08);
+}
+/* Picked up: tilted, like a thing in the hand. */
+.pool--carried {
+  transform: rotate(-4deg);
+}
+/* The water fills the pool and clips to it; the rim is three glass layers on the pool itself. */
+.pool__water {
+  --pool-rim: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -6px 10px rgba(20, 40, 50, 0.28), var(--elev-2);
   position: absolute;
-  inset: 0;
+  inset: 10px 8px;
   border-radius: 50%;
   overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  box-shadow: var(--pool-rim);
+}
+.pool__water img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 30%;
+}
+/* Needs you: the rim lights straw. Feeding: it lights green. */
+.pool--waiting .pool__water {
+  box-shadow: var(--pool-rim), 0 0 0 2px var(--straw);
+}
+.pool--feeding .pool__water {
+  box-shadow: var(--pool-rim), 0 0 0 2px var(--grass);
+}
+/* Paused: the water greys and stills. */
+.pool--paused .pool__water img {
+  filter: saturate(0.25) brightness(0.92);
+}
+/* Otty: the float frame, 84 wide, centred at 52% across the pool, its top 6px above the rim. */
+.pool__otty {
+  position: absolute;
+  top: 4px;
+  left: calc(50% + 2px - 42px);
+  width: 84px;
   pointer-events: none;
 }
-.bubble__avatar .otter {
-  margin-bottom: -4px;
+.pool__frame {
+  display: block;
+  width: 100%;
 }
-/* An answer finished while no Otty window was open. */
+.pool__frame--paddle {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+/* The cove's night, golden and dawn filters on Otty (Spec 07). */
+.pool[data-time='night'] .pool__otty {
+  filter: brightness(0.80) saturate(0.85);
+}
+.pool[data-time='golden'] .pool__otty {
+  filter: sepia(0.18) saturate(1.1);
+}
+.pool[data-time='dawn'] .pool__otty {
+  filter: sepia(0.1) hue-rotate(-8deg);
+}
+/* Working: two frames swap in steps, 700 ms each. Under reduced motion the paddle frame holds still. */
+.pool--working .pool__frame--paddle {
+  opacity: 1;
+  animation: pool-swap 1400ms steps(1) infinite;
+}
+@keyframes pool-swap {
+  from { opacity: 1; }
+  50% { opacity: 0; }
+}
+/* A hover, a feed or a landing: one bob, then still. */
+.pool--bob .pool__otty {
+  animation: pool-bob var(--t-settle) steps(3) 1;
+}
+@keyframes pool-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+/* One ring, from the pool's size to 1.15x, fading. The second (a feed) comes 120 ms later. */
+.pool__ring {
+  position: absolute;
+  inset: 10px 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  animation: pool-ring 600ms var(--glide);
+}
+.pool__ring--late {
+  animation-delay: 120ms;
+  animation-fill-mode: both;
+}
+@keyframes pool-ring {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(1.15); opacity: 0; }
+}
+/* Working: a small wake behind Otty's feet, still. Needs you: the straw ring, as an element. */
+.bubble__working {
+  position: absolute;
+  left: calc(50% + 2px - 5px);
+  top: 58px;
+  width: 10px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+.bubble__working--waiting {
+  inset: 10px 8px;
+  width: auto;
+  height: auto;
+  border-radius: 50%;
+  background: none;
+  box-shadow: 0 0 0 2px var(--straw);
+}
+/* Paused: a glass bead with the pause icon, at the pool's left edge. */
+.bubble__paused {
+  position: absolute;
+  left: 2px;
+  top: 35px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--elev-1);
+  color: var(--text-2);
+  font-size: var(--i-sm);
+  pointer-events: none;
+}
+/* An answer finished while no Otty window was open: a piece of sea glass, bobbing once as it appears. */
 .bubble__badge {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
+  /* In front of Otty, on the open water below his feet. */
+  z-index: 2;
+  right: 22px;
+  top: 58px;
+  width: 12px;
+  height: 9px;
+  border-radius: 40% 60% 50% 50%;
   background: var(--straw);
-  border: 2.5px solid var(--surface);
-  animation: pop var(--t-quick) var(--glide);
+  animation: pool-bob var(--t-settle) steps(3) 1;
   pointer-events: none;
+}
+.bubble__badge::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+}
+/* Asleep: three z's rise and fade once, 150 ms apart. */
+.pool__zs {
+  position: absolute;
+  left: calc(50% + 14px);
+  top: 4px;
+  pointer-events: none;
+}
+.pool__zs span {
+  position: absolute;
+  font-size: var(--fs-small);
+  font-weight: 600;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  animation: pool-z 1200ms var(--glide) both;
+}
+.pool__zs span:nth-child(2) {
+  left: 8px;
+  top: -6px;
+  animation-delay: 150ms;
+}
+.pool__zs span:nth-child(3) {
+  left: 16px;
+  top: -12px;
+  animation-delay: 300ms;
+}
+@keyframes pool-z {
+  0% { opacity: 0; transform: translateY(0); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-8px); }
 }
 
 
@@ -5450,38 +5595,6 @@ button.menu__item:hover {
   font-size: var(--i-sm);
   color: var(--brand);
 }
-/* Still, not animated: minutes of smooth motion is what the idle budget warns about. */
-.bubble__working {
-  position: absolute;
-  left: 8px;
-  bottom: 8px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--straw);
-  box-shadow: 0 0 0 2px var(--surface);
-}
-/* Waiting for the user's OK: the brand colour, so it reads as "your turn" rather than "busy". */
-.bubble__working--waiting {
-  width: 11px;
-  height: 11px;
-  background: var(--brand);
-}
-.bubble__paused {
-  position: absolute;
-  left: 4px;
-  bottom: 4px;
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--surface);
-  box-shadow: var(--elev-1);
-  color: var(--text-2);
-  font-size: var(--i-sm);
-}
-
 /* ---------- Quick view follow-ups ---------- */
 .quick__asked {
   align-self: flex-end;

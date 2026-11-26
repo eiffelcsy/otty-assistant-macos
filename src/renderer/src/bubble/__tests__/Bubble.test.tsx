@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 // D-37: files dropped on the otter go to main as ids, which opens a new chat with them.
+// D-82 (Spec 13): the bubble is the pool; each state shows its marker and frame.
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
@@ -24,86 +25,168 @@ afterEach(cleanup)
 const drag = (files: File[], text = '') => ({
   dataTransfer: { types: files.length ? ['Files'] : text ? ['text/plain'] : [], files, dropEffect: '', getData: () => text }
 })
-const face = (c: HTMLElement) => [...c.querySelector('.otter')!.classList].find((n) => n.startsWith('otter--'))
+const pool = (c: HTMLElement) => c.querySelector<HTMLElement>('.pool')!
+/** The pool's state class: pool--<state>. */
+const stateOf = (c: HTMLElement) => [...pool(c).classList].find((n) => n.startsWith('pool--') && n !== 'pool--bob')
+const frameOf = (c: HTMLElement) => c.querySelector<HTMLImageElement>('.pool__frame')!.getAttribute('src')
+
+describe('the pool (D-82, Spec 13)', () => {
+  it('is a labelled button, and its aria-label is its tooltip', () => {
+    const { container } = render(<Bubble />)
+    const root = pool(container)
+    expect(root.getAttribute('role')).toBe('button')
+    expect(root.getAttribute('aria-label')).toBe('Click to ask Otty · Right-click for more')
+    expect(root.getAttribute('title')).toBe(root.getAttribute('aria-label'))
+  })
+
+  it('shows the working wake and the two-frame loop while working', () => {
+    let mood: (m: string) => void = () => {}
+    Object.assign(window.otty, { onBubbleMood: (cb: (m: string) => void) => ((mood = cb), () => {}) })
+    const { container } = render(<Bubble />)
+    act(() => mood('working'))
+    expect(stateOf(container)).toBe('pool--working')
+    expect(container.querySelector('.bubble__working:not(.bubble__working--waiting)')).not.toBeNull()
+    expect(container.querySelectorAll('.pool__frame').length).toBe(2)
+    expect(pool(container).getAttribute('title')).toMatch(/looking into something/)
+  })
+
+  it('shows the straw ring and the pebble frame when it needs you', () => {
+    let mood: (m: string) => void = () => {}
+    Object.assign(window.otty, { onBubbleMood: (cb: (m: string) => void) => ((mood = cb), () => {}) })
+    const { container } = render(<Bubble />)
+    act(() => mood('waiting'))
+    expect(stateOf(container)).toBe('pool--waiting')
+    expect(container.querySelector('.bubble__working.bubble__working--waiting')).not.toBeNull()
+    expect(frameOf(container)).toContain('float-pebble')
+  })
+
+  it('shows the paused bead and greys the water while paused', () => {
+    let mood: (m: string) => void = () => {}
+    Object.assign(window.otty, { onBubbleMood: (cb: (m: string) => void) => ((mood = cb), () => {}) })
+    const { container } = render(<Bubble />)
+    act(() => mood('paused'))
+    expect(stateOf(container)).toBe('pool--paused')
+    expect(container.querySelector('.bubble__paused')).not.toBeNull()
+    expect(container.querySelector('.bubble__working')).toBeNull()
+  })
+
+  it('shows the sea glass beside an answer, alongside the working state', () => {
+    let badge: (on: boolean) => void = () => {}
+    let mood: (m: string) => void = () => {}
+    Object.assign(window.otty, {
+      onBubbleBadge: (cb: (on: boolean) => void) => ((badge = cb), () => {}),
+      onBubbleMood: (cb: (m: string) => void) => ((mood = cb), () => {}) })
+    const { container } = render(<Bubble />)
+    act(() => badge(true))
+    expect(container.querySelector('.bubble__badge')).not.toBeNull()
+    expect(pool(container).getAttribute('title')).toBe('Otty has an answer for you · Click to see it')
+    act(() => mood('working'))
+    expect(stateOf(container)).toBe('pool--working')
+    expect(container.querySelector('.bubble__badge')).not.toBeNull()
+  })
+
+  it('keeps the order: a feed over a working pool shows the working state', () => {
+    let mood: (m: string) => void = () => {}
+    Object.assign(window.otty, { onBubbleMood: (cb: (m: string) => void) => ((mood = cb), () => {}) })
+    const { container } = render(<Bubble />)
+    act(() => mood('working'))
+    fireEvent.dragOver(pool(container), drag([], 'a line'))
+    expect(stateOf(container)).toBe('pool--working')
+  })
+
+  it('arms one hour timer, moves the water at the next painting, and clears it on unmount', () => {
+    vi.useFakeTimers({ now: new Date(2026, 0, 1, 7, 59, 0) })
+    try {
+      const { container, unmount } = render(<Bubble />)
+      expect(pool(container).getAttribute('data-time')).toBe('dawn')
+      act(() => void vi.advanceTimersByTime(60_000))
+      expect(pool(container).getAttribute('data-time')).toBe('day')
+      unmount()
+      expect(vi.getTimerCount()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
 
 describe('feeding Otty (D-37)', () => {
   it('swells while files are over it, and hands them to main by id on drop', async () => {
     const { container } = render(<Bubble />)
-    const bubble = container.querySelector('.bubble')!
+    const root = pool(container)
     const pdf = new File(['x'], 'report.pdf')
-    fireEvent.dragOver(bubble, drag([pdf]))
-    expect(bubble.classList.contains('bubble--feeding')).toBe(true)
-    fireEvent.drop(bubble, drag([pdf]))
-    expect(bubble.classList.contains('bubble--feeding')).toBe(false)
+    fireEvent.dragOver(root, drag([pdf]))
+    expect(root.classList.contains('pool--feeding')).toBe(true)
+    fireEvent.drop(root, drag([pdf]))
+    expect(root.classList.contains('pool--feeding')).toBe(false)
     await waitFor(() => expect(otty.feedOtty).toHaveBeenCalledWith(['id0']))
     expect(otty.dropFiles).toHaveBeenCalledWith([pdf])
   })
 
-  it('opens its mouth while something is over it, and munches on the drop', () => {
+  it('rings twice on a text drop, and hands the text to main', () => {
     const { container } = render(<Bubble />)
-    const bubble = container.querySelector('.bubble')!
-    fireEvent.dragOver(bubble, drag([], 'a line'))
-    expect(face(container)).toBe('otter--hungry')
-    fireEvent.drop(bubble, drag([], '  a line  '))
-    expect(face(container)).toBe('otter--munch')
+    const root = pool(container)
+    fireEvent.dragOver(root, drag([], 'a line'))
+    fireEvent.drop(root, drag([], '  a line  '))
+    expect(container.querySelectorAll('.pool__ring').length).toBe(2)
     expect(otty.feedOttyText).toHaveBeenCalledWith('a line')
     expect(otty.dropFiles).not.toHaveBeenCalled()
   })
 
   it('ignores a drag with neither files nor text, and a drop main turned away', async () => {
     const { container } = render(<Bubble />)
-    const bubble = container.querySelector('.bubble')!
-    fireEvent.dragOver(bubble, drag([]))
-    expect(bubble.classList.contains('bubble--feeding')).toBe(false)
+    const root = pool(container)
+    fireEvent.dragOver(root, drag([]))
+    expect(root.classList.contains('pool--feeding')).toBe(false)
     otty.dropFiles.mockResolvedValueOnce([])
-    fireEvent.drop(bubble, drag([new File(['x'], 'a.txt')]))
+    fireEvent.drop(root, drag([new File(['x'], 'a.txt')]))
     await waitFor(() => expect(otty.dropFiles).toHaveBeenCalled())
     expect(otty.feedOtty).not.toHaveBeenCalled()
   })
 })
 
-describe('otter moods (D-38)', () => {
+describe('moods and sleep (D-38)', () => {
   afterEach(() => vi.useRealTimers())
 
   it('dozes off after a quiet spell, and a hover wakes it', () => {
     vi.useFakeTimers()
     const { container } = render(<Bubble />)
-    expect(face(container)).toBe('otter--idle')
+    expect(stateOf(container)).toBe('pool--resting')
     act(() => void vi.advanceTimersByTime(SLEEP_MS))
-    expect(face(container)).toBe('otter--sleepy')
-    fireEvent.pointerEnter(container.querySelector('.bubble')!)
-    expect(face(container)).toBe('otter--idle')
+    expect(stateOf(container)).toBe('pool--asleep')
+    expect(container.querySelectorAll('.pool__zs span').length).toBe(3)
+    expect(frameOf(container)).toContain('float-doze')
+    fireEvent.pointerEnter(pool(container))
+    expect(stateOf(container)).toBe('pool--resting')
   })
 
-  it('is caught once a press moves, and wiggles once let go', () => {
+  it('is carried once a press moves, and rings once let go', () => {
     const { container } = render(<Bubble />)
-    const bubble = container.querySelector('.bubble')!
-    bubble.setPointerCapture = () => {}
-    fireEvent.pointerDown(bubble, { button: 0, pointerId: 1, screenX: 100, screenY: 100 })
-    expect(face(container)).toBe('otter--idle')
-    fireEvent.pointerMove(bubble, { pointerId: 1, screenX: 120, screenY: 100 })
-    expect(face(container)).toBe('otter--caught')
-    fireEvent.pointerUp(bubble, { button: 0, pointerId: 1 })
-    expect(face(container)).toBe('otter--idle')
-    expect(bubble.classList.contains('bubble--landed')).toBe(true)
+    const root = pool(container)
+    root.setPointerCapture = () => {}
+    fireEvent.pointerDown(root, { button: 0, pointerId: 1, screenX: 100, screenY: 100 })
+    expect(stateOf(container)).toBe('pool--resting')
+    fireEvent.pointerMove(root, { pointerId: 1, screenX: 120, screenY: 100 })
+    expect(stateOf(container)).toBe('pool--carried')
+    fireEvent.pointerUp(root, { button: 0, pointerId: 1 })
+    expect(stateOf(container)).toBe('pool--resting')
+    expect(container.querySelectorAll('.pool__ring').length).toBe(1)
   })
 
-  it('stays itself through a plain click: no catch, no wiggle', () => {
+  it('stays itself through a plain click: no carry, no ring', () => {
     const { container } = render(<Bubble />)
-    const bubble = container.querySelector('.bubble')!
-    bubble.setPointerCapture = () => {}
-    fireEvent.pointerDown(bubble, { button: 0, pointerId: 1, screenX: 100, screenY: 100 })
-    fireEvent.pointerMove(bubble, { pointerId: 1, screenX: 102, screenY: 101 })
-    fireEvent.pointerUp(bubble, { button: 0, pointerId: 1 })
-    expect(face(container)).toBe('otter--idle')
-    expect(bubble.classList.contains('bubble--landed')).toBe(false)
+    const root = pool(container)
+    root.setPointerCapture = () => {}
+    fireEvent.pointerDown(root, { button: 0, pointerId: 1, screenX: 100, screenY: 100 })
+    fireEvent.pointerMove(root, { pointerId: 1, screenX: 102, screenY: 101 })
+    fireEvent.pointerUp(root, { button: 0, pointerId: 1 })
+    expect(stateOf(container)).toBe('pool--resting')
+    expect(container.querySelector('.pool__ring')).toBeNull()
   })
 
-  it('shows main’s face over its own: a head tilt when an answer fails', () => {
-    let tell: (s: string) => void = () => {}
-    Object.assign(window.otty, { onBubbleState: (cb: (s: string) => void) => ((tell = cb), () => {}) })
+  it('bobs and rings once per hover', () => {
     const { container } = render(<Bubble />)
-    act(() => tell('oops'))
-    expect(face(container)).toBe('otter--oops')
+    fireEvent.pointerEnter(pool(container))
+    expect(pool(container).classList.contains('pool--bob')).toBe(true)
+    expect(container.querySelector('.pool__ring')).not.toBeNull()
   })
 })

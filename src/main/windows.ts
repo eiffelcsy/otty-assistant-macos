@@ -7,7 +7,8 @@ import { readText } from './ocr'
 import { getStored, saveBubblePosition } from './settings'
 import { closeRoomy, expand, floatingSize, FLOATING, remember, sendState, shrink, windowState, SPACES, prepareStandIn, LIGHTS } from './roomy'
 
-const BUBBLE_SIZE = 84
+/** The pool (Spec 13): a 112 × 68 water in a 128 × 88 window, the window's size for every place the bubble is measured. */
+const POOL = { width: 128, height: 88 }
 const QUICK_W = 420
 const QUICK_MAX_H = 560
 const GAP = 14
@@ -50,13 +51,13 @@ export const webPreferences = {
 export function createBubble(): BrowserWindow {
   const wa = screen.getPrimaryDisplay().workArea
   const saved = getStored().bubblePosition
-  const pos = saved && onSomeDisplay(saved) ? saved : { x: wa.x + wa.width - BUBBLE_SIZE - 24, y: wa.y + wa.height - BUBBLE_SIZE - 24 }
+  const pos = saved && onSomeDisplay(saved) ? saved : { x: wa.x + wa.width - POOL.width - 24, y: wa.y + wa.height - POOL.height - 24 }
 
   bubble = new BrowserWindow({
     x: pos.x,
     y: pos.y,
-    width: BUBBLE_SIZE,
-    height: BUBBLE_SIZE,
+    width: POOL.width,
+    height: POOL.height,
     frame: false,
     transparent: true,
     resizable: false,
@@ -141,8 +142,8 @@ function floatingSpot({ width: w, height: h }: { width: number; height: number }
     const [bx, by] = bubble.getPosition()
     const wa = screen.getDisplayNearestPoint({ x: bx, y: by }).workArea
     let x = bx - w - GAP
-    if (x < wa.x) x = bx + BUBBLE_SIZE + GAP
-    const y = Math.max(wa.y + GAP, Math.min(by + BUBBLE_SIZE - h, wa.y + wa.height - h - GAP))
+    if (x < wa.x) x = bx + POOL.width + GAP
+    const y = Math.max(wa.y + GAP, Math.min(by + POOL.height - h, wa.y + wa.height - h - GAP))
     return { x: Math.round(Math.max(wa.x + GAP, Math.min(x, wa.x + wa.width - w - GAP))), y: Math.round(y) }
   }
   const c = screen.getCursorScreenPoint()
@@ -339,8 +340,8 @@ export function showPanelByBubble(): void {
   const wa = screen.getDisplayNearestPoint({ x: bx, y: by }).workArea
   const [w, h] = panel.getSize()
   let x = bx - w - GAP
-  if (x < wa.x) x = bx + BUBBLE_SIZE + GAP
-  let y = by + BUBBLE_SIZE - h
+  if (x < wa.x) x = bx + POOL.width + GAP
+  let y = by + POOL.height - h
   y = Math.max(wa.y + GAP, Math.min(y, wa.y + wa.height - h - GAP))
   x = Math.max(wa.x + GAP, Math.min(x, wa.x + wa.width - w - GAP))
   panel.setPosition(Math.round(x), Math.round(y))

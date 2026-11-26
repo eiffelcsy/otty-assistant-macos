@@ -22,7 +22,7 @@ import type {
 } from '../../src/shared/types'
 import { searchThreads } from '../../src/main/store/search'
 import { draw } from '../../src/renderer/src/draw/render'
-import type { DrawingView } from '../../src/shared/types'
+import type { BubbleMood, DrawingView } from '../../src/shared/types'
 import type { Thread } from '../../src/main/store/types'
 import { entryDetails, logbook, type LogSources } from '../../src/main/logbook'
 import { home } from '../../src/main/home'
@@ -30,6 +30,7 @@ import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
 // ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-feedback|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|pouch|pouch-list|pouch-empty|pouch-card|pouch-search|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
+//   ?view=bubble&scene=pool|pool-working|pool-waiting|pool-answer|pool-paused|pool-night (Spec 13, the pool)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -42,7 +43,8 @@ const clickWhenThere = (sel: string, tries = 40): void => {
 
 // D-74: `&time=dawn|day|golden|night` pins the cove's painting (and Home's greeting) by moving the clock to that hour.
 const HOURS: Record<string, number> = { dawn: 6, day: 14, golden: 17, night: 21 }
-const pinned = HOURS[q.get('time') ?? '']
+// Spec 13: the pool's scenes are at day, and pool-night at night, unless `&time=` says otherwise.
+const pinned = HOURS[q.get('time') ?? (scene === 'pool-night' ? 'night' : scene.startsWith('pool') ? 'day' : '')]
 if (pinned !== undefined) {
   const Real = Date
   const at = new Real()
@@ -1011,8 +1013,16 @@ const api: OttyApi = {
     return () => {}
   },
   onBubbleState: () => () => {},
-  onBubbleMood: () => () => {},
-  onBubbleBadge: () => () => {},
+  // Spec 13, Part 5: the pool's scenes set its mood or badge once it has rendered.
+  onBubbleMood: (cb: (mood: BubbleMood) => void) => {
+    const mood: BubbleMood = scene === 'pool-working' ? 'working' : scene === 'pool-waiting' ? 'waiting' : scene === 'pool-paused' ? 'paused' : null
+    if (mood) setTimeout(() => cb(mood), 50)
+    return () => {}
+  },
+  onBubbleBadge: (cb: (on: boolean) => void) => {
+    if (scene === 'pool-answer') setTimeout(() => cb(true), 50)
+    return () => {}
+  },
   onWindowVisible: () => () => {},
   // D-65: `&state=roomy` draws the roomy window's header and traffic-light row.
   onWindowGlide: () => () => {},

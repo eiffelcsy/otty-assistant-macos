@@ -4,6 +4,12 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### The pool (D-82, Spec 13, 2026-11-26)
+
+- **The floating otter is now a little pool** of the cove's water at the hour, with Otty floating on his back in it. It's still a picture while it rests.
+- **It shows one thing at a time:** Otty paddles while he's looking into something or answering, the rim turns straw when something needs you, a piece of sea glass sits on the water when there's an answer, and Pause turns the water still and grey. He dozes off with three z's after a quiet while.
+- Hovering gives one bob and one ring. Dropping a file swells the pool and lights its rim green.
+
 ### Help and feedback, and a free shortcut when yours is taken (D-79, D-80, 2026-11-26)
 
 - **How do I…** in Settings › Help: short answers for asking about a highlight, a snip or the whole screen, stopping Otty, seeing what left your Mac, connecting your apps and keeping things, with your own shortcuts in the words.
