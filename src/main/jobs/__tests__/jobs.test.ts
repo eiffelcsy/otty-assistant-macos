@@ -20,6 +20,7 @@ vi.mock('../../tools', () => ({webOff: () => false,
   runTool: async (name: string, args: { url?: string }, ctx: { allowed?: ReadonlySet<string>; knownUrl(u: string): boolean; confirm(t: string, d: string): Promise<boolean> }) => {
     if (ctx.allowed && !ctx.allowed.has(name)) return { result: 'refused', status: 'error' }
     if (name === 'read_page' && !ctx.knownUrl(args.url!) && !(await ctx.confirm('Read this page?', args.url!))) return { result: 'declined', status: 'denied' }
+    if (name === 'search_web' && (args as { query?: string }).query === 'big') return { result: 'y'.repeat(20000), status: 'done' }
     return { result: `Result of ${name}${name === 'search_web' ? ' https://found.example/a' : ''}`, status: 'done' }
   }
 }))
@@ -221,6 +222,23 @@ describe('running a job', () => {
     expect(r.saved[0].history).toHaveLength(2) // the brief and report, not every page read
     expect(await r.store.steps(done.id)).toEqual([])
     expect(r.news).toContain(true)
+  })
+
+  it('makes room once when a request is too long, and keeps its steps whole (D-78)', async () => {
+    const r = rig()
+    const appended: Message[] = []
+    const write = r.store.appendStep.bind(r.store)
+    r.store.appendStep = async (id, seq, m) => {
+      appended.push(m)
+      return write(id, seq, m)
+    }
+    r.turns.push(search('1', 'big'), search('2', 'small'), () => {
+      throw new FriendlyError('This chat has grown too long. Please start a new one.', 'too-long')
+    }, say('Report'))
+    await r.runner.start(job)
+    expect(await settled(r)).toMatchObject({ status: 'done' })
+    expect(r.requests[3].messages[2]).toMatchObject({ role: 'tool', content: expect.stringContaining('was set aside') })
+    expect(appended.find((m) => m.role === 'tool' && m.tool_call_id === '1')).toMatchObject({ content: 'y'.repeat(20000) })
   })
 
   it('only offers its allowed tools, and refuses anything else even if the model asks', async () => {

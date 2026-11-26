@@ -103,3 +103,15 @@ export function parseClock(v: string): number {
   const m = /^(\d{2}):(\d{2})$/.exec(v)
   return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : NaN
 }
+
+/** Local midnight of the 1st of the month `ms` falls in, `n` months on (negative goes back). */
+export function monthOf(ms: number, n = 0): number {
+  const d = new Date(ms)
+  return new Date(d.getFullYear(), d.getMonth() + n, 1).getTime()
+}
+
+/** "November 2026". */
+export function monthTitle(ms: number): string {
+  const d = new Date(ms)
+  return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`
+}

@@ -715,6 +715,8 @@ export class ChatSession {
     this.live.set(thread.id, live)
     this.hooks.onTurn?.(false)
     let finished = false
+    // Set when the history was shortened to fit (D-78); its stored rows are then rewritten from the start.
+    let roomed = false
 
     // reasoning_content is only meaningful within the turn that produced it.
     for (const m of history) if (m.role === 'assistant') delete m.reasoning_content
@@ -793,6 +795,12 @@ export class ChatSession {
         maxRounds: MAX_TOOL_ROUNDS,
         signal: abort.signal,
         reasoning,
+        onRoom: () => {
+          roomed = true
+          const chip = { callId: `room-${Date.now()}`, label: 'Made room in this chat', icon: 'compress', status: 'done' as const }
+          answer.tools = [...answer.tools, chip]
+          this.tell(thread, { type: 'tool', id, ...chip })
+        },
         onEvent: (e) => {
           if (e.type === 'text') {
             answer.text += e.text
@@ -838,7 +846,7 @@ export class ChatSession {
       this.hooks.onTurn?.(finished && thread.id !== this.thread.id)
       thread.updatedAt = Date.now()
       // Only this turn's rows: the cost doesn't grow with the length of the chat.
-      this.persist(thread, { messages: answerAt, history: turnStart })
+      this.persist(thread, { messages: answerAt, history: roomed ? 0 : turnStart })
       void this.deps.pruneChats().catch((err) => console.error('Could not forget old chats', err))
       if (finished) this.afterAnswer(thread, answer, answerAt === 1)
     }

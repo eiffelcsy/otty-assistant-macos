@@ -265,7 +265,7 @@ test('Settings shows the whole-screen shortcut and warns when it can’t be used
   await keys.click()
   await panel.getByRole('button', { name: /recording/ }).press('Alt+Space')
   // On this row: re-registering can flag the ask row for a moment too, which made a page-wide match flaky.
-  await expect(panel.locator('.set-row').filter({ has: keys }).getByText('Another app uses this. Pick a different one.')).toBeVisible()
+  await expect(panel.locator('.set-row').filter({ has: keys }).getByText(/^Another app uses this\. .+ is free\./)).toBeVisible()
   // The old shortcut stays, and still works.
   await expect(keys).toBeVisible()
   expect((await otty.snapshot()).shortcuts).toContain('Command+Alt+Shift+Space')

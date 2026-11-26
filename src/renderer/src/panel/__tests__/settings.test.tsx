@@ -45,7 +45,16 @@ const otty = {
   getUsage: vi.fn(async () => ({ days: 30, questions: 4, tokens: 0, searches: 0, pages: 0, jobs: 0, service: 'DeepSeek', month: { questions: 4, tokens: 0 } })),
   clearChats: vi.fn(async () => {}),
   clearMemories: vi.fn(async () => {}),
-  connections: vi.fn(async () => ({ connected: [], offers: [], online: true }))
+  connections: vi.fn(async () => ({ connected: [], offers: [], online: true })),
+  // D-79: the sheet's preview has the log only when it's asked for, and an address only when the build has one.
+  feedbackPreview: vi.fn(async (note: string, withLog: boolean) => ({
+    text: withLog ? `${note}\n\n— Diagnostics —\nOtty 0.5.0\n\n— Log, last 24 hours —\n2026-11-26T09:00:00.000Z info Otty 0.5.0 started` : note,
+    email: null as string | null
+  })),
+  sendFeedback: vi.fn(async () => ({ mailed: false })),
+  openLogFolder: vi.fn(async () => {}),
+  // D-80: nothing free unless a test says so, which keeps the clash line's "Pick a different one" as before.
+  suggestHotkey: vi.fn(async (): Promise<string | null> => null)
 }
 
 beforeEach(() => {
@@ -206,3 +215,47 @@ describe('My tiles (D-56)', () => {
     expect((screen.getByText('Add a tile').closest('button') as HTMLButtonElement).disabled).toBe(true)
   })
 })
+
+describe('Settings › Help (D-79)', () => {
+  it('shows the answers as rows, and the feedback sheet holds Copy it with no address', async () => {
+    open('help')
+    expect(screen.getByRole('group', { name: 'How do I…' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: /^Ask about something you highlighted/ }))
+    expect(screen.getByText(/Highlight text in any app and press ⌥ ?Space/)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Send feedback/ }))
+    fireEvent.change(screen.getByLabelText('What happened, or what you’d like'), { target: { value: 'It froze.' } })
+    expect(await screen.findByRole('button', { name: 'Copy it' })).toBeTruthy()
+    // The log is opt-in: nothing of it is shown until the box is ticked.
+    expect(screen.queryByText(/— Log, last 24 hours —/)).toBeNull()
+    fireEvent.click(screen.getByRole('checkbox', { name: /Attach the last day’s log/ }))
+    expect(await screen.findByText(/— Log, last 24 hours —/)).toBeTruthy()
+  })
+
+  it('says Send when the build has an address, and reports what happened', async () => {
+    const plain = otty.feedbackPreview.getMockImplementation()!
+    otty.feedbackPreview.mockImplementation(async (note: string) => ({ text: note, email: 'help@example.com' }))
+    otty.sendFeedback.mockResolvedValueOnce({ mailed: true })
+    open('help')
+    fireEvent.click(screen.getByRole('button', { name: /^Send feedback/ }))
+    fireEvent.change(screen.getByLabelText('What happened, or what you’d like'), { target: { value: 'It froze.' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Send' }))
+    expect(otty.sendFeedback).toHaveBeenCalledWith('It froze.', false)
+    expect(await screen.findByText(/Your note is on the clipboard too/)).toBeTruthy()
+  otty.feedbackPreview.mockImplementation(plain)
+  })
+})
+
+describe('a taken shortcut with a free one (D-80)', () => {
+  it('names the free shortcut, and Use it saves it', async () => {
+    otty.setSetting.mockImplementation(async (key: string, value: unknown) => ({ ...base, [key]: value, takenHotkeys: value === 'Alt+Command+K' ? ['Alt+Command+K'] : [] }))
+    otty.suggestHotkey.mockResolvedValue('Alt+Shift+A')
+    open('keys')
+    fireEvent.click(screen.getByRole('button', { name: /^Ask about highlighted text/ }))
+    fireEvent.keyDown(screen.getByRole('button', { name: /recording/ }), { key: 'k', code: 'KeyK', altKey: true, metaKey: true })
+    expect(await screen.findByText('Another app uses this. ⌥⇧A is free.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Use it' }))
+    await waitFor(() => expect(otty.setSetting.mock.calls).toContainEqual(['askHotkey', 'Alt+Shift+A']))
+  })
+})
+
