@@ -7,8 +7,8 @@ import { readText } from './ocr'
 import { getStored, saveBubblePosition } from './settings'
 import { closeRoomy, expand, floatingSize, FLOATING, remember, sendState, shrink, windowState, SPACES, prepareStandIn, LIGHTS } from './roomy'
 
-/** The pool (Spec 13): a 112 × 68 water in a 128 × 88 window, the window's size for every place the bubble is measured. */
-const POOL = { width: 128, height: 88 }
+/** The pool (Spec 13): a 112 × 68 water in a 128 × 96 window, with room above for Otty’s head, the window's size for every place the bubble is measured. */
+const POOL = { width: 128, height: 96 }
 const QUICK_W = 420
 const QUICK_MAX_H = 560
 const GAP = 14

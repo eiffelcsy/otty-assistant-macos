@@ -501,7 +501,7 @@ html[data-asleep] *::after {
 html[data-view='bubble'] body {
   overflow: hidden;
 }
-/* The window is 128 x 88; the pool is its 112 x 68 ellipse, inset 10px 8px, and Otty sits above its rim. */
+/* The window is 128 x 96; the pool is its 112 x 68 ellipse, inset 18px 8px 10px, and Otty, a little oversized for it, sits above its rim. */
 .pool {
   position: absolute;
   inset: 0;
@@ -527,7 +527,7 @@ html[data-view='bubble'] body {
 .pool__water {
   --pool-rim: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -6px 10px rgba(20, 40, 50, 0.28), var(--elev-2);
   position: absolute;
-  inset: 10px 8px;
+  inset: 18px 8px 10px;
   border-radius: 50%;
   overflow: hidden;
   box-shadow: var(--pool-rim);
@@ -550,12 +550,12 @@ html[data-view='bubble'] body {
 .pool--paused .pool__water img {
   filter: saturate(0.25) brightness(0.92);
 }
-/* Otty: the float frame, 84 wide, centred at 52% across the pool, its top 6px above the rim. */
+/* Otty: the float frame, 104 wide (a little oversized, for cuteness), centred at 52% across the pool, its top 14px above the rim. */
 .pool__otty {
   position: absolute;
   top: 4px;
-  left: calc(50% + 2px - 42px);
-  width: 84px;
+  left: calc(50% + 2px - 52px);
+  width: 104px;
   pointer-events: none;
 }
 .pool__frame {
@@ -597,7 +597,7 @@ html[data-view='bubble'] body {
 /* One ring, from the pool's size to 1.15x, fading. The second (a feed) comes 120 ms later. */
 .pool__ring {
   position: absolute;
-  inset: 10px 8px;
+  inset: 18px 8px 10px;
   border-radius: 50%;
   border: 1.5px solid rgba(255, 255, 255, 0.4);
   opacity: 0;
@@ -616,7 +616,7 @@ html[data-view='bubble'] body {
 .bubble__working {
   position: absolute;
   left: calc(50% + 2px - 5px);
-  top: 58px;
+  top: 66px;
   width: 10px;
   height: 3px;
   border-radius: 50%;
@@ -624,7 +624,7 @@ html[data-view='bubble'] body {
   pointer-events: none;
 }
 .bubble__working--waiting {
-  inset: 10px 8px;
+  inset: 18px 8px 10px;
   width: auto;
   height: auto;
   border-radius: 50%;
@@ -635,7 +635,7 @@ html[data-view='bubble'] body {
 .bubble__paused {
   position: absolute;
   left: 2px;
-  top: 35px;
+  top: 43px;
   display: grid;
   place-items: center;
   width: 18px;
@@ -653,7 +653,7 @@ html[data-view='bubble'] body {
   /* In front of Otty, on the open water below his feet. */
   z-index: 2;
   right: 22px;
-  top: 58px;
+  top: 66px;
   width: 12px;
   height: 9px;
   border-radius: 40% 60% 50% 50%;
