@@ -266,7 +266,9 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Rewind a chat to any earlier message: the chat-sized version of Rewind. Lists what the removed turns did, undo ticked by default and untickable, because a rewind is often just a typo fix and shouldn't silently forget what was said later | H | M | idea, after the action ledger |
 | Copy on your own messages, beside the Copy that answers already have | M | S | idea |
 | Keep each version after a retry, an edit or a rewind, with ‹ 1/2 › to switch between them, as other chat apps do. Needs branching history in `otty.db` | M | M | idea, after retry and edit |
-| Customisable hotkeys with a key recorder (not a text field) | M | S | → D-80 (beta, 2026-11-24) |
+| Customisable hotkeys with a key recorder (not a text field) | M | S | shipped (D-61, the recorder; D-80, a free shortcut offered when one is taken) |
+| Send feedback straight to a small inbox the owner runs (no email app needed), with the same shown-in-full rule | M | S–M | idea, after D-79; needs the hosted service |
+| How do I… answers that open the thing they describe (a button to the Logbook, Connections, the Pouch) | L | S | idea, after D-79 |
 | File picker's filter leaves out TIFF, BMP and code files that Otty can read (they only show under All files) | L | S | shipped (D-29) |
 | Remember the panel's size and position per display | L | S | idea |
 | Smooth hand-off animation from quick view to panel | L | S | idea |

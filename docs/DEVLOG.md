@@ -90,8 +90,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-79 | Help and feedback inside Otty: a Help page, Send feedback with an optional log, and the full list of where lookups go | ⏳ beta | where feedback goes (owner) | S |
-| D-80 | Your own shortcuts: a key recorder, and plain words when another app has the key | ⏳ beta | — | S |
 | D-81 | Turns as the unit of storage: step 0 done, decided to wait (the turns can be rebuilt from today's rows) | ⏸ after the beta, by decision (2026-11-26) | branching, versions or sync being planned | M |
 | D-82 | The pool, step 1: the bubble becomes a small pool of cove water with Otty floating in it (beta polish) | ⏳ beta | D-71 art (done) | S–M |
 | D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ after the core services (moved down 2026-11-24) | D-56 (done); services from D-54, D-73 and D-77 | L (step 0: S) |
@@ -371,24 +369,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - Coverage floors and UI screenshots are in CI, and a deliberate CSS break in one card fails with a diff image.
 
 ---
-
-## D-79 · Help and feedback inside Otty ⏳ beta
-
-**Goal.** A tester can find out how to use Otty, and tell the owner what went wrong, without leaving it (LAUNCH_READINESS 14.5, 15.5):
-- A **How do I…** page in Settings › Help: the three hotkeys, snipping, stopping Otty, and seeing what was sent, written in plain words.
-- **Send feedback**: the person's words, plus the last day's log only if they tick it. Everything is shown in full before it's sent, as Copy diagnostics does.
-- **Open the log folder.**
-- Settings › Privacy names every place a lookup can go (Wikipedia and DuckDuckGo, as well as DeepSeek).
-
-**Owner decision:** where feedback goes. A prefilled email is the simplest choice and needs no server.
-
-**Done when.** The page and the feedback sheet have scenes. A feedback note never includes a log unless the box was ticked (test). The privacy lines match what `sent.ts` can record (test).
-
-## D-80 · Your own shortcuts ⏳ beta
-
-**Goal.** The highlight, snip and whole-screen hotkeys can be changed in Settings with a key recorder, not a text field. When a key can't be registered because another app has it, Otty says so in plain words and suggests a free one, instead of seeming to do nothing.
-
-**Done when.** A changed key works after a relaunch, and a taken key shows the friendly line (smoke, through the harness's "shortcut taken by another app" list).
 
 ## D-81 · Turns as the unit of storage: decided to wait (2026-11-26) ⏸
 
@@ -920,3 +900,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 199. Put back a stone → it goes, with Undo, which brings it back on its shelf. Settings › Privacy › Forget my Pouch → the Pouch is empty
 200. A chat with a long page read in an earlier turn: the model says the request is too long → the answer still comes, with the chip "Made room in this chat" and no error card; the next question's request carries the page as set aside
 201. A background look with a long page read: the model says it's too long → the look still finishes, and its report opens from the Logbook
+202. Settings › Help › How do I… → "Ask about something you highlighted" unfolds with your own shortcut in it. Send feedback, type a note, and with no address the button reads Copy it → the clipboard holds only the note
+203. Send feedback with "Attach the last day's log" ticked → the sheet shows the diagnostics and "— Log, last 24 hours —" before anything is copied. Open the log folder opens Otty's log folder
+204. A taken shortcut → the Home banner says "is free." with the free one; Change it → Shortcuts says it too, and Use it saves that shortcut and the banner goes

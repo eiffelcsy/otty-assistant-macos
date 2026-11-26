@@ -7,7 +7,8 @@ import { nearCap } from './cap'
 export type HealthProblem =
   | { kind: 'accessibility' }
   | { kind: 'screen' }
-  | { kind: 'hotkey'; hotkey: string; what: string }
+  /** `free` is a shortcut that works, asked by the panel with `hotkeys:suggest` (D-80). */
+  | { kind: 'hotkey'; hotkey: string; what: string; free?: string | null }
   /** This month's limit is passed (D-33): the user's questions still go, and they should know why nothing starts by itself. */
   | { kind: 'cap'; cap: MonthlyCap }
   /** 80% of it is used (D-57): said once a month, until the user has seen it. */

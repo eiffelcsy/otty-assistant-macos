@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Help and feedback, and a free shortcut when yours is taken (D-79, D-80, 2026-11-26)
+
+- **How do I…** in Settings › Help: short answers for asking about a highlight, a snip or the whole screen, stopping Otty, seeing what left your Mac, connecting your apps and keeping things, with your own shortcuts in the words.
+- **Send feedback** from Settings › Help. Your note goes in a ready-made email (or onto the clipboard). Attaching the last day's log is your choice, and the whole note is shown before anything is copied. **Open the log folder** is there too.
+- **Privacy names every place a look-up can go**: your service's own search, Wikipedia and DuckDuckGo, and the page's own site.
+- **A free shortcut, offered.** When another app already has a shortcut you pick, Otty says which one is free, and "Use it" sets it. The Home banner names the free one too.
+
 ### Long chats don't break (D-78, 2026-11-26)
 
 - **A long chat carries on instead of failing.** When a chat or a background look grows too long for the model, Otty sets aside old page reads, pictures and long pasted text, keeps your last two questions whole, and tries again once. The answer shows "Made room in this chat".

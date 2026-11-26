@@ -13,6 +13,7 @@ const MAX_BYTES = 1_000_000
 const LINE_CHARS = 300
 
 let file: string | null = null
+let folder = ''
 
 /** One line: the time, the level and the message. Masked before it's cut, so half a key can't survive. */
 export function logLine(level: 'info' | 'warn' | 'error', args: unknown[], now = new Date()): string {
@@ -40,6 +41,7 @@ export function startLog(dir: string, version: string): void {
   } catch {
     return
   }
+  folder = dir
   file = join(dir, 'otty.log')
   for (const level of ['warn', 'error'] as const) {
     const original = console[level].bind(console)
@@ -58,4 +60,15 @@ export function lastLines(n: number): string[] {
   } catch {
     return []
   }
+}
+
+/** Where the log is kept, for Open the log folder (D-79). */
+export const logFolder = (): string => folder
+
+/** The log's lines from the last 24 hours, at most the last 300, for Send feedback (D-79). */
+export function lastDay(now = Date.now()): string[] {
+  const since = now - 24 * 3_600_000
+  return lastLines(2000)
+    .filter((l) => Date.parse(l.slice(0, 24)) >= since)
+    .slice(-300)
 }

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { ConnectionsState, KeepChats, MonthlyCap, PublicSettings, SettableKey, SettingsCounts, UsageReport } from '../../../../shared/types'
-import { serviceAt, serviceById } from '../../../../shared/services'
+import { lookupsGoTo, serviceAt, serviceById } from '../../../../shared/services'
 import { findRanges, parseQuery } from '../../../../shared/match'
 import { connectionReady, ConnectionFields } from '../../components/ConnectionFields'
 import { Icon } from '../../components/Icon'
 import { prettyKey } from '../../lib/keys'
+import { howTo } from './help'
 import { Connections } from './Connections'
 import { MyTiles } from './Tiles'
 import { ChoiceRow, CustomRow, Group, HoldButton, HoldRow, KeysRow, LinkRow, SwitchRow, ValueRow } from './rows'
@@ -120,6 +121,13 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
   const [failed, setFailed] = useState<SettableKey | null>(null)
   /** A shortcut just recorded that another app owns: the old one was put back. */
   const [clash, setClash] = useState<SettableKey | null>(null)
+  /** D-80: a free shortcut for each taken one, asked of main; null when none works. */
+  const [free, setFree] = useState<Partial<Record<'askHotkey' | 'snapHotkey' | 'screenHotkey', string | null>>>({})
+  useEffect(() => {
+    for (const key of ['askHotkey', 'snapHotkey', 'screenHotkey'] as const) {
+      if (settings.takenHotkeys.includes(settings[key])) void window.otty.suggestHotkey(key).then((accel) => setFree((f) => ({ ...f, [key]: accel })), () => {})
+    }
+  }, [settings])
   /** What a control shows while main saves it, so a switch moves at once and goes back if the save fails. */
   const [pending, setPending] = useState<Partial<PublicSettings>>({})
   /** D-54: the connections, for the list's summary and the Connections section. Never throws into the list. */
@@ -150,6 +158,7 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
       return setSaved((n) => n + 1)
     }
     setClash(key)
+    void window.otty.suggestHotkey(key).then((accel) => setFree((f) => ({ ...f, [key]: accel })), () => {})
     onSaved((await window.otty.setSetting(key, old).catch(() => null)) ?? next)
   }
 
@@ -259,7 +268,17 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
               ['screenHotkey', 'The whole screen', 'Includes everything on it, such as notifications and other windows. Nothing is sent until you ask.']
             ] as const
           ).map(([key, t, d]) => (
-            <KeysRow key={key} {...row(key)} title={t} description={d} value={settings[key]} clash={clash === key || settings.takenHotkeys.includes(settings[key])} onChange={(v) => void record(key, v)} />
+            <KeysRow
+              key={key}
+              {...row(key)}
+              title={t}
+              description={d}
+              value={settings[key]}
+              clash={clash === key || settings.takenHotkeys.includes(settings[key])}
+              free={free[key]}
+              onUse={(accel) => void record(key, accel)}
+              onChange={(v) => void record(key, v)}
+            />
           ))}
         </Group>
       )}
@@ -267,7 +286,7 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
       {section === 'links' && links && <Connections state={links} onChange={setLinks} />}
       {section === 'usage' && <Usage usage={usage} cap={shown.monthlyCap} row={row} save={save} />}
       {section === 'conn' && <Conn settings={settings} shown={shown} row={row} save={save} onSaved={onSaved} />}
-      {section === 'help' && <Help />}
+      {section === 'help' && <Help settings={settings} />}
     </div>
   )
 }
@@ -390,7 +409,14 @@ function Privacy({ shown, settings, row, save, onOpenLogbook, onOpenNotebook }: 
         />
       </Group>
       <Group label="What leaves your Mac">
-        <ValueRow title="Web look-ups" description={settings.readsPages ? serviceById(serviceAt(settings.baseUrl)).webPrivacy : 'Nothing leaves this Mac.'} />
+        <ValueRow
+          title="Web look-ups"
+          description={
+            settings.readsPages
+              ? `${serviceById(serviceAt(settings.baseUrl)).webPrivacy} Look-ups can go to: ${lookupsGoTo(serviceAt(settings.baseUrl))}.`
+              : 'Nothing leaves this Mac.'
+          }
+        />
         <LinkRow {...row('sent')} title="See what left my Mac" onClick={() => onOpenLogbook('sent')} />
         <LinkRow {...row('changed')} title="See what Otty changed" onClick={() => onOpenLogbook('changed')} />
       </Group>
@@ -532,24 +558,116 @@ function Conn({ settings, shown, row, save, onSaved }: { settings: PublicSetting
   )
 }
 
-/** D-50: what to send Otty's team when something goes wrong, all shown before it's copied. */
-function Help() {
+/** D-79: Settings › Help. Answers, feedback to the owner, and the logs; D-50's Copy diagnostics stays as it was. */
+function Help({ settings }: { settings: PublicSettings }) {
   const [report, setReport] = useState<string | null>(null)
   const [copied, setCopied] = useState<boolean | 'failed'>(false)
+  const [sheet, setSheet] = useState(false)
   return (
-    <Group label="Help">
-      <LinkRow title="Copy diagnostics" description="Shown in full before anything is copied. Never your chats or keys." onClick={() => void window.otty.getDiagnostics().then(setReport)} />
-      {report !== null && (
+    <>
+      <Group label="How do I…">
+        {howTo(settings).map((h) => (
+          <HowTo key={h.question} {...h} />
+        ))}
+      </Group>
+      <Group label="Tell us">
+        <button className="set-row set-row--tap" aria-expanded={sheet} onClick={() => setSheet(!sheet)}>
+          <span className="set-row__text">
+            <span className="set-row__title">Send feedback</span>
+            <span className="set-row__desc">Your words, and the last day’s log if you choose. Shown before anything is copied.</span>
+          </span>
+          <Icon name={sheet ? 'angle-small-up' : 'angle-small-right'} className="set-row__chevron" />
+        </button>
+        {sheet && <Feedback />}
+        <LinkRow title="Copy diagnostics" description="Shown in full before anything is copied. Never your chats or keys." onClick={() => void window.otty.getDiagnostics().then(setReport)} />
+        {report !== null && (
+          <div className="set-conn">
+            <pre className="diagnostics" aria-label="Diagnostics">
+              {report}
+            </pre>
+            <button className="btn btn--soft btn--small" onClick={() => void window.otty.copyText(report).then(() => setCopied(true), () => setCopied('failed'))}>
+              <Icon name="copy" /> {copied === 'failed' ? 'Couldn’t copy, try again' : copied ? 'Copied' : 'Copy this'}
+            </button>
+          </div>
+        )}
+        <LinkRow title="Open the log folder" description="Otty’s log, with nothing of your chats in it." onClick={() => void window.otty.openLogFolder()} />
+      </Group>
+    </>
+  )
+}
+
+/** One of the "How do I…" rows: a click unfolds its short answer in place. */
+function HowTo({ question, answer }: { question: string; answer: string }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button className="set-row set-row--tap" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="set-row__text">
+          <span className="set-row__title">{question}</span>
+        </span>
+        <Icon name={open ? 'angle-small-up' : 'angle-small-down'} className="set-row__chevron" />
+      </button>
+      {open && (
         <div className="set-conn">
-          <pre className="diagnostics" aria-label="Diagnostics">
-            {report}
-          </pre>
-          <button className="btn btn--soft btn--small" onClick={() => void window.otty.copyText(report).then(() => setCopied(true), () => setCopied('failed'))}>
-            <Icon name="copy" /> {copied === 'failed' ? 'Couldn’t copy, try again' : copied ? 'Copied' : 'Copy this'}
-          </button>
+          <p>{answer}</p>
         </div>
       )}
-    </Group>
+    </>
+  )
+}
+
+/**
+ * D-79: the feedback sheet. The preview with the log appears only once the box is ticked, and it's the same text Send
+ * copies. Send opens a pre-filled email when the build has an address; otherwise the button copies.
+ */
+function Feedback() {
+  const [note, setNote] = useState('')
+  const [withLog, setWithLog] = useState(false)
+  const [preview, setPreview] = useState<string | null>(null)
+  const [email, setEmail] = useState<string | null>(null)
+  const [done, setDone] = useState<'mailed' | 'copied' | 'failed' | null>(null)
+  useEffect(() => {
+    let live = true
+    void window.otty.feedbackPreview(note, withLog).then(
+      (p) => {
+        if (!live) return
+        setEmail(p.email)
+        setPreview(withLog ? p.text : null)
+      },
+      () => {}
+    )
+    return () => {
+      live = false
+    }
+  }, [note, withLog])
+  const send = () => {
+    setDone(null)
+    void window.otty.sendFeedback(note, withLog).then(
+      ({ mailed }) => setDone(mailed ? 'mailed' : 'copied'),
+      () => setDone('failed')
+    )
+  }
+  return (
+    <div className="set-conn">
+      <label>
+        <span className="set-row__title">What happened, or what you’d like</span>
+        <textarea className="field" value={note} maxLength={4000} rows={5} onChange={(e) => setNote(e.target.value)} />
+      </label>
+      <label>
+        <input type="checkbox" checked={withLog} onChange={(e) => setWithLog(e.target.checked)} /> Attach the last day’s log
+      </label>
+      {preview !== null && (
+        <pre className="diagnostics" aria-label="What will be sent">
+          {preview}
+        </pre>
+      )}
+      <button className="btn btn--primary" disabled={!note.trim()} onClick={send}>
+        {email ? 'Send' : 'Copy it'}
+      </button>
+      {done === 'mailed' && <p>Your note is on the clipboard too. Paste it into the email if the log didn’t fit.</p>}
+      {done === 'copied' && <p>Copied. Send it to the person who gave you Otty.</p>}
+      {done === 'failed' && <p>Couldn’t copy, try again</p>}
+    </div>
   )
 }
 

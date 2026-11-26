@@ -29,7 +29,7 @@ import { home } from '../../src/main/home'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|pouch|pouch-list|pouch-empty|pouch-card|pouch-search|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-feedback|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|pouch|pouch-list|pouch-empty|pouch-card|pouch-search|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -663,6 +663,18 @@ const api: OttyApi = {
   getPermissions: async () => ({ platform: 'darwin', accessibility: true, screen: scene === 'near' || scene === 'cap' }),
   openPermissionSettings: noop,
   relaunch: noop,
+  // D-79: the feedback text as it would be copied; the log's lines come after the diagnostics, only when ticked.
+  feedbackPreview: async (note, withLog) => ({
+    text: withLog ? `${note}\n\n— Diagnostics —\nOtty 0.5.0 · macOS 26.1 · arm64\n\n— Log, last 24 hours —\n2026-11-18T09:00:00.000Z info Otty 0.5.0 started` : note,
+    email: null
+  }),
+  sendFeedback: async (note) => {
+    ;(window as any).__copied = note
+    return { mailed: false }
+  },
+  openLogFolder: noop,
+  // D-80: a free shortcut for a taken one (the sample's taken key is Command+Alt+Shift+Space, so this is free).
+  suggestHotkey: async () => 'Alt+Shift+A',
   getDiagnostics: async () =>
     'Otty 0.5.0 · macOS 26.1 · arm64\nInstalled app: yes · in Applications: yes\nService: DeepSeek · model deepseek-flash · web deepseek\nAccessibility: yes · Screen Recording: yes · paused: no\n\nLast 2 log lines:\n2026-11-18T09:00:00.000Z info Otty 0.5.0 started\n2026-11-18T09:12:04.120Z warn Refused chat:send: argument 2 doesn’t fit',
   connections: async () => structuredClone(links),
@@ -935,7 +947,7 @@ const api: OttyApi = {
     if (scene.startsWith('settings') || scene === 'provider' || scene.startsWith('connections')) setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
     // D-61: `&section=you|keys|privacy|usage|conn|help` opens a section; the other settings scenes set one up.
     const titles: Record<string, string> = { you: 'You & Otty', tiles: 'My tiles', keys: 'Shortcuts', privacy: 'Privacy', usage: 'Usage & limit', links: 'Connections', conn: 'Connection', help: 'Help' }
-    const setUp: Record<string, string> = { 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn', connections: 'links', 'connections-add': 'links', 'connections-mcp': 'links', 'connections-off': 'links' }
+    const setUp: Record<string, string> = { 'settings-feedback': 'help', 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn', connections: 'links', 'connections-add': 'links', 'connections-mcp': 'links', 'connections-off': 'links' }
     const section = setUp[scene] ?? (titles[scene.replace('settings-', '')] ? scene.replace('settings-', '') : null)
     // React runs this twice in development, so each press happens once.
     // `exact` matches a section by its whole title: "Connection" is also the start of "Connections" (D-54).
@@ -952,6 +964,8 @@ const api: OttyApi = {
     // D-54: the own connection's form with "A key or token" chosen, or Linear's detail open.
     if (scene === 'connections-add') setTimeout(() => (press('.set-row', 'Your own connection'), setTimeout(() => (() => { const s = document.querySelector<HTMLSelectElement>('select[aria-label="How it signs in"]'); if (s) { Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(s, 'token'); s.dispatchEvent(new Event('change', { bubbles: true })) } })(), 80)), 240)
     if (scene === 'connections-mcp') setTimeout(() => press('.set-row', 'Linear'), 240)
+    // D-79: the feedback sheet open, with the log ticked, so the preview shows.
+    if (scene === 'settings-feedback') setTimeout(() => (press('.set-row', 'Send feedback'), setTimeout(() => document.querySelector<HTMLInputElement>('.set-conn input[type="checkbox"]')?.click(), 240)), 240)
     if (scene === 'settings-retention')
       setTimeout(() => {
         const keep = document.querySelector<HTMLSelectElement>('select[aria-label="Keep chats for"]')
