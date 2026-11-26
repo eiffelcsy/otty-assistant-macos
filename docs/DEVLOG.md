@@ -90,10 +90,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-78 | Long chats don't break: make room once with code-written stubs and retry on "too long", in chats and jobs | 🔨 beta, building (2026-11-26) | — | S–M |
 | D-79 | Help and feedback inside Otty: a Help page, Send feedback with an optional log, and the full list of where lookups go | ⏳ beta | where feedback goes (owner) | S |
 | D-80 | Your own shortcuts: a key recorder, and plain words when another app has the key | ⏳ beta | — | S |
-| D-81 | Turns as the unit of storage, decided before testers have data | ⏳ beta (decide first) | — | M |
+| D-81 | Turns as the unit of storage: step 0 done, decided to wait (the turns can be rebuilt from today's rows) | ⏸ after the beta, by decision (2026-11-26) | branching, versions or sync being planned | M |
 | D-82 | The pool, step 1: the bubble becomes a small pool of cove water with Otty floating in it (beta polish) | ⏳ beta | D-71 art (done) | S–M |
 | D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ after the core services (moved down 2026-11-24) | D-56 (done); services from D-54, D-73 and D-77 | L (step 0: S) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
@@ -112,7 +111,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
    - **D-78 Long chats don't break** (H, S–M). Today a chat that gets too long ends with "Something went wrong (error 400)", and a job can overflow after about a dozen long pages. Testers who use Otty for real will hit it. This entry covers compacting once and retrying (EFFICIENCY 13). The job history view (EFFICIENCY 2, 8) stays its own idea.
    - **D-79 Help and feedback** (H, S). LAUNCH_READINESS 14.5 and 15.5: a How do I… page, Send feedback with the last day's log attached if the person chooses, Open the log folder, and Settings › Privacy naming Wikipedia and DuckDuckGo, not only DeepSeek. Without these, a tester's problem stays invisible.
    - **D-80 Your own shortcuts** (M, S). Three global hotkeys will clash with some tester's other apps, and a clash today just looks like Otty doing nothing.
-   - **D-81 Turns as the unit of storage** (H, M). This one is a decision, not a feature. Once testers have chats, every message shape stays forever (the migration rule), and BRAINSTORM says to do this "before 1.0". The beta is the cheaper point to do it. If it waits, note why in the entry.
+   - **D-81 Turns as the unit of storage** (H, M). Decided 2026-11-26: wait (the entry says why). This one is a decision, not a feature. Once testers have chats, every message shape stays forever (the migration rule), and BRAINSTORM says to do this "before 1.0". The beta is the cheaper point to do it. If it waits, note why in the entry.
 
    - **D-82 The pool, step 1** (H, S–M; the owner added it as the beta's polish, 2026-11-24). The bubble is the first thing a tester sees, and it doesn't yet match the cove. The art exists.
 
@@ -373,30 +372,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 ---
 
-## D-78 · Long chats don't break 🔨 beta
-
-**Goal.** When a request is too long for the model, Otty makes room once and retries, and never shows "error 400" or "This chat has grown too long". It comes from EFFICIENCY 13, with item 2's stubs. The job history view (EFFICIENCY 2 and 8) stays its own later entry.
-
-**Decisions (2026-11-26).**
-1. **Recognising it.** `friendlyStatus` reads more as too long: a 400 or 413 whose body says "maximum context length" (DeepSeek and OpenAI-style servers), `context_length_exceeded`, "prompt is too long" (Anthropic), "too many tokens" or "reduce the length". All of them give `kind: 'too-long'`.
-2. **Making room is code, never the model.** `compactHistory(history, keepTurns = 2)` in `src/main/compact.ts` is pure. Everything before the last two user messages the user typed gets these changes:
-   - A tool result longer than 500 characters becomes "[An earlier result (N characters) was set aside to fit the chat. Ask for it again if it’s needed.]".
-   - A picture part in a user message becomes the text "[A picture was here; it was set aside to fit the chat.]".
-   - A user message's text over 4,000 characters keeps its first 1,000, then "[… about N more characters were set aside to fit the chat.]".
-   - An assistant message loses its `reasoning_content`.
-
-   Nothing else changes, and every message, tool call and id stays in place, so the history stays valid for both API formats. It returns `{ history, setAside }`, where `setAside` counts what it changed.
-3. **Once, in the loop.** `runLoop` gains `onRoom?(setAside: number): void`. When a request fails as too long and this run hasn't made room yet, it compacts `o.history` in place and sends the same round again. A second failure, or nothing to set aside, throws as before, and the old words stay as the last resort.
-4. **Chats keep the room.** `ChatSession` rewrites the thread's stored history after making room, so the next turn doesn't fail again. This rewrites what was sent, once, on purpose: it costs one cache write, and every later turn caches as before. The answer shows a chip, "Made room in this chat", with the `compress` icon (or the nearest that exists).
-5. **Jobs keep their steps.** `JobRunner` passes `onRoom`, but `JobStore`'s rows stay whole: the compacted history is only what's sent. A resume rebuilds from the full rows and makes room again if it has to. So `isKnownUrl`, taint and the ledger keep reading everything (EFFICIENCY 2's trust rule).
-6. **Nothing is compacted until a request fails,** so DeepSeek's cache holds on every normal turn (`llm.test.ts`).
-
-**Done when.**
-- A scripted "too long" from the fake world ends in an answer, not an error, in a chat and in a job (smoke).
-- The next turn in that chat sends the compacted history (smoke).
-- `compactHistory` keeps ids, tool calls and the last two turns (unit).
-- A job's stored steps are unchanged (unit).
-
 ## D-79 · Help and feedback inside Otty ⏳ beta
 
 **Goal.** A tester can find out how to use Otty, and tell the owner what went wrong, without leaving it (LAUNCH_READINESS 14.5, 15.5):
@@ -415,11 +390,25 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 **Done when.** A changed key works after a relaunch, and a taken key shows the friendly line (smoke, through the harness's "shortcut taken by another app" list).
 
-## D-81 · Turns as the unit of storage (decide before the beta) ⏳
+## D-81 · Turns as the unit of storage: decided to wait (2026-11-26) ⏸
 
-**Goal.** Decide, and if it's yes, build, BRAINSTORM's Runtime row: each turn becomes one append-only record (question, model messages, the answer as shown, actions, run id, parent turn), and both the chat view and the model history are built from it. Rewind, versions, branching and phone sync all need it. Once testers' chats are saved, the migration rule keeps every message shape forever, so the beta is the last cheap point.
+**Step 0, done.** `sqliteStore.ts`, `upgrade.ts` and `ChatSession.rewind` were read against BRAINSTORM's Runtime row. **The decision: don't migrate before the beta.** The entry leaves the beta list.
 
-**Step 0 (S):** read `sqliteStore.ts`, `upgrade.ts` and `ChatSession.rewind` closely, and write down the cost of migrating now against the cost of carrying the two-array shape forward. If the answer is to wait, say why here and drop the entry from the beta.
+**Why waiting costs little.**
+- A chat is saved as two position-ordered tables of JSON rows, `messages` (what the window shows) and `llm_history` (what the model sees).
+- In both, a turn starts at a user message the person typed. That's the same test the store and the eval already use to tell a typed message from a tool result sent as `user`.
+- So a later migration can group the rows of chats saved today into turns with no guesswork. The rows carry everything a turn record needs: question, model messages, answer, receipts, memories and ledger refs.
+- `upgrade.ts` already shows the pattern for reading old shapes. The number of testers' chats changes how long that migration runs, not how hard it is to write.
+
+**Why doing it now costs a lot.**
+- It touches every chat path: save on send, the end-of-turn write, reopen, search, rewind, find-in-chat, and D-78's room-making rewrite.
+- That lands right before the beta, for features the beta doesn't ship (versions, branches, phone sync).
+
+**What keeps the door open.**
+- Writes stay prefix-shaped: rewind cuts a prefix (D-36), and D-78 rewrites history in place without reordering. So `messages` and `llm_history` keep lining up turn for turn.
+- A future change that broke that alignment would make the migration hard. So would one that stored a turn's parts somewhere other than these two tables. Either one must come with this entry reopened.
+
+**Reopen when** the first of these is planned: branching from an older question, keeping versions of an answer, or syncing chats to the phone.
 
 ## D-82 · The pool, step 1 ⏳ beta
 
@@ -929,3 +918,5 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 197. Delete the chat a kept drawing came from → it stays in the Pouch, "From a deleted chat", with no Go to the chat. Forget all chats → it's still there
 198. Put a kept drawing on a new shelf "Sea" → the wall shows a Sea group and "Not on a shelf". Search finds by title and by shelf, and says when nothing matches
 199. Put back a stone → it goes, with Undo, which brings it back on its shelf. Settings › Privacy › Forget my Pouch → the Pouch is empty
+200. A chat with a long page read in an earlier turn: the model says the request is too long → the answer still comes, with the chip "Made room in this chat" and no error card; the next question's request carries the page as set aside
+201. A background look with a long page read: the model says it's too long → the look still finishes, and its report opens from the Logbook

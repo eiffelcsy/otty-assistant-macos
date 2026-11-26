@@ -4,6 +4,13 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Long chats don't break (D-78, 2026-11-26)
+
+- **A long chat carries on instead of failing.** When a chat or a background look grows too long for the model, Otty sets aside old page reads, pictures and long pasted text, keeps your last two questions whole, and tries again once. The answer shows "Made room in this chat".
+- What's set aside is replaced by a plain note written by Otty, never a summary by the model, so nothing anyone else wrote turns into Otty's own words. A background look keeps every step it saved; only what it sends is shorter.
+- After room is made, re-reading a page whose address was only in a set-aside read asks first, as for any address Otty doesn't know.
+- "Too long" is now recognised from DeepSeek and OpenAI-style services too, not only from Claude.
+
 ### The Pouch (D-77, Spec 12, 2026-11-26)
 
 - **Everything you keep, in one place** (⌘6). Charts, diagrams and slides you kept from answers sit on a wall, each shown as itself. Open one big, or jump back to the chat it came from.

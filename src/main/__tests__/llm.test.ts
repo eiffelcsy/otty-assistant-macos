@@ -9,6 +9,8 @@ let remember = false
 let saved: { title: string }[] = []
 let baseUrl = 'https://api.deepseek.com/'
 let apiFormat = 'auto'
+let bigResult: string | null = null
+let failNext: string | null = null
 
 vi.mock('electron', () => ({
   nativeImage: { createFromBitmap: () => ({ toPNG: () => Buffer.from('png') }) },
@@ -31,7 +33,7 @@ vi.mock('../files/budget', () => ({ fileBudget: () => 0, fitFiles: () => [], sam
 vi.mock('../tools', () => ({webOff: () => false, 
   toolDefs: () => [{ type: 'function', function: { name: 'search_web' } }],
   toolLabel: () => ({ label: 'Looking up', icon: 'search' }),
-  runTool: async () => ({ result: 'A result.', status: 'done' })
+  runTool: async () => ({ result: bigResult ?? 'A result.', status: 'done' })
 }))
 const { ChatSession, cleanTitle, explainTerm, testConnection } = await import('../llm')
 const { isKnownUrl } = await import('../knownUrls')
@@ -77,8 +79,15 @@ beforeEach(() => {
   requests = []
   replies = []
   vi.useRealTimers()
+  bigResult = null
+  failNext = null
   vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
     requests.push(JSON.parse(String(init.body)))
+    if (failNext) {
+      const body = failNext
+      failNext = null
+      return new Response(body, { status: 400 })
+    }
     return stream(replies.shift() ?? answer('Done.'))
   })
 })
@@ -734,5 +743,32 @@ describe('what left the Mac (D-31) and hidden keys (D-32)', () => {
   it('adds no note when nothing was hidden, so the cache is unchanged', async () => {
     await new ChatSession(() => {}).send('Hello', [], null)
     expect(JSON.stringify(requests[0].messages.at(-1))).not.toMatch(/Otty hid/)
+  })
+})
+
+describe('a chat that grows too long (D-78)', () => {
+  it('makes room once, shows a chip, sends the same round again, and keeps the room for the next turn', async () => {
+    const events: ChatEvent[] = []
+    const session = new ChatSession((e) => events.push(e))
+    bigResult = 'r'.repeat(9000)
+    replies = [toolCall(), answer('Otters are mustelids.')]
+    await session.send('What are otters?', [], null)
+    bigResult = null
+    replies = [answer('Yes.')]
+    await session.send('Do they swim?', [], null)
+    replies = [answer('Yes, well.')]
+    failNext = "This model's maximum context length is 131072 tokens. However, you requested 140000 tokens."
+    requests = []
+    await session.send('And rivers?', [], null)
+
+    expect(events.some((e) => e.type === 'error')).toBe(false)
+    expect(events).toContainEqual(expect.objectContaining({ type: 'tool', label: 'Made room in this chat', icon: 'compress', status: 'done' }))
+    expect(requests).toHaveLength(2)
+    expect(requests[1].messages[3]).toMatchObject({ role: 'tool', content: expect.stringContaining('was set aside') })
+
+    requests = []
+    replies = [answer('Ok.')]
+    await session.send('Thanks', [], null)
+    expect(requests[0].messages[3]).toMatchObject({ role: 'tool', content: expect.stringContaining('was set aside') })
   })
 })

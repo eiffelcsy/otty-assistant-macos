@@ -1,3 +1,4 @@
+import { compactHistory } from './compact'
 import { ConnectionError, FriendlyError } from './providers/errors'
 import type { ChatRequest, Message, Provider, ProviderReplay, ToolCall, Usage } from './providers/types'
 import { runTool, toolLabel, type ToolContext, type ToolOutcome } from './tools'
@@ -45,6 +46,8 @@ export interface LoopOptions {
   onEvent(e: LoopEvent): void
   /** Each message as it's added to `history`. */
   onMessage?(m: Message): void
+  /** Told when a request was too long and the history was shortened to fit (D-78), with how many messages changed. */
+  onRoom?(setAside: number): void
 }
 
 function parseArgs(call: ToolCall): Record<string, unknown> {
@@ -99,6 +102,8 @@ export async function runLoop(o: LoopOptions): Promise<void> {
 
   // A retry after a stop or failure may already hold the wrap-up note; saying it twice would cost tokens for nothing.
   let wrapped = Boolean(o.wrapUp && o.history.some((m) => m.role === 'user' && m.content === o.wrapUp))
+  // Making room is tried once per run (D-78); a second too-long request is the old error.
+  let madeRoom = false
   for (let round = 0; round <= o.maxRounds; round++) {
     const toolsOff = Boolean(o.stopTools?.()) || round >= o.maxRounds
     if (toolsOff && o.wrapUp && !wrapped) {
@@ -158,6 +163,15 @@ export async function runLoop(o: LoopOptions): Promise<void> {
       }
     } catch (err) {
       if (stalled && !o.signal.aborted) throw new ConnectionError('Otty can’t reach the internet. Check your connection and try again.')
+      if (err instanceof FriendlyError && err.kind === 'too-long' && !madeRoom) {
+        madeRoom = true
+        const { history, setAside } = compactHistory(o.history)
+        if (!setAside) throw err
+        o.history.splice(0, o.history.length, ...history)
+        o.onRoom?.(setAside)
+        round-- // the same round again, with the shorter history
+        continue
+      }
       throw err
     } finally {
       clearTimeout(watchdog)
