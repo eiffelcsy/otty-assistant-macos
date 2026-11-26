@@ -61,7 +61,7 @@ export interface CalendarEvent {
   location?: string
   /** The calendar's name, and where it came from. */
   calendar: string
-  source: 'Apple Calendar' | 'Google Calendar'
+  source: 'Otty' | 'Apple Calendar' | 'Google Calendar'
 }
 
 export interface Reminder {

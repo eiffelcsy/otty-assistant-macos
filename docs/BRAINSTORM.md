@@ -298,7 +298,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | Logbook paging by day (`before`): each source is cut at its newest 200 rows today, which a busy month of look-ups could pass | L | S | idea, after D-63 |
 | The Logbook's motion: views crossfading, an entry's strike-through drawing on Undo with an "Undone" toast, and a finished run's entry surfacing with a found glow (Spec 04, Motion) | M | S | idea, after D-63; waits for the toast component |
 | Greet by name on Home once the Notebook knows how you like to be called ("Good afternoon, Mei"), never guessed from an account or a file | L | S | idea, from Spec 06 |
-| Home's "Today" river carrying Otty's own calendar blocks and meeting prep, so the day is one line of what's done, now and next | M | M | idea, after D-66 and Otty's own calendar |
+| Home's "Today" river carrying Otty's own calendar blocks and meeting prep, so the day is one line of what's done, now and next | M | M | events shipped (D-73: today's events as ticks); meeting prep is still an idea |
 | A Dock badge was considered for Needs you and left out: a red number asks to be cleared, which is the nagging the den's rules forbid. Revisit only if people miss decisions while the bubble is hidden | L | S | decided against for now (Spec 06) |
 
 ## Speed: spending a fast, cheap model
@@ -493,7 +493,10 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | The Otty window's roomy state: the panel expanded into a control hub, and the home for goals, connections, the ledger and more. See [Quick view and the Otty window](#quick-view-and-the-otty-window) | H | L | shipped as D-64 (frame), D-65 (roomy window) and D-66 (Home); goals, Otty noticed and the den later |
 | Phone app: Otty goes with you, one relationship across devices | H | L | considering, after the core split ([Getting ready for iOS](#getting-ready-for-ios-one-core-two-shells)); reopens the cloud decision |
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
-| **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | → D-73 (step 1, local, no account); sharing needs the hosted service and sign-in |
+| **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | step 1 shipped (D-73: local, connected calendars beside it, `plan_event` with undo); sharing needs the hosted service and sign-in |
+| Calendar: move an event by dragging between days in the list band, and resize an event by its bottom edge in the week | M | S | idea, after D-73 |
+| Calendar: "Otty, tidy my week" proposes several moves at once on one card, each with its own undo | H | M | idea, after D-73; needs a multi-change card |
+| Calendar: copy a connected event into Otty's calendar to plan around it, keeping a link back to the original | M | S | idea |
 | Otties that talk to each other: yours finds a meeting time with a colleague's | M | L | idea, the first O2O kind ([O2O](#o2o-otty-to-otty-built-on-a2a)); the last step of [Otty's own calendar](#ottys-own-calendar-shared-and-multi-person) |
 
 ## The far horizon: the dream, unconstrained

@@ -29,6 +29,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ loop.ts        the tool loop, shared by chats and jobs │
 │ jobs/          background work: store, runner, limits  │
 │ connections/   calendars, Canvas, Notion, own MCP      │
+│ calendar/      Otty's own events, the week's range     │
 │ act/           what step cards do: paste, menu, keys   │
 │ memory/        what Otty knows: store, guard, habits   │
 │ math.ts        the calculator, mathjs behind allowlist │
@@ -89,7 +90,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ next | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
 | D-77 | The Pouch: kept Pebbles get their own screen (Pebbles step 2) | ⏳ beta | Pebbles step 1 (done) | M |
 | D-78 | Long chats don't break: compact once and retry on "too long", in chats and jobs | ⏳ beta | — | S–M |
 | D-79 | Help and feedback inside Otty: a Help page, Send feedback with an optional log, and the full list of where lookups go | ⏳ beta | where feedback goes (owner) | S |
@@ -373,22 +373,6 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 - Coverage floors and UI screenshots are in CI, and a deliberate CSS break in one card fails with a diff image.
 
 ---
-
-## D-73 · Otty's calendar, step 1: a local calendar, UI first ⏳
-
-**Goal.** A calendar that belongs to Otty, in the roomy window: the user sees their week, adds and moves events, and asks Otty to plan ("block two hours for the essay before Thursday"), every change Otty makes undoable from the Logbook. Nothing leaves the Mac. The concept, and the later steps (overlay, sharing, otters agreeing a time), are in BRAINSTORM's [Otty's own calendar](BRAINSTORM.md#ottys-own-calendar-shared-and-multi-person).
-
-**Spec first (UI/UX is the point).** A screen spec, `docs/design/specs/11-calendar.md`, to DESIGN's polish bar before any code: a week view at wide and roomy widths, a day list at the floating window's width (the frame's bands decide, never a measurement), the empty week, an event's card, adding by typing a time into the row, moving by drag with a keyboard path, today's line, and how an event Otty proposed looks before it's accepted. The cove's quiet wash or a time-of-day tint in its header, so it reads as Otty's place. Every state gets a ui-preview scene.
-
-**Design.**
-- Data: an `events` table in `otty.db` (a new migration): id, title, start, end, all-day, notes, `made_by` (`you` or `otty`), and the chat it came from. Main owns it behind an `EventStore` (SQLite and memory, as `ChatStore`).
-- IPC: `calendar:week`, `calendar:save`, `calendar:remove`, each in `CHANNELS` with guards; the renderer sends ids and fields, never SQL.
-- A tool, `plan_event` (row in `toolSafety.ts` first: changes something, sends nothing), behind a confirm card, writing a ledger row whose undo removes the event. Not in `JOB_TOOLS` in step 1.
-- A screen in the frame (`NAV` gains Calendar, `⌘4`), and Home's Today shows today's events.
-
-**Steps.** 1) The spec and its preview scenes (S–M). 2) The store, migration and IPC (S–M). 3) The screen (M). 4) `plan_event` with its card, ledger and an eval case (S–M).
-
-**Done when.** The spec's every state has a scene in `npm run screens`; adding, moving and removing an event persist across a relaunch (smoke); "block two hours before Thursday" shows a card and, once accepted, the event, and Undo in the Logbook removes it (smoke, `ledger` test); nothing about events reaches What left your Mac unless a question carried them (`sent` test).
 
 ## D-77 · The Pouch ⏳ beta
 
@@ -927,3 +911,8 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 188. Change a tool on the server, then Check again → "1 tool changed since you turned them on…", the tool shows Changed with its switch off, and it's no longer offered
 189. Ask Otty in a chat to connect something → the answer holds a card with the form already filled in (host shown); Check and add connects it, and no key ever appears in a request to the model
 190. Add your own connection that signs in in the browser → the server's sign-in page opens, and coming back adds it with its tools listed
+191. Calendar (⌘5): Add "Swim practice" tomorrow 07:00–08:00 → it shows in tomorrow's column, and after a relaunch it's still there. Change its end in its card → the new time shows; Delete → "Deleted …" with Undo, which brings it back
+192. Drag one of Otty's events down two hours in the week → it lands two hours later, snapped to 15 minutes, and stays there after a relaunch
+193. Ask Otty to block two hours for an essay tomorrow afternoon → "Add this to your calendar?" with the title and time in words; Add it → the event shows with a paw. Undo in the Logbook removes it, and nothing about it is in What left your Mac
+194. With Apple Calendar connected, its events show in the week read-only: opening one names its calendar ("From Home. Change it there.") with no Save
+195. An event happening now shows on Home's Today as the current tick

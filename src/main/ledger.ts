@@ -5,7 +5,7 @@ import { maskSecrets } from '../shared/secrets'
 // marked once it's done. Try again reads it to say what it can take back, and the Logbook shows it. Like the sent log,
 // it lives and dies with chats, and callers go through `begin`, which does nothing until main plugs a ledger in.
 
-export type UndoKind = 'memory' | 'job' | 'reminder' | 'none'
+export type UndoKind = 'memory' | 'job' | 'reminder' | 'event' | 'none'
 
 export interface ActionRow {
   id: number

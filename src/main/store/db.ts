@@ -255,6 +255,24 @@ const MIGRATIONS: string[] = [
     primary key (answer_id, idx)
   ) without rowid;
   create index pebbles_chat on pebbles(chat_id);
+  `,
+  // v12. D-73: Otty's own calendar. Kept whatever "Remember my chats" says; "Forget all chats" leaves it.
+  `
+  create table events(
+    id text primary key,
+    title text not null,
+    start integer not null,
+    "end" integer not null,
+    all_day integer not null,
+    notes text,
+    -- 'you' | 'otty'
+    made_by text not null,
+    chat_id text,
+    answer_id text,
+    created integer not null,
+    updated integer not null
+  ) without rowid;
+  create index events_start on events(start);
   `
 ]
 

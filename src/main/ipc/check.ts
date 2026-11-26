@@ -126,6 +126,10 @@ export const CHANNELS = {
   'connections:recheck': { views: PANEL, args: [id] },
   'connections:sign-in': { views: PANEL, args: [id] },
   'connections:remove': { views: PANEL, args: [id] },
+  // D-73: Otty's own calendar. Main checks each field and the ranges (`ipc/calendar.ts`).
+  'calendar:range': { views: PANEL, args: [num(0, 8.64e15), num(0, 8.64e15)] },
+  'calendar:save': { views: PANEL, args: [checkedLater] },
+  'calendar:remove': { views: PANEL, args: [id] },
   'chat:send': { views: CHAT, args: [text(200_000), list(record, 50), optional(record)] },
   'chat:stop': { views: CHAT, args: [] },
   'chat:reset': { views: CHAT, args: [] },

@@ -57,6 +57,9 @@ const api: OttyApi = {
   recheckConnection: (id) => ipcRenderer.invoke('connections:recheck', id),
   signInAgain: (id) => ipcRenderer.invoke('connections:sign-in', id),
   removeConnection: (id) => ipcRenderer.invoke('connections:remove', id),
+  calendarRange: (from, to) => ipcRenderer.invoke('calendar:range', from, to),
+  saveEvent: (fields) => ipcRenderer.invoke('calendar:save', fields),
+  removeEvent: (id) => ipcRenderer.invoke('calendar:remove', id),
 
   sendMessage: (text, captures, opts) => ipcRenderer.invoke('chat:send', text, captures, opts),
   stop: () => ipcRenderer.invoke('chat:stop'),

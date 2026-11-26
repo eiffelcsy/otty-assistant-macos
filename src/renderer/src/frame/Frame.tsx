@@ -12,7 +12,7 @@ import { LIST_HIDE, LIST_MAX, LIST_MIN, NAV_FOLD, NAV_MAX, NAV_MIN, SIDES, canTo
 // decides where each part goes. Under 640 one screen at a time with a screen menu; from 640 a 72 px rail; from 712 a
 // list column beside the main one; from 980 a 216 px sidebar. Nothing here measures anything but its own width. The sidebar and the list can be sized by their edges, and folded by the sidebar button (Spec 09).
 
-export type Place = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings'
+export type Place = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'calendar' | 'settings'
 
 interface NavItem {
   place: Place
@@ -27,11 +27,12 @@ export const NAV: NavItem[] = [
   { place: 'chat', label: 'Chat', icon: 'comment-alt', keys: '⌘2' },
   { place: 'chats', label: 'Chats', icon: 'time-past', keys: '⇧⌘F' },
   { place: 'logbook', label: 'Logbook', icon: 'journal-alt', keys: '⌘3' },
-  { place: 'notebook', label: 'Notebook', icon: 'book-bookmark', keys: '⌘4' }
+  { place: 'notebook', label: 'Notebook', icon: 'book-bookmark', keys: '⌘4' },
+  { place: 'calendar', label: 'Calendar', icon: 'calendar', keys: '⌘5' }
 ]
 
 /** The rail and sidebar: Chats is the chat screen there, with its list beside it (Spec 05). */
-const RAIL: NavItem[] = [NAV[0], { place: 'chat', label: 'Chats', icon: 'comment-alt', keys: '⌘2' }, NAV[3], NAV[4]]
+const RAIL: NavItem[] = [NAV[0], { place: 'chat', label: 'Chats', icon: 'comment-alt', keys: '⌘2' }, NAV[3], NAV[4], NAV[5]]
 
 /** True for the one render that swaps Home and the empty chat (Spec 09, Part 2): a screen mounting in it skips its arrival. */
 export const StillMove = createContext(false)

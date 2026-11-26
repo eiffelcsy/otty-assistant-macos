@@ -35,6 +35,8 @@ export interface ToolContext {
   makeChart?(args: Args): ToolOutcome
   /** Asks to start a background job. Only a chat turn can, so a job can never start another. */
   startJob?(args: Args): Promise<ToolOutcome>
+  /** D-73: adds an event to Otty's own calendar, after a card. Only a chat turn can. */
+  planEvent?(args: Args): Promise<ToolOutcome>
   /** Asks to run a read-only job later. Only a chat turn can, and always with a card. */
   scheduleJob?(args: Args): Promise<ToolOutcome>
   /** What a change is written down against in the ledger (D-46). Left out, nothing is written. */

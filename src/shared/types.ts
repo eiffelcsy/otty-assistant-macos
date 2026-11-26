@@ -366,7 +366,7 @@ export type Unusual = 'alphabet' | 'http' | 'private' | 'cap'
  */
 export interface ConfirmCard {
   /** `use`: a tool of a connection of the user's own (D-54). */
-  kind: 'read' | 'open' | 'search' | 'reminder' | 'job' | 'use'
+  kind: 'read' | 'open' | 'search' | 'reminder' | 'job' | 'use' | 'event'
   title: string
   /** The primary button's words; the other is always Skip. */
   yes: string
@@ -378,9 +378,9 @@ export interface ConfirmCard {
   /** search: the words as the model will send them, and where they go. use: the arguments, and the connection's name. */
   query?: string
   service?: string
-  /** reminder and job: what it's called. use: the tool's title. */
+  /** reminder and job: what it's called. use: the tool's title. event: the event's title. */
   item?: string
-  /** reminder: when, in words, and where it goes. */
+  /** reminder and event: when, in words. reminder: where it goes. */
   when?: string
   list?: string
   /** job: the card's longer words. */
@@ -398,7 +398,7 @@ export interface Receipt {
   /** Why it was skipped, when it wasn't the user's Skip: "you asked something else". */
   why?: string
   /** How to take it back, when Otty can (a reminder, a look). The renderer only sends the receipt's place. */
-  undo?: { kind: 'reminder' | 'job'; ref: string; label: string }
+  undo?: { kind: 'reminder' | 'job' | 'event'; ref: string; label: string }
   undone?: boolean
 }
 
@@ -480,7 +480,7 @@ export interface WindowGlide {
 }
 
 /** What the app menu asks the Otty window to do on its own screen (D-65); navigation lives in the renderer (D-64). */
-export type FrameCommand = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
+export type FrameCommand = 'home' | 'chat' | 'chats' | 'logbook' | 'notebook' | 'calendar' | 'settings' | 'new' | 'sidebar' | 'find' | 'attach' | 'help'
 
 /** The Logbook's views (D-63, Spec 04). The last three are the "Looking for…" ones. */
 export type LogView = 'wait' | 'next' | 'all' | 'sent' | 'changed' | 'noted'
@@ -793,6 +793,41 @@ export interface ConnectResult {
 /** A ```connection block from the model, once `connectionDraft` has checked it. Never holds a key. */
 export type ConnectionDraft = { kind: Exclude<ConnectionKind, 'mcp'> } | { kind: 'mcp'; name: string; url: string; auth: McpAuth }
 
+/** D-73: one event on the Calendar screen, from Otty's own calendar or a connected one (read-only). */
+export interface CalendarItem {
+  id: string
+  title: string
+  /** Epoch ms. An all-day event runs from local midnight to the next local midnight. */
+  start: number
+  end: number
+  allDay: boolean
+  notes?: string
+  /** Otty's own events only: who added it. */
+  madeBy?: 'you' | 'otty'
+  /** 'Otty' for Otty's own; otherwise the connection, such as 'Apple Calendar'. */
+  source: 'Otty' | 'Apple Calendar' | 'Google Calendar'
+  /** The connected calendar's own name, such as "Home". */
+  calendar?: string
+  /** True for anything not Otty's own: it can't be changed here. */
+  readOnly: boolean
+}
+
+/** What the event card sends to save. `id` only for one of Otty's own events. Main checks every field. */
+export interface EventFields {
+  id?: string
+  title: string
+  start: number
+  end: number
+  allDay: boolean
+  notes?: string
+}
+
+export interface CalendarRange {
+  items: CalendarItem[]
+  /** A connected calendar that couldn't be read, in plain words. */
+  note?: string
+}
+
 export interface OttyApi {
   getSettings(): Promise<PublicSettings>
   saveSettings(update: SettingsUpdate): Promise<PublicSettings>
@@ -817,6 +852,11 @@ export interface OttyApi {
   recheckConnection(id: string): Promise<ConnectResult>
   signInAgain(id: string): Promise<ConnectResult>
   removeConnection(id: string): Promise<ConnectionsState>
+  /** D-73: the Calendar screen. `from` and `to` are epoch ms, at most 42 days apart. */
+  calendarRange(from: number, to: number): Promise<CalendarRange>
+  /** Null when main refused it. */
+  saveEvent(fields: EventFields): Promise<CalendarItem | null>
+  removeEvent(id: string): Promise<boolean>
 
   sendMessage(text: string, captures: Capture[], opts?: SendOptions): Promise<void>
   stop(): Promise<void>

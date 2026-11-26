@@ -28,10 +28,11 @@ import { Settings, type SectionId } from './settings/Settings'
 import { Notebook } from './Notebook'
 import { Home } from '../home/Home'
 import { Frame, useWidth, type Place } from '../frame/Frame'
-import { columns } from '../frame/bands'
+import { bandFor, columns } from '../frame/bands'
+import { Calendar } from '../calendar/Calendar'
 import { loadSides, saveSides, toggleSides, type Sides } from '../frame/sides'
 
-type View = 'home' | 'chat' | 'settings' | 'onboarding' | 'history' | 'logbook' | 'notebook'
+type View = 'home' | 'chat' | 'settings' | 'onboarding' | 'history' | 'logbook' | 'notebook' | 'calendar'
 
 const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibility' | 'screen' }> = {
   'needs-accessibility': {
@@ -63,7 +64,8 @@ const TITLES: Partial<Record<string, string>> = {
   history: 'Chats',
   logbook: 'Logbook',
   settings: 'Settings',
-  notebook: 'Notebook'
+  notebook: 'Notebook',
+  calendar: 'Calendar'
 }
 
 /** Once the window is at the glide's size and a frame has been drawn there, tell main (and then go on). */
@@ -332,7 +334,7 @@ export function Panel() {
       // The frame's keys (Spec 05): ⌘1–⌘4 screens, ⌘, Settings, ⌘N new chat, ⌘[ back, ⌃⌘S the sidebar, F6 the columns.
       const nav = navRef.current
       if (e.metaKey && !e.shiftKey && !e.altKey && settingsRef.current?.onboarded) {
-        const to = ({ '1': 'home', '2': 'chat', '3': 'logbook', '4': 'notebook', ',': 'settings' } as const)[e.key as '1']
+        const to = ({ '1': 'home', '2': 'chat', '3': 'logbook', '4': 'notebook', '5': 'calendar', ',': 'settings' } as const)[e.key as '1']
         if (to && !e.ctrlKey) {
           e.preventDefault()
           return nav.go(to)
@@ -813,6 +815,7 @@ export function Panel() {
                 }
               />
             )}
+            {shown === 'calendar' && <Calendar band={bandFor(width)} />}
             {shown === 'logbook' && (
               <Logbook key={`${logView}:${logEntry ?? ''}`} startView={logView} startEntry={logEntry} onOpenChat={(id) => void (id ? window.otty.openChat(id) : Promise.resolve()).then(() => go('chat'))} />
             )}

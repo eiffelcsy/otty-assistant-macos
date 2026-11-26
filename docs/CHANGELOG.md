@@ -4,6 +4,15 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Otty's calendar (D-73, Spec 11, 2026-11-26)
+
+- **A calendar of Otty's own** (⌘5): your week on a grid, or the next seven days as a list in a small window. Add an event with Add or by clicking a free slot, change it in its card, drag it to move it, or delete it with an Undo.
+- **Your connected calendars sit beside it**, read-only, so the week shows everything. Apple and Google events open with "Change it there".
+- **Ask Otty to plan.** "Block two hours for my essay on Thursday afternoon" shows "Add this to your calendar?" first. Events Otty adds carry a little paw, and Undo in the Logbook takes them away.
+- **Otty knows your week.** Questions like "when am I free tomorrow?" now read Otty's own calendar too, even with nothing connected.
+- **Home's Today** shows today's events alongside what Otty looked into.
+- Your calendar stays on this Mac and is kept even when "Remember my chats" is off.
+
 ### Connections: your calendar, Canvas, Notion and your own (D-54, Spec 10, 2026-11-26)
 
 - **Otty can read your other apps when you ask.** Settings › Connections connects **Apple Calendar and Reminders** (on this Mac, including Google calendars you've added to Calendar), **Google Calendar** (sign in in the browser), **Canvas** and **Notion** (paste a token). Then "what's on tomorrow?", "when am I free on Thursday?", "what's due this week?" or "what did I write about kelp?" just work.

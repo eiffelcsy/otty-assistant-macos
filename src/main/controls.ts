@@ -171,6 +171,7 @@ export function appMenuTemplate(): Item[] {
         { label: 'Chats', ...shown('Cmd+2'), click: () => frame('chat') },
         { label: 'Logbook', ...shown('Cmd+3'), click: () => frame('logbook') },
         { label: 'Notebook', ...shown('Cmd+4'), click: () => frame('notebook') },
+        { label: 'Calendar', ...shown('Cmd+5'), click: () => frame('calendar') },
         { type: 'separator' },
         { label: 'Hide sidebar', ...shown('Ctrl+Cmd+S'), click: () => frame('sidebar') },
         { type: 'separator' },

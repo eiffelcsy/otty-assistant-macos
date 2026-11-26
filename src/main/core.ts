@@ -17,11 +17,15 @@ import { activeProfile } from './providers'
 import { MemoryLedger, setLedger, SqliteLedger } from './ledger'
 import { forgetHidden } from './hiddenLines'
 import { MemoryPebbles, SqlitePebbles } from './pebbles'
+import { eventStore } from './calendar/hub'
+import { calendarRange } from './calendar/range'
+import { setOttyCalendar } from './connections/tools'
 import { capStatus } from '../shared/cap'
 import { retentionCutoff } from './store/retention'
 import { forward, tellActivity, tellLogbook, tellSettings } from './notify'
 import type { LogSources } from './logbook'
 import type { HomeSources } from './home'
+import type { CalendarItem } from '../shared/types'
 import { serviceAt, serviceById } from '../shared/services'
 import { shownWindows } from './windows'
 import { refreshAll } from './connections'
@@ -103,12 +107,29 @@ export function keepPebble(answerId: string, index: number, keep: boolean): bool
   return true
 }
 
+// D-73: Otty's own calendar, kept whatever "Remember my chats" says. Plugged in for the connections' reads and the chat.
+export { eventStore }
+setOttyCalendar(eventStore)
+
+/** Today's events from every calendar, for Home's Today. A failed read gives none, and the rest of Home still shows. */
+async function todaysEvents(now: number): Promise<CalendarItem[]> {
+  const d = new Date(now)
+  const from = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const to = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime()
+  try {
+    return (await calendarRange(eventStore(), from, to)).items
+  } catch {
+    return []
+  }
+}
+
 /** What Home reads (D-66): the Logbook's sources, and what Home's sentences need besides. */
 export async function homeSources(): Promise<HomeSources> {
   const base = await logbookSources()
   const s = settings.getStored()
   return {
     ...base,
+    events: await todaysEvents(base.now),
     remembered: s.rememberChats,
     webOff: activeProfile().web === 'off',
     service: serviceById(serviceAt(s.baseUrl)).label,

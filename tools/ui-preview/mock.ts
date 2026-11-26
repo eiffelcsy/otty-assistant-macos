@@ -1,6 +1,7 @@
 import type {
   AnswerLanguage,
   AttachResult,
+  CalendarItem,
   Capture,
   ChatEvent,
   ChatMessage,
@@ -27,10 +28,16 @@ import { home } from '../../src/main/home'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
+/** Clicks the first element matching `sel` once it has rendered (the Calendar draws after its first read). */
+const clickWhenThere = (sel: string, tries = 40): void => {
+  const el = document.querySelector<HTMLElement>(sel)
+  if (el) el.click()
+  else if (tries) setTimeout(() => clickWhenThere(sel, tries - 1), 50)
+}
 
 // D-74: `&time=dawn|day|golden|night` pins the cove's painting (and Home's greeting) by moving the clock to that hour.
 const HOURS: Record<string, number> = { dawn: 6, day: 14, golden: 17, night: 21 }
@@ -54,7 +61,17 @@ if (pinned !== undefined) {
 // D-64: `&w=` and `&h=` size the window, so every band of the frame can be drawn (Spec 05).
 const root = document.getElementById('root')
 /** The frame scenes' own sizes: each band at a test width (Spec 05). */
-const FRAME_SIZES: Record<string, [number, number]> = { 'frame-rail': [680, 600], 'frame-medium': [760, 600], 'frame-wide': [1280, 720], 'frame-min': [360, 420] }
+const FRAME_SIZES: Record<string, [number, number]> = {
+  'frame-rail': [680, 600],
+  'frame-medium': [760, 600],
+  'frame-wide': [1280, 720],
+  'frame-min': [360, 420],
+  calendar: [900, 720],
+  'calendar-list': [420, 720],
+  'calendar-empty': [900, 720],
+  'calendar-edit': [900, 720],
+  'calendar-note': [900, 720]
+}
 const size: [number, number] | undefined = FRAME_SIZES[scene]
 if (root && (q.get('w') || size)) root.style.width = `${Number(q.get('w') ?? size?.[0])}px`
 if (root && (q.get('h') || size)) root.style.height = `${Number(q.get('h') ?? size?.[1])}px`
@@ -298,8 +315,37 @@ const cards: Record<string, ConfirmCard> = {
   'confirm-open': { kind: 'open', title: 'Open this link?', yes: 'Open it', host: 'acme.cloud', rest: '/pricing#limits' },
   'confirm-search': { kind: 'search', title: 'Search the web for this?', yes: 'Search', query: 'Mei Ling Tan flat 4B Tai Hang Road rent increase notice', service: 'DeepSeek', unusual: 'private' },
   'confirm-reminder': { kind: 'reminder', title: 'Add this reminder?', yes: 'Add it', item: 'Essay deadline', when: 'Thu 20 Nov at 6:00 PM', list: 'In Reminders' },
-  'confirm-unusual': { kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'xn--pple-43d.com', readable: 'аpple.com', rest: '/account/verify', unusual: 'alphabet' }
+  'confirm-unusual': { kind: 'read', title: 'Read this page?', yes: 'Read it', host: 'xn--pple-43d.com', readable: 'аpple.com', rest: '/account/verify', unusual: 'alphabet' },
+  'confirm-event': { kind: 'event', title: 'Add this to your calendar?', yes: 'Add it', item: 'Essay', when: 'Thu 4 Dec, 14:00–16:00' }
 }
+/** D-73: the Calendar screen's sample week, on this week's Monday, so the now line and today show whichever day it is. */
+const CAL_MONDAY = (() => {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7))
+})()
+const calAt = (day: number, h: number, m = 0): number => new Date(CAL_MONDAY.getFullYear(), CAL_MONDAY.getMonth(), CAL_MONDAY.getDate() + day, h, m).getTime()
+const calDay = (day: number): number => calAt(day, 0)
+const calTimed = (id: string, title: string, day: number, h: number, m: number, endH: number, endM: number, over: Partial<CalendarItem> = {}): CalendarItem => ({
+  id,
+  title,
+  start: calAt(day, h, m),
+  end: calAt(day, endH, endM),
+  allDay: false,
+  source: 'Otty',
+  readOnly: false,
+  ...over
+})
+const CAL_SAMPLE: CalendarItem[] = [
+  calTimed('e1', 'Dentist', 0, 13, 0, 14, 0, { madeBy: 'you' }),
+  calTimed('e2', 'Essay draft', 1, 14, 0, 16, 30, { madeBy: 'otty', notes: 'Introduction and two sources' }),
+  calTimed('e3', 'Groceries', 3, 15, 0, 16, 0, { madeBy: 'you' }),
+  calTimed('e4', 'Reading group', 3, 15, 30, 17, 0, { madeBy: 'otty' }),
+  { id: 'e5', title: 'Standup', start: calAt(0, 9), end: calAt(0, 9, 30), allDay: false, source: 'Apple Calendar', calendar: 'Work', readOnly: true },
+  { id: 'e6', title: 'Swim practice', start: calAt(2, 18), end: calAt(2, 19, 30), allDay: false, source: 'Apple Calendar', calendar: 'Home', readOnly: true },
+  { id: 'e7', title: 'Otty trip', start: calDay(4), end: calDay(5), allDay: true, source: 'Otty', madeBy: 'you', readOnly: false }
+]
+const GOOGLE_NOTE = 'Google Calendar’s sign-in ran out. Sign in again in Settings › Connections.'
+let calStore: CalendarItem[] = structuredClone(CAL_SAMPLE)
 /** Spec 03's answer typography: a long question that clips, headings, a list, a wide table, code and a tip. */
 const typographySample: ChatMessage[] = [
   {
@@ -678,6 +724,21 @@ const api: OttyApi = {
   seenActivity: noop,
   logbook: async (v, search) => logbook(logSources(), v, search),
   logbookEntry: async (id) => entryDetails(logSources(), id),
+  // D-73: the Calendar, in memory. `calendar-empty` has nothing in the week; `calendar-note` has a connection that couldn't be read.
+  calendarRange: async (from, to) => {
+    if (scene === 'calendar-empty') return { items: [] }
+    const items = calStore.filter((i) => i.start < to && i.end > from).map((i) => structuredClone(i))
+    return scene === 'calendar-note' ? { items, note: GOOGLE_NOTE } : { items }
+  },
+  saveEvent: async (f) => {
+    const item: CalendarItem = { id: f.id ?? `n${calStore.length + 1}`, title: f.title, start: f.start, end: f.end, allDay: f.allDay, notes: f.notes, madeBy: 'you', source: 'Otty', readOnly: false }
+    calStore = [...calStore.filter((i) => i.id !== item.id), item]
+    return structuredClone(item)
+  },
+  removeEvent: async (id) => {
+    calStore = calStore.filter((i) => i.id !== id)
+    return true
+  },
   // D-66: main's own Home words, from the same samples as the Logbook.
   home: async () => home({ ...logSources(), remembered: true, webOff: false, service: 'DeepSeek', asked: scene !== 'home-first' }),
   undoChange: async () => true,
@@ -783,6 +844,8 @@ const api: OttyApi = {
     if (scene === 'noted') setTimeout(() => cb({ type: 'load', messages: notedSample }), 50)
     if (scene === 'receipts') setTimeout(() => cb({ type: 'load', messages: receiptsSample }), 50)
     if (cards[scene]) setTimeout(() => playCard(cb, cards[scene]), 50)
+    // D-73: `calendar-edit` opens the card on Otty's first event once the week has loaded.
+    if (scene === 'calendar-edit') setTimeout(() => clickWhenThere('.cal-block:not(.cal-block--ext)'), 400)
     // D-62: an answer on its way, stopped, or failed in a way its card can help with.
     if (scene === 'thinking')
       setTimeout(() => {
@@ -825,14 +888,15 @@ const api: OttyApi = {
     const setUp: Record<string, string> = { 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn', connections: 'links', 'connections-add': 'links', 'connections-mcp': 'links', 'connections-off': 'links' }
     const section = setUp[scene] ?? (titles[scene.replace('settings-', '')] ? scene.replace('settings-', '') : null)
     // React runs this twice in development, so each press happens once.
-    const press = (sel: string, text?: string, tries = 20): void => {
+    // `exact` matches a section by its whole title: "Connection" is also the start of "Connections" (D-54).
+    const press = (sel: string, text?: string, tries = 20, exact = false): void => {
       if (pressed.has(sel + text)) return
-      const el = [...document.querySelectorAll<HTMLElement>(sel)].find((e) => !text || e.textContent?.includes(text))
-      if (!el) return void (tries && setTimeout(() => press(sel, text, tries - 1), 50))
+      const el = [...document.querySelectorAll<HTMLElement>(sel)].find((e) => !text || (exact ? e.querySelector('.set-row__title')?.textContent === text : e.textContent?.includes(text)))
+      if (!el) return void (tries && setTimeout(() => press(sel, text, tries - 1, exact), 50))
       pressed.add(sel + text)
       el.click()
     }
-    if (section) setTimeout(() => press('.set-row--section', titles[section]), 160)
+    if (section) setTimeout(() => press('.set-row--section', titles[section], 20, true), 160)
     if (scene === 'provider') setTimeout(() => press('.set-row', 'Change service or key'), 240)
     if (scene === 'settings-recording') setTimeout(() => press('.keys-btn'), 240)
     // D-54: the own connection's form with "A key or token" chosen, or Linear's detail open.
@@ -895,6 +959,7 @@ const api: OttyApi = {
   },
   onFrameCommand: (cb) => {
     if (scene.startsWith('home')) setTimeout(() => cb('home'), 120)
+    if (scene.startsWith('calendar')) setTimeout(() => cb('calendar'), 120)
     return () => {}
   },
   setWindowState: noop

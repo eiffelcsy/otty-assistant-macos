@@ -5,6 +5,7 @@ import { activeProfile, activeProvider } from './providers'
 import { memoryStore } from './memory'
 import { getStored } from './settings'
 import { chatStore, pruneOldChats } from './store'
+import { eventStore } from './calendar/hub'
 import type { SessionDeps } from './llm'
 
 // D-45: what a chat session reaches outside itself, wired to the app's real settings, stores and model service.
@@ -18,5 +19,6 @@ export const liveDeps: SessionDeps = {
   provider: activeProvider,
   ledger: actions,
   keepHidden,
-  mac: macHands
+  mac: macHands,
+  eventStore
 }
