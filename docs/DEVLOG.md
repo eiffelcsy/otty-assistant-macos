@@ -88,7 +88,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
-| D-55 | The dev harness: `EXTENDING.md`, a `feature` skill and protocol for any scope, checkable "Done when" lines, and the extension points "build your own feature" reuses | ⏳ next | D-48 | M |
+| D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ next (re-planned 2026-11-22) | D-56 (done) | L (step 0: S) |
 | D-54 | Connections: one layer for APIs and MCP; Canvas and Notion by pasted token, Google Calendar by OAuth, then the MCP client | ⏳ next (step 1 needs no owner decision) | D-52; an OAuth client for Google (owner) | L (step 1: M) |
 | D-73 | Otty's calendar, step 1: a local calendar in the roomy window, events with undo, UI first | ⏳ planned | D-65 (done); overlays D-54's calendars later | M–L (step 1: M) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
@@ -101,7 +101,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 **Priority (2026-11-21): the place, the reach, the kit, the calendar.** The owner named four next, ahead of the BRAINSTORM score. Each was checked against the vision (alive, a place not a chat clone, trust as the ceiling, autonomy grown with undo) and the rest of the roadmap re-ordered around them:
 1. ✅ **D-72 The living cove** (H, M; CHANGELOG). The art was painted (D-71), so nothing blocked it, and it's the clearest answer to "a place, not a chat clone". Steps 1–2 (cove, hero, glass, parallax) shipped together; step 3, weather and season, and the quiet wash behind a chat with content stay in BRAINSTORM. **Re-opened (2026-11-21) as D-74:** beside the draft it ships as a picture strip over an opaque page, with near-opaque cards, so it reads as a banner rather than a place. Spec 07 lays it out full bleed and takes in the wash. ✅ Built (CHANGELOG, D-74).
-2. **D-55 The dev harness** (H, M). Moved ahead of connections because both later items are built with it: a connection, a calendar and a user's own feature are each a set of extension points. Its scope widens from "the feature kit" to any feature (skills, the protocol, the checklists), and its extension-point map is the one "build your own feature" will expose in its safe subset.
+2. **D-55 Your features** (H, L; step 0 S). Re-planned (2026-11-22) from "the dev harness": a person who can't code asks, and Otty builds a feature on a separate, sandboxed feature host that can't touch core. The builder takes a "world", so Otty Code for the owner or for users' projects can be added later; neither is planned now.
 3. **D-54 Connections** (H, L). Re-planned so step 1 needs no owner decision: the layer, then **Canvas** (NUS) and **Notion** with a pasted token (both allow personal tokens; **verify** NUS's Canvas policy), read-only. Google Calendar follows once the OAuth client exists, then the MCP client for the long tail, every tool off until turned on. Fits AUTONOMY: reads first, taint both ways, every read in What left your Mac.
 4. **D-73 Otty's calendar, step 1** (H, M). Local only, in `otty.db`, nothing leaves the Mac; the first place Otty can *do, with undo* for real. UI and UX first: it's a screen in the roomy window, specced to DESIGN's polish bar before it's built. Overlaying Google Calendar waits for D-54.
 
@@ -388,19 +388,73 @@ Auto-merge stays off until the record earns it. It's the same rule as Otty's own
 
 **Done when.** Connecting, asking "what's on tomorrow?" and disconnecting work against the fake world in smoke; an invite with instructions in its title is answered as data (eval); a search after reading the calendar shows the card (`runGuards.test.ts`); the token is never in `settings.json` or the renderer (`preload.test.ts`, `settings.test.ts`); with a model on this Mac the tools aren't offered.
 
-## D-55 · The dev harness ⏳
+## D-55 · Your features: Otty builds them for you ⏳
 
-**Goal.** Any new feature, of any size, from BRAINSTORM row to green PR, starts right and follows one protocol: an entry with checkable "Done when" lines, every extension point it touches named with its checklist, and the rules met before the logic is written. The owner's "dev harness"; it's also the map that "build your own feature" (D-56, then recipes) reuses for its safe subset.
+**Goal.** Someone who can't code says "make me a pomodoro timer", and a working feature appears in Otty. It looks like the rest of Otty, they can change it by asking, and they can turn it off or remove it without touching the rest of the app. Otty's core stays as it is. Features live on a separate **feature host**, and the builder is designed so that other worlds can be added later: the owner's Otty Code over Otty's own repo, or users' own projects. Neither of those is part of this entry.
 
-**Design.**
-- `docs/EXTENDING.md`: one section per extension point, each with where it lives, what must come first and its test. Tools (the `toolSafety.ts` row, a card if it changes anything, ledger, `SentTag`, an eval case), IPC channels (`CHANNELS` and guards, the preload, `api.d.ts`), cards in answers (`Markdown.tsx`, `prompts.ts`, a UI preview scene), settings (`settings.ts`, `PublicSettings`, the Settings view), migrations (`store/db.ts`), jobs, connections (D-54), smoke steps and specs.
-- A `feature` skill (`.claude/skills/feature/`): take a named BRAINSTORM row, or the top unblocked one, write the DEVLOG entry, list the extension points, then build with `verify:quick` as it goes, and hand over to `ship`. Each "Done when" line names its proof: a test name, `@step-N` or ✋ with a reason.
-- A check in `rules/docsDrift.test.ts`: every "Done when" of a 🔨 entry names a test, a smoke tag or a ✋.
-- **The protocol**, written once in the skill: plan (entry, extension points, Done-when proofs) → spec (DESIGN's polish bar for anything on screen, a ui-preview scene per state) → build in small commits with `verify:quick` → `verify` and smoke → `ship`. A feature too big for one PR splits into steps, each with its own Done when.
-- **Room for later:** each extension point in `EXTENDING.md` says whether a person's own feature may use it (tiles yes; recipes with read-only job tools; anything that runs code, no), so "build your own feature" reads its safe subset from the same map.
-- A scaffold command only if two features in a row would have used it.
+**Re-planned (2026-11-22, fourth pass).** The owner chose to build the user features world first, and not to build the dev harness or Otty Code for projects yet. Both stay possible as later worlds of the same builder (BRAINSTORM, [Your features and the builder](BRAINSTORM.md#your-features-and-the-builder)).
 
-**Done when.** A fresh agent given only "build D-57 with the feature skill" produces an entry, code and a PR whose every "Done when" line has evidence; `docs/RULES.md` names `EXTENDING.md`'s checklists where they're enforced; the drift test fails on a "Done when" line with no proof.
+**Two parts.**
+
+**1. The feature host.** It's shaped like Cordis (arXiv 2608.25512). Every feature is a component on its own context:
+- **Revertible:** whatever a feature does goes through its context, which keeps the undo. Turning it off or removing it leaves Otty as it was.
+- **Declared:** a feature reaches only the services it named, and that list is what its card shows.
+
+How it's built:
+- **Sandboxed.** A feature's screen runs in a sandboxed view, and its triggers run in a sandboxed worker. Neither has Node, network access, or a way to reach the window. They reach Otty only through **the bridge**, a single set of channels in `CHANNELS`, guarded like the rest. The paper says plainly (§6.3) that declarations alone don't stop hostile code.
+- **Services.** Each is a thin wrapper over core code that already enforces the rules:
+  - a screen in the frame, using the design tokens and a small component kit, so a feature looks like Otty without trying;
+  - storage of its own, which goes when the feature goes;
+  - notify, under the attention budget;
+  - a timer or trigger, through `JobRunner`;
+  - asking the model, counted, tagged (`SentTag`) and under the monthly limit;
+  - later, read-only views that core features choose to offer (the calendar, D-73).
+
+  Anything that changes something outside the feature goes through a confirm card, and anything that leaves the Mac shows in What left your Mac.
+- **Never offered:** IPC, settings, keys, files, raw network, native helpers, or another feature's data.
+- **Core never imports a feature.** A feature that breaks is turned off, and Otty says so in plain words.
+- **What turning off can't undo** (a request already sent, a notification already shown) is a ledger row that says so, never "reverted".
+
+**2. The builder.** It is a `CodingEngine` given a **world**. A world is the folder it may write in, the tools it gets, the checks it runs, and the rules its traffic follows. This entry's world is one feature's folder in `userData`, with the host's API as the only thing it can reach.
+- **The first engine is Otty's own loop, with world tools**: write a file in the feature, run its checks in the sandbox, and take a screenshot of its preview. These tools are rows in `toolSafety.ts`, added at the end of their group. Its traffic already goes through `send`, respects `web: 'off'`, and is counted.
+  - Coding agents are hard because of huge repos and the shell. A world this small, with a written API (`docs/FEATURES.md`, which the engine reads), doesn't need either.
+  - An embedded open-source engine stays the likely pick for the later worlds.
+- **Flow.**
+  1. The user asks.
+  2. Otty builds the feature and checks it itself:
+     - the validator: only declared services, size limits, no forbidden APIs;
+     - the feature's own checks;
+     - a screenshot against the polish bar.
+  3. **The card** shows a live preview and what the feature can reach, in plain words ("shows a screen, keeps its own notes, can remind you"), with **Add**.
+- **Changes are new versions.** "Make it 30 minutes" makes a new version, and the older ones stay, so going back is one tap.
+- **Your features** is a list of what you made: on, off, remove, an earlier version, what each feature can reach, and what it did.
+- **`ruleOfTwo` runs when a feature is added.** A feature that both reads private things and reaches outside needs the stronger card.
+- **Only the user's own words start or widen a feature.** Text from a page, a file or a feature's own output never builds or changes one (AUTONOMY).
+
+**Steps.**
+0. **The trial (S).** Write a pomodoro feature by hand against a draft of the host's API, to settle the feature's format (manifest, screen, worker) and the sandbox. Then have Otty's loop write the same feature from one prompt, with DeepSeek and then with Claude, as an eval case. Record how far each got.
+1. **The host (M–L).**
+   - The sandboxed view and worker, and the bridge.
+   - Contexts with undo.
+   - The first services: screen, storage, notify, trigger, asking the model.
+   - The validator, and Your features.
+   - Proof: the hand-written pomodoro feature, plus attack tests (a feature that tries the network, IPC, top-level navigation or another feature's data, and fails).
+2. **The builder (M).** World tools in the loop, the preview card, versions and remove, and eval cases for building ("a pomodoro timer", "a habit tracker", "a flashcard deck from this table").
+3. **More services as features ask for them (S each).** Each one comes from core, starting with a read-only view of the calendar once D-73 ships. Tiles (D-56) move onto the host.
+
+**Room for later worlds.** `CodingEngine` and its worlds don't assume the feature host. Otty Code for the owner (the whole repo, dev builds only, a worktree, a PR) and Otty Code for users' projects (a folder they pick, a sandbox) would each add a world and probably an embedded engine, and change nothing here.
+
+**Open decisions.**
+- What runs a feature's worker: a sandboxed hidden view, or a `utilityProcess` stripped of Node's file and network access.
+- How a feature's screen gets the component kit inside the sandbox.
+- Whether features can be shared between people. That's later, and imported behind its card.
+
+**Done when.**
+- In the packaged app, typing "make me a pomodoro timer" ends with a preview card, then a working timer screen in the frame that follows DESIGN.md (an eval case with a smoke spec).
+- "Make it 30 minutes" makes a new version, and going back restores the old one.
+- Turning the feature off or removing it leaves core's registries and `otty.db` as they were before it was added (a test).
+- Attack tests show a feature can't reach the network, IPC, the window or another feature's data.
+- Text in a page that asks for a feature builds nothing.
 
 ## D-67 · Tests that find what people find 🔨 step 1
 
