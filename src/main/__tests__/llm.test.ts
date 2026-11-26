@@ -14,7 +14,7 @@ vi.mock('electron', () => ({
   nativeImage: { createFromBitmap: () => ({ toPNG: () => Buffer.from('png') }) },
   app: { isPackaged: true, getPath: () => '' }
 }))
-vi.mock('../settings', () => ({ isDev: () => false,
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => false,
   getStored: () => ({ baseUrl, apiFormat, model: 'm', thinking, homeLanguage: home, rememberChats: remember }),
   getApiKey: () => key
 }))
@@ -28,7 +28,7 @@ vi.mock('../store', () => ({
 }))
 vi.mock('../files', () => ({ takeFiles: () => [] }))
 vi.mock('../files/budget', () => ({ fileBudget: () => 0, fitFiles: () => [], sampleText: () => '' }))
-vi.mock('../tools', () => ({
+vi.mock('../tools', () => ({webOff: () => false, 
   toolDefs: () => [{ type: 'function', function: { name: 'search_web' } }],
   toolLabel: () => ({ label: 'Looking up', icon: 'search' }),
   runTool: async () => ({ result: 'A result.', status: 'done' })

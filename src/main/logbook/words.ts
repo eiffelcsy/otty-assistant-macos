@@ -60,12 +60,15 @@ export const SENT_GLYPHS: Record<SentKind, string> = {
   explain: 'book-open-reader',
   check: 'plug-connection',
   search: 'search',
-  page: 'globe'
+  page: 'globe',
+  connection: 'plug-connection'
 }
 
 /** "Asked DeepSeek: Budget.xlsx · 3 keys hidden", and the part to show in bold. */
 export function sentLine(item: SentItem): { first: string; strong?: string } {
   const what = item.what ? `: ${item.what}` : ''
+  // D-54: checked before `local`, since Apple's reads are on this Mac and still went to the connection.
+  if (item.kind === 'connection') return { first: `${item.what || 'Read something'} from ${item.service}`, strong: item.what || undefined }
   if (item.local) return { first: item.kind === 'question' ? `Asked the model on this Mac${what}` : `Used the model on this Mac${what}` }
   const to = item.service
   switch (item.kind) {
@@ -115,6 +118,8 @@ export function sentWhy(item: SentItem, job?: Job, chat?: string): string {
       return 'You checked the connection in Settings.'
     case 'job':
       return 'A look-up needed it.'
+    case 'connection':
+      return 'Otty checked one of your connections to answer you.'
   }
 }
 

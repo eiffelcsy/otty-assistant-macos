@@ -1,10 +1,12 @@
-import { createContext, useContext, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeKatex from 'rehype-katex'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
 import 'katex/dist/katex.min.css'
-import type { AnswerLanguage, ChartCard, HomeLanguage, QuickAction } from '../../../shared/types'
+import type { AnswerLanguage, ChartCard, ConnectionKind, ConnectionView, HomeLanguage, QuickAction } from '../../../shared/types'
+import { connectionDraft } from '../../../shared/connectionDraft'
+import { ConnectForm } from '../components/ConnectForm'
 import { pebbleIndex } from '../../../shared/pebbles'
 import { stripLineNumbers } from '../../../shared/code'
 import { drawingKind, type DrawingKind } from '../../../shared/drawing'
@@ -349,10 +351,56 @@ function TileCard({ code }: { code: string }) {
   )
 }
 
+const CONNECT_NAMES: Record<Exclude<ConnectionKind, 'mcp'>, string> = { apple: 'Apple Calendar', google: 'Google Calendar', canvas: 'Canvas', notion: 'Notion' }
+const CONNECT_GLYPH: Record<ConnectionKind, string> = { apple: 'calendar', google: 'calendar-clock', canvas: 'graduation-cap', notion: 'notebook', mcp: 'puzzle-alt' }
+
+/** A ```connection block (D-54): a form to connect, filled from the draft. Keys are typed here, never shown again. */
+function ConnectCard({ code }: { code: string }) {
+  const { done } = useContext(ProofreadContext)
+  const draft = connectionDraft(code)!
+  const [made, setMade] = useState<ConnectionView | null>(null)
+  const [have, setHave] = useState(false)
+  useEffect(() => {
+    if (!done || draft.kind === 'mcp') return
+    void window.otty.connections().then((s) => setHave(s.connected.some((c) => c.kind === draft.kind)), () => {})
+  }, [done, draft.kind])
+  if (!done) return null
+  // The quick view is too small for a form, and a key typed there would be one window too many (Spec 10, Part 4).
+  const quick = document.documentElement.dataset.view === 'quick'
+  const name = draft.kind === 'mcp' ? draft.name : CONNECT_NAMES[draft.kind]
+  const title = draft.kind === 'mcp' ? `Add “${draft.name}”` : `Connect ${name}`
+  const host = draft.kind === 'mcp' ? new URL(draft.url).host : null
+  const manage = 'Manage it in Settings › Connections.'
+  return (
+    <div className="tile-card connect-card">
+      <div className="connect-card__head">
+        <Icon name={CONNECT_GLYPH[draft.kind]} />
+        <div>
+          <div className="connect-card__title">{title}</div>
+          {host && <div className="connect-card__host">{host}</div>}
+        </div>
+      </div>
+      {made ? (
+        <p className="tile-card--said">{name} is connected. {manage}</p>
+      ) : have && draft.kind !== 'mcp' ? (
+        <p className="tile-card--said">{name} is already connected. {manage}</p>
+      ) : quick ? (
+        <p className="tile-card--said">Continue in chat to set this up.</p>
+      ) : (
+        <ConnectForm kind={draft.kind} draft={draft} onDone={(view) => setMade(view)} />
+      )}
+    </div>
+  )
+}
+
 function CodeBlock({ children }: { children?: ReactNode }) {
   const code = children as { props?: { className?: string } } | undefined
   if (code?.props?.className === 'language-fixed') return <FixedCard text={textOf(children).replace(/\n$/, '')} />
   if (code?.props?.className === 'language-tile') return <TileCard code={textOf(children)} />
+  if (code?.props?.className === 'language-connection') {
+    const text = textOf(children)
+    return connectionDraft(text) ? <ConnectCard code={text} /> : <CopyableCode label={codeLabel(code.props.className)}>{children}</CopyableCode>
+  }
   const drawing = drawingKind(codeLabel(code?.props?.className))
   if (drawing) return <Drawing kind={drawing} code={textOf(children).replace(/\n$/, '')} />
   return <CopyableCode label={codeLabel(code?.props?.className)}>{children}</CopyableCode>

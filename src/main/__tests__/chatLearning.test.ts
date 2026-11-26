@@ -15,7 +15,7 @@ vi.mock('electron', () => ({
   ClipboardItem: class {},
   app: { isPackaged: true, getPath: () => '' }
 }))
-vi.mock('../settings', () => ({ isDev: () => false,
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => false,
   getStored: () => ({ baseUrl: 'https://api.deepseek.com/', apiFormat: 'auto', model: 'm', thinking, homeLanguage: null, rememberChats: false, learn }),
   getApiKey: () => 'key'
 }))

@@ -5,6 +5,12 @@ import type {
   ChatEvent,
   ChatMessage,
   ConfirmCard,
+  ConnectionOffer,
+  ConnectionToolView,
+  ConnectionView,
+  ConnectionsState,
+  ConnectRequest,
+  ConnectResult,
   FileAttachment,
   Memory,
   OttyApi,
@@ -21,7 +27,7 @@ import { home } from '../../src/main/home'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
 
 const q = new URLSearchParams(location.search)
 const scene = q.get('scene') ?? 'chat'
@@ -340,6 +346,37 @@ function playCard(cb: (e: ChatEvent) => void, card: ConfirmCard) {
   cb({ type: 'confirm', id: 'a1', confirmId: 'k1', card })
 }
 
+// D-54: Settings › Connections and the chat's connection card, in memory.
+const PRIVACY = 'What Otty reads goes to DeepSeek with your question, and shows in What left your Mac.'
+const BUILT: Record<'apple' | 'google' | 'canvas' | 'notion', { label: string; reads: string }> = {
+  apple: { label: 'Apple Calendar', reads: 'Reads your calendars and reminders on this Mac' },
+  google: { label: 'Google Calendar', reads: 'Reads your Google calendars' },
+  canvas: { label: 'Canvas', reads: 'Reads what’s due and announcements at canvas.nus.edu.sg' },
+  notion: { label: 'Notion', reads: 'Reads pages you’ve shared with Otty' }
+}
+const LINEAR_TOOLS: ConnectionToolView[] = [
+  { name: 'create_issue', title: 'Create issue', description: 'Opens a new issue in a team you can see.', on: true, readOnly: false, changed: false },
+  { name: 'list_issues', title: '', description: 'Lists the issues assigned to you, newest first.', on: true, readOnly: true, changed: false },
+  { name: 'delete_issue', title: '', description: 'Deletes an issue for good.', on: false, readOnly: false, changed: true }
+]
+const CANVAS_VIEW: ConnectionView = { id: 'canvas', kind: 'canvas', label: 'Canvas', host: 'canvas.nus.edu.sg', status: 'on', reads: BUILT.canvas.reads, privacy: PRIVACY, tools: [] }
+const LINEAR_VIEW: ConnectionView = {
+  id: 'linear',
+  kind: 'mcp',
+  label: 'Linear',
+  host: 'mcp.linear.app',
+  status: 'changed',
+  reads: `${LINEAR_TOOLS.filter((t) => t.on && !t.changed).length} of ${LINEAR_TOOLS.length} tools on · mcp.linear.app`,
+  privacy: PRIVACY,
+  tools: LINEAR_TOOLS
+}
+const offer = (kind: 'apple' | 'google' | 'canvas' | 'notion', available = true): ConnectionOffer => ({ kind, available, ...(available ? {} : { why: 'Off while Otty uses a model on this Mac.' }) })
+function initialLinks(): ConnectionsState {
+  if (scene === 'connections-off') return { connected: [], offers: [offer('apple'), offer('google', false), offer('canvas', false), offer('notion', false)], online: false }
+  return { connected: [CANVAS_VIEW, LINEAR_VIEW], offers: [offer('apple'), offer('google'), offer('notion')], online: true }
+}
+let links: ConnectionsState = initialLinks()
+
 const receiptsSample: ChatMessage[] = [
   { id: 'u1', role: 'user', text: 'Check the last train to Sendai on Saturday and remind me to book on Thursday', captures: [], app: null },
   {
@@ -358,6 +395,16 @@ const receiptsSample: ChatMessage[] = [
   { id: 'a2', role: 'assistant', language: 'en', tools: [], text: 'Sure, what would you like instead?', receipts: [{ allowed: false, verb: 'Skipped', what: 'jreast.co.jp', why: 'you asked something else' }] }
 ]
 
+const connectSample: ChatMessage[] = [
+  { id: 'u1', role: 'user', text: 'Add Linear so you can see my issues', captures: [], app: null },
+  {
+    id: 'a1',
+    role: 'assistant',
+    language: 'en',
+    tools: [],
+    text: 'Here is the connection for Linear. Check the address, then press Check and add.\n\n```connection\n{"service":"mcp","name":"Linear","url":"https://mcp.linear.app/mcp","auth":"oauth"}\n```'
+  }
+]
 const notedSample: ChatMessage[] = [
   memorySample[0],
   {
@@ -553,6 +600,39 @@ const api: OttyApi = {
   relaunch: noop,
   getDiagnostics: async () =>
     'Otty 0.5.0 · macOS 26.1 · arm64\nInstalled app: yes · in Applications: yes\nService: DeepSeek · model deepseek-flash · web deepseek\nAccessibility: yes · Screen Recording: yes · paused: no\n\nLast 2 log lines:\n2026-11-18T09:00:00.000Z info Otty 0.5.0 started\n2026-11-18T09:12:04.120Z warn Refused chat:send: argument 2 doesn’t fit',
+  connections: async () => structuredClone(links),
+  connect: async (req: ConnectRequest): Promise<ConnectResult> => {
+    if (req.kind === 'mcp') {
+      const view: ConnectionView = {
+        id: `own-${links.connected.length + 1}`,
+        kind: 'mcp',
+        label: req.name,
+        host: new URL(req.url).host,
+        status: 'on',
+        reads: `0 of 1 tools on · ${new URL(req.url).host}`,
+        privacy: PRIVACY,
+        tools: [{ name: 'search_issues', title: '', description: 'Finds issues by words.', on: false, readOnly: true, changed: false }]
+      }
+      links = { ...links, connected: [...links.connected, view] }
+      return { ok: true, message: 'Added. Turn on the tools you want Otty to use.', view }
+    }
+    const view: ConnectionView = { id: req.kind, kind: req.kind, label: BUILT[req.kind].label, host: req.kind === 'canvas' ? 'canvas.nus.edu.sg' : '', status: 'on', reads: BUILT[req.kind].reads, privacy: PRIVACY, tools: [] }
+    links = { ...links, connected: [...links.connected, view], offers: links.offers.filter((o) => o.kind !== req.kind) }
+    return { ok: true, message: `${view.label} is connected.`, view }
+  },
+  cancelConnect: async () => {},
+  setConnectionTool: async (id, tool, on) => {
+    links = { ...links, connected: links.connected.map((c) => (c.id !== id ? c : { ...c, tools: c.tools.map((t) => (t.name === tool ? { ...t, on, changed: false } : t)) })) }
+    return { ok: true, message: '' }
+  },
+  recheckConnection: async () => ({ ok: true, message: 'Still connected.' }),
+  signInAgain: async () => ({ ok: true, message: 'Signed in again.' }),
+  removeConnection: async (id) => {
+    const gone = links.connected.find((c) => c.id === id)
+    const back = gone && gone.kind !== 'mcp' && !links.offers.some((o) => o.kind === gone.kind) ? [...links.offers, offer(gone.kind)] : links.offers
+    links = { ...links, connected: links.connected.filter((c) => c.id !== id), offers: back }
+    return structuredClone(links)
+  },
   getUsage: async () => ({
     days: 30,
     questions: 142,
@@ -693,6 +773,7 @@ const api: OttyApi = {
   onChatEvent: (cb) => {
     chatCbs.add(cb)
     if (scene === 'proofread') setTimeout(() => cb({ type: 'load', messages: proofreadSample }), 50)
+    if (scene === 'connect-card') setTimeout(() => cb({ type: 'load', messages: connectSample } as unknown as ChatEvent), 50)
     if (scene === 'steps') setTimeout(() => cb({ type: 'load', messages: stepsSample }), 50)
     if (scene === 'math') setTimeout(() => cb({ type: 'load', messages: mathSample }), 50)
     if (scene === 'code') setTimeout(() => cb({ type: 'load', messages: codeSample }), 50)
@@ -738,10 +819,10 @@ const api: OttyApi = {
     // Once only: StrictMode subscribes twice, and a second snip would land in the tray.
     if (scene === 'tray' && !trayed.panel) setTimeout(() => cb({ context: snip, app: terminal, add: true }), 160)
     trayed.panel = true
-    if (scene.startsWith('settings') || scene === 'provider') setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
+    if (scene.startsWith('settings') || scene === 'provider' || scene.startsWith('connections')) setTimeout(() => cb({ context: null, notice: 'open-settings' }), 80)
     // D-61: `&section=you|keys|privacy|usage|conn|help` opens a section; the other settings scenes set one up.
-    const titles: Record<string, string> = { you: 'You & Otty', tiles: 'My tiles', keys: 'Shortcuts', privacy: 'Privacy', usage: 'Usage & limit', conn: 'Connection', help: 'Help' }
-    const setUp: Record<string, string> = { 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn' }
+    const titles: Record<string, string> = { you: 'You & Otty', tiles: 'My tiles', keys: 'Shortcuts', privacy: 'Privacy', usage: 'Usage & limit', links: 'Connections', conn: 'Connection', help: 'Help' }
+    const setUp: Record<string, string> = { 'settings-retention': 'privacy', 'settings-recording': 'keys', 'settings-broken': 'conn', provider: 'conn', connections: 'links', 'connections-add': 'links', 'connections-mcp': 'links', 'connections-off': 'links' }
     const section = setUp[scene] ?? (titles[scene.replace('settings-', '')] ? scene.replace('settings-', '') : null)
     // React runs this twice in development, so each press happens once.
     const press = (sel: string, text?: string, tries = 20): void => {
@@ -754,6 +835,9 @@ const api: OttyApi = {
     if (section) setTimeout(() => press('.set-row--section', titles[section]), 160)
     if (scene === 'provider') setTimeout(() => press('.set-row', 'Change service or key'), 240)
     if (scene === 'settings-recording') setTimeout(() => press('.keys-btn'), 240)
+    // D-54: the own connection's form with "A key or token" chosen, or Linear's detail open.
+    if (scene === 'connections-add') setTimeout(() => (press('.set-row', 'Your own connection'), setTimeout(() => (() => { const s = document.querySelector<HTMLSelectElement>('select[aria-label="How it signs in"]'); if (s) { Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(s, 'token'); s.dispatchEvent(new Event('change', { bubbles: true })) } })(), 80)), 240)
+    if (scene === 'connections-mcp') setTimeout(() => press('.set-row', 'Linear'), 240)
     if (scene === 'settings-retention')
       setTimeout(() => {
         const keep = document.querySelector<HTMLSelectElement>('select[aria-label="Keep chats for"]')

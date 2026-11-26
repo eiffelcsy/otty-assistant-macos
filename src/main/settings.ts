@@ -4,6 +4,7 @@ import { profileFor } from './providers/profiles'
 import { serviceAt, type ServiceId } from '../shared/services'
 import { cleanCap } from '../shared/cap'
 import { cleanPauseEnd } from '../shared/pauseUntil'
+import type { SavedConnection } from './connections/types'
 
 // The settings and the keys, over a small backend (D-45 step 3). The Mac's, in `settingsOnMac.ts`, is plugged in by
 // `core.ts`, so this module, and the tool loop that reads it, never import electron.
@@ -62,6 +63,8 @@ export interface StoredSettings extends Omit<PublicSettings, 'hasApiKey' | 'need
   windowBounds?: Partial<Record<WindowState, { x: number; y: number; width: number; height: number }>>
   /** "Not now" to moving into Applications (D-53), so it's asked once. */
   moveDeclined?: boolean
+  /** D-54: connections, each with its secret locked by the Keychain. Main's alone: never public, never settable. */
+  connections?: SavedConnection[]
 }
 
 const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
@@ -145,7 +148,7 @@ export function getStored(): StoredSettings {
 
 export function getPublic(): PublicSettings {
   const s = load()
-  const { apiKeys, apiKeyEnc: _e, apiKeyPlain: _p, bubblePosition: _b, moveDeclined: _m, windowBounds: _w, ...rest } = s
+  const { apiKeys, apiKeyEnc: _e, apiKeyPlain: _p, bubblePosition: _b, moveDeclined: _m, windowBounds: _w, connections: _c, ...rest } = s
   return {
     ...rest,
     hasApiKey: Boolean(apiKeys?.[serviceAt(s.baseUrl)]) || Boolean(envKey(s)),
@@ -211,5 +214,20 @@ export function saveBubblePosition(pos: { x: number; y: number }): void {
 
 export function saveMoveDeclined(): void {
   load().moveDeclined = true
+  persist()
+}
+
+/** The Keychain the settings use, for anything else Otty locks away (a connection's token, D-54). */
+export function keychain(): Keychain {
+  return using().keychain
+}
+
+/** D-54: the saved connections, in the order they were added. */
+export function getConnections(): SavedConnection[] {
+  return load().connections ?? []
+}
+
+export function saveConnections(list: SavedConnection[]): void {
+  load().connections = list
   persist()
 }

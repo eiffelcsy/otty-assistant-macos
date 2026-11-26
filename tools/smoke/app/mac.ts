@@ -7,9 +7,20 @@ import { clipboard, nativeImage, screen, type Menu, type MenuItem, type Notifica
 import type * as ElectronModule from 'electron'
 import type { SmokeCall, SmokeMac } from './types'
 
+/** Tomorrow at a time of day, local, as the helper would report it. */
+const tomorrow = (hour: number, minute = 0): string => {
+  const d = new Date()
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, hour, minute).toISOString()
+}
+
 export const mac: SmokeMac = {
   accessibility: true,
   screen: true,
+  calendar: {
+    allowed: true,
+    events: [{ title: 'Swim practice', start: tomorrow(7), end: tomorrow(8), allDay: false, calendar: 'Home' }],
+    reminders: [{ title: 'Return library books', list: 'Errands' }]
+  },
   selection: null,
   front: null,
   snip: null,
@@ -41,6 +52,7 @@ export function macProcess(file: string, args: string[]): Promise<{ stdout: stri
     if (mac.snip) writeFileSync(path, bytes(mac.snip))
     return mac.snip ? ok() : Promise.reject(new Error('cancelled'))
   }
+  if (file.endsWith('/otty-calendar')) return calendarHelper(args)
   if (file !== 'osascript') return null
   const lines = args.filter((_a, i) => args[i - 1] === '-e')
   const text = lines.join('\n')
@@ -59,6 +71,23 @@ export function macProcess(file: string, args: string[]): Promise<{ stdout: stri
   }
   record('osascript', args)
   return mac.script.fail ? Promise.reject(new Error(mac.script.fail)) : ok(mac.script.stdout)
+}
+
+/**
+ * The Swift calendar helper (apple.ts): `access`, `events from to` and `reminders`, as JSON. A refusal rejects with
+ * code 2, the way the helper exits when macOS says no.
+ */
+function calendarHelper(args: string[]): Promise<{ stdout: string; stderr: string }> {
+  const cal = mac.calendar
+  const [verb, from, to] = args
+  if (verb === 'access') return ok(JSON.stringify({ calendar: cal.allowed ? 'granted' : 'denied', reminders: cal.allowed ? 'granted' : 'denied' }))
+  if (!cal.allowed) return Promise.reject(Object.assign(new Error('denied'), { code: 2 }))
+  if (verb === 'reminders') return ok(JSON.stringify({ reminders: cal.reminders }))
+  if (verb === 'events') {
+    const shown = cal.events.filter((e) => e.start < to && e.end > from)
+    return ok(JSON.stringify({ events: shown }))
+  }
+  return Promise.reject(new Error(`unknown helper command: ${verb}`))
 }
 
 function flatten(menu: Menu | null): MenuItem[] {

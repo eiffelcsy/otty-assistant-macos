@@ -9,7 +9,7 @@ vi.mock('electron', () => ({
   desktopCapturer: { getSources },
   systemPreferences: { getMediaAccessStatus: () => status.value }
 }))
-vi.mock('../settings', () => ({ getStored: () => ({}) }))
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), getStored: () => ({}) }))
 const { captureWholeScreen, encodeImage, fitTo, withWindowsHidden } = await import('../capture')
 
 const display = { id: 7, scaleFactor: 2, size: { width: 1728, height: 1117 } } as Electron.Display

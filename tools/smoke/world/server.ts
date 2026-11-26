@@ -22,6 +22,7 @@ import {
   type SearchResult
 } from './search'
 import type { Turn } from './turn'
+import { answerConnection, freshConnections, type Answer, type ConnectionsWorld } from './connections'
 
 export type { Turn } from './turn'
 export type { LookupAnswer, QueryMatch, ReadResult, SearchResult } from './search'
@@ -126,6 +127,8 @@ export class World {
   private server: Server | null = null
   /** Background calls (titles, explain warm-ups) get this unless a script matches. */
   backgroundReply = 'Smoke chat'
+  /** Settings › Connections' services: Canvas, Notion, Google and MCP servers (D-54). */
+  connections: ConnectionsWorld = freshConnections()
 
   /** Reply to the next model requests whose latest user words match. A list answers one request each, in order. */
   reply(match: Match, ...turns: Turn[]): this {
@@ -175,6 +178,7 @@ export class World {
     this.reads.clear()
     this.lookups = []
     this.backgroundReply = 'Smoke chat'
+    this.connections = freshConnections()
   }
 
   async start(): Promise<string> {
@@ -196,6 +200,21 @@ export class World {
     if (res.headersSent) return void res.end()
     if (format === 'anthropic') anthropicError(res, 500, why)
     else openAiError(res, 500, why)
+  }
+
+  /** A connection service's answer: JSON unless it's a string or nothing. Its own status, headers and all. */
+  private answer(res: ServerResponse, a: Answer): void {
+    const headers: Record<string, string> = { 'content-type': 'application/json', ...a.headers }
+    if (a.body === undefined) {
+      res.writeHead(a.status, headers)
+      return void res.end()
+    }
+    if (typeof a.body === 'string') {
+      res.writeHead(a.status, { 'content-type': 'text/plain; charset=utf-8', ...a.headers })
+      return void res.end(a.body)
+    }
+    res.writeHead(a.status, headers)
+    res.end(JSON.stringify(a.body))
   }
 
   private json(res: ServerResponse, body: object, status = 200): void {
@@ -220,6 +239,15 @@ export class World {
     const authorization = req.headers['authorization'] ? String(req.headers['authorization']) : undefined
     const apiKey = req.headers['x-api-key'] ? String(req.headers['x-api-key']) : undefined
     this.requests.push({ url, method: req.method ?? 'GET', body, ...(authorization ? { authorization } : {}), ...(apiKey ? { apiKey } : {}) })
+
+    let host: URL | null = null
+    try {
+      host = new URL(url)
+    } catch {
+      /* not an address: nothing of ours answers it */
+    }
+    const answer = host ? answerConnection({ url: host, method: req.method ?? 'GET', body, ...(authorization ? { authorization } : {}) }, this.connections) : null
+    if (answer) return this.answer(res, answer)
 
     const format = modelFormat(url)
     if (format) return this.model(res, body as ModelBody, format)

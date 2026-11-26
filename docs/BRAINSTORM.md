@@ -430,16 +430,19 @@ Otty can only help with what it can see, and most of a person's week lives in ot
 
 | Idea | Impact | Effort | Status |
 | --- | --- | --- | --- |
-| The connection layer: one `Connection` interface, its token in the Keychain, a sign-in through the browser, its tools in `toolSafety.ts`, and its content tainting the run as private and outside at once | H | M–L | → D-54 (with Google Calendar) |
-| **Google Calendar**, read-only: "what's on tomorrow?", "when am I free on Thursday?", and the material for Look after me's focus list | H | M | → D-54 |
-| **Canvas** (NUS's Canvas first): assignments, due dates and announcements, so "what's due this week?" works and deadlines can feed the focus list. Needs a token or an OAuth developer key from the school (**verify** what NUS allows) | H | M | → D-54 (step 1, pasted token) |
-| **Notion**, read-only: search and read pages and databases the user shares with Otty's integration (Notion only shows an integration the pages it's added to) | M | M | → D-54 (step 2, pasted token) |
-| Apple Calendar and Reminders through EventKit, on the Mac with no account: the same `Connection` shape with a local source. Reminders can already be added. It also reads Google calendars added to macOS, so the beta needs no OAuth | H | M | → D-54 (step 4, 2026-11-24); needs a Swift helper |
-| An MCP client for everything else: add a remote MCP server (or a local one) as a connection, with every tool off until the user turns it on, its descriptions treated as outside text, and a changed tool asked about again | H | M–L | → D-54 (step 5); advanced, off by default |
+| The connection layer: one `Connection` interface, its token in the Keychain, a sign-in through the browser, its tools in `toolSafety.ts`, and its content tainting the run as private and outside at once | H | M–L | shipped (D-54) |
+| **Google Calendar**, read-only: "what's on tomorrow?", "when am I free on Thursday?", and the material for Look after me's focus list | H | M | shipped (D-54) |
+| **Canvas** (NUS's Canvas first): assignments, due dates and announcements, so "what's due this week?" works and deadlines can feed the focus list. Needs a token or an OAuth developer key from the school (**verify** what NUS allows) | H | M | shipped (D-54, pasted token) |
+| **Notion**, read-only: search and read pages and databases the user shares with Otty's integration (Notion only shows an integration the pages it's added to) | M | M | shipped (D-54, pasted token) |
+| Apple Calendar and Reminders through EventKit, on the Mac with no account: the same `Connection` shape with a local source. Reminders can already be added. It also reads Google calendars added to macOS, so the beta needs no OAuth | H | M | shipped (D-54, `otty-calendar`) |
+| An MCP client for everything else: add a remote MCP server (or a local one) as a connection, with every tool off until the user turns it on, its descriptions treated as outside text, and a changed tool asked about again | H | M–L | shipped (D-54): remote addresses, in Settings or from a chat card; tools off until turned on, pinned |
 | Writes, one tool at a time: "add this to my calendar", "append to my Notion page", each behind a card, with the ledger's undo where the service allows it (delete the event Otty made) | H | M | idea, after reads have a record |
-| Connections in What left your Mac: "Sent 4 calendar events to DeepSeek", so moving data from one service to another is as visible as a search | H | S | idea, ships with D-54 |
+| Connections in What left your Mac: "Sent 4 calendar events to DeepSeek", so moving data from one service to another is as visible as a search | H | S | shipped (D-54): a row per read, "Read 6 events" |
 | A connection's own limits: which calendars or Notion pages, how far ahead, and a "never send this one to the model" list | M | S | idea, with the second connection |
 | Gmail read-only, as the most useful and the most dangerous source: every email is outside text | M | M | idea, last; needs the policy decision (Runtime) first |
+| Connections of your own that are programs on this Mac (MCP over stdio). Left out of D-54: a packaged app has no shell `PATH`, and a program runs outside every limit Otty checks, its own network use included. Needs a sandboxed runner first | M | M–L | idea |
+| A connection tool that's on can be set to "always ask" or "never ask", per tool, like the reach ladder's levels | M | S | idea, after D-54 has a record |
+| Connections show in Home's Today: the next event and what's due, from the same reads, without asking | H | S–M | idea, after D-73 |
 
 ## Build your own feature: Otty made to measure
 

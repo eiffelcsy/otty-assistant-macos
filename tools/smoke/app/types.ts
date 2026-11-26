@@ -12,10 +12,20 @@ export interface SmokeApp {
   url?: string
 }
 
+/** What the fake calendar helper (Apple Calendar and Reminders, D-54) reports. */
+export interface SmokeCalendar {
+  /** Whether Otty may read the calendars. When false, the helper refuses like macOS does. */
+  allowed: boolean
+  events: { title: string; start: string; end: string; allDay: boolean; location?: string; calendar: string }[]
+  reminders: { title: string; due?: string; list: string }[]
+}
+
 /** What the fake Mac reports. Specs change it with `control.mac(...)`. */
 export interface SmokeMac {
   accessibility: boolean
   screen: boolean
+  /** Apple Calendar and Reminders, read through the calendar helper. */
+  calendar: SmokeCalendar
   /** What ⌘C copies in the app in front. Null when nothing is highlighted. */
   selection: string | null
   front: SmokeApp | null

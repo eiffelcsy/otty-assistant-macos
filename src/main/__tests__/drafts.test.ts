@@ -5,7 +5,7 @@ import type { Thread } from '../store'
 // D-62: the message box's words kept per chat in main, stopped answers, and failures by kind.
 
 vi.mock('electron', () => ({ clipboard: {}, ClipboardItem: class {}, shell: {}, nativeImage: {}, app: { isPackaged: true, getPath: () => '' } }))
-vi.mock('../settings', () => ({ isDev: () => false,
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => false,
   getStored: () => ({ baseUrl: 'https://api.deepseek.com/', apiFormat: 'auto', model: 'm', thinking: false, homeLanguage: null, rememberChats: true, learn: false }),
   getApiKey: () => 'key'
 }))

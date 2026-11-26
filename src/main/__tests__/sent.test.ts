@@ -4,7 +4,7 @@ import { openDatabase } from '../store/db'
 import { fold, MemorySentLog, questionWhat, record, setSentLog, SqliteSentLog, type SentRow } from '../sent'
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {}, app: { isPackaged: true } }))
-vi.mock('../settings', () => ({ isDev: () => false, getStored: () => ({ baseUrl: 'https://api.openai.com/v1', model: 'm', learn: false }), getApiKey: () => null }))
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => false, getStored: () => ({ baseUrl: 'https://api.openai.com/v1', model: 'm', learn: false }), getApiKey: () => null }))
 vi.mock('../pageReader', () => ({ readPageFromMac: async () => 'Config dump: AWS key AKIAABCDEFGHIJKLMNOP and DB_PASSWORD="hunter2222"' }))
 
 const row = (r: Partial<SentRow>): SentRow => ({ at: 1, kind: 'question', service: 'DeepSeek', host: 'api.deepseek.com', local: false, what: '', ...r })

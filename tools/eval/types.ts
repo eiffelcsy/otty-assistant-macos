@@ -54,6 +54,11 @@ export interface Case {
   page?: string
   /** A CSV the user attached, for make_chart (D-35). Charted by the real code, as in the app. */
   table?: string
+  /** The connections on for this case (D-54). Their tools are offered only when listed. */
+  connections?: ('apple' | 'google' | 'notion' | 'canvas')[]
+  /** The calendar's answer, and Notion's page text, when the case needs them. */
+  calendar?: string
+  notion?: string
   expect: Expect
 }
 

@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 
 let baseUrl = 'https://api.deepseek.com'
 vi.mock('electron', () => ({ clipboard: {}, shell: {}, ClipboardItem: class {} }))
-vi.mock('../settings', () => ({ isDev: () => true, getApiKey: () => 'key', getStored: () => ({ baseUrl, model: 'claude-sonnet-5-5', apiFormat: baseUrl.includes('anthropic') ? 'anthropic' : 'auto', learn: true }) }))
+vi.mock('../settings', () => ({ isDev: () => true, getApiKey: () => 'key', getStored: () => ({ baseUrl, model: 'claude-sonnet-5-5', apiFormat: baseUrl.includes('anthropic') ? 'anthropic' : 'auto', learn: true }), getConnections: () => [] }))
 const { toolDefs } = await import('../tools')
 const { CHAT_TOOLS, claimOnce, JOB_TOOLS, needsOnce, OUTSIDE_TOOLS, ruleOfTwo, SAFETY } = await import('../toolSafety')
+
+const CONNECTION_TOOLS = ['calendar_events', 'calendar_free', 'reminders_due', 'canvas_due', 'canvas_announcements', 'notion_search', 'notion_page']
 
 /** Every tool the model can be offered, whichever service is in use. */
 function offered(): Set<string> {
@@ -19,11 +21,12 @@ function offered(): Set<string> {
 
 describe('tool safety labels', () => {
   it('labels every tool the model can be offered, and nothing else', () => {
-    expect([...offered()].sort()).toEqual(Object.keys(SAFETY).sort())
+    // Connection tools are offered only with a connection saved (D-54), and none is in these tests.
+    expect([...offered()].sort()).toEqual(Object.keys(SAFETY).filter((n) => !CONNECTION_TOOLS.includes(n)).sort())
   })
 
   it('works out the lists from the table, and they match what Otty has always done', () => {
-    expect([...OUTSIDE_TOOLS].sort()).toEqual(['read_page', 'search_web'])
+    expect([...OUTSIDE_TOOLS].sort()).toEqual(['calendar_events', 'calendar_free', 'canvas_announcements', 'canvas_due', 'notion_page', 'notion_search', 'read_page', 'reminders_due', 'search_web'])
     expect([...JOB_TOOLS].sort()).toEqual(['read_page', 'search_web'])
   })
 
@@ -39,7 +42,14 @@ describe('the Rule of Two', () => {
   })
 
   it('allows a chat turn’s whole set, which the user watches, only without private reading', () => {
-    expect(() => ruleOfTwo(Object.keys(SAFETY))).not.toThrow()
+    const connections = new Set(CONNECTION_TOOLS)
+    expect(() => ruleOfTwo(Object.keys(SAFETY).filter((n) => !connections.has(n)))).not.toThrow()
+  })
+
+  // D-54: connection tools read private data and outside words at once, so they live only in a chat, where needsCard shows what leaves.
+  it('keeps connection tools out of jobs: with them the set has all three legs', () => {
+    expect(() => ruleOfTwo(Object.keys(SAFETY))).toThrow()
+    for (const name of CONNECTION_TOOLS) expect(JOB_TOOLS.has(name)).toBe(false)
   })
 
   it('throws when private data, outside words and a way out meet', () => {

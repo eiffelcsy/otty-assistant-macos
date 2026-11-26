@@ -50,6 +50,13 @@ const api: OttyApi = {
   relaunch: () => ipcRenderer.invoke('app:relaunch'),
   getUsage: () => ipcRenderer.invoke('usage:get'),
   getDiagnostics: () => ipcRenderer.invoke('diagnostics:get'),
+  connections: () => ipcRenderer.invoke('connections:list'),
+  connect: (request) => ipcRenderer.invoke('connections:connect', request),
+  cancelConnect: () => ipcRenderer.invoke('connections:cancel'),
+  setConnectionTool: (id, tool, on) => ipcRenderer.invoke('connections:tool', id, tool, on),
+  recheckConnection: (id) => ipcRenderer.invoke('connections:recheck', id),
+  signInAgain: (id) => ipcRenderer.invoke('connections:sign-in', id),
+  removeConnection: (id) => ipcRenderer.invoke('connections:remove', id),
 
   sendMessage: (text, captures, opts) => ipcRenderer.invoke('chat:send', text, captures, opts),
   stop: () => ipcRenderer.invoke('chat:stop'),

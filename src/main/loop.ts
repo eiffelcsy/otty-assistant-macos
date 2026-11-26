@@ -1,7 +1,7 @@
 import { ConnectionError, FriendlyError } from './providers/errors'
 import type { ChatRequest, Message, Provider, ProviderReplay, ToolCall, Usage } from './providers/types'
 import { runTool, toolLabel, type ToolContext, type ToolOutcome } from './tools'
-import { OUTSIDE_TOOLS } from './toolSafety'
+import { safetyOf } from './toolSafety'
 import { count } from './usage'
 import { record } from './sent'
 
@@ -80,7 +80,12 @@ export async function runLoop(o: LoopOptions): Promise<void> {
       if (show !== 'never') o.onEvent({ type: 'tool', callId: call.id, label: out.chip?.label ?? label, icon, status: out.status, ...(out.chip?.copy ? { copy: out.chip.copy } : {}) })
       if (out.status === 'done' && call.function.name === 'search_web') count('searches')
       if (out.status === 'done' && call.function.name === 'read_page') count('pages')
-      if (out.status !== 'denied' && OUTSIDE_TOOLS.has(call.function.name) && o.context.taint) o.context.taint.outside = true
+      // D-54: a connection's result is the user's own data and someone else's words at once.
+      const safety = safetyOf(call.function.name)
+      if (out.status !== 'denied' && o.context.taint) {
+        if (safety?.outside) o.context.taint.outside = true
+        if (safety?.reads === 'private') o.context.taint.private = true
+      }
       o.onEvent({ type: 'tool-result', name: call.function.name, outcome: out })
       add({ role: 'tool', tool_call_id: call.id, content: out.result })
     }

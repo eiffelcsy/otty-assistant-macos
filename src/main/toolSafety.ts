@@ -34,12 +34,39 @@ export const SAFETY = {
   // The brief goes out with the job, and the user can cancel it.
   start_job: row('none', false, true, 'undoable'),
   // The same, later: the brief goes out when it runs, and Cancel in the Logbook takes it back until then.
-  schedule_job: row('none', false, true, 'undoable')
+  schedule_job: row('none', false, true, 'undoable'),
+  // D-54: connections. What they return is the user's own data and someone else's words at once (anyone can send an
+  // invite or share a page). Dates and counts can't carry words out; Notion's search words and page ids go to Notion.
+  calendar_events: row('private', true, false, 'nothing'),
+  calendar_free: row('private', true, false, 'nothing'),
+  reminders_due: row('private', true, false, 'nothing'),
+  canvas_due: row('private', true, false, 'nothing'),
+  canvas_announcements: row('private', true, false, 'nothing'),
+  notion_search: row('private', true, true, 'nothing'),
+  notion_page: row('private', true, true, 'nothing')
 } as const satisfies Record<string, Safety>
 
 export type ToolName = keyof typeof SAFETY
 
 const names = Object.keys(SAFETY) as ToolName[]
+
+/** Rows for tools that come and go (a connection of the user's own, D-54). Plugged in by `connections/`. */
+let extra: (name: string) => Safety | undefined = () => undefined
+
+export function setExtraSafety(resolve: (name: string) => Safety | undefined): void {
+  extra = resolve
+}
+
+/** A tool's row: the table's, or one the connections layer knows. Undefined for a tool nobody knows. */
+export function safetyOf(name: string): Safety | undefined {
+  return Object.hasOwn(SAFETY, name) ? SAFETY[name as ToolName] : extra(name)
+}
+
+/** True when a tool's result is someone else's words. */
+export const isOutside = (name: string): boolean => Boolean(safetyOf(name)?.outside)
+
+/** True when a tool's change can't be taken back. */
+export const isLasting = (name: string): boolean => safetyOf(name)?.changes === 'lasting'
 const pick = (test: (s: Safety) => boolean): ReadonlySet<string> => new Set(names.filter((n) => test(SAFETY[n])))
 
 /** Every tool: a chat turn, which the user is watching, may offer any of them. */
@@ -64,7 +91,7 @@ export function ruleOfTwo(allowed: Iterable<string>, holdsPrivate = false): void
   let outside = false
   let leaves = false
   for (const name of allowed) {
-    const s = (SAFETY as Record<string, Safety>)[name]
+    const s = safetyOf(name)
     if (!s) throw new Error(`The tool ${name} has no safety label.`)
     priv ||= s.reads === 'private'
     outside ||= s.outside
@@ -85,7 +112,7 @@ export interface RunTaint {
 
 /** The Rule of Two inside a run: a tool that sends the model's words out, once private data and outside words meet. */
 export function needsCard(name: string, taint: RunTaint | undefined): boolean {
-  return Boolean(taint?.private && taint.outside && (SAFETY as Record<string, Safety>)[name]?.leaves !== false)
+  return Boolean(taint?.private && taint.outside && safetyOf(name)?.leaves !== false)
 }
 
 /** Work that can change things must never repeat a change. A call is claimed once, by who asked and which call it was. */
@@ -97,4 +124,4 @@ export function claimOnce(claimed: Set<string>, runId: string, callId: string): 
 }
 
 /** Tools that change something, and so need `claimOnce` before they may run in a job that can be resumed. */
-export const needsOnce = (name: string): boolean => (SAFETY as Record<string, Safety>)[name]?.changes !== 'nothing'
+export const needsOnce = (name: string): boolean => safetyOf(name)?.changes !== 'nothing'

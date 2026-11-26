@@ -4,7 +4,7 @@ import { CHAT_TOOLS } from '../toolSafety'
 const { fetchPage } = vi.hoisted(() => ({ fetchPage: vi.fn(async () => 'Page text') }))
 
 vi.mock('electron', () => ({ clipboard: {}, shell: {} }))
-vi.mock('../settings', () => ({ isDev: () => true,
+vi.mock('../settings', () => ({ getConnections: () => [], saveConnections: () => {}, keychain: () => ({ available: () => false, lock: (s: string) => s, unlock: (s: string) => s }), isDev: () => true,
   getApiKey: () => 'sk-test',
   getStored: () => ({ baseUrl: 'https://api.deepseek.com' })
 }))

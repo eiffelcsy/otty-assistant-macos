@@ -3,6 +3,7 @@
  * as `<world>/<host><path>`. Names resolve to one documentation address, so pageReader's public-only check runs for real.
  */
 import dns from 'dns'
+import { isIP } from 'net'
 import { refuse } from './hermetic'
 
 /** TEST-NET-3: public to `isPrivateAddress`, and never routed anywhere. */
@@ -50,6 +51,10 @@ export function installNet(world: string): void {
   }
 
   const resolve = (host: string) => {
+    // An address needs no lookup, as in real DNS: a server listening on 127.0.0.1 asks for it too (Google's and MCP's
+    // sign-in catch the browser's redirect that way), and must get the loopback address, not the world's.
+    const family = isIP(host)
+    if (family) return [{ address: host, family }]
     if (netState.offline || host.endsWith('.invalid')) throw Object.assign(new Error(`getaddrinfo ENOTFOUND ${host}`), { code: 'ENOTFOUND' })
     return [{ address: WORLD_ADDRESS, family: 4 }]
   }
