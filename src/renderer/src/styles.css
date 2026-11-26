@@ -606,8 +606,7 @@ html[data-view='bubble'] body {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
 }
-/* The water's ripples and glints (D-83): painted, placed by their parent. The ripple is centred on Otty's waterline,
-   112% of his width; the glints sit on the water either side of him. */
+/* The water's ripple (D-83): painted, placed by its parent, centred on Otty's waterline. */
 .pool__water .in-water__ripple {
   left: calc(50% + 2px);
   /* the waterline (72% of Otty's height) in the pool's water box: 5 + 0.72 x 65.2 - 18 */
@@ -617,12 +616,6 @@ html[data-view='bubble'] body {
   height: auto;
 }
 .pool__water .pool__frame {
-  height: auto;
-}
-.pool__water .in-water__glints {
-  left: 12px;
-  top: 40px;
-  width: calc(100% - 24px);
   height: auto;
 }
 /* Working: a small wake behind Otty's feet, still. Needs you: the straw ring, as an element. */
@@ -771,7 +764,8 @@ html[data-view='bubble'] body {
   width: 0;
   height: 0;
 }
-/* One ripple: from 0.6x to 1.4x, faded in and out, in six steps over 1.2 s. Centred on its spot. */
+/* One ripple: from 0.6x to 1.4x, faded in and out, centred on its spot. Smooth, on the curve and length of the water's
+   own rings (Cove.tsx): it runs once per touch, so it costs nothing at rest (NFR-3). */
 .in-water__ripple {
   position: absolute;
   top: 72%;
@@ -781,31 +775,13 @@ html[data-view='bubble'] body {
   mix-blend-mode: screen;
   pointer-events: none;
   opacity: 0;
-  animation: in-water-ripple 1200ms steps(6) 1 both;
+  animation: in-water-ripple var(--t-drift) var(--glide) 1 both;
 }
 /* Full strength early (white rings on pale water need it), then a long fade as it spreads. */
 @keyframes in-water-ripple {
   from { scale: 0.6; opacity: 0; }
-  30% { opacity: 1; }
+  12% { opacity: 1; }
   to { scale: 1.4; opacity: 0; }
-}
-/* The glints: faint at rest, one twinkle in three steps (600 ms) each time they change. */
-.in-water__glints {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: auto;
-  mix-blend-mode: screen;
-  opacity: 0.55;
-  pointer-events: none;
-}
-.in-water__glints--twinkle {
-  animation: in-water-twinkle 600ms steps(3) 1;
-}
-@keyframes in-water-twinkle {
-  0%, 100% { opacity: 0.55; }
-  50% { opacity: 1; }
 }
 
 
@@ -868,6 +844,10 @@ html[data-view='bubble'] body {
 .panel__actions {
   display: flex;
   gap: var(--s-1);
+  -webkit-app-region: no-drag;
+}
+/* Every control in a header takes its own clicks, wherever it sits: the list column's New chat isn't in the actions. */
+.panel__header button {
   -webkit-app-region: no-drag;
 }
 /* The main header's title starts on the page's margin from the rail up; compact keeps Spec 05's 12, so the screen
@@ -1248,10 +1228,13 @@ html[data-view='bubble'] body {
   background: var(--straw);
 }
 /* The compact screen menu: the otter and the screen's name in one button, opening every other screen. */
+/* It fills the header's free width, so only its button and list take clicks: the space beside them drags the window. */
 .screen-menu {
   position: relative;
   flex: 1;
   min-width: 0;
+}
+.screen-menu__list {
   -webkit-app-region: no-drag;
 }
 .screen-menu__btn {
@@ -2069,10 +2052,6 @@ html[data-view='bubble'] body {
 @keyframes cove-lean {
   50% { rotate: 2deg; }
 }
-/* The wind's glints sit on the water and twinkle once. */
-.cove__glints {
-  top: var(--horizon);
-}
 /* The pieces were painted in daylight, so they take the light of the hour they're in. */
 .cove[data-time='night'] .cove__front {
   filter: brightness(0.62) saturate(0.75);
@@ -2276,13 +2255,7 @@ html[data-view='bubble'] body {
   display: block;
   width: 100%;
 }
-/* Otty's glints and ripple at his waterline (D-83): the glints 1.4x his width. */
-.cove-otty__body .in-water__glints {
-  left: 50%;
-  top: 72%;
-  width: 140%;
-  translate: -50% -50%;
-}
+/* Otty's ripple at his waterline (D-83). */
 .cove-otty__body .in-water__ripple {
   width: 112%;
 }
@@ -5532,26 +5505,47 @@ button.menu__item:hover {
   color: var(--text-2);
   text-align: center;
 }
+/* A day is the app's section label (Home's "Try asking"). It sticks as the entries scroll, and only while stuck does it
+   get glass, fading out at its foot instead of ending on a line. */
 .log-day__head {
   position: sticky;
   top: 0;
   z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  height: 36px;
   margin: 0;
-  border-bottom: 1px solid var(--hairline-strong);
-  background: color-mix(in srgb, var(--mist-top) 82%, transparent);
-  backdrop-filter: blur(12px);
-  font-size: var(--fs-ui);
+  container-type: scroll-state;
+}
+.log-day__bar {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  padding: var(--s-3) 0;
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
   font-weight: 700;
-  color: var(--heading);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  transition: background var(--t-quick) var(--glide);
+}
+/* Lines the day up with the entries' words, past their 54 px time column (the gap adds the last 8). */
+.log-day__bar::before {
+  content: '';
+  flex: none;
+  width: 46px;
+}
+@container scroll-state(stuck: top) {
+  .log-day__bar {
+    background: var(--cove-glass, color-mix(in srgb, var(--mist-top) 82%, transparent));
+    backdrop-filter: blur(12px);
+    mask-image: linear-gradient(black 70%, transparent);
+  }
 }
 .log-day__count {
   font-size: var(--fs-meta);
   font-weight: 500;
-  color: var(--text-2);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-3);
 }
 /* Days need air between them, or one day's last entry reads as the next day's first. */
 .log-day + .log-day {
@@ -6455,8 +6449,28 @@ html[data-view='viewer'] body {
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  height: 44px;
-  padding: 0 var(--s-4);
+  min-height: 44px;
+  padding: var(--s-3) var(--s-page);
+}
+/* Compact: the title takes its own row, the switch and buttons the next (as the Pouch's bar). */
+.cal--list .cal-bar {
+  flex-wrap: wrap;
+  row-gap: var(--s-2);
+}
+.cal--list .cal-bar__title {
+  flex-basis: 100%;
+}
+.cal--list .cal-mode {
+  margin-right: auto;
+}
+/* Week or Month: the answer-language pill's look, a size up so it sits with the bar's buttons. */
+.cal-mode {
+  margin-right: var(--s-2);
+}
+.cal-mode .lang-pill__opt {
+  height: 28px;
+  padding: 0 var(--s-3);
+  font-size: var(--fs-small);
 }
 .cal-bar__title {
   flex: 1;
@@ -6471,7 +6485,7 @@ html[data-view='viewer'] body {
   white-space: nowrap;
 }
 .cal-ok {
-  margin: 0 var(--s-4) var(--s-2);
+  margin: 0 var(--s-page) var(--s-2);
   align-items: center;
   justify-content: space-between;
   animation: cal-fade 6s linear forwards;
@@ -6489,7 +6503,7 @@ html[data-view='viewer'] body {
   min-width: 0;
 }
 .cal-note {
-  margin: 0 var(--s-4) var(--s-2);
+  margin: 0 var(--s-page) var(--s-2);
   font-size: var(--fs-small);
   line-height: var(--lh-small);
   color: var(--danger-ink);
@@ -6516,6 +6530,10 @@ html[data-view='viewer'] body {
   min-height: 0;
   overflow-y: auto;
 }
+/* The grid keeps the page's margin from the sidebar and the window's edge. */
+.cal-week > .cal-scroll {
+  padding: 0 var(--s-page) var(--s-4);
+}
 .cal-row {
   display: grid;
   grid-template-columns: var(--s-12) repeat(7, minmax(0, 1fr));
@@ -6524,7 +6542,9 @@ html[data-view='viewer'] body {
   position: sticky;
   top: 0;
   z-index: 2;
-  height: calc(var(--s-8) + var(--s-2));
+  height: var(--s-12);
+  padding: var(--s-1) 0;
+  border-radius: var(--r-sm);
   background: var(--cove-glass);
 }
 .cal-day-head {
@@ -6682,20 +6702,33 @@ html[data-view='viewer'] body {
   border-radius: 50%;
   background: var(--brand-fill);
 }
-.cal-day {
-  padding-top: var(--s-3);
+.cal-list {
+  padding: 0 var(--s-page) var(--s-6);
 }
+.cal-day {
+  padding-top: var(--s-4);
+}
+.cal-day + .cal-day {
+  margin-top: var(--s-1);
+}
+/* A day's name is the app's section label (Home's "Try asking"); today's is in the brand's ink. */
 .cal-day__label {
-  margin: 0 0 var(--s-1);
-  font-size: var(--fs-small);
-  line-height: var(--lh-small);
-  font-weight: 600;
+  margin: 0 0 var(--s-2);
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--text-2);
 }
+.cal-day:first-child .cal-day__label {
+  color: var(--brand-text);
+}
 .cal-day__none {
-  padding: var(--s-1) 0;
-  font-size: var(--fs-ui);
-  line-height: var(--lh-ui);
+  padding: 0 0 0 var(--s-3);
+  border-left: 1px solid var(--hairline);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
   color: var(--text-3);
 }
 .cal-day__rows {
@@ -6709,13 +6742,15 @@ html[data-view='viewer'] body {
 .cal-row-item {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: var(--s-3);
   width: 100%;
   margin: 0;
   padding: var(--s-2) var(--s-3);
   border: 0;
+  border-left: 3px solid var(--brand-fill);
   border-radius: var(--r-sm);
-  background: var(--fill);
+  background: var(--fill-strong);
+  transition: background var(--t-quick) var(--glide);
   font: inherit;
   font-size: var(--fs-ui);
   line-height: var(--lh-ui);
@@ -6724,12 +6759,18 @@ html[data-view='viewer'] body {
   cursor: pointer;
 }
 .cal-row-item--ext {
+  border-left-color: var(--hairline-strong);
+  background: var(--fill);
   color: var(--text-2);
+}
+.cal-row-item--ext:hover {
+  background: var(--fill-strong);
 }
 .cal-row-item__time {
   flex: none;
   width: 88px;
   font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
   color: var(--text-2);
 }
 .cal-row-item__title {
@@ -6747,6 +6788,117 @@ html[data-view='viewer'] body {
   flex: none;
   font-size: var(--fs-small);
   color: var(--text-3);
+}
+/* The month: six weeks of equal rows that fill the screen, each day its number and up to three chips. */
+.cal-month {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--s-page) var(--s-4);
+}
+.cal-month__head {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding-bottom: var(--s-2);
+}
+.cal-month__wd {
+  font-size: var(--fs-label);
+  line-height: var(--lh-label);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--text-2);
+}
+.cal-month__grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(6, minmax(var(--s-12), 1fr));
+  overflow-y: auto;
+  border-top: 1px solid var(--hairline);
+  border-left: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+}
+.cal-mday {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  margin: 0;
+  padding: var(--s-1);
+  border: 0;
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  background: transparent;
+  font: inherit;
+  color: var(--heading);
+  text-align: left;
+}
+.cal-mday--out {
+  background: var(--fill);
+  color: var(--text-3);
+}
+.cal-mday__open {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.cal-mday__num {
+  display: grid;
+  place-items: center;
+  width: var(--s-6);
+  height: var(--s-6);
+  border-radius: 50%;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition: background var(--t-quick) var(--glide);
+}
+.cal-mday__open:hover .cal-mday__num,
+button.cal-mday:hover .cal-mday__num {
+  background: var(--fill-strong);
+}
+.cal-mday--today .cal-mday__num,
+.cal-mday--today .cal-mday__open:hover .cal-mday__num,
+button.cal-mday--today:hover .cal-mday__num {
+  background: var(--brand-fill);
+  color: var(--brand-ink);
+}
+.cal-mday .cal-chip {
+  flex: none;
+  padding: 0 var(--s-1);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+}
+/* Compact: the whole day is the button, centred, with a dot per event. */
+button.cal-mday {
+  align-items: center;
+  cursor: pointer;
+}
+.cal-mday__dots {
+  display: flex;
+  gap: var(--s-0);
+  height: var(--s-1);
+}
+.cal-mday__dot {
+  width: var(--s-1);
+  height: var(--s-1);
+  border-radius: 50%;
+  background: var(--brand-fill);
+}
+.cal-mday__dot--ext {
+  background: var(--text-3);
 }
 .cal-card {
   position: absolute;

@@ -301,6 +301,8 @@ Language users: **bilingual / multilingual people who work in English** and some
 | The Logbook's motion: views crossfading, an entry's strike-through drawing on Undo with an "Undone" toast, and a finished run's entry surfacing with a found glow (Spec 04, Motion) | M | S | idea, after D-63; waits for the toast component |
 | Greet by name on Home once the Notebook knows how you like to be called ("Good afternoon, Mei"), never guessed from an account or a file | L | S | idea, from Spec 06 |
 | Home's "Today" river carrying Otty's own calendar blocks and meeting prep, so the day is one line of what's done, now and next | M | M | events shipped (D-73: today's events as ticks); meeting prep is still an idea |
+| Calendar month view beside the week, with a day opening its week | M | S | shipped (2026-11-27) |
+| Calendar: drag an event onto another day in the month, and a Day view for the roomy window | M | S | idea |
 | A Dock badge was considered for Needs you and left out: a red number asks to be cleared, which is the nagging the den's rules forbid. Revisit only if people miss decisions while the bubble is hidden | L | S | decided against for now (Spec 06) |
 
 ## Speed: spending a fast, cheap model

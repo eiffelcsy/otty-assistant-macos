@@ -1,5 +1,4 @@
 import { useState, type CSSProperties, type ReactNode } from 'react'
-import glintsArt from '../assets/cove/glints.webp'
 import rippleArt from '../assets/cove/ripple.webp'
 import waterlineArt from '../assets/cove/waterline.webp'
 
@@ -79,7 +78,7 @@ export function InWater({ frames, water, maskSrc, waterline = 0.72, className, p
   )
 }
 
-/** One ripple from a painted picture, growing and fading in steps. A new trigger remounts it, so only one is ever shown. */
+/** One ripple from a painted picture, growing and fading once, smoothly. A new trigger remounts it, so only one is ever shown. */
 export function Ripple({ trigger, className }: { trigger: number; className?: string }) {
   const [done, setDone] = useState(0)
   if (!trigger || trigger === done) return null
@@ -91,19 +90,6 @@ export function Ripple({ trigger, className }: { trigger: number; className?: st
       alt=""
       draggable={false}
       onAnimationEnd={() => setDone(trigger)}
-    />
-  )
-}
-
-/** The glints on the water: faint at rest, twinkling once (in steps) whenever `twinkle` changes. */
-export function Glints({ twinkle, className }: { twinkle: number; className?: string }) {
-  return (
-    <img
-      key={twinkle}
-      className={`in-water__glints${twinkle ? ' in-water__glints--twinkle' : ''}${className ? ` ${className}` : ''}`}
-      src={glintsArt}
-      alt=""
-      draggable={false}
     />
   )
 }

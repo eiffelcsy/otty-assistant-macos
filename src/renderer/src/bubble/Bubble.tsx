@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BubbleMood, BubbleState } from '../../../shared/types'
 import { Icon } from '../components/Icon'
-import { Glints, InWater, Ripple, RefractFilter } from '../components/InWater'
+import { InWater, Ripple, RefractFilter } from '../components/InWater'
 import float from '../assets/otty/float.webp'
 import floatDoze from '../assets/otty/float-doze.webp'
 import floatPaddle from '../assets/otty/float-paddle.webp'
@@ -46,7 +46,7 @@ export function Bubble() {
   /** Picked up: caught by the pointer once a press moves (a click isn't a carry), then a ring when let go (D-38). */
   const [held, setHeld] = useState(false)
   const pressedAt = useRef<{ x: number; y: number } | null>(null)
-  /** Ripples (D-83): a hover, a feed, a landing, a state change or an idle dip. Each new one plays again; the glints twinkle with it. */
+  /** Ripples (D-83): a hover, a feed, a landing, a state change or an idle dip. Each new one plays again. */
   const [ripples, setRipples] = useState(0)
   const ripple = () => setRipples((n) => n + 1)
   /** The idle dip is on for DIP_MS. */
@@ -192,12 +192,11 @@ export function Bubble() {
       <RefractFilter />
       <div className="pool__water">
         <img src={WATER[time]} alt="" draggable={false} />
-        {/* The submerged part, then the ripple on the surface, then the glints: all inside the pool's clip (D-83). */}
+        {/* The submerged part, then the ripple on the surface: both inside the pool's clip (D-83). */}
         <div className="pool__otty pool__otty--under">
           <InWater part="under" water={WATER[time]} maskSrc={frame} frames={frames} />
         </div>
         <Ripple trigger={ripples} className="pool__ring" />
-        <Glints twinkle={ripples} />
       </div>
       {mood === 'working' && <span className="bubble__working" />}
       {mood === 'waiting' && <span className="bubble__working bubble__working--waiting" />}

@@ -177,10 +177,6 @@ RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
                'each ring is a very wide, flat ellipse about six times wider than tall. The rings are thin, uneven and '
                'a little broken, like real ripples painted with a dry brush, the inner ring brightest and the outer '
                'one faintest. The centre is empty.', '1536x1024'),
-    'glints': (LIGHT + 'a loose scatter of about nine small sparkles of sunlight on rippling water, each a tiny soft '
-               'dab or a short horizontal stroke, a few with a faint four-point twinkle, spread across a wide, '
-               'flat oval area. Only the sparkles: no haze, no mist, no glow patch and no grey wash between them; the '
-               'background stays pure black everywhere else.', '1536x1024'),
     # D-84: a cove with life. Small visitors, rare and brief, cut out like the other pieces.
     'dragonfly': (PIECE + 'A small dragonfly seen from above at a slight angle, wings spread flat, four long pale '
                   'translucent wings with soft veins, a slender soft-teal body with a few warm amber marks.',

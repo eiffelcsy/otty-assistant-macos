@@ -4,6 +4,14 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 
 ## Unreleased
 
+### Calendar month, and a round of polish (2026-11-27)
+
+- **The calendar has a month view.** Switch between Week (List when narrow) and Month in the header; ⌘← and ⌘→ move a month. Each day shows its events, or a dot per event when the window is narrow, and a day's number opens its week.
+- The calendar keeps the page's margins in every width: more room around the header and the day names, and the narrow list is styled like the rest of Otty.
+- The Logbook's day names are quiet section labels now, with glass only while one is stuck to the top.
+- **New chat in the chat list works again** in the roomy window, and the whole top bar of the floating window drags it, not only the space beside its menu.
+- Otty's painted ripple spreads smoothly, like the rings on the water, and the glints are gone.
+
 ### A cove with life (D-84, 2026-11-26)
 
 - **The cove has visitors now,** small, rare and brief: a dragonfly darting over the water, birds crossing the sky, fireflies blinking by the reeds after golden hour, a fish ring on the water, or a breath of wind through the reeds. Each fits its time of day and is gone in a few seconds.

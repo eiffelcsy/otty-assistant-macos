@@ -28,8 +28,8 @@ describe('CLAUDE.md "Web safety": the renderer never loads anything remote', () 
       'PAINTINGS[t][0]', 'PAINTINGS[t][1]', 'PAINTINGS[t][2]', 'cloud', 'reeds', 'lilypad', 'float',
       // the pool's water and bundled Otty frames (D-82, Spec 13)
       'WATER[time]', 'frame', 'floatPaddle',
-      // Otty in the water (D-83): the painted waterline, ripple and glints (white on black, cut to light), and the frame's refraction
-      'waterlineArt', 'rippleArt', 'glintsArt',
+      // Otty in the water (D-83): the painted waterline and ripple (white on black, cut to light), and the frame's refraction
+      'waterlineArt', 'rippleArt',
       // the cove's visitors (D-84): a dragonfly, birds and a leaf, cut from paintings (the fish ring is the ripple above)
       'dragonflyArt', 'birdsArt', 'leafArt'])
     const found = CODE.flatMap((f) =>

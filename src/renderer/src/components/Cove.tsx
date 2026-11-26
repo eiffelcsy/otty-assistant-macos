@@ -22,7 +22,7 @@ import float from '../assets/otty/float.webp'
 import { coveGlass, coveTime, untilNextCove, type CoveTime } from '../lib/cove'
 import { leafShift, nextVisit, type Visit } from '../lib/visitors'
 import { T, glide } from '../lib/motion'
-import { Glints, InWater, Ripple, RefractFilter } from './InWater'
+import { InWater, Ripple, RefractFilter } from './InWater'
 
 const PAINTINGS: Record<CoveTime, [shore: string, water: string, sky: string]> = {
   dawn: [dawnShore, dawnWater, dawnSky],
@@ -211,7 +211,6 @@ function VisitView({ live, onDone }: { live: Live; onDone: () => void }) {
           <Ripple trigger={id} />
         </span>
       )}
-      {kind === 'wind' && <Glints twinkle={id} className="cove__glints" />}
     </span>
   )
 }
@@ -296,7 +295,6 @@ export function CoveOtty() {
         <span className="cove-otty__body">
           <img className="cove-otty__refl" src={float} alt="" draggable={false} />
           <InWater water={PAINTINGS[time][1]} maskSrc={float} frames={<img className="cove-otty__img" src={float} alt="" draggable={false} />} />
-          <Glints twinkle={squish} className="cove-otty__glints" />
           <Ripple trigger={squish} className="cove-otty__ripple" />
         </span>
       </span>

@@ -2,7 +2,7 @@
 // D-83: Otty in the water: the layers, the frame's mask, and ripples that play once per trigger.
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
-import { Glints, InWater, Ripple, RefractFilter } from '../InWater'
+import { InWater, Ripple, RefractFilter } from '../InWater'
 
 afterEach(cleanup)
 
@@ -49,13 +49,6 @@ describe('InWater (D-83)', () => {
     rerender(<Ripple trigger={2} />)
     expect(container.querySelectorAll('.in-water__ripple').length).toBe(1)
     expect(container.querySelector('.in-water__ripple')).not.toBe(first)
-  })
-
-  it('keeps the glints at rest, and twinkles them on a change', () => {
-    const { container, rerender } = render(<Glints twinkle={0} />)
-    expect(container.querySelector('.in-water__glints--twinkle')).toBeNull()
-    rerender(<Glints twinkle={1} />)
-    expect(container.querySelector('.in-water__glints--twinkle')).not.toBeNull()
   })
 
   it('draws only the submerged layers for part under, and only the surface for part above', () => {
