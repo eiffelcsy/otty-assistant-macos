@@ -210,7 +210,7 @@ const CANVAS_ANN_DEF = fn(
 
 const canvasDueTool: Tool = {
   offer: ({ connections, web }) => (connections.has('canvas') && web !== 'off' ? CANVAS_DUE_DEF : null),
-  label: () => ({ icon: 'graduation-cap', label: 'Checking Canvas' }),
+  label: () => ({ icon: 'brand-canvas', label: 'Checking Canvas' }),
   async run(args, ctx) {
     const range = dayRange(text(args, 'from'), text(args, 'to'), LIMITS.canvasDays)
     if (typeof range === 'string') return { result: range, status: 'error' }
@@ -230,7 +230,7 @@ const canvasDueTool: Tool = {
 
 const canvasAnnouncementsTool: Tool = {
   offer: ({ connections, web }) => (connections.has('canvas') && web !== 'off' ? CANVAS_ANN_DEF : null),
-  label: () => ({ icon: 'graduation-cap', label: 'Reading Canvas announcements' }),
+  label: () => ({ icon: 'brand-canvas', label: 'Reading Canvas announcements' }),
   async run(_args, ctx) {
     const c = usable('canvas')
     if (!c) return { result: 'Canvas isn’t connected.', status: 'error' }
@@ -253,7 +253,7 @@ const notionSearchTool: Tool = {
           query: { type: 'string', description: 'A few words to find pages by' }
         }, ['query'])
       : null,
-  label: (args) => ({ icon: 'notebook', label: `Searching Notion for “${text(args, 'query')}”` }),
+  label: (args) => ({ icon: 'brand-notion', label: `Searching Notion for “${text(args, 'query')}”` }),
   async run(args, ctx) {
     const c = usable('notion')
     if (!c) return { result: 'Notion isn’t connected.', status: 'error' }
@@ -277,7 +277,7 @@ const notionPageTool: Tool = {
           id: { type: 'string', description: 'The page id from notion_search' }
         }, ['id'])
       : null,
-  label: () => ({ icon: 'notebook', label: 'Reading a Notion page' }),
+  label: () => ({ icon: 'brand-notion', label: 'Reading a Notion page' }),
   async run(args, ctx) {
     const c = usable('notion')
     if (!c) return { result: 'Notion isn’t connected.', status: 'error' }

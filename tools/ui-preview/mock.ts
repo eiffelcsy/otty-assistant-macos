@@ -146,7 +146,8 @@ const settings: PublicSettings = {
       : [],
   monthlyCap: scene.startsWith('settings') || scene === 'cap' || scene === 'near' ? { unit: 'questions', limit: 300 } : null,
   capNoticed: null,
-  homeUsed: q.get('home') !== 'unused'
+  homeUsed: q.get('home') !== 'unused',
+  homeWidgets: ['calendar', 'today', 'after', 'tiles']
 }
 
 const app = { name: 'Safari', title: 'Pricing — Acme Cloud', url: 'https://acme.cloud/pricing' }

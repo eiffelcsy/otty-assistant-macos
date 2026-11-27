@@ -1,5 +1,6 @@
 import type { ServiceId } from './services'
 import type { MyTile } from './tiles'
+import type { HomeWidget } from './homeWidgets'
 
 // Types shared by main, preload and renderer. Type-only: no runtime code here.
 
@@ -199,6 +200,8 @@ export interface PublicSettings {
   canOpenAtLogin: boolean
   /** The user's own tiles (D-56), after the built-in ones. */
   myTiles: MyTile[]
+  /** D-86: the widgets Home shows, in Home's order. */
+  homeWidgets: HomeWidget[]
 }
 
 /** Questions or tokens, never money: a price needs a dated table to be true. */
@@ -285,6 +288,7 @@ export type SettableKey =
   | 'monthlyCap'
   | 'capNoticed'
   | 'myTiles'
+  | 'homeWidgets'
 
 export interface Permissions {
   platform: string

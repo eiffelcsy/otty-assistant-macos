@@ -2,6 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react'
 import type { AppInfo, Capture, EditDraft, MemoryNote, RewindPlan, ScreenContext, ToolChipInfo, Twist, UsedMemory } from '../../../shared/types'
 import { Icon } from '../components/Icon'
 import { HiddenSheet } from '../components/HiddenSheet'
+import { MenuButton } from '../components/MenuButton'
 import { StepCard } from '../components/StepCard'
 import { ConfirmCard, ReceiptLine } from '../components/ConfirmCard'
 import { DrawingCard } from '../draw/DrawingCard'
@@ -66,8 +67,8 @@ export function ContextPreview({ ctx, compact = false, fold = false }: { ctx: Sc
         >
           <img className="context-img" src={dataUrl} alt="Your screen snip" />
         </button>
-        <button className="context-picture__pickup" title="Select and copy the words in this picture" onClick={() => void window.otty.pickUpText(dataUrl)}>
-          <Icon name="text" /> Pick up text
+        <button className="icon-btn icon-btn--sm context-picture__pickup" title="Pick up text" onClick={() => void window.otty.pickUpText(dataUrl)}>
+          <Icon name="text" />
         </button>
       </div>
     )
@@ -228,7 +229,7 @@ function MemoryLine({ answerId, note, fresh }: { answerId: string; note: MemoryN
   const words = `${NOTED[note.action]}: ${note.text}`
   return (
     <div className={`memory-line${note.undone ? ' memory-line--undone' : ''}${fresh ? ' memory-line--fresh' : ''}`}>
-      <Icon name="bookmark" />
+      <Icon name="notebook" />
       <span className="memory-line__text">
         <span className="memory-line__label">{NOTED[note.action]}:</span> <span className="memory-line__fact">{note.text}</span>
         {note.action === 'updated' && note.before && <span className="memory-line__was"> (was: {note.before})</span>}
@@ -241,8 +242,8 @@ function MemoryLine({ answerId, note, fresh }: { answerId: string; note: MemoryN
                 Undo
               </button>
               {note.action !== 'forgotten' && (
-                <button className="memory-line__btn" onClick={() => void window.otty.openMemories()}>
-                  Edit
+                <button className="icon-btn icon-btn--sm memory-line__icon" title="Edit in the Notebook" onClick={() => void window.otty.openMemories()}>
+                  <Icon name="pencil" />
                 </button>
               )}
             </>
@@ -255,27 +256,11 @@ function MemoryLine({ answerId, note, fresh }: { answerId: string; note: MemoryN
 
 /** The notes an answer read, folded into one button in the action row; its menu lists them (UX_REVIEW #6). */
 function UsedMarker({ used }: { used: UsedMemory[] }) {
-  const [open, setOpen] = useState(false)
-  const box = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const away = (e: Event) => !box.current?.contains(e.target as Node) && setOpen(false)
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('pointerdown', away)
-    document.addEventListener('keydown', esc)
-    return () => {
-      document.removeEventListener('pointerdown', away)
-      document.removeEventListener('keydown', esc)
-    }
-  }, [open])
   const label = `Used ${used.length === 1 ? '1 note' : `${used.length} notes`} from your Notebook`
   return (
-    <div className="used" ref={box}>
-      <button className="icon-btn icon-btn--sm used__btn" title={label} aria-label={label} aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)}>
-        <Icon name="bookmark" />
-      </button>
-      {open && (
-        <div className="menu used__menu" role="menu">
+    <MenuButton glyph="notebook" label={label} className="used">
+      {() => (
+        <>
           {used.map((u) => (
             <div key={u.memoryId} className="menu__item menu__item--text" role="menuitem">
               {u.text}
@@ -284,9 +269,9 @@ function UsedMarker({ used }: { used: UsedMemory[] }) {
           <button className="menu__item" role="menuitem" onClick={() => void window.otty.openMemories()}>
             Open the Notebook
           </button>
-        </div>
+        </>
       )}
-    </div>
+    </MenuButton>
   )
 }
 
@@ -303,7 +288,7 @@ export function HiddenLine({ id, hidden }: { id: string; hidden?: number }) {
         onClick={() => setOpen((o) => !o)}
       >
         <Icon name="shield-check" />
-        <span>{hidden === 1 ? 'Otty hid 1 key before sending' : `Otty hid ${hidden} keys before sending`}</span>
+        <span>{hidden === 1 ? '1 key hidden' : `${hidden} keys hidden`}</span>
       </button>
       {open && <HiddenSheet id={id} />}
     </>
@@ -422,6 +407,30 @@ export function AssistantMessage({
     else await go(mode, [], twist)
   }
   const canRewind = latest && !m.streaming && !m.calc
+  const copy = () => {
+    if (!m.text) return
+    window.otty.copyText(m.calc?.result ?? withoutFixedFence(m.text).replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  // ⇧⌘C copies the latest answer and ⌘R tries it again (D-85), wherever the focus is in this window.
+  const keys = useRef({ copy, retry: () => {} })
+  useEffect(() => {
+    keys.current = { copy, retry: () => canRewind && !m.error && void rewind('retry') }
+  })
+  useEffect(() => {
+    if (!latest || m.streaming) return
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.metaKey || e.altKey || e.ctrlKey) return
+      const k = e.key.toLowerCase()
+      if (k === 'c' && e.shiftKey) keys.current.copy()
+      else if (k === 'r' && !e.shiftKey) keys.current.retry()
+      else return
+      e.preventDefault()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [latest, m.streaming])
   return (
     <div className={`msg msg--otty${found ? ' msg--found' : ''}${latest ? ' msg--latest' : ''}${m.streaming ? ' msg--streaming' : ''}`} data-msg-id={m.id}>
       {m.tools.length > 0 && (
@@ -476,49 +485,50 @@ export function AssistantMessage({
         </div>
       )}
       {!m.streaming && (m.text || canRewind || m.used?.length) && (
+        // D-85, Spec 03: icon buttons, each named by its tooltip; the latest answer's keys are in it.
         <div className="msg__actions">
           {m.text && (
-            <button
-              className="copy-btn"
-              onClick={() => {
-                window.otty.copyText(m.calc?.result ?? withoutFixedFence(m.text).replace(/\[([^\]]+)\]\(#explain\)/g, '$1'))
-                setCopied(true)
-                setTimeout(() => setCopied(false), 1500)
-              }}
-            >
+            <button className="icon-btn icon-btn--sm" title={copied ? 'Copied' : 'Copy'} aria-label="Copy" data-keys={latest ? '⇧⌘C' : undefined} onClick={copy}>
               <Icon name={copied ? 'check' : 'copy-alt'} />
-              {copied ? 'Copied' : 'Copy'}
             </button>
           )}
           {canRewind && !m.error && (
-            <button className="copy-btn" onClick={() => void rewind('retry')} title="Ask the same question again for a new answer">
+            <button className="icon-btn icon-btn--sm" title="Try again" data-keys="⌘R" onClick={() => void rewind('retry')}>
               <Icon name="refresh" />
-              Try again
             </button>
           )}
-          {canRewind &&
-            !m.error &&
-            TWISTS.map(([twist, label]) => (
-              <button key={twist} className="copy-btn" onClick={() => void rewind('retry', twist)} title={`Try again, ${label.toLowerCase()}`}>
-                {label}
-              </button>
-            ))}
+          {canRewind && !m.error && (
+            <MenuButton glyph="settings-sliders" label="Try another way">
+              {(close) =>
+                TWISTS.map(([twist, label]) => (
+                  <button
+                    key={twist}
+                    className="menu__item"
+                    role="menuitem"
+                    onClick={() => {
+                      close()
+                      void rewind('retry', twist)
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))
+              }
+            </MenuButton>
+          )}
           {canRewind && onEdit && (
-            <button className="copy-btn edit-question" onClick={() => void rewind('edit')} title="Change your question and ask it again">
+            <button className="icon-btn icon-btn--sm edit-question" title="Edit question" onClick={() => void rewind('edit')}>
               <Icon name="edit" />
-              Edit question
             </button>
           )}
           {m.calc && (
-            <button className="copy-btn" onClick={() => ask('Explain the working', 'working')}>
+            <button className="icon-btn icon-btn--sm" title="Explain the working" onClick={() => ask('Explain the working', 'working')}>
               <Icon name="list" />
-              Explain the working
             </button>
           )}
           {again && !m.calc && (
-            <button className="copy-btn" onClick={again.onClick}>
+            <button className="icon-btn icon-btn--sm" title={again.label} onClick={again.onClick}>
               <Icon name="language" />
-              {again.label}
             </button>
           )}
           {m.used?.length ? <UsedMarker used={m.used} /> : null}

@@ -19,8 +19,8 @@ const FOR_APP: { match: RegExp; items: Suggestion[] }[] = [
 
 const ABILITIES: Suggestion[] = [
   { text: 'Check the price of a Japan rail pass tomorrow at 9', icon: 'alarm-clock' },
-  { text: 'Look into the best laptop under $1,000 across several review sites', icon: 'binoculars' },
-  { text: 'Remember that I like short answers', icon: 'bookmark' }
+  { text: 'Look into the best laptop under $1,000 across several review sites', icon: 'lookup' },
+  { text: 'Remember that I like short answers', icon: 'notebook' }
 ]
 
 /** What Otty knows that can shape the list: only the kind, the words and whether it's in use. */
@@ -42,6 +42,6 @@ export function suggestionsFor(app: string | null | undefined, learn: boolean, w
   const using = learn ? known.filter((m) => m.status === 'active') : []
   const goal = using.find((m) => m.kind === 'goal' && goalWords(m.text).length <= 60)
   const fromMemory: Suggestion[] = goal ? [{ text: `What’s one small step for ${goalWords(goal.text)} today?`, icon: 'bullseye' }] : []
-  const abilities = ABILITIES.filter((s) => (s.icon === 'bookmark' ? learn && using.length === 0 : web))
+  const abilities = ABILITIES.filter((s) => (s.icon === 'notebook' ? learn && using.length === 0 : web))
   return [...fromApp, ...fromMemory, ...abilities].slice(0, 4)
 }

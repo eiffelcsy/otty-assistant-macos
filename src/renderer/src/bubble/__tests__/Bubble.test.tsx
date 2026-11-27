@@ -4,7 +4,7 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
-import { Bubble, SLEEP_MS } from '../Bubble'
+import { Bubble, SLEEP_MS, WAKE_MS } from '../Bubble'
 
 const otty = {
   onBubbleState: () => () => {},
@@ -39,14 +39,15 @@ describe('the pool (D-82, Spec 13)', () => {
     expect(root.getAttribute('title')).toBe(root.getAttribute('aria-label'))
   })
 
-  it('shows the working wake and the two-frame loop while working', () => {
+  it('shows the working wake and the four-beat kick (three poses) while working', () => {
     let mood: (m: string) => void = () => {}
     Object.assign(window.otty, { onBubbleMood: (cb: (m: string) => void) => ((mood = cb), () => {}) })
     const { container } = render(<Bubble />)
     act(() => mood('working'))
     expect(stateOf(container)).toBe('pool--working')
     expect(container.querySelector('.bubble__working:not(.bubble__working--waiting)')).not.toBeNull()
-    expect(container.querySelectorAll('.in-water__above .pool__frame').length).toBe(2)
+    expect(container.querySelectorAll('.in-water__above .pool__frame').length).toBe(3)
+    expect(container.querySelector('.pool__swap--kick-back img')?.getAttribute('src')).toContain('float-paddle-2')
     expect(pool(container).getAttribute('title')).toMatch(/looking into something/)
   })
 
@@ -162,8 +163,14 @@ describe('moods and sleep (D-38)', () => {
     expect(stateOf(container)).toBe('pool--asleep')
     expect(container.querySelectorAll('.pool__zs span').length).toBe(3)
     expect(frameOf(container)).toContain('float-doze')
+    expect(container.querySelector('.pool__snot')).not.toBeNull()
     fireEvent.pointerEnter(pool(container))
+    expect(stateOf(container)).toBe('pool--startled')
+    expect(container.querySelector('.pool__snot--pop')).not.toBeNull()
+    expect(frameOf(container)).toContain('float-startled')
+    act(() => void vi.advanceTimersByTime(WAKE_MS))
     expect(stateOf(container)).toBe('pool--resting')
+    expect(container.querySelector('.pool__snot')).toBeNull()
   })
 
   it('is carried once a press moves, and rings once let go', () => {

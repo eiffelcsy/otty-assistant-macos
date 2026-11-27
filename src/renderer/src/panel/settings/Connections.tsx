@@ -7,7 +7,7 @@ import { Group, HoldButton, SwitchRow } from './rows'
 // Settings › Connections (D-54, docs/design/specs/10-connections.md, Part 2). One list of what Otty can read, one open
 // item at a time, and the off switch in plain view. Every action goes through main and then refreshes the list.
 
-const GLYPH: Record<ConnectionKind, string> = { apple: 'calendar', google: 'calendar-clock', canvas: 'graduation-cap', notion: 'notebook', mcp: 'puzzle-alt' }
+const GLYPH: Record<ConnectionKind, string> = { apple: 'brand-apple', google: 'brand-google', canvas: 'brand-canvas', notion: 'brand-notion', mcp: 'puzzle-alt' }
 
 /** The add-group rows: the words under each, from the spec. */
 const OFFER: Record<ConnectionOffer['kind'], { title: string; description: string }> = {

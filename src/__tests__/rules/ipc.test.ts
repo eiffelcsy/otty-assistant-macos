@@ -97,7 +97,8 @@ describe('one setting at a time (D-61)', () => {
       [{ id: 'a', name: 'Flashcards', icon: 'https://x', prompt: 'p', when: 'any' }],
       [{ id: 'a', name: 'Flashcards', icon: 'star', prompt: 'p', when: 'email' }],
       Array.from({ length: 13 }, (_, i) => ({ id: `t${i}`, name: 'n', icon: 'star', prompt: 'p', when: 'any' }))
-    ]
+    ],
+    homeWidgets: [null, 'calendar', ['needs'], ['calendar', 'calendar'], [{ id: 'feature:x' }]]
   }
   const GOOD: Record<keyof typeof SETTABLE, unknown> = {
     showBubble: false,
@@ -114,7 +115,8 @@ describe('one setting at a time (D-61)', () => {
     screenHotkey: 'Control+F5',
     monthlyCap: { unit: 'questions', limit: 300 },
     capNoticed: '2026-11',
-    myTiles: [{ id: 'a', name: 'Make flashcards', icon: 'layers', prompt: 'Turn this into flashcards.', when: 'text' }]
+    myTiles: [{ id: 'a', name: 'Make flashcards', icon: 'layers', prompt: 'Turn this into flashcards.', when: 'text' }],
+    homeWidgets: ['calendar', 'tiles']
   }
 
   it.each(Object.keys(SETTABLE) as (keyof typeof SETTABLE)[])('%s refuses what isn’t one, and takes what is', (key) => {

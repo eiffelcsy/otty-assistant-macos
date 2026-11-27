@@ -130,40 +130,40 @@ export function DrawingCard({ kind, code, host, chart, pebble }: { kind: Drawing
       </div>
       {drawn && drawn.kind !== 'error' && (
         <div className="drawing-card__bar">
+          {/* D-85: icon buttons named by their tooltips; Keep, the card's one primary, keeps its word. */}
           {drawn.kind === 'slides' ? (
-            <button className="copy-btn" onClick={() => big(true)}>
+            <button className="icon-btn icon-btn--sm" title="Present" onClick={() => big(true)}>
               <Icon name="play" />
-              Present
             </button>
           ) : (
-            <button className="copy-btn" onClick={() => big()}>
+            <button className="icon-btn icon-btn--sm" title="Show big" onClick={() => big()}>
               <Icon name="expand" />
-              Show big
             </button>
           )}
           {drawn.kind === 'picture' && (
-            <button className="copy-btn" disabled={busy} onClick={() => void out('copy')}>
-              <Icon name="copy-alt" />
-              Copy as picture
+            <button className="icon-btn icon-btn--sm" title="Copy as picture" disabled={busy} onClick={() => void out('copy')}>
+              <Icon name="copy-image" />
             </button>
           )}
           {drawn.kind === 'picture' && (
-            <button className="copy-btn" disabled={busy} onClick={() => void out('png')}>
+            <button className="icon-btn icon-btn--sm" title="Save PNG" disabled={busy} onClick={() => void out('png')}>
               <Icon name="picture" />
-              Save PNG
             </button>
           )}
-          <button className="copy-btn" disabled={busy} onClick={() => void out('pdf')}>
+          <button className="icon-btn icon-btn--sm" title="Save PDF" disabled={busy} onClick={() => void out('pdf')}>
             <Icon name="file-pdf" />
-            Save PDF
           </button>
-          <button className="copy-btn drawing-card__text-btn" aria-pressed={showText} onClick={() => setShowText((v) => !v)}>
+          <button
+            className={`icon-btn icon-btn--sm drawing-card__text-btn${showText ? ' icon-btn--on' : ''}`}
+            title={showText ? (chart ? 'Hide the numbers' : 'Hide the text') : chart ? 'See the numbers' : 'See the text'}
+            aria-pressed={showText}
+            onClick={() => setShowText((v) => !v)}
+          >
             <Icon name="code-simple" />
-            {showText ? (chart ? 'Hide the numbers' : 'Hide the text') : chart ? 'See the numbers' : 'See the text'}
           </button>
           {pebble && (
             <button className={`copy-btn drawing-card__keep${kept ? ' drawing-card__keep--on' : ''}`} aria-pressed={kept} onClick={() => void keep()}>
-              <Icon name="bookmark" solid={kept} />
+              <Icon name="pouch" solid={kept} />
               {kept ? 'Kept' : 'Keep'}
             </button>
           )}

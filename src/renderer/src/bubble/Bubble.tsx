@@ -7,7 +7,9 @@ import floatDoze from '../assets/otty/float-doze.webp'
 import floatMouth from '../assets/otty/float-mouth.webp'
 import floatMunch from '../assets/otty/float-munch.webp'
 import floatPaddle from '../assets/otty/float-paddle.webp'
+import floatPaddle2 from '../assets/otty/float-paddle-2.webp'
 import floatPebble from '../assets/otty/float-pebble.webp'
+import floatStartled from '../assets/otty/float-startled.webp'
 import dawnWater from '../assets/cove/cove-dawn-water.webp'
 import dayWater from '../assets/cove/cove-day-water.webp'
 import goldenWater from '../assets/cove/cove-golden-water.webp'
@@ -26,7 +28,15 @@ export const MUNCH_MS = 900
 const IDLE_MIN_MS = 40_000
 const IDLE_SPAN_MS = 30_000
 const DIP_MS = 1600
+/** Woken by a hover: the snot bubble pops and Otty looks startled for this long. */
+export const WAKE_MS = 900
 const REDUCED = '(prefers-reduced-motion: reduce)'
+
+const PADDLE: [string, string][] = [
+  [float, 'rest'],
+  [floatPaddle, 'kick'],
+  [floatPaddle2, 'kick-back']
+]
 
 const WATER: Record<CoveTime, string> = { dawn: dawnWater, day: dayWater, golden: goldenWater, night: nightWater }
 
@@ -39,7 +49,7 @@ const TITLES: Record<NonNullable<BubbleMood> | 'badge' | 'idle', string> = {
 }
 
 /** What the pool shows, in order: the first that's true is the one (Spec 13, Part 2). */
-type PoolState = 'paused' | 'waiting' | 'munching' | 'feeding' | 'working' | 'carried' | 'asleep' | 'resting'
+type PoolState = 'paused' | 'waiting' | 'munching' | 'feeding' | 'working' | 'carried' | 'startled' | 'asleep' | 'resting'
 
 export function Bubble() {
   const [state, setState] = useState<BubbleState>('idle')
@@ -61,6 +71,9 @@ export function Bubble() {
   const [enters, setEnters] = useState(0)
   const [bobbing, setBobbing] = useState(false)
   const [nudged, setNudged] = useState(0)
+  /** Woken from a doze by a hover: the pop and the startled look, for WAKE_MS. */
+  const [wakes, setWakes] = useState(0)
+  const [startled, setStartled] = useState(false)
   /** The painting for this hour: one timer, re-armed for the next change (Spec 13, Part 3). */
   const [time, setTime] = useState<CoveTime>(() => coveTime(new Date()))
   /** What was going on when Otty dozed off: anything new since (a hover, a state, a badge) wakes it. */
@@ -68,7 +81,7 @@ export function Bubble() {
   const moment = `${state}|${mood}|${badge}|${held}|${feeding}|${nudged}`
   const asleep = sleptAt === moment
   // Feeding answers the user's own drag, so it shows over working (and a drop's bite over everything but pause and needs-you).
-  const pool: PoolState = mood === 'paused' ? 'paused' : mood === 'waiting' ? 'waiting' : munching ? 'munching' : feeding ? 'feeding' : mood === 'working' || state === 'thinking' ? 'working' : held ? 'carried' : asleep ? 'asleep' : 'resting'
+  const pool: PoolState = mood === 'paused' ? 'paused' : mood === 'waiting' ? 'waiting' : munching ? 'munching' : feeding ? 'feeding' : mood === 'working' || state === 'thinking' ? 'working' : held ? 'carried' : startled ? 'startled' : asleep ? 'asleep' : 'resting'
   // The idle dip's timer reads these, so they're kept current here, not captured when it was armed.
   const quiet = useRef(false)
   useEffect(() => {
@@ -130,20 +143,42 @@ export function Bubble() {
     return () => clearTimeout(t)
   }, [munching])
   useEffect(() => {
+    if (!wakes) return
+    const t = setTimeout(() => setStartled(false), WAKE_MS)
+    return () => clearTimeout(t)
+  }, [wakes])
+  useEffect(() => {
     if (!enters) return
     const t = setTimeout(() => setBobbing(false), BOB_MS)
     return () => clearTimeout(t)
   }, [enters])
 
-  const frame = pool === 'waiting' ? floatPebble : pool === 'asleep' ? floatDoze : pool === 'feeding' ? floatMouth : pool === 'munching' ? floatMunch : float
-  const frames =
+  const frame = pool === 'waiting' ? floatPebble : pool === 'asleep' ? floatDoze : pool === 'startled' ? floatStartled : pool === 'feeding' ? floatMouth : pool === 'munching' ? floatMunch : float
+  // Working is a four-beat kick (rest, paddle, rest, paddle the other way), each beat a whole Otty (frame, tint and all),
+  // so one pose's feet and tail never sit over another's.
+  const otty = (part: 'under' | 'above') =>
     pool === 'working' ? (
       <>
-        <img className="pool__frame" src={float} alt="" draggable={false} />
-        <img className="pool__frame pool__frame--paddle" src={floatPaddle} alt="" draggable={false} />
+        {PADDLE.map(([src, beat]) => (
+          <div key={beat} className={`pool__swap pool__swap--${beat}`}>
+            <InWater part={part} water={WATER[time]} maskSrc={src} frames={<img className="pool__frame" src={src} alt="" draggable={false} />} />
+          </div>
+        ))}
       </>
     ) : (
-      <img className="pool__frame" src={frame} alt="" draggable={false} />
+      <InWater
+        part={part}
+        water={WATER[time]}
+        maskSrc={frame}
+        frames={
+          <>
+            <img className="pool__frame" src={frame} alt="" draggable={false} />
+            {/* Asleep: a snot bubble from the nostril, riding the breath with Otty. Woken: it pops. */}
+            {part === 'above' && pool === 'asleep' && <span className="pool__snot" aria-hidden="true" />}
+            {part === 'above' && pool === 'startled' && <span key={wakes} className="pool__snot pool__snot--pop" aria-hidden="true" />}
+          </>
+        }
+      />
     )
   const title = TITLES[mood ?? (badge ? 'badge' : 'idle')]
 
@@ -156,6 +191,10 @@ export function Bubble() {
       title={title}
       data-time={time}
       onPointerEnter={() => {
+        if (asleep) {
+          setStartled(true)
+          setWakes((n) => n + 1)
+        }
         setNudged((n) => n + 1)
         setBobbing(true)
         setEnters((n) => n + 1)
@@ -210,14 +249,14 @@ export function Bubble() {
         <img src={WATER[time]} alt="" draggable={false} />
         {/* The submerged part, then the ripple on the surface: both inside the pool's clip (D-83). */}
         <div className="pool__otty pool__otty--under">
-          <InWater part="under" water={WATER[time]} maskSrc={frame} frames={frames} />
+          {otty('under')}
         </div>
         <Ripple trigger={ripples} className="pool__ring" />
       </div>
       {mood === 'working' && <span className="bubble__working" />}
       {mood === 'waiting' && <span className="bubble__working bubble__working--waiting" />}
       <div className="pool__otty">
-        <InWater part="above" water={WATER[time]} maskSrc={frame} frames={frames} />
+        {otty('above')}
       </div>
       {mood === 'paused' && (
         <span className="bubble__paused">

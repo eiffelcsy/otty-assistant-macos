@@ -4,6 +4,7 @@ import { profileFor } from './providers/profiles'
 import { serviceAt, type ServiceId } from '../shared/services'
 import { cleanCap } from '../shared/cap'
 import { cleanPauseEnd } from '../shared/pauseUntil'
+import { HOME_WIDGETS } from '../shared/homeWidgets'
 import type { SavedConnection } from './connections/types'
 
 // The settings and the keys, over a small backend (D-45 step 3). The Mac's, in `settingsOnMac.ts`, is plugged in by
@@ -87,7 +88,8 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   monthlyCap: null,
   capNoticed: null,
   homeUsed: false,
-  myTiles: []
+  myTiles: [],
+  homeWidgets: [...HOME_WIDGETS]
 }
 
 let cache: StoredSettings | null = null

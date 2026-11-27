@@ -73,7 +73,7 @@ test('a highlighted key is hidden before sending and says so; typed words stay a
 
   await quick.getByRole('button', { name: /continue in chat/ }).click()
   const panel = await otty.view('panel')
-  await expect(panel.getByText('Otty hid 1 key before sending')).toBeVisible()
+  await expect(panel.getByText('1 key hidden')).toBeVisible()
   await expect(panel.getByText('export OPENAI_API_KEY=[hidden key]')).toBeVisible()
 
   await otty.ask(panel, 'what’s my key?')
@@ -91,12 +91,12 @@ test('a highlighted key is hidden before sending and says so; typed words stay a
   expect(dbText(otty)).not.toContain(TERMINAL_KEY)
 })
 
-test('tapping “Otty hid 1 key” shows the line with a hint of the key, and after a restart says it’s gone', { tag: ['@step-133'] }, async ({ otty, world }) => {
+test('tapping “1 key hidden” shows the line with a hint of the key, and after a restart says it’s gone', { tag: ['@step-133'] }, async ({ otty, world }) => {
   world.reply(turn('my token'), { say: 'I won’t keep that.' })
   world.backgroundReply = 'A token'
   const panel = await otty.openPanel()
   await otty.ask(panel, `my token is ${TERMINAL_KEY} for the build`)
-  const line = panel.getByRole('button', { name: 'Otty hid 1 key before sending' })
+  const line = panel.getByRole('button', { name: '1 key hidden' })
   await line.click()
   const sheet = panel.locator('.hidden-sheet')
   await expect(sheet).toContainText(`my token is ${TERMINAL_KEY.slice(0, 3)}…${TERMINAL_KEY.slice(-4)} for the build`)
@@ -106,6 +106,6 @@ test('tapping “Otty hid 1 key” shows the line with a hint of the key, and af
   const again = await otty.openPanel()
   await otty.go(again, 'Chats')
   await again.getByRole('button', { name: /A token/ }).click()
-  await again.getByRole('button', { name: 'Otty hid 1 key before sending' }).click()
+  await again.getByRole('button', { name: '1 key hidden' }).click()
   await expect(again.locator('.hidden-sheet')).toContainText('Otty doesn’t keep these once it restarts')
 })

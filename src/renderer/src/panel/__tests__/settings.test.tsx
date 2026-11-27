@@ -35,7 +35,8 @@ const base: PublicSettings = {
   capNoticed: null,
   homeUsed: true,
   canOpenAtLogin: true,
-  myTiles: []
+  myTiles: [],
+  homeWidgets: []
 }
 const counts: SettingsCounts = { chats: 142, olderThan: { '30d': 23, '1y': 0, forever: 0 }, notes: 18, pebbles: 0 }
 

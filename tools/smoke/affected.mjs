@@ -52,7 +52,7 @@ export const NONE = ['docs/**', '**/__tests__/**', '**/*.md', 'tools/eval/**', '
 export const AREAS = [
   [['src/main/calendar/**', 'src/renderer/src/calendar/**', 'src/main/tools/calendar.ts', 'src/main/ipc/calendar.ts', 'tools/otty-calendar/**'], ['calendar', 'home', 'connections']],
   [['src/main/logbook/**', 'src/renderer/src/panel/logbook/**', 'src/main/ipc/activity.ts'], ['logbook', 'ledger', 'sent', 'jobs', 'home']],
-  [['src/main/home/**', 'src/renderer/src/home/**'], ['home', 'flow']],
+  [['src/main/home/**', 'src/renderer/src/home/**', 'src/shared/homeWidgets.ts'], ['home', 'flow', 'quiet']],
   [['src/main/jobs/**', 'src/shared/repeat.ts', 'src/shared/cap.ts'], ['jobs', 'schedule', 'logbook', 'activity', 'long', 'home']],
   [['src/main/connections/**', 'src/main/ipc/connections.ts', 'src/renderer/src/components/ConnectForm.tsx', 'src/shared/connectionDraft.ts'], ['connections', 'calendar']],
   [['src/main/files/**', 'src/renderer/src/components/FileChips.tsx', 'src/renderer/src/lib/useAttachments.ts'], ['files', 'keys']],
@@ -90,7 +90,8 @@ export const AREAS = [
   [['src/renderer/src/styles.css', 'src/renderer/src/lib/motion.tsx', 'src/renderer/src/components/Icon.tsx', 'src/renderer/src/lib/tooltips.ts'], ['flow', 'frame', 'idle']],
   [['src/main/ipc/chat.ts', 'src/main/ipc/windows.ts', 'src/main/trayIcon.ts', 'src/renderer/src/lib/again.ts'], ['chat', 'rewind', 'window', 'captures']],
   [['src/main/pause.ts', 'src/renderer/src/components/PauseButton.tsx'], ['schedule', 'chat']],
-  [['src/shared/suggestions.ts', 'src/renderer/src/components/QuickActions.tsx'], ['basics', 'quick']]
+  [['src/shared/suggestions.ts', 'src/renderer/src/components/QuickActions.tsx'], ['basics', 'quick']],
+  [['src/renderer/src/components/MenuButton.tsx', 'src/renderer/src/components/glyphs.tsx'], ['quiet', 'rewind', 'memory', 'connections']]
 ]
 
 const hits = (file, globs) => globs.some((g) => matchesGlob(file, g))

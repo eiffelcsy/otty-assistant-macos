@@ -177,8 +177,10 @@ export function Onboarding({
                     onOpen={() => window.otty.openPermissionSettings("screen")}
                   />
                   <p className="hint">
-                    Tip: after turning on Screen Recording, macOS may ask you to
-                    reopen Otty.
+                    Tip: macOS lists it as “Screen &amp; System Audio Recording”. Use
+                    the top list, then reopen Otty. After an update, if Otty is
+                    already on but snips still show only the wallpaper, remove it
+                    with − and add it again.
                   </p>
                   <button
                     className="btn btn--primary btn--large btn--wide"

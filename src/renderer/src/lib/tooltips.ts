@@ -2,6 +2,7 @@
 // first one waits 500 ms; for 1.5 s after one closes the next is instant, so moving along the header scans quickly.
 // The title moves to `data-title` while it shows (or the system's would show too) and comes back when it hides. An
 // element named only by its title borrows it as `aria-label` meanwhile, so it keeps its name, and gives it back after.
+// `data-keys` (D-85) adds the action's shortcut after its name, as a quieter keycap.
 
 export const DELAY_MS = 500
 export const WARM_MS = 1500
@@ -20,6 +21,12 @@ export function installTooltips(doc: Document = document): () => void {
   const show = () => {
     if (!target) return
     tip.textContent = target.dataset.title ?? ''
+    if (target.dataset.keys) {
+      const keys = doc.createElement('span')
+      keys.className = 'tooltip__keys'
+      keys.textContent = target.dataset.keys
+      tip.append(keys)
+    }
     tip.hidden = false
     const r = target.getBoundingClientRect()
     const t = tip.getBoundingClientRect()

@@ -1,5 +1,6 @@
 import type { SettableKey, SettingsUpdate } from '../../shared/types'
 import { validTiles } from '../../shared/tiles'
+import { validWidgets } from '../../shared/homeWidgets'
 import { cleanShelf } from '../pebbles'
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron'
 
@@ -63,7 +64,8 @@ export const SETTABLE = {
   screenHotkey: hotkey,
   monthlyCap: checkedLater,
   capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x),
-  myTiles: validTiles
+  myTiles: validTiles,
+  homeWidgets: validWidgets
 } as const satisfies Record<SettableKey, Guard>
 
 /**

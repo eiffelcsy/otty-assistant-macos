@@ -175,14 +175,15 @@ test('reopened from Recent chats, only the latest answer can be tried again or e
   await expect(again.locator('.msg--otty').first().getByText('First answer.')).toBeVisible()
 })
 
-test('Shorter asks the same question again with one line after it, and the new answer replaces the old', { tag: ['@step-148'] }, async ({ otty, world }) => {
+test('Try another way › Shorter asks the same question again with one line after it, and the new answer replaces the old', { tag: ['@step-148'] }, async ({ otty, world }) => {
   world.reply(streamed('What is a fjord?'), { say: 'A fjord is a long, deep, narrow inlet of the sea between high cliffs, carved by a glacier.' }, { say: 'A sea inlet carved by ice.' })
   const panel = await otty.openPanel()
   await otty.ask(panel, 'What is a fjord?')
   await expect(panel.getByText('carved by a glacier.')).toBeVisible()
   const first = world.modelRequests().filter((b) => b.stream).at(-1)!
 
-  await lastAnswer(panel).getByRole('button', { name: 'Shorter' }).click()
+  await lastAnswer(panel).getByRole('button', { name: 'Try another way' }).click()
+  await lastAnswer(panel).getByRole('menuitem', { name: 'Shorter' }).click()
   await expect(panel.getByText('A sea inlet carved by ice.')).toBeVisible()
   await expect(panel.getByText('carved by a glacier.')).toHaveCount(0)
   const again = world.modelRequests().filter((b) => b.stream).at(-1)!

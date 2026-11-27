@@ -24,7 +24,7 @@ describe('Keep on a drawing card', () => {
     expect(await screen.findByText('Kept')).toBeTruthy()
     cleanup()
     render(<DrawingCard kind="mermaid" code="pie" host={{ done: true, ask: () => {} }} />)
-    await screen.findByText('Show big')
+    await screen.findByRole('button', { name: 'Show big' })
     expect(screen.queryByText('Keep')).toBeNull()
   })
 })

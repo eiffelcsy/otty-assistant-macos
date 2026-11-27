@@ -16,7 +16,8 @@ const otty = {
   rewind: vi.fn(async () => null),
   undoReceipt: vi.fn(async () => true),
   openMemories: vi.fn(async () => {}),
-  copyAnswer: vi.fn(async () => {})
+  copyAnswer: vi.fn(async () => {}),
+  copyText: vi.fn(async () => {})
 }
 
 beforeEach(() => {
@@ -109,7 +110,7 @@ describe('the Noted line', () => {
     const { rerender } = render(<AssistantMessage m={answer({ text: 'Hi', memories: [note({})], live: true })} />)
     expect(line().textContent).toContain('Noted: is learning Japanese')
     expect(line().classList.contains('memory-line--fresh')).toBe(true)
-    expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Edit in the Notebook' })).toBeTruthy()
     rerender(<AssistantMessage m={answer({ text: 'Hi', memories: [note({})] })} />)
     expect(line().classList.contains('memory-line--fresh')).toBe(false)
   })
@@ -189,17 +190,33 @@ describe('the rewind card', () => {
     await waitFor(() => expect(otty.rewind).toHaveBeenCalledWith('a1', ['job:2'], 'retry', undefined))
   })
 
-  it('offers Shorter, Simpler and In more detail only under the latest finished answer (D-58)', async () => {
-    const twists = () => ['Shorter', 'Simpler', 'In more detail'].filter((name) => screen.queryByRole('button', { name }))
+  it('offers Shorter, Simpler and In more detail only under the latest finished answer, in one menu (D-58, D-85)', async () => {
+    const more = () => screen.queryByRole('button', { name: 'Try another way' })
     const { rerender } = render(<AssistantMessage m={answer({ text: 'Done.' })} />)
-    expect(twists()).toEqual([])
+    expect(more()).toBeNull()
     rerender(<AssistantMessage m={answer({ text: 'Done…', streaming: true })} latest />)
-    expect(twists()).toEqual([])
+    expect(more()).toBeNull()
     rerender(<AssistantMessage m={answer({ text: 'Done.' })} latest />)
-    expect(twists()).toEqual(['Shorter', 'Simpler', 'In more detail'])
+    fireEvent.click(more()!)
+    expect(screen.getAllByRole('menuitem').map((b) => b.textContent)).toEqual(['Shorter', 'Simpler', 'In more detail'])
     otty.rewindPlan.mockResolvedValueOnce({ undo: [], lasting: [] })
-    fireEvent.click(screen.getByRole('button', { name: 'Simpler' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Simpler' }))
     await waitFor(() => expect(otty.rewind).toHaveBeenCalledWith('a1', [], 'retry', 'simpler'))
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('copies the latest answer with ⇧⌘C and tries it again with ⌘R, and an older one with neither (D-85)', async () => {
+    const { rerender } = render(<AssistantMessage m={answer({ text: 'Done.' })} />)
+    fireEvent.keyDown(window, { key: 'C', metaKey: true, shiftKey: true })
+    fireEvent.keyDown(window, { key: 'r', metaKey: true })
+    expect(otty.copyText).not.toHaveBeenCalled()
+    expect(otty.rewindPlan).not.toHaveBeenCalled()
+    rerender(<AssistantMessage m={answer({ text: 'Done.' })} latest />)
+    fireEvent.keyDown(window, { key: 'C', metaKey: true, shiftKey: true })
+    expect(otty.copyText).toHaveBeenCalledWith('Done.')
+    otty.rewindPlan.mockResolvedValueOnce({ undo: [], lasting: [] })
+    fireEvent.keyDown(window, { key: 'r', metaKey: true })
+    await waitFor(() => expect(otty.rewind).toHaveBeenCalledWith('a1', [], 'retry', undefined))
   })
 
   it('goes straight ahead when there’s nothing to say', async () => {

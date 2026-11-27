@@ -13,7 +13,7 @@ const WAITING_MS = 10 * 60_000
 /** Coming back to a card older than this draws one slow ring around it. */
 const RING_MS = 60_000
 
-const GLYPH: Record<Card['kind'], string> = { read: 'globe', open: 'arrow-up-right-from-square', search: 'search', reminder: 'bell', job: 'telescope', use: 'puzzle-alt', event: 'calendar-plus' }
+const GLYPH: Record<Card['kind'], string> = { read: 'globe', open: 'arrow-up-right-from-square', search: 'search', reminder: 'bell', job: 'lookup', use: 'puzzle-alt', event: 'calendar-plus' }
 
 const UNUSUAL: Record<Unusual, string> = {
   alphabet: 'This address uses letters from another alphabet.',

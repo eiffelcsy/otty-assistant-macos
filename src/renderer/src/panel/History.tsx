@@ -205,17 +205,24 @@ export function History({ onOpen, focusSearch, keep, shown = true }: { onOpen: (
           {picked.size > 0 && (
             <div className="history__bar" role="toolbar" aria-label="Selected chats">
               <span className="history__bar-count">{picked.size} selected</span>
+              {/* Icon buttons (D-85), so the bar fits however narrow the list column gets. */}
               {picked.size < chats.length && (
-                <button className="btn btn--soft btn--small" onClick={() => setPicked(new Set(chats.map((c) => c.id)))}>
-                  Select all
+                <button
+                  className="icon-btn icon-btn--sm"
+                  title="Select all"
+                  aria-label="Select all"
+                  onClick={() => setPicked(new Set(chats.map((c) => c.id)))}
+                >
+                  <Icon name="check-double" />
                 </button>
               )}
               <button
-                className="btn btn--soft btn--small"
+                className="icon-btn icon-btn--sm"
+                title="Forget selected chats"
+                aria-label="Forget selected chats"
                 onClick={() => setPending(chats.filter((c) => picked.has(c.id)))}
               >
                 <Icon name="trash" />
-                Forget
               </button>
               <button
                 className="icon-btn icon-btn--sm"

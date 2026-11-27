@@ -2,6 +2,16 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
+## 0.6.2 — Quiet chrome, Home widgets and a livelier pool (2026-11-27)
+
+- **Quieter buttons (D-85).** Under an answer, Copy (⇧⌘C), Try again (⌘R), Edit question and the rest are small icons whose tooltips name them and their keys. Shorter, Simpler and In more detail live in **Try another way** (the sliders). Drawing cards, the Noted line, a sent picture's Pick up text and the Logbook's Undo follow suit, and Otty has its own icons where Flaticon had none (the Notebook, the Pouch, the Logbook, looking into something).
+- **Home widgets (D-86).** Home shows Today's calendar by default, plus Today, Looking after and My tiles, each switched on or off from **Customise** at the end of Home. Needs you and What left your Mac always show when they have something.
+- **The chat list's selection bar fits any width.** Select all and Forget are icons beside the clear button, so the bar no longer runs off the side.
+- **Otty paddles properly while working.** The pool showed two Otties at once (four hind legs and two tails); now one pose shows at a time, in a four-beat kick with a new painted pose.
+- **Otty sleeps like a cartoon otter.** Dozing, he breathes slowly and a snot bubble swells and shrinks at his nostril; hover and it pops, and he wakes happily surprised (a new painted face).
+- **Clearer help when snips only show the wallpaper.** The notice names macOS's "Screen & System Audio Recording" list (the top one), explains removing and re-adding Otty when it already looks switched on, and has a **Reopen Otty** button. Onboarding's tip says the same.
+- Docs: the first run and the time to "oh wow" (`docs/FIRST_RUN.md`), and Spec 14, long work staying in its chat (D-87, planned). Animations now start at their smoothest and step down only as far as measurement needs.
+
 ## 0.6.1 — Feeding Otty again, steadier calendar drags and Refresh Otty (2026-11-27)
 
 - **Feeding Otty works in the pool.** Drag a file or some words over the pool and Otty opens its mouth wide; drop them and it takes one big bite. It shows even while Otty's busy, and no longer flickers as the drag crosses Otty.
