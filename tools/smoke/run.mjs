@@ -12,6 +12,20 @@ const lock = join(tmpdir(), 'otty-smoke.lock')
 const args = process.argv.slice(2)
 const skipBuild = args[0] === '--no-build'
 if (skipBuild) args.shift()
+// `--changed`: only the specs this change needs (affected.mjs). CI runs them all.
+if (args[0] === '--changed') {
+  args.shift()
+  const { affected, changedFiles } = await import('./affected.mjs')
+  const picked = affected(changedFiles(root))
+  if (Array.isArray(picked)) {
+    if (!picked.length) {
+      console.log('No smoke specs cover this change.')
+      process.exit(0)
+    }
+    console.log(`Smoke specs for this change: ${picked.join(', ')} (CI runs them all)`)
+    args.unshift(...picked.map((n) => `tools/smoke/specs/${n}.smoke.ts`))
+  } else console.log('This change touches something every screen shares: running every smoke spec.')
+}
 
 const alive = (pid) => {
   try {

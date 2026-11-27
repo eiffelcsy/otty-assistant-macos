@@ -44,3 +44,19 @@ test('paused, the box says so and sends nothing; Carry on lets it ask again', { 
   await panel.getByRole('textbox').press('Enter')
   await expect(panel.getByText('Yes, and hungry.')).toBeVisible()
 })
+
+test('Refresh Otty reloads its windows and keeps the chat, the draft and the screen', { tag: ['@step-209'] }, async ({ otty, world }) => {
+  world.reply('Where do otters sleep?', { say: 'In the water, holding paws.' })
+  const panel = await otty.openPanel()
+  await otty.ask(panel, 'Where do otters sleep?')
+  await expect(panel.getByText('In the water, holding paws.')).toBeVisible()
+  await panel.getByRole('textbox').fill('And in winter?')
+  // The box saves its words to main once typing pauses for 300 ms (useDraft), as it would before a person reached the menu.
+  await panel.waitForTimeout(400)
+  const before = await panel.evaluate(() => performance.timeOrigin)
+  expect(await otty.control((c) => c.clickTray('Refresh Otty'))).toBe(true)
+  // A new document is a new time origin: the window really reloaded.
+  await expect.poll(() => panel.evaluate(() => performance.timeOrigin).catch(() => before)).not.toBe(before)
+  await expect(panel.getByText('In the water, holding paws.')).toBeVisible()
+  await expect(panel.getByRole('textbox')).toHaveValue('And in winter?')
+})

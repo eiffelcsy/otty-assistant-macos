@@ -100,8 +100,10 @@ interface Drag {
   y: number
   moved: boolean
   day: number
-  originMin: number
+  /** Minutes from the event's start to where it was grabbed, so it moves with the pointer, not under it. */
+  grabMin: number
   dur: number
+  stop: () => void
 }
 
 interface Props {
@@ -125,7 +127,6 @@ export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMo
   const [live, setLive] = useState<Live | null>(null)
   const liveRef = useRef<Live | null>(null)
   const drag = useRef<Drag | null>(null)
-  const suppress = useRef(false)
   const scroll = useRef<HTMLDivElement>(null)
   const grid = useRef<HTMLDivElement>(null)
   const opened = useRef(false)
@@ -149,6 +150,7 @@ export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMo
     const l = live?.id === item.id ? live : pending?.id === item.id ? pending : null
     return l ? { start: l.start, end: l.end } : { start: item.start, end: item.end }
   }
+  // The moving event takes its lane where it's going, so the events it lands beside make room for it.
   const placed = placeTimed(items, days, shown)
   const allDay = items.filter((i) => i.allDay)
 
@@ -161,15 +163,25 @@ export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMo
     return null
   }
 
+  /** Minutes from midnight at a pointer's height, read off the grid itself, so scrolling mid-drag stays true. */
+  const minuteAt = (y: number): number => ((y - (grid.current?.getBoundingClientRect().top ?? 0)) * 60) / HOUR
+
   const finish = (commit: boolean) => {
     const d = drag.current
     const l = liveRef.current
     drag.current = null
     liveRef.current = null
     setLive(null)
-    if (!d || !d.moved) return
-    // The click that follows a drag belongs to the drag, not to opening the card.
-    suppress.current = true
+    if (!d) return
+    d.stop()
+    if (!d.moved) return
+    // The click that follows a drag belongs to the drag: not a card opening, not a new event in the column under it.
+    const swallow = (e: MouseEvent) => {
+      e.stopPropagation()
+      e.preventDefault()
+    }
+    window.addEventListener('click', swallow, true)
+    setTimeout(() => window.removeEventListener('click', swallow, true), 0)
     if (commit && l && l.start !== d.item.start) onMove(d.item, l.start, l.end)
   }
 
@@ -190,19 +202,33 @@ export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMo
     if (e.button !== 0 || item.readOnly || item.allDay) return
     const day = days.slice(0, 7).findIndex((d, j) => item.start >= d && item.start < days[j + 1])
     if (day < 0) return
-    drag.current = { item, pointer: e.pointerId, x: e.clientX, y: e.clientY, moved: false, day, originMin: minutesOf(item.start), dur: item.end - item.start }
-    e.currentTarget.setPointerCapture(e.pointerId)
+    // Listened for on the window, not captured by the block: the block re-mounts when it crosses into another day.
+    const move = (ev: PointerEvent) => ev.pointerId === e.pointerId && onDrag(ev)
+    const up = (ev: PointerEvent) => ev.pointerId === e.pointerId && finish(true)
+    const cancel = (ev: PointerEvent) => ev.pointerId === e.pointerId && finish(false)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', cancel)
+    const stop = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', cancel)
+    }
+    drag.current = { item, pointer: e.pointerId, x: e.clientX, y: e.clientY, moved: false, day, grabMin: minuteAt(e.clientY) - minutesOf(item.start), dur: item.end - item.start, stop }
   }
 
-  const onDrag = (e: PointerEv<HTMLButtonElement>) => {
+  // A drag still going when the week changes or the screen closes ends without a move.
+  useEffect(() => () => drag.current?.stop(), [])
+
+  const onDrag = (e: PointerEvent) => {
     const d = drag.current
-    if (!d || d.pointer !== e.pointerId) return
+    if (!d) return
     if (!d.moved) {
       if (Math.hypot(e.clientX - d.x, e.clientY - d.y) <= DRAG_PX) return
       d.moved = true
     }
     const durMin = d.dur / 60_000
-    const min = Math.max(0, Math.min(snapMinutes(d.originMin + ((e.clientY - d.y) * 60) / HOUR), DAY_MIN - durMin))
+    const min = Math.max(0, Math.min(snapMinutes(minuteAt(e.clientY) - d.grabMin), DAY_MIN - durMin))
     const day = columnAt(e.clientX) ?? d.day
     const s = atMinute(days[day], min)
     const next = { id: d.item.id, day, start: s, end: s + d.dur }
@@ -290,13 +316,8 @@ export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMo
                       aria-label={label}
                       title={p.item.madeBy === 'otty' ? 'Otty added this' : ext ? `${p.item.title} · ${p.item.calendar ?? p.item.source}` : p.item.title}
                       onPointerDown={(e) => onDown(p.item, e)}
-                      onPointerMove={onDrag}
-                      onPointerUp={() => finish(true)}
-                      onPointerCancel={() => finish(false)}
-                      onLostPointerCapture={() => finish(false)}
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (suppress.current) return void (suppress.current = false)
                         onOpen(p.item)
                       }}
                     >

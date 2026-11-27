@@ -2105,20 +2105,19 @@ html[data-view='bubble'] body {
   box-shadow: 0 1px 0 var(--hairline);
   opacity: 0;
 }
-.frame__main--full > .panel__header--scrolled::before {
-  opacity: 1;
-}
 .frame__main--full > .panel__header .panel__title {
   visibility: hidden;
+  color: var(--cove-ink);
+}
+/* What scrolls under the header fades out just below it, on the painting, instead of the header frosting over. */
+.frame__main--full .cove-scroll {
+  mask-image: linear-gradient(transparent 44px, black calc(44px + var(--s-4)));
 }
 .frame__main--full > .panel__header--scrolled .panel__title {
   visibility: visible;
 }
 .frame__main--full > .panel__header .icon-btn {
   color: var(--cove-sub);
-}
-.frame__main--full > .panel__header--scrolled .icon-btn {
-  color: var(--text-2);
 }
 .frame__main--full > .panel__header .screen-menu__btn {
   background: var(--cove-glass);
@@ -2132,12 +2131,12 @@ html[data-view='bubble'] body {
   background: transparent;
   color: var(--text);
   border-bottom-color: transparent;
-  transition: background-color var(--t-quick) var(--glide), box-shadow var(--t-quick) var(--glide);
 }
-.frame__main--wash > .panel__header--scrolled {
-  background: var(--sheet-glass);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 1px 0 var(--hairline);
+/* Scrolled, the header keeps its colour: the screen fades out into it instead, over a strip below it, so the header's
+   words keep their air and nothing scrolls up against a line. A screen with its own sticky header (the Logbook's days,
+   the calendar's) has that header as its edge instead. */
+.frame__main--wash:has(> .panel__header--scrolled):not(:has(.log-day__head, .cal-head)) > .frame__body {
+  mask-image: linear-gradient(transparent, black var(--s-4));
 }
 
 /* The hero: the words on the sky, Otty in the water. It lets the pointer through to the water, but not its words. */
@@ -2371,19 +2370,9 @@ html[data-view='bubble'] body {
     animation-timeline: --cove;
     animation-range: 0 calc(var(--horizon) - 64px);
   }
-  .frame__main--full > .panel__header::before {
-    animation: cove-frost linear both;
-    animation-timeline: --cove;
-    animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
-  }
   /* The title is Motion's (its own opacity inline), so it's shown and hidden by visibility, which wins over that. */
   .frame__main--full > .panel__header .panel__title {
     animation: cove-title linear both;
-    animation-timeline: --cove;
-    animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
-  }
-  .frame__main--full > .panel__header .icon-btn {
-    animation: cove-icons linear both;
     animation-timeline: --cove;
     animation-range: calc(var(--horizon) - 64px) calc(var(--horizon) - 16px);
   }
@@ -2400,17 +2389,9 @@ html[data-view='bubble'] body {
 @keyframes cove-words {
   to { opacity: 0; transform: translateY(-24px); }
 }
-@keyframes cove-frost {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
 @keyframes cove-title {
   from { visibility: hidden; }
   to { visibility: visible; }
-}
-@keyframes cove-icons {
-  from { color: var(--cove-sub); }
-  to { color: var(--text-2); }
 }
 
 /* Reduce transparency and Increase contrast: solid surfaces, a full halo, a header that's solid from the start. */
@@ -2427,7 +2408,8 @@ html[data-view='bubble'] body {
     background: var(--cove-solid);
     backdrop-filter: none;
   }
-  .frame__main--wash > .panel__header--scrolled {
+  .frame__main--wash > .panel__header--scrolled,
+  .log-day__head::after {
     background: var(--bg);
     backdrop-filter: none;
   }
@@ -5505,19 +5487,45 @@ button.menu__item:hover {
   color: var(--text-2);
   text-align: center;
 }
-/* A day is the app's section label (Home's "Try asking"). It sticks as the entries scroll, and only while stuck does it
-   get glass, fading out at its foot instead of ending on a line. */
+/* A day is the app's section label (Home's "Try asking"), and a sticky section header: it runs the Logbook's full width,
+   edge to edge, with its words in line with the entries'. Only while stuck does it get the reading sheet's glass and a
+   hairline at its foot, so it reads as the top of the list, not a band laid over it. */
+.logbook__main {
+  container: ledger / inline-size;
+}
 .log-day__head {
   position: sticky;
   top: 0;
   z-index: 1;
-  margin: 0;
+  /* How far the list sits in from the column's edges: the page padding, plus the margins of the centred 680 px list. */
+  --bleed: calc(var(--s-page) + (100cqi - min(680px, 100cqi)) / 2);
+  /* Out to the column's edges; the bar inside steps back in, so its words stay in line with the entries'. */
+  margin: 0 calc(-1 * var(--bleed));
   container-type: scroll-state;
+}
+.log-day__head::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0;
+  /* The sheet's own tint, twice: the same colour as the page around it, but deep enough to hide what passes under it
+     at night, when the sheet itself is thinnest. */
+  background: linear-gradient(var(--sheet-glass), var(--sheet-glass)), var(--sheet-glass);
+  backdrop-filter: blur(40px) saturate(1.3);
+  box-shadow: 0 1px 0 var(--hairline);
+  transition: opacity var(--t-quick) var(--glide);
+}
+@container scroll-state(stuck: top) {
+  .log-day__head::after {
+    opacity: 1;
+  }
 }
 .log-day__bar {
   display: flex;
   align-items: baseline;
   gap: var(--s-2);
+  margin: 0 var(--bleed);
   padding: var(--s-3) 0;
   font-size: var(--fs-label);
   line-height: var(--lh-label);
@@ -5525,20 +5533,12 @@ button.menu__item:hover {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-2);
-  transition: background var(--t-quick) var(--glide);
 }
 /* Lines the day up with the entries' words, past their 54 px time column (the gap adds the last 8). */
 .log-day__bar::before {
   content: '';
   flex: none;
   width: 46px;
-}
-@container scroll-state(stuck: top) {
-  .log-day__bar {
-    background: var(--cove-glass, color-mix(in srgb, var(--mist-top) 82%, transparent));
-    backdrop-filter: blur(12px);
-    mask-image: linear-gradient(black 70%, transparent);
-  }
 }
 .log-day__count {
   font-size: var(--fs-meta);
@@ -6542,10 +6542,25 @@ html[data-view='viewer'] body {
   position: sticky;
   top: 0;
   z-index: 2;
+  isolation: isolate;
   height: var(--s-12);
   padding: var(--s-1) 0;
+}
+/* The glass covers the days only: the time column stays open beside it, and the hours fade out under the corner. */
+.cal-head::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 0 var(--s-12);
+  z-index: -1;
   border-radius: var(--r-sm);
   background: var(--cove-glass);
+}
+/* The hours fade out as they reach the header's row, in the time column only, instead of passing beside the days. */
+.cal-week > .cal-scroll {
+  mask-image: linear-gradient(transparent calc(var(--s-12) - var(--s-2)), black var(--s-12)), linear-gradient(black, black);
+  mask-size: calc(var(--s-page) + var(--s-12)) 100%, calc(100% - var(--s-page) - var(--s-12)) 100%;
+  mask-position: 0 0, 100% 0;
+  mask-repeat: no-repeat;
 }
 .cal-day-head {
   display: flex;
@@ -6645,6 +6660,8 @@ html[data-view='viewer'] body {
   text-align: left;
   cursor: grab;
   touch-action: none;
+  /* Events make room for one being moved beside them with a short glide, not a jump. */
+  transition: left var(--t-quick) var(--glide), width var(--t-quick) var(--glide);
 }
 .cal-block--ext {
   border-left-color: transparent;

@@ -493,6 +493,12 @@ export class ChatSession {
     return true
   }
 
+  /** Shows the chat on show again, with its running answer or waiting card: a window that reloaded starts empty. */
+  replay(): void {
+    const turn = this.live.get(this.thread.id)
+    this.show(turn ? turn.thread : this.thread, undefined, turn)
+  }
+
   /** Shows a chat that may not be saved, such as a report with "Remember my chats" off. */
   showThread(thread: Thread): void {
     this.show(structuredClone(thread))

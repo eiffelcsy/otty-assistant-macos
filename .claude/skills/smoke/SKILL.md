@@ -17,11 +17,16 @@ npm run smoke
 It builds first (so it never tests a stale build) and holds a machine-wide lock while it runs, because smoke runs
 share the real clipboard, window focus and `out/`. Several agents can call it at once; they take turns.
 
+- Only what a change needs: `npm run smoke -- --changed` (the verify kit's `full` tier does this). `tools/smoke/affected.mjs`
+  maps changed files to specs plus a core set, and runs everything for shared code or a file it doesn't know. CI runs
+  every spec. A new spec needs a place in its `AREAS` (`affected.test.ts` fails otherwise).
 - One area: `npm run smoke -- launch` (a file name), or by step: `npm run smoke -- --grep @step-44`.
 - The release gate only: `npm run smoke -- --grep @gate`.
 - The harness's own checks: `npm run smoke -- --grep @harness`.
 
 `npm run smoke -- --no-build …` skips the build when nothing changed since the last run.
+Build with `npm run smoke`, never `npm run build:smoke` by hand: the runner adds the fake Google client, and without it
+Google Calendar's button is missing and its spec fails.
 
 ## Report
 

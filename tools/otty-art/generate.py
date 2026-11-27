@@ -153,6 +153,12 @@ RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
                      'front paws, looking at it with delight.', '1536x1024', 'float.webp'),
     'float-doze': (SAME_FLOAT + 'dozing: eyes gently closed as soft downward curves, a tiny content smile, front paws '
                    'folded on its chest.', '1536x1024', 'float.webp'),
+    # D-37 in the pool: something to eat is over Otty, then the bite (Spec 13's feeding state).
+    'float-mouth': (SAME_FLOAT + 'hungry and eager: the head tipped up a little towards the top of the picture, mouth '
+                    'open WIDE in a round, happy "aah" as if about to catch a treat, eyes bright and wide, both front '
+                    'paws reaching up off the chest.', '1536x1024', 'float.webp'),
+    'float-munch': (SAME_FLOAT + 'munching happily: mouth closed on a bite, cheeks puffed round and full, eyes squeezed '
+                    'shut in delight as upward curves, both front paws held up to the mouth.', '1536x1024', 'float.webp'),
     # Foreground pieces, laid over the cove and moved on their own (D-71 step 4).
     'reeds-tall': (PIECE + 'A tall clump of lake reeds and cattails, about ten slender blades and three brown cattail '
                    'heads, growing from one base, leaning gently to the right. Sage and olive greens.', '1024x1536'),
