@@ -10,6 +10,7 @@ What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLO
 - **Otty paddles properly while working.** The pool showed two Otties at once (four hind legs and two tails); now one pose shows at a time, in a four-beat kick with a new painted pose.
 - **Otty sleeps like a cartoon otter.** Dozing, he breathes slowly and a snot bubble swells and shrinks at his nostril; hover and it pops, and he wakes happily surprised (a new painted face).
 - **Show the language switch** (Settings › You, under Help in my own language) turns the EN / 中 switch in the message box on or off by hand. Left alone, it still appears once Otty has answered in your language.
+- In the cove, the ripple now spreads under Otty's above-water part, as in the pool, instead of covering him.
 - **Clearer help when snips only show the wallpaper.** The notice names macOS's "Screen & System Audio Recording" list (the top one), explains removing and re-adding Otty when it already looks switched on, and has a **Reopen Otty** button. Onboarding's tip says the same.
 - Docs: the first run and the time to "oh wow" (`docs/FIRST_RUN.md`), and Spec 14, long work staying in its chat (D-87, planned). Animations now start at their smoothest and step down only as far as measurement needs.
 
