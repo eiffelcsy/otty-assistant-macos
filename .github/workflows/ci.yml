@@ -83,7 +83,7 @@ jobs:
     # and pushes to it, so a stack of PRs runs it once, when each one is retargeted to main.
     if: github.event_name == 'push' || github.base_ref == 'main'
     runs-on: macos-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7
 

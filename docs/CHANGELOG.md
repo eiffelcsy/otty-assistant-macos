@@ -2,6 +2,16 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
+## 0.6.1 — Feeding Otty again, steadier calendar drags and Refresh Otty (2026-11-27)
+
+- **Feeding Otty works in the pool.** Drag a file or some words over the pool and Otty opens its mouth wide; drop them and it takes one big bite. It shows even while Otty's busy, and no longer flickers as the drag crosses Otty.
+- **Dragging an event in the week is steadier.** It follows the pointer from where you grabbed it, moves to another day without dropping out of your hand, and never opens a card or starts a new event when you let go. Events it lands beside glide aside to make room.
+- **Refresh Otty**, in the floating Otty's right-click menu and the menu bar icon, reloads Otty's windows if something looks stuck. The chat, its answer, what you were typing and the screen you were on all stay.
+- **The top bar keeps its colour when you scroll.** What's underneath fades away just below it instead of the bar darkening, on Home and every other screen.
+- **The Logbook's days are proper section headers.** Stuck to the top, a day runs the full width of the Logbook in the page's own glass, with a hairline under it, instead of a fading band.
+- The calendar's day names no longer reach over the hours column, and the hours fade out as they scroll up past it.
+- For development: `npm run smoke -- --changed` (and the verify kit's `full` tier) runs only the smoke specs a change needs, from the map in `tools/smoke/affected.mjs`, so a local run is minutes, not a quarter of an hour. CI's smoke job still runs every spec, now with room to finish.
+
 ## 0.6.0 — The cove, a calendar of its own, connections and the Logbook (2026-11-27)
 
 ### Calendar month, and a round of polish (2026-11-27)

@@ -4,6 +4,8 @@ import { Icon } from '../components/Icon'
 import { InWater, Ripple, RefractFilter } from '../components/InWater'
 import float from '../assets/otty/float.webp'
 import floatDoze from '../assets/otty/float-doze.webp'
+import floatMouth from '../assets/otty/float-mouth.webp'
+import floatMunch from '../assets/otty/float-munch.webp'
 import floatPaddle from '../assets/otty/float-paddle.webp'
 import floatPebble from '../assets/otty/float-pebble.webp'
 import dawnWater from '../assets/cove/cove-dawn-water.webp'
@@ -18,6 +20,8 @@ export const SLEEP_MS = 10 * 60_000
 const CARRY_PX = 4
 /** How long a hover's bob runs (Spec 13, Part 2). */
 const BOB_MS = 600
+/** How long the bite shows after a drop (D-37). */
+export const MUNCH_MS = 900
 /** The idle dip: every 40 to 70 s, for 1.6 s (D-83, decision 3). */
 const IDLE_MIN_MS = 40_000
 const IDLE_SPAN_MS = 30_000
@@ -35,7 +39,7 @@ const TITLES: Record<NonNullable<BubbleMood> | 'badge' | 'idle', string> = {
 }
 
 /** What the pool shows, in order: the first that's true is the one (Spec 13, Part 2). */
-type PoolState = 'paused' | 'waiting' | 'working' | 'feeding' | 'carried' | 'asleep' | 'resting'
+type PoolState = 'paused' | 'waiting' | 'munching' | 'feeding' | 'working' | 'carried' | 'asleep' | 'resting'
 
 export function Bubble() {
   const [state, setState] = useState<BubbleState>('idle')
@@ -43,6 +47,8 @@ export function Bubble() {
   const [mood, setMood] = useState<BubbleMood>(null)
   /** Files or text are being dragged over the otter (D-37). */
   const [feeding, setFeeding] = useState(false)
+  /** The bite after a drop, for MUNCH_MS. */
+  const [munching, setMunching] = useState(false)
   /** Picked up: caught by the pointer once a press moves (a click isn't a carry), then a ring when let go (D-38). */
   const [held, setHeld] = useState(false)
   const pressedAt = useRef<{ x: number; y: number } | null>(null)
@@ -61,7 +67,8 @@ export function Bubble() {
   const [sleptAt, setSleptAt] = useState<string | null>(null)
   const moment = `${state}|${mood}|${badge}|${held}|${feeding}|${nudged}`
   const asleep = sleptAt === moment
-  const pool: PoolState = mood === 'paused' ? 'paused' : mood === 'waiting' ? 'waiting' : mood === 'working' || state === 'thinking' ? 'working' : feeding ? 'feeding' : held ? 'carried' : asleep ? 'asleep' : 'resting'
+  // Feeding answers the user's own drag, so it shows over working (and a drop's bite over everything but pause and needs-you).
+  const pool: PoolState = mood === 'paused' ? 'paused' : mood === 'waiting' ? 'waiting' : munching ? 'munching' : feeding ? 'feeding' : mood === 'working' || state === 'thinking' ? 'working' : held ? 'carried' : asleep ? 'asleep' : 'resting'
   // The idle dip's timer reads these, so they're kept current here, not captured when it was armed.
   const quiet = useRef(false)
   useEffect(() => {
@@ -118,12 +125,17 @@ export function Bubble() {
     return () => clearTimeout(timer)
   }, [])
   useEffect(() => {
+    if (!munching) return
+    const t = setTimeout(() => setMunching(false), MUNCH_MS)
+    return () => clearTimeout(t)
+  }, [munching])
+  useEffect(() => {
     if (!enters) return
     const t = setTimeout(() => setBobbing(false), BOB_MS)
     return () => clearTimeout(t)
   }, [enters])
 
-  const frame = pool === 'waiting' ? floatPebble : pool === 'asleep' ? floatDoze : float
+  const frame = pool === 'waiting' ? floatPebble : pool === 'asleep' ? floatDoze : pool === 'feeding' ? floatMouth : pool === 'munching' ? floatMunch : float
   const frames =
     pool === 'working' ? (
       <>
@@ -156,13 +168,17 @@ export function Bubble() {
         e.dataTransfer.dropEffect = 'copy'
         setFeeding(true)
       }}
-      onDragLeave={() => setFeeding(false)}
+      // Leaving the pool, not just passing from the water onto Otty inside it.
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFeeding(false)
+      }}
       onDrop={(e) => {
         e.preventDefault()
         setFeeding(false)
         const files = [...e.dataTransfer.files]
         const text = files.length ? '' : e.dataTransfer.getData('text/plain').trim()
         if (!files.length && !text) return
+        setMunching(true)
         ripple()
         if (text) void window.otty.feedOttyText(text)
         else void window.otty.dropFiles(files).then((pending) => (pending.length ? window.otty.feedOtty(pending.map((f) => f.id)) : undefined))

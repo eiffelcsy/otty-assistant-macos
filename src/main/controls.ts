@@ -8,7 +8,7 @@ import { activityChanged, chat, forgetAllChats, jobs, tidyOldChats } from './cor
 import { tellSettings } from './notify'
 import { trayIcon } from './trayIcon'
 import { setAppMenu } from './roomy'
-import { expandPanel, getBubble, getPanel, openSettings, shrinkPanel } from './windows'
+import { expandPanel, getBubble, getPanel, getQuick, openSettings, shrinkPanel } from './windows'
 
 // D-45: what the user controls Otty with outside its windows: the menu bar, the hotkeys, and applying settings.
 
@@ -117,6 +117,20 @@ export function openRoomy(): void {
   frame('home')
 }
 
+/**
+ * Refresh Otty: reloads Otty's windows when one stops answering or looks wrong. Everything that matters lives in main
+ * (chats, a running answer, drafts, settings, jobs), so nothing is lost; the chat on show is sent back once the panel
+ * has loaded, and the panel keeps its screen in its sessionStorage.
+ */
+export function refreshOtty(): void {
+  const panel = getPanel()
+  if (panel && !panel.isDestroyed()) {
+    panel.webContents.once('did-finish-load', () => chat.replay())
+    panel.webContents.reload()
+  }
+  for (const w of [getBubble(), getQuick()]) if (w && !w.isDestroyed()) w.webContents.reload()
+}
+
 export function menuTemplate(): Item[] {
   const s = settings.getStored()
   return [
@@ -133,6 +147,7 @@ export function menuTemplate(): Item[] {
     },
     { label: 'Settings…', click: () => openSettings() },
     { type: 'separator' },
+    { label: 'Refresh Otty', toolTip: 'Reloads Otty if something looks stuck. Your chats and settings stay.', click: refreshOtty },
     { label: 'Quit Otty', role: 'quit' }
   ]
 }

@@ -25,8 +25,9 @@ export default {
     quick,
     // What CI's `ci` job runs. "Done" for anything that isn't visible in the app.
     standard,
-    // Before a PR that touches anything the app shows.
-    full: [...standard, ['screenshots', 'npm run screens --silent'], ['smoke (builds, then runs)', 'npm run smoke --silent']]
+    // Before a PR that touches anything the app shows. Smoke runs the specs the change needs (tools/smoke/affected.mjs);
+    // CI's smoke job runs every spec, and `npm run smoke` alone still does too.
+    full: [...standard, ['screenshots', 'npm run screens --silent'], ['smoke, the specs this change needs (builds, then runs)', 'npm run smoke --silent -- --changed']]
   },
   // Coverage floors (tools/verify/coverage.mjs), lines and branches, that only go up. Groups are folder prefixes; files
   // are the safety modules, held on their own so a drop there can't hide in a folder's average.

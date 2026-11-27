@@ -85,13 +85,13 @@ describe('the pool (D-82, Spec 13)', () => {
     expect(container.querySelector('.bubble__badge')).not.toBeNull()
   })
 
-  it('keeps the order: a feed over a working pool shows the working state', () => {
+  it('keeps the order: a feed over a working pool shows feeding, since it answers the drag', () => {
     let mood: (m: string) => void = () => {}
     Object.assign(window.otty, { onBubbleMood: (cb: (m: string) => void) => ((mood = cb), () => {}) })
     const { container } = render(<Bubble />)
     act(() => mood('working'))
     fireEvent.dragOver(pool(container), drag([], 'a line'))
-    expect(stateOf(container)).toBe('pool--working')
+    expect(stateOf(container)).toBe('pool--feeding')
   })
 
   it('arms one hour timer, moves the water at the next painting, and clears it on unmount', () => {
@@ -116,8 +116,15 @@ describe('feeding Otty (D-37)', () => {
     const pdf = new File(['x'], 'report.pdf')
     fireEvent.dragOver(root, drag([pdf]))
     expect(root.classList.contains('pool--feeding')).toBe(true)
+    expect(frameOf(container)).toContain('float-mouth')
+    // Passing from the water onto Otty inside the pool isn't leaving it.
+    // jsdom has no DragEvent, so the leave goes as a MouseEvent, which carries relatedTarget.
+    fireEvent(root, new MouseEvent('dragleave', { bubbles: true, relatedTarget: root.querySelector('.pool__water') }))
+    expect(root.classList.contains('pool--feeding')).toBe(true)
     fireEvent.drop(root, drag([pdf]))
     expect(root.classList.contains('pool--feeding')).toBe(false)
+    expect(stateOf(container)).toBe('pool--munching')
+    expect(frameOf(container)).toContain('float-munch')
     await waitFor(() => expect(otty.feedOtty).toHaveBeenCalledWith(['id0']))
     expect(otty.dropFiles).toHaveBeenCalledWith([pdf])
   })

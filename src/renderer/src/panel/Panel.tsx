@@ -34,6 +34,17 @@ import { Pouch } from '../pouch/Pouch'
 import { loadSides, saveSides, toggleSides, type Sides } from '../frame/sides'
 
 type View = 'home' | 'chat' | 'settings' | 'onboarding' | 'history' | 'logbook' | 'notebook' | 'calendar' | 'pouch'
+const VIEWS: readonly View[] = ['home', 'chat', 'settings', 'onboarding', 'history', 'logbook', 'notebook', 'calendar', 'pouch']
+/** The screen this window showed before Refresh Otty reloaded it (sessionStorage lasts a reload, not a quit). */
+const SHOWN_KEY = 'otty.shown'
+function shownBefore(): View {
+  try {
+    const v = sessionStorage.getItem(SHOWN_KEY)
+    return VIEWS.includes(v as View) ? (v as View) : 'chat'
+  } catch {
+    return 'chat'
+  }
+}
 
 const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibility' | 'screen' }> = {
   'needs-accessibility': {
@@ -89,7 +100,14 @@ function whenDrawn(g: WindowGlide, sized: () => void, then: () => void): void {
 
 export function Panel() {
   const [settings, setSettings] = useState<PublicSettings | null>(null)
-  const [view, setView] = useState<View>('chat')
+  const [view, setView] = useState<View>(shownBefore)
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SHOWN_KEY, view)
+    } catch {
+      // A layout convenience: without storage, a refresh opens on the chat.
+    }
+  }, [view])
   /** Where Back goes: the pages pushed on top of a root screen (Spec 05). Layout, so it lives here, not in main. */
   const [stack, setStack] = useState<View[]>([])
   /** The side columns' sizes and folds (Spec 09): this window's layout, kept in its localStorage. */

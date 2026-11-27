@@ -29,11 +29,11 @@ The root is `.bubble.pool`, plus a state class. Classes in quotes are what smoke
 | Has an answer | `badge` | Marker `"bubble__badge"`: a piece of sea glass, a 12 × 9 rounded shape (`border-radius: 40% 60% 50% 50%`) in `--straw` with a white highlight dot, sitting on the open water below Otty’s feet, in front of him (right 22 px, top 66 px). It bobs once when it appears (the hover bob), then stays still |
 | Paused | `mood === 'paused'` | The water greys and stills (`filter: saturate(0.25) brightness(0.92)` on the water only). Marker `"bubble__paused"`: a glass bead (18, `--surface`, `--elev-1`) with the `pause` icon, at the pool's left edge |
 | Asleep | idle with nothing for `SLEEP_MS` (unchanged) | `float-doze`, and three "z" letters (`--fs-small`, weight 600, white at 80%) rise 8 px and fade, staggered 150 ms, once. A hover wakes it, as now |
-| Feeding | a file or text is over it | The pool swells to `scale(1.08)` and the rim lights `--grass` (like Needs you, in green) |
+| Feeding | a file or text is over it | The pool swells to `scale(1.08)`, the rim lights `--grass` (like Needs you, in green) and Otty opens its mouth wide (`float-mouth`); on the drop, one bite (`float-munch`, 900 ms) and a ripple |
 | Fed | on the drop | Two rings (the hover ring twice, 120 ms apart). Otty's frame doesn't change: the munch face is retired from the pool |
 | Carried | held after moving `CARRY_PX` | The pool tilts −4° (`rotate`). On landing, one ring |
 
-**Order** when several are true: paused > needs you > working > feeding > carried > asleep > resting. The badge shows alongside any of them except asleep, and a badge arriving wakes Otty.
+**Order** when several are true: paused > needs you > munching > feeding > working > carried > asleep > resting. Feeding outranks working because it answers the user's own drag (2026-11-27). The badge shows alongside any of them except asleep, and a badge arriving wakes Otty.
 
 ## Part 3 · Motion and the idle budget
 
