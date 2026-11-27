@@ -88,7 +88,7 @@ describe('each kind of row saves through main as it changes', () => {
 
   it('the language switch: on once used, turned off by hand, and off without a language', async () => {
     open('you')
-    const sw = screen.getByRole('checkbox', { name: /Show the language switch/ }) as HTMLInputElement
+    const sw = screen.getByRole<HTMLInputElement>('checkbox', { name: /Show the language switch/ })
     expect(sw.checked).toBe(true)
     fireEvent.click(sw)
     await waitFor(() => expect(otty.setSetting).toHaveBeenCalledWith('languageSwitch', false))

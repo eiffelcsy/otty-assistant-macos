@@ -2389,6 +2389,11 @@ html[data-view='bubble'] body {
   display: block;
   width: 100%;
 }
+/* The above-water part lies over the under part, which sizes the body. */
+.cove-otty__above {
+  position: absolute;
+  inset: 0;
+}
 /* Otty's ripple at his waterline (D-83). */
 .cove-otty__body .in-water__ripple {
   width: 112%;
