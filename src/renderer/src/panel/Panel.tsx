@@ -806,7 +806,7 @@ export function Panel() {
                   att.drop([...e.clipboardData.files])
                 }}
                 extra={
-                  settings.homeLanguage && settings.homeUsed && <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
+                  settings.homeLanguage && (settings.languageSwitch ?? settings.homeUsed) && <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
                 }
               />
             </footer>

@@ -33,6 +33,7 @@ const FINDABLE: { id: string; section: SectionId; title: string; words?: string 
   { id: 'notifyDone', section: 'you', title: 'Tell me when something is ready', words: 'notification alert' },
   { id: 'openAtLogin', section: 'you', title: 'Open Otty when I log in', words: 'startup launch restart' },
   { id: 'homeLanguage', section: 'you', title: 'Help in my own language', words: 'chinese 中文 language' },
+  { id: 'languageSwitch', section: 'you', title: 'Show the language switch', words: 'chinese 中文 language toggle button en' },
   { id: 'tiles', section: 'tiles', title: 'Add a tile', words: 'button action prompt my own' },
   { id: 'askHotkey', section: 'keys', title: 'Ask about highlighted text', words: 'hotkey shortcut key' },
   { id: 'snapHotkey', section: 'keys', title: 'Snip part of the screen', words: 'hotkey shortcut screenshot' },
@@ -254,6 +255,14 @@ export function Settings({ settings, onSaved, section, onSection, onOpenLogbook,
                 { value: 'zh-HK', label: '繁體中文（香港）' }
               ]}
               onChange={(v) => void save('homeLanguage', v === 'none' ? null : v)}
+            />
+            <SwitchRow
+              {...row('languageSwitch')}
+              title="Show the language switch"
+              description={shown.homeLanguage ? 'EN and 中 in the message box, to pick the language of the next answer.' : 'Choose a language above first.'}
+              disabled={!shown.homeLanguage}
+              on={!!shown.homeLanguage && (shown.languageSwitch ?? shown.homeUsed)}
+              onChange={(v) => void save('languageSwitch', v)}
             />
           </Group>
         </>

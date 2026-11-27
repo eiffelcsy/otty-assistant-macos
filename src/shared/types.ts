@@ -196,6 +196,8 @@ export interface PublicSettings {
   capNoticed: string | null
   /** An answer has been asked for in the home language once, so the message box offers the language button (UX_REVIEW #7). */
   homeUsed: boolean
+  /** The message box's language switch: shown or hidden by the user's choice, or null to show it once `homeUsed`. */
+  languageSwitch: boolean | null
   /** Only the installed app can be a login item; a development build can't. */
   canOpenAtLogin: boolean
   /** The user's own tiles (D-56), after the built-in ones. */
@@ -282,6 +284,7 @@ export type SettableKey =
   | 'learn'
   | 'keepChats'
   | 'homeLanguage'
+  | 'languageSwitch'
   | 'askHotkey'
   | 'snapHotkey'
   | 'screenHotkey'

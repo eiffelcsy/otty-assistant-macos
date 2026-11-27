@@ -88,6 +88,7 @@ const DEFAULTS: Omit<StoredSettings, 'homeLanguage'> = {
   monthlyCap: null,
   capNoticed: null,
   homeUsed: false,
+  languageSwitch: null,
   myTiles: [],
   homeWidgets: [...HOME_WIDGETS]
 }

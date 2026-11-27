@@ -59,6 +59,7 @@ export const SETTABLE = {
   learn: bool,
   keepChats: oneOf('30d', '1y', 'forever'),
   homeLanguage: oneOf(null, 'zh-HK'),
+  languageSwitch: oneOf(null, true, false),
   askHotkey: hotkey,
   snapHotkey: hotkey,
   screenHotkey: hotkey,
