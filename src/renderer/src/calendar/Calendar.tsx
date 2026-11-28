@@ -19,7 +19,10 @@ const MOVE_FAILED = 'Couldn’t move that. Try again.'
 const LOAD_FAILED = 'Couldn’t read your calendar. Try again.'
 const QUIET = 'Nothing this week. Add something, or ask Otty to plan it.'
 const QUIET_MONTH = 'Nothing this month. Add something, or ask Otty to plan it.'
+const READING = 'Reading your calendars…'
 const OK_MS = 6000
+/** D-89: a read slower than this shows the skeleton; a cached or local one never flickers. */
+const WAIT_MS = 250
 const HOUR_MS = 3_600_000
 
 type Editing = { kind: 'new'; draft: Draft } | { kind: 'item'; item: CalendarItem }
@@ -48,6 +51,9 @@ export function Calendar({ band }: { band: Band }) {
   const todayInView = monthly ? monthOf(today) === month : today >= start && today < end
 
   const [range, setRange] = useState<CalendarRange | null>(null)
+  // D-89: which range `range` holds. When it isn't the one on screen, that one is still being read.
+  const [held, setHeld] = useState<string | null>(null)
+  const want = `${from}:${end}`
   const [editing, setEditing] = useState<Editing | null>(null)
   const [ok, setOk] = useState<CalendarItem | null>(null)
   const [moveNote, setMoveNote] = useState<string | null>(null)
@@ -60,15 +66,26 @@ export function Calendar({ band }: { band: Band }) {
       (r) => {
         if (mine !== seq.current) return
         setRange(r)
+        setHeld(`${from}:${end}`)
         setPending(null)
       },
       () => {
         if (mine !== seq.current) return
         setRange({ items: [], note: LOAD_FAILED })
+        setHeld(`${from}:${end}`)
         setPending(null)
       }
     )
   }, [from, end])
+
+  // Behind: what's held is another range (or nothing yet). A reload of the same range (after a save) keeps its events.
+  const behind = held !== want
+  const [waiting, setWaiting] = useState(false)
+  useEffect(() => {
+    if (!behind) return setWaiting(false)
+    const t = setTimeout(() => setWaiting(true), WAIT_MS)
+    return () => clearTimeout(t)
+  }, [behind])
 
   useEffect(() => {
     load()
@@ -155,8 +172,10 @@ export function Calendar({ band }: { band: Band }) {
     }
   }
 
-  const items = range?.items ?? []
-  const note = moveNote ?? range?.note
+  // Another range's events and notes never show over this one. `waiting` stays apart from `items`, so a two-stage read
+  // (Otty's own events first, the connected ones after) can pass what it has and keep the skeleton for the rest.
+  const items = behind ? [] : range?.items ?? []
+  const note = moveNote ?? (behind ? undefined : range?.note)
   const title = monthly ? monthTitle(month) : compact && start === today ? 'Next 7 days' : rangeTitle(start)
   const span = monthly ? 'month' : 'week'
   const openItem = (item: CalendarItem) => setEditing({ kind: 'item', item })
@@ -196,16 +215,22 @@ export function Calendar({ band }: { band: Band }) {
         </div>
       )}
       {note && <div className="cal-note">{note}</div>}
-      {range && !note && items.length === 0 && <div className="cal-note cal-note--quiet">{monthly ? QUIET_MONTH : QUIET}</div>}
-      <div className="cal-body">
+      {waiting && (
+        <div className="cal-note cal-note--quiet" role="status">
+          {READING}
+        </div>
+      )}
+      {!behind && !note && items.length === 0 && <div className="cal-note cal-note--quiet">{monthly ? QUIET_MONTH : QUIET}</div>}
+      <div className="cal-body" aria-busy={waiting}>
         {monthly ? (
-          <Month start={from} month={month} items={items} today={today} compact={compact} onOpen={openItem} onDay={openDay} />
+          <Month start={from} month={month} items={items} today={today} compact={compact} waiting={waiting} onOpen={openItem} onDay={openDay} />
         ) : compact ? (
-          <Days start={start} items={items} today={today} onOpen={openItem} />
+          <Days start={start} items={items} today={today} waiting={waiting} onOpen={openItem} />
         ) : (
           <Week
             start={start}
             items={items}
+            waiting={waiting}
             pending={pending}
             today={today}
             loaded={range !== null}

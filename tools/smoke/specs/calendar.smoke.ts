@@ -194,6 +194,28 @@ test('connected Apple calendar beside Otty’s: read-only, with no Save', { tag:
   await expect(dialog.getByRole('button', { name: 'Save' })).toHaveCount(0)
 })
 
+test('a slow connected calendar shows a skeleton until it answers, then its events', { tag: ['@step-213'] }, async ({ otty }) => {
+  await otty.mac({ calendar: { allowed: true, delayMs: 4000, events: [{ title: 'Club swim', start: at(1, 9), end: at(1, 10), allDay: false, calendar: 'Home' }], reminders: [] } })
+  const panel = await otty.openPanel()
+  await otty.settings(panel, 'Connections')
+  await panel.getByRole('button', { name: /^Apple Calendar and Reminders/ }).click()
+  await panel.getByRole('button', { name: 'Allow access' }).click()
+  await expect(panel.getByText('Connected. Ask “what’s on tomorrow?” to try it.')).toBeVisible()
+
+  await otty.go(panel, 'Chat')
+  await wide(otty, panel)
+  await openCalendar(panel)
+  const reading = panel.getByRole('status').filter({ hasText: 'Reading your calendars…' })
+  await expect(reading).toBeVisible()
+  await expect(panel.locator('.cal-body[aria-busy="true"] .cal-skel--col')).toHaveCount(7)
+  // Not "Nothing this week" while it isn't known yet.
+  await expect(panel.getByText(/^Nothing this week/)).toHaveCount(0)
+
+  await expect(block(panel, 'Club swim', '09:00 to 10:00')).toBeVisible()
+  await expect(reading).toHaveCount(0)
+  await expect(panel.locator('.cal-skel')).toHaveCount(0)
+})
+
 test('an event added today shows as the current tick in Home’s Today', { tag: ['@step-195'] }, async ({ otty }) => {
   const panel = await otty.openPanel()
   await wide(otty, panel)

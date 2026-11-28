@@ -92,7 +92,6 @@ The working plan: what's next, how we'll build it, and how to check it works.
 | --- | --- | --- | --- | --- |
 | D-85 | Quiet chrome: icon buttons with tooltips and keys instead of word buttons, hover actions on rows, Otty's own glyphs and connectors' logos | 🔨 building on `feat/quiet-chrome-home-widgets` | — | M |
 | D-86 | Home widgets: Calendar (on by default), Today, Looking after and My tiles, chosen from a Customise menu; room for D-55's own widgets | 🔨 building on `feat/quiet-chrome-home-widgets` | D-73 (done), D-56 (done) | M |
-| D-89 | The calendar waits visibly: a skeleton while a connected calendar is being read, in the week, the list and the month | 🔨 building on `feat/calendar-skeleton` | D-73 (done), D-54 (done) | S |
 | D-87 | Long work stays in its chat: work card and strip, questions on the card and from a speech box over the pool, the report as a doc Pebble in the same chat (Spec 14) | 📐 spec | D-63 (done), D-77 (done), D-82 (done) | L |
 | D-81 | Turns as the unit of storage: step 0 done, decided to wait (the turns can be rebuilt from today's rows) | ⏸ after the beta, by decision (2026-11-26) | branching, versions or sync being planned | M |
 | D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ after the core services (moved down 2026-11-24) | D-56 (done); services from D-54, D-73 and D-77 | L (step 0: S) |
@@ -207,19 +206,6 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Design now for later:** new panel views should work at any width, because the panel will grow into a roomy window (BRAINSTORM, "Quick view and the Otty window").
 
 ---
-
-## D-89 · The calendar waits visibly 🔨
-
-**Goal.** Paging to a week whose connected calendars (Apple, Google, a user's own) haven't answered yet shows a skeleton and "Reading your calendars…", not an empty week that later fills in, or a "Nothing this week" that isn't true.
-
-**Build (S).**
-1. `Calendar.tsx` knows which range it's showing; when that isn't the range asked for, the views get `waiting` and no stale events. Only after 250 ms, so a cached or local read never flickers. A reload of the same range (after a save) keeps its events.
-2. `waiting` is its own prop, apart from `items`, so a later two-stage read (Otty's own events at once, connected ones after) can pass the events it has and keep the skeleton for the rest.
-3. The skeleton: placeholder rows in the list, a placeholder chip per day in the month (a dot when compact), a tinted column in the week (no made-up blocks at made-up times). DESIGN's X4: two stepped cycles, then hold; static with Reduce motion.
-4. A status line with `role="status"`, `aria-busy` on the body; the quiet "Nothing this week" and old notes hide while waiting.
-5. Preview scenes `calendar-loading` and `calendar-loading-list`; a smoke spec with a slow fake calendar helper (`SmokeCalendar.delayMs`).
-
-**Done when.** The skeleton shows while a connected read is slow, goes when it answers, and never shows for Otty's own events alone.
 
 ## D-87 · Long work stays in its chat 📐 spec
 
@@ -961,3 +947,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 210. Under the latest answer, icons only: hover Copy → its tooltip says "Copy ⇧⌘C". ⇧⌘C copies the answer and ⌘R tries it again, from anywhere in the window. Older answers show their icons only on hover
 211. Home with nothing else on → a Calendar widget with today's events (or "A clear day."), and its arrow opens the Calendar. Customise Home (the sliders at the end) › untick Calendar → it goes, and stays gone after Otty restarts
 212. Make a tile for "Anything" in Settings › My tiles → it shows in Home's My tiles; click it → a new chat asks the tile's question
+213. Connect Apple Calendar while its reads are slow, then open the Calendar: "Reading your calendars…" shows with a tinted column per day (placeholder rows in the list, a placeholder chip per day in the month), never "Nothing this week"; when the read answers, the events show and the placeholders go. With only Otty's own events, nothing flickers. ✋ also by eye: the placeholders step twice and then hold, and hold still with Reduce motion

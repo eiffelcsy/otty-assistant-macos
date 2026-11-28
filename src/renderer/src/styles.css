@@ -7055,6 +7055,32 @@ button.cal-mday {
   border-radius: 50%;
   background: var(--brand-fill);
 }
+/* D-89: placeholders while a connected calendar is read. DESIGN's X4: they step between two tints twice, then hold
+   (the explain card's `waiting`), so nothing runs for long. */
+.cal-skel {
+  border-radius: var(--r-xs);
+  background: var(--fill-strong);
+  animation: waiting 1.2s steps(1) 2;
+  pointer-events: none;
+}
+.cal-skel--row {
+  display: block;
+  height: calc(var(--lh-ui) + 2 * var(--s-2));
+  border-radius: var(--r-sm);
+}
+.cal-skel--row + .cal-skel--row {
+  width: 70%;
+}
+.cal-skel--chip {
+  display: block;
+  width: 70%;
+  height: calc(var(--lh-small) + 2 * var(--s-1));
+}
+.cal-skel--col {
+  position: absolute;
+  inset: 0 var(--s-0);
+  opacity: 0.5;
+}
 .cal-mday__dot--ext {
   background: var(--text-3);
 }

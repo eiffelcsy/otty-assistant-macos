@@ -15,11 +15,13 @@ interface Props {
   items: CalendarItem[]
   today: number
   compact: boolean
+  /** D-89: still reading; each day of the month shows a placeholder chip (a dot when compact). */
+  waiting: boolean
   onOpen: (item: CalendarItem) => void
   onDay: (day: number) => void
 }
 
-export function Month({ start, month, items, today, compact, onOpen, onDay }: Props) {
+export function Month({ start, month, items, today, compact, waiting, onOpen, onDay }: Props) {
   const m = new Date(month).getMonth()
   return (
     <div className="cal-month">
@@ -38,6 +40,7 @@ export function Month({ start, month, items, today, compact, onOpen, onDay }: Pr
           const cls = `cal-mday${new Date(day).getMonth() !== m ? ' cal-mday--out' : ''}${day === today ? ' cal-mday--today' : ''}`
           const label = `${longDay(day)}, ${here.length === 0 ? 'nothing planned' : here.length === 1 ? '1 event' : `${here.length} events`}`
           const num = <span className="cal-mday__num">{new Date(day).getDate()}</span>
+          const skel = waiting && here.length === 0 && new Date(day).getMonth() === m
           if (compact)
             return (
               <button key={day} className={cls} aria-label={label} onClick={() => onDay(day)}>
@@ -46,6 +49,7 @@ export function Month({ start, month, items, today, compact, onOpen, onDay }: Pr
                   {here.slice(0, CHIPS).map((i) => (
                     <span key={i.id} className={`cal-mday__dot${i.readOnly ? ' cal-mday__dot--ext' : ''}`} />
                   ))}
+                  {skel && <span className="cal-mday__dot cal-skel" aria-hidden="true" />}
                 </span>
               </button>
             )
@@ -59,6 +63,7 @@ export function Month({ start, month, items, today, compact, onOpen, onDay }: Pr
                   {i.title}
                 </button>
               ))}
+              {skel && <span className="cal-skel cal-skel--chip" aria-hidden="true" />}
               {here.length > CHIPS && <span className="cal-allday__more">+{here.length - CHIPS} more</span>}
             </div>
           )
