@@ -14,6 +14,29 @@ permissions:
   contents: read
 
 jobs:
+  # Docs-only PRs skip the slow Mac jobs (screens, smoke). `ci` always runs: unit tests read the docs (the smoke
+  # checklist), and it's the required check. Pushes to main run everything.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      - id: diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$PR" ]; then echo code=true >> "$GITHUB_OUTPUT"; exit 0; fi
+          # A diff GitHub won't list (too large) counts as code.
+          files=$(gh pr diff "$PR" --name-only -R "$GITHUB_REPOSITORY") || { echo code=true >> "$GITHUB_OUTPUT"; exit 0; }
+          if printf '%s\n' "$files" | grep -qvE '^(docs/|\.claude/|[^/]+\.md$)'; then code=true; else code=false; fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "Code changed: $code"
+
   ci:
     # Otty is a macOS app, and the D-1 OCR helper will need swiftc.
     runs-on: macos-latest
@@ -47,6 +70,13 @@ jobs:
       - run: node tools/smoke/check-release.mjs
 
   screens:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    # Two shards, so the 250-odd screenshots take half as long.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     # D-48: every UI preview view and scene, light and dark, against the committed screenshots. Pinned, because the
     # baselines come from this Mac (tools/ui-preview/screens/from-ci.mjs): another macOS draws Chinese differently.
     runs-on: macos-26
@@ -68,22 +98,29 @@ jobs:
 
       - run: npm ci
       - run: npx playwright install chromium
-      - run: npm run screens
+      - run: npm run screens -- --shard=${{ matrix.shard }}/2
 
       - name: Keep the diff images
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: screens-diff
+          name: screens-diff-${{ matrix.shard }}
           path: tools/ui-preview/screens/results/
           retention-days: 14
 
   smoke:
     # D-47: the real app, driven by Playwright against a fake world. Nothing leaves the runner. Only for PRs into main
     # and pushes to it, so a stack of PRs runs it once, when each one is retargeted to main.
-    if: github.event_name == 'push' || github.base_ref == 'main'
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && (github.event_name == 'push' || github.base_ref == 'main')
+    # Three shards, each building the app on its own runner: one at a time on a runner (windows and focus are global),
+    # but three runners at once.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
 
@@ -102,13 +139,13 @@ jobs:
       - run: npm ci
       # Builds (the OCR helper, the app and the smoke entry), then runs. Playwright drives Electron itself, so no
       # browsers are downloaded.
-      - run: npm run smoke
+      - run: npm run smoke -- --shard=${{ matrix.shard }}/3
 
       - name: Keep the report, traces and screenshots
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: smoke-report
+          name: smoke-report-${{ matrix.shard }}
           path: |
             tools/smoke/report/
             tools/smoke/results/

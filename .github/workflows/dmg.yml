@@ -50,9 +50,8 @@ jobs:
           key: electron-dmg-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
           restore-keys: electron-dmg-${{ runner.os }}-
 
+      # Typecheck and unit tests are ci.yml's; a tag comes from main, which passed them.
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
 
       # Unsigned until signing and notarization land (BRAINSTORM, "Trust"): don't let electron-builder
       # go looking for a certificate in the runner's keychain.
