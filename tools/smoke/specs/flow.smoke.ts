@@ -69,8 +69,12 @@ test('to the Logbook from the cove: the header stays hidden until the sheet rise
 test('Home to the empty chat: nothing fades, Otty stays, and the chat list opens by its width', { tag: ['@step-179'] }, async ({ otty }) => {
   const panel = await otty.openPanel()
   await size(otty, panel, 1280)
+  // Once there and back first, as in step 178: a cold app's first move drew after its short glides were over.
+  await panel.getByRole('button', { name: 'Chats', exact: true }).click()
+  await expect(panel.locator('.frame__list')).toBeVisible()
   await panel.keyboard.press('Meta+1')
   await expect(panel.getByRole('main', { name: 'Home' })).toBeVisible()
+  await expect.poll(() => panel.evaluate(() => parseFloat(document.querySelector<HTMLElement>('.frame')!.style.getPropertyValue('--list-now')) || 0)).toBe(0)
   const seen = await panel.evaluate(async () => {
     const frame = document.querySelector<HTMLElement>('.frame')!
     const shown = (sel: string) => [...document.querySelectorAll<HTMLElement>(sel)].find((e) => e.getClientRects().length)
