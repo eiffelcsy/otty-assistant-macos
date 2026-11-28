@@ -13,6 +13,7 @@ const NOT_FILES = new Set([
   'fileWorker.js', // the build's name for src/main/files/worker.ts
   '*.smoke.ts', // a pattern
   'clipboard.read/readText/write/writeText', // Electron's API
+  'update-<arch>.json', // a release asset, made by tools/release/feed.mjs
   'out/', // build output: CI runs the tests before it builds
   'build/bin'
 ])
