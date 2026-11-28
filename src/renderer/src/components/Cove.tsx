@@ -294,8 +294,10 @@ export function CoveOtty() {
       <span key={squish} className={`cove-otty__squish${squish ? ' cove-otty__squish--on' : ''}`}>
         <span className="cove-otty__body">
           <img className="cove-otty__refl" src={float} alt="" draggable={false} />
-          <InWater water={PAINTINGS[time][1]} maskSrc={float} frames={<img className="cove-otty__img" src={float} alt="" draggable={false} />} />
+          {/* The ripple goes over the submerged part and under the part above the water, as in the pool (D-83). */}
+          <InWater part="under" water={PAINTINGS[time][1]} maskSrc={float} frames={<img className="cove-otty__img" src={float} alt="" draggable={false} />} />
           <Ripple trigger={squish} className="cove-otty__ripple" />
+          <InWater part="above" className="cove-otty__above" water={PAINTINGS[time][1]} maskSrc={float} frames={<img className="cove-otty__img" src={float} alt="" draggable={false} />} />
         </span>
       </span>
     </button>

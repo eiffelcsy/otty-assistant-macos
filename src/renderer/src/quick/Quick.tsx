@@ -37,7 +37,7 @@ export function Quick() {
   const [opened, setOpened] = useState(0)
   const [home, setHome] = useState<HomeLanguage | null>(null)
   /** The language button waits until an answer has been asked for in the home language once (UX_REVIEW #7). */
-  const [homeUsed, setHomeUsed] = useState(false)
+  const [showSwitch, setShowSwitch] = useState(false)
   /** Everything is paused (D-39): nothing is asked until the user lets Otty carry on. */
   const [paused, setPaused] = useState(false)
   const [readsPages, setReadsPages] = useState(false)
@@ -70,7 +70,7 @@ export function Quick() {
         clear()
         window.otty.getSettings().then((s) => {
           setHome(s.homeLanguage)
-          setHomeUsed(s.homeUsed)
+          setShowSwitch(s.languageSwitch ?? s.homeUsed)
           setPaused(s.workPaused)
           setReadsPages(s.readsPages)
           setLearning(s.learn)
@@ -339,7 +339,7 @@ export function Quick() {
                       <Icon name="pencil" /> check writing
                     </button>
                   )}
-                  {home && homeUsed && <LanguagePill home={home} value={pick} onChange={setPick} />}
+                  {home && showSwitch && <LanguagePill home={home} value={pick} onChange={setPick} />}
                   {paused ? (
                     <button className="quick__key quick__key--go" onClick={() => void window.otty.saveSettings({ workPaused: false }).then(() => setPaused(false))}>
                       Paused · Carry on

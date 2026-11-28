@@ -35,6 +35,13 @@ describe('tooltips', () => {
     expect(a.hasAttribute('aria-label')).toBe(false)
   })
 
+  it('adds the shortcut from data-keys after the name (D-85)', () => {
+    document.getElementById('a')!.dataset.keys = '⇧⌘C'
+    hover('a')
+    vi.advanceTimersByTime(DELAY_MS)
+    expect(tip().querySelector('.tooltip__keys')?.textContent).toBe('⇧⌘C')
+  })
+
   it('keeps a title the window changed while it showed', () => {
     hover('a')
     const a = document.getElementById('a')!

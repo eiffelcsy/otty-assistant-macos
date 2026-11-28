@@ -1,5 +1,6 @@
 import type { SettableKey, SettingsUpdate } from '../../shared/types'
 import { validTiles } from '../../shared/tiles'
+import { validWidgets } from '../../shared/homeWidgets'
 import { cleanShelf } from '../pebbles'
 import { ipcMain, type IpcMainEvent, type IpcMainInvokeEvent, type WebContents } from 'electron'
 
@@ -58,12 +59,14 @@ export const SETTABLE = {
   learn: bool,
   keepChats: oneOf('30d', '1y', 'forever'),
   homeLanguage: oneOf(null, 'zh-HK'),
+  languageSwitch: oneOf(null, true, false),
   askHotkey: hotkey,
   snapHotkey: hotkey,
   screenHotkey: hotkey,
   monthlyCap: checkedLater,
   capNoticed: (x) => typeof x === 'string' && /^\d{4}-\d{2}$/.test(x),
-  myTiles: validTiles
+  myTiles: validTiles,
+  homeWidgets: validWidgets
 } as const satisfies Record<SettableKey, Guard>
 
 /**

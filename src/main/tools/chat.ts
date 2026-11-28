@@ -100,7 +100,7 @@ export const makeChartTool: Tool = {
 }
 
 /** `remember` and `forget` are only offered with "Let Otty learn about me" on, and shown as a Noted line. */
-const learnLabel = () => ({ icon: 'bookmark', label: 'Noted', show: 'never' as const })
+const learnLabel = () => ({ icon: 'notebook', label: 'Noted', show: 'never' as const })
 const notLearning: ToolOutcome = { result: 'Otty isn’t learning here. Don’t say this was saved.', status: 'denied' }
 
 export const rememberTool: Tool = {
@@ -172,7 +172,7 @@ export const startJobTool: Tool = {
             }
           }
         },
-  label: (args) => ({ icon: 'binoculars', label: `Looking into “${text(args, 'title', 'this')}”` }),
+  label: (args) => ({ icon: 'lookup', label: `Looking into “${text(args, 'title', 'this')}”` }),
   undo: 'job',
   async run(args, ctx) {
     if (webOff()) return needsWeb

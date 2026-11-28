@@ -153,6 +153,17 @@ RECIPES: dict[str, tuple[str, str] | tuple[str, str, str]] = {
                      'front paws, looking at it with delight.', '1536x1024', 'float.webp'),
     'float-doze': (SAME_FLOAT + 'dozing: eyes gently closed as soft downward curves, a tiny content smile, front paws '
                    'folded on its chest.', '1536x1024', 'float.webp'),
+    # Paddling as a kick cycle: float, paddle, float, paddle-2 (Spec 13, working).
+    'float-paddle-2': (SAME_FLOAT + 'the two raised hind feet, mid-paddle the other way: both still sticking up above '
+                       'the belly, but pushed back a little towards the tail and spread apart, and the tail tip dipped '
+                       'down. Exactly two hind feet and two front paws, nothing below the body. Same smile.',
+                       '1536x1024', 'float.webp'),
+    # Woken from a doze by a hover (Spec 13, startled).
+    'float-startled': (SAME_FLOAT + 'just woken, happily surprised: keep the EXACT same eyes as the reference (same '
+                       'size, shape, glossy dark colour and single white highlight, just open a touch wider), small '
+                       'raised eyebrows, and a little open happy smile, as if saying "oh, hi!" with delight. Both front '
+                       'paws lifted a little off the chest. Pleased and cheerful, not startled or scared.',
+                       '1536x1024', 'float.webp'),
     # D-37 in the pool: something to eat is over Otty, then the bite (Spec 13's feeding state).
     'float-mouth': (SAME_FLOAT + 'hungry and eager: the head tipped up a little towards the top of the picture, mouth '
                     'open WIDE in a round, happy "aah" as if about to catch a treat, eyes bright and wide, both front '

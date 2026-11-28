@@ -194,6 +194,12 @@
   --i-md: 14px;
   --i-lg: 16px;
   --i-xl: 20px;
+  /* D-85: connectors' own logo colours, from their brand guides; the same in both themes. */
+  --logo-google-red: #ea4335;
+  --logo-google-blue: #4285f4;
+  --logo-google-yellow: #fbbc05;
+  --logo-google-green: #34a853;
+  --logo-canvas: #e72429;
 
   /* Radius scale. Nested shapes step down by their padding so corners stay concentric. */
   --r-xs: 6px;
@@ -386,6 +392,15 @@ button:disabled {
 .icon::before {
   line-height: 1;
 }
+/* D-85: Otty's own glyphs, the size of the font icons beside them. */
+.icon--own {
+  width: 1em;
+  height: 1em;
+  flex: none;
+}
+.icon--solid {
+  fill: currentColor;
+}
 
 /* Keycap */
 kbd {
@@ -566,10 +581,9 @@ html[data-view='bubble'] body {
   display: block;
   width: 100%;
 }
-.pool__frame--paddle {
+.pool__swap:not(.pool__swap--rest) {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
 }
 /* The cove's night, golden and dawn filters on Otty (Spec 07). */
 .pool[data-time='night'] .pool__otty {
@@ -581,18 +595,33 @@ html[data-view='bubble'] body {
 .pool[data-time='dawn'] .pool__otty {
   filter: sepia(0.1) hue-rotate(-8deg);
 }
-/* Working: two frames swap in steps, 700 ms each. Under reduced motion the paddle frame holds still. */
-.pool--working .pool__frame--paddle {
-  opacity: 1;
-  animation: pool-swap 1400ms steps(1) infinite;
+/* Working: two whole Otties swap in steps, 700 ms each, so only one is ever shown. Under reduced motion (or asleep) the paddle one holds still. */
+/* A 2.8 s cycle of four 700 ms beats: rest, kick, rest, kick back. Painted poses cut, never fade (a fade shows two
+   sets of feet). Under reduced motion (or asleep) the kick holds still. */
+.pool__swap {
+  opacity: 0;
 }
-@keyframes pool-swap {
-  from { opacity: 1; }
-  50% { opacity: 0; }
+.pool__swap--rest {
+  animation: pool-rest 2800ms steps(1) infinite;
+}
+.pool__swap--kick {
+  opacity: 1;
+  animation: pool-beat 2800ms steps(1) -2100ms infinite;
+}
+.pool__swap--kick-back {
+  animation: pool-beat 2800ms steps(1) -700ms infinite;
+}
+@keyframes pool-beat {
+  0% { opacity: 1; }
+  25%, 100% { opacity: 0; }
+}
+@keyframes pool-rest {
+  0%, 50% { opacity: 1; }
+  25%, 75%, 100% { opacity: 0; }
 }
 /* The idle dip (D-83): 2px down and back, in four steps, once every 40 to 70 s. */
 .pool--dip .in-water__frames {
-  animation: pool-dip 1600ms steps(4) 1;
+  animation: pool-dip 1600ms ease-in-out 1;
 }
 @keyframes pool-dip {
   0%, 100% { transform: translateY(0); }
@@ -600,11 +629,59 @@ html[data-view='bubble'] body {
 }
 /* A hover, a feed or a landing: one bob, then still. */
 .pool--bob .in-water__frames {
-  animation: pool-bob var(--t-settle) steps(3) 1;
+  animation: pool-bob var(--t-settle) var(--glide) 1;
 }
 @keyframes pool-bob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
+}
+/* Asleep: Otty breathes, 4 s a breath, smooth, and the snot bubble swells as he breathes out (one keyframe clock for both). */
+.pool--asleep .in-water__frames {
+  animation: pool-breathe 4000ms ease-in-out infinite;
+}
+@keyframes pool-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1px); }
+}
+/* The cartoon snot bubble: it hangs from the nostril (29, 24.5 on the 112 px doze frame) over the right cheek (the viewer's
+   right), under the eye and clear of the smile, and swells from that point. Clear glass: a thin rim with a violet sheen and one glint. */
+.in-water__frames:has(.pool__snot) {
+  position: relative;
+}
+.pool__snot {
+  position: absolute;
+  left: 29px;
+  top: 17.5px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95) 0 9%, rgba(255, 255, 255, 0) 16%),
+    radial-gradient(circle, rgba(220, 240, 250, 0.22) 0 58%, rgba(200, 225, 245, 0.5) 78%, rgba(235, 220, 255, 0.75) 92%, rgba(255, 255, 255, 0) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9), 0 0.5px 1.5px rgba(60, 40, 30, 0.25);
+  transform-origin: 0% 50%;
+  animation: pool-snot 4000ms ease-in-out infinite;
+}
+@keyframes pool-snot {
+  0%, 100% { transform: scale(0.3); }
+  50% { transform: scale(1); }
+}
+/* Woken: the bubble pops once (grows, thins to a ring, gone), and Otty jolts up with his mouth open. */
+.pool__snot--pop {
+  opacity: 0;
+  background: none;
+  animation: pool-pop 240ms var(--glide) 1;
+}
+@keyframes pool-pop {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+.pool--startled .in-water__frames {
+  animation: pool-jolt 500ms var(--glide) 1;
+}
+@keyframes pool-jolt {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px) rotate(-3deg); }
 }
 /* The water's ripple (D-83): painted, placed by its parent, centred on Otty's waterline. */
 .pool__water .in-water__ripple {
@@ -664,7 +741,7 @@ html[data-view='bubble'] body {
   height: 9px;
   border-radius: 40% 60% 50% 50%;
   background: var(--straw);
-  animation: pool-bob var(--t-settle) steps(3) 1;
+  animation: pool-bob var(--t-settle) var(--glide) 1;
   pointer-events: none;
 }
 .bubble__badge::after {
@@ -827,6 +904,12 @@ html[data-view='bubble'] body {
   line-height: var(--lh-meta);
   font-weight: 600;
   pointer-events: none;
+}
+/* D-85: the action's shortcut after its name, quieter. */
+.tooltip__keys {
+  margin-left: var(--s-2);
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
 }
 .panel__title {
   flex: 1;
@@ -1410,6 +1493,58 @@ html[data-view='bubble'] body {
   line-height: var(--lh-meta);
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
+}
+/* D-86: a widget's one header action, a 28 px icon button kept inside the 20 px head. */
+.home-block__open {
+  margin: -4px calc(-1 * var(--s-2)) -4px 0;
+  font-size: var(--i-md);
+}
+.home-block__head > .home-block__open > .icon {
+  font-size: var(--i-md);
+}
+.home-cal__time {
+  flex: none;
+  width: 44px;
+  font-size: var(--fs-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+.home-cal--now .home-cal__time {
+  color: var(--brand-text);
+  font-weight: 700;
+}
+.home-cal__clear {
+  min-height: 36px;
+  padding: 0 var(--s-2);
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  color: var(--text-2);
+}
+.home-cal__clear b {
+  margin-left: var(--s-1);
+  color: var(--text);
+}
+/* D-86: Customise Home, at the end of the column; its menu opens up and leftwards from it. */
+.home-custom {
+  align-self: flex-end;
+}
+.home-custom > .menu-btn__menu {
+  left: auto;
+  right: 0;
+}
+.home-custom__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1h);
+}
+.home-custom__item > .icon {
+  font-size: var(--i-sm);
+  color: var(--text-2);
+}
+.home-custom__item[aria-checked='true'] > .icon {
+  color: var(--brand-text);
 }
 .home-block--wait .home-block__head > .icon,
 .home-block--wait .home-block__value {
@@ -2253,6 +2388,11 @@ html[data-view='bubble'] body {
   position: relative;
   display: block;
   width: 100%;
+}
+/* The above-water part lies over the under part, which sizes the body. */
+.cove-otty__above {
+  position: absolute;
+  inset: 0;
 }
 /* Otty's ripple at his waterline (D-83). */
 .cove-otty__body .in-water__ripple {
@@ -4498,20 +4638,19 @@ html[data-view='quick'] body {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: var(--s-1);
   padding: var(--s-1) var(--s-2);
   border-radius: var(--r-sm);
   background: var(--fill-strong);
 }
 .history__bar-count {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
   font-size: var(--fs-small);
   font-weight: 600;
-}
-.history__bar .btn--small {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-1);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .forget-dialog {
   border: 1px solid var(--hairline);
@@ -4790,24 +4929,11 @@ html[data-view='pickup'] #root {
   min-width: 0;
 }
 
+/* D-85: an icon on the glass beside the picture; its tooltip names it. */
 .context-picture__pickup {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: var(--s-1h);
-  height: 28px;
-  padding: 0 var(--s-2);
-  border: none;
-  border-radius: var(--r-sm);
   background: var(--mist-card);
   box-shadow: var(--glass-lift);
   color: var(--text);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  line-height: 1;
-  transition: background var(--t-quick) var(--glide);
 }
 
 .context-picture__pickup:hover {
@@ -4976,9 +5102,15 @@ html[data-view='pickup'] #root {
 .memory-line__btn:hover {
   text-decoration: underline;
 }
+/* D-85: Edit is an icon beside Undo, kept inside the line's height. */
+.memory-line__icon {
+  display: inline-grid;
+  margin: -6px 0 -6px var(--s-2);
+  vertical-align: middle;
+}
 
-/* The used marker: notes an answer read, in a menu (UX_REVIEW #6). */
-.used {
+/* An icon button with a menu over it (D-85): the used marker, Try another way, Customise Home. */
+.menu-btn {
   position: relative;
 }
 .menu {
@@ -4993,7 +5125,7 @@ html[data-view='pickup'] #root {
   display: flex;
   flex-direction: column;
 }
-.used__menu {
+.menu-btn__menu {
   bottom: 32px;
   left: 0;
 }
@@ -5673,6 +5805,15 @@ button.menu__item:hover {
 .log-entry__done {
   padding-top: var(--s-1h);
   color: var(--text-2);
+}
+.log-entry__undo {
+  margin: var(--s-1) 0 0 var(--s-2);
+  opacity: 0;
+  transition: opacity var(--t-quick) var(--glide);
+}
+.log-entry:hover .log-entry__undo,
+.log-entry:focus-within .log-entry__undo {
+  opacity: 1;
 }
 /* Details: a page below 1248, the pane from there. Blocks 16 apart, each a label over a small card. */
 .log-details {

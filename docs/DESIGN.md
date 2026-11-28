@@ -94,7 +94,7 @@ Since Spec 08 every surface sits on the hour's mist, so the roles above are the 
 
 ### Icons
 
-Flaticon UIcons, rounded, through `components/Icon.tsx`. Four sizes, always inside a fixed box so they centre:
+Flaticon UIcons, rounded, through `components/Icon.tsx`, plus Otty's own glyphs (`components/glyphs.tsx`, D-85) where Flaticon has no clear picture: drawn on a 24 grid with 2 px round strokes so they sit with UIcons. Connectors use their own marks (Google, Apple, Notion, Canvas), never a generic stand-in. Four sizes, always inside a fixed box so they centre:
 
 | Size | Box | For |
 | --- | --- | --- |
@@ -264,9 +264,9 @@ Sections, changes as you go, no Save button (UX_REVIEW #2):
 **Named motions:** *surface* (rise 8–18 px and clear, settle), *ebb* (sink 6 px and fade, about two-thirds of the entrance), *ripple* (rings spreading, drift), *drift* (a slow one-off, such as a line drawing itself).
 
 **Rules**
-- Something happened, so something moves. Ambient motion (float, blink) stays stepped; the idle float becomes 6 s in 10 steps.
+- Something happened, so something moves. **Fidelity first (2026-11-27):** every animation starts at its smoothest, best-looking version, is measured with `OTTY_METRICS=1`, and steps down (fewer steps, shorter runs, smaller layers) only as far as the idle budget needs, favouring look and feel. Never assume smooth is too costly.
 - Slow never blocks: typing, clicking or a new message jumps any animation to its end.
-- Live motion runs only while its state is live and the window is visible, uses `steps()`, and stops with `data-asleep`. Real segmented progress replaces spinners wherever main knows the count.
+- Live motion runs only while its state is live and the window is visible, and stops with `data-asleep`; it uses `steps()` only where a measurement asked for it. Real segmented progress replaces spinners wherever main knows the count.
 - Animate transform, opacity and a light blur only. Heights go through `grid-template-rows`; window size through one animated `setBounds` in main.
 - Reduced motion swaps movement for a 200 ms fade and holds the otter still. Every state also has a word or an icon.
 - Safety moments are calm: no shakes, no red flashes.

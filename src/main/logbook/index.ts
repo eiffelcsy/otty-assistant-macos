@@ -42,7 +42,7 @@ function jobEntry(j: Job, s: LogSources, soon = false): LogEntry {
   const at = j.status === 'scheduled' ? (soon ? (j.dueAt ?? j.createdAt) : j.createdAt) : j.updatedAt
   const time = soon ? w.soonTime(j, s.now) : w.shortClock(at)
   const action = w.jobAction(j, s.held)
-  return { id: `job:${j.id}`, at, time, glyph: j.repeat ? 'arrows-repeat' : tone === 'wait' ? 'hourglass-end' : tone === 'fail' ? 'exclamation' : 'binoculars', ...(tone ? { tone } : {}), first, strong, second, ...(action ? { action } : {}), label: `${time}, ${first}, ${second}` }
+  return { id: `job:${j.id}`, at, time, glyph: j.repeat ? 'arrows-repeat' : tone === 'wait' ? 'hourglass-end' : tone === 'fail' ? 'exclamation' : 'lookup', ...(tone ? { tone } : {}), first, strong, second, ...(action ? { action } : {}), label: `${time}, ${first}, ${second}` }
 }
 
 function sentEntry(item: SentItem, s: LogSources): LogEntry {

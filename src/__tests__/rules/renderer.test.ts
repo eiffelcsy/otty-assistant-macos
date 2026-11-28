@@ -27,7 +27,7 @@ describe('CLAUDE.md "Web safety": the renderer never loads anything remote', () 
       // the cove's imported paintings (D-72)
       'PAINTINGS[t][0]', 'PAINTINGS[t][1]', 'PAINTINGS[t][2]', 'cloud', 'reeds', 'lilypad', 'float',
       // the pool's water and bundled Otty frames (D-82, Spec 13)
-      'WATER[time]', 'frame', 'floatPaddle',
+      'WATER[time]', 'frame', 'floatPaddle', 'src' /* PADDLE's bundled poses */,
       // Otty in the water (D-83): the painted waterline and ripple (white on black, cut to light), and the frame's refraction
       'waterlineArt', 'rippleArt',
       // the cove's visitors (D-84): a dragonfly, birds and a leaf, cut from paintings (the fish ring is the ripple above)
@@ -103,7 +103,10 @@ describe('CLAUDE.md "Idle budget (NFR-3)": every infinite animation is reviewed'
     dots: 'typing dots, stepped, while an answer runs',
     caret: 'the streaming caret: two steps every 1.2 s, only while an answer streams',
     'log-step': 'the Logbook’s Now dot: two steps every 2.4 s, only while a look-up runs and the Logbook is open',
-    'pool-swap': 'the pool’s Otty: two frames stepped every 700 ms, only while a job works (Spec 13, Part 3)'
+    'pool-beat': 'the pool’s kick: painted poses cut every 700 ms, only while a job works (Spec 13, Part 3)',
+    'pool-rest': 'the rest beats of the same kick cycle (Spec 13, Part 3)',
+    'pool-breathe': 'the dozing breath: smooth, 4 s, a 1 px move in the 128 × 96 bubble, only while asleep; ✋ measure with OTTY_METRICS=1 and step down only if it misses the budget (Spec 13, Part 3)',
+    'pool-snot': 'the snot bubble, on the breath’s own clock, so it adds no redraws of its own (Spec 13, Part 3)'
   }
 
   it('adds no infinite animation without measuring it', () => {

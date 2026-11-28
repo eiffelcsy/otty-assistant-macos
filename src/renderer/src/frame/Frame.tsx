@@ -26,10 +26,10 @@ export const NAV: NavItem[] = [
   { place: 'home', label: 'Home', icon: 'home', keys: '⌘1' },
   { place: 'chat', label: 'Chat', icon: 'comment-alt', keys: '⌘2' },
   { place: 'chats', label: 'Chats', icon: 'time-past', keys: '⇧⌘F' },
-  { place: 'logbook', label: 'Logbook', icon: 'journal-alt', keys: '⌘3' },
-  { place: 'notebook', label: 'Notebook', icon: 'book-bookmark', keys: '⌘4' },
+  { place: 'logbook', label: 'Logbook', icon: 'logbook', keys: '⌘3' },
+  { place: 'notebook', label: 'Notebook', icon: 'notebook', keys: '⌘4' },
   { place: 'calendar', label: 'Calendar', icon: 'calendar', keys: '⌘5' },
-  { place: 'pouch', label: 'Pouch', icon: 'gem', keys: '⌘6' }
+  { place: 'pouch', label: 'Pouch', icon: 'pouch', keys: '⌘6' }
 ]
 
 /** The rail and sidebar: Chats is the chat screen there, with its list beside it (Spec 05). */

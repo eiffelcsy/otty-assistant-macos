@@ -34,8 +34,10 @@ const base: PublicSettings = {
   monthlyCap: null,
   capNoticed: null,
   homeUsed: true,
+  languageSwitch: null,
   canOpenAtLogin: true,
-  myTiles: []
+  myTiles: [],
+  homeWidgets: []
 }
 const counts: SettingsCounts = { chats: 142, olderThan: { '30d': 23, '1y': 0, forever: 0 }, notes: 18, pebbles: 0 }
 
@@ -82,6 +84,14 @@ describe('each kind of row saves through main as it changes', () => {
     open('you')
     fireEvent.change(screen.getByRole('combobox', { name: 'Help in my own language' }), { target: { value: 'none' } })
     await waitFor(() => expect(otty.setSetting).toHaveBeenCalledWith('homeLanguage', null))
+  })
+
+  it('the language switch: on once used, turned off by hand, and off without a language', async () => {
+    open('you')
+    const sw = screen.getByRole<HTMLInputElement>('checkbox', { name: /Show the language switch/ })
+    expect(sw.checked).toBe(true)
+    fireEvent.click(sw)
+    await waitFor(() => expect(otty.setSetting).toHaveBeenCalledWith('languageSwitch', false))
   })
 
   it('a shortcut, recorded as a whole chord; Esc and a lone modifier change nothing', async () => {

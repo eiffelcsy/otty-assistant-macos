@@ -54,7 +54,8 @@ const NOTICES: Record<string, { title: string; body: string; kind?: 'accessibili
   },
   'needs-screen': {
     title: 'Otty can only see your wallpaper',
-    body: 'To see other apps in your snip, allow Otty under “Screen Recording”, then restart Otty.',
+    // Ad-hoc builds lose the grant on every update while Settings still shows Otty on (macOS ties it to the exact build).
+    body: 'Turn Otty on under “Screen & System Audio Recording” (the top list, not “System Audio Recording Only”), then reopen Otty. If Otty is already on there, select it, remove it with −, and add it again.',
     kind: 'screen'
   },
   'snip-mac-only': {
@@ -561,10 +562,11 @@ export function Panel() {
     setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 0)
   }
   /** A question from Home starts a new chat and shows it, as from an empty chat. */
-  const askFromHome = async () => {
-    const text = homeInput.trim()
+  /** Home's box, or a tile's question (D-86): a new chat, sent as typed. */
+  const askFromHome = async (tile?: string) => {
+    const text = (tile ?? homeInput).trim()
     if (!text || busy) return
-    setHomeInput('')
+    if (!tile) setHomeInput('')
     keep.drop()
     await window.otty.resetChat()
     go('chat')
@@ -804,7 +806,7 @@ export function Panel() {
                   att.drop([...e.clipboardData.files])
                 }}
                 extra={
-                  settings.homeLanguage && settings.homeUsed && <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
+                  settings.homeLanguage && (settings.languageSwitch ?? settings.homeUsed) && <LanguagePill home={settings.homeLanguage} value={pick} onChange={setPick} disabled={busy} />
                 }
               />
             </footer>
@@ -857,6 +859,15 @@ export function Panel() {
                   }}
                   onSuggest={(text) => setHomeInput(text)}
                   suggestions={suggestionsFor(null, settings.learn, settings.readsPages, known).map((s) => s.text)}
+                  widgets={settings.homeWidgets}
+                  tiles={settings.myTiles}
+                  onWidgets={(w) => void window.otty.setSetting('homeWidgets', w).then((s) => s && setSettings(s))}
+                  onAsk={(text) => void askFromHome(text)}
+                  onOpenCalendar={() => go('calendar')}
+                  onMakeTile={() => {
+                    go('settings')
+                    setSettingsAt('tiles')
+                  }}
                 />
                 <footer className="composer" data-shared="box">
                   <MessageBox
@@ -949,6 +960,11 @@ function NoticeCard({ notice, onClose }: { notice: string; onClose: () => void }
         {n.kind && (
           <button className="btn btn--primary btn--small" onClick={() => window.otty.openPermissionSettings(n.kind!)}>
             Open Settings
+          </button>
+        )}
+        {n.kind === 'screen' && (
+          <button className="btn btn--soft btn--small" onClick={() => void window.otty.relaunch()}>
+            Reopen Otty
           </button>
         )}
         <button className="btn btn--soft btn--small" onClick={onClose}>

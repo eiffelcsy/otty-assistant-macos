@@ -55,7 +55,7 @@ export function soonTime(job: Job, now: number): string {
 
 export const SENT_GLYPHS: Record<SentKind, string> = {
   question: 'comment',
-  job: 'binoculars',
+  job: 'lookup',
   title: 'edit',
   explain: 'book-open-reader',
   check: 'plug-connection',
@@ -129,9 +129,9 @@ const MEMORY_TOOLS = new Set(['remember', 'forget'])
 export const isNote = (r: ActionRow): boolean => MEMORY_TOOLS.has(r.tool)
 
 export function changeGlyph(r: ActionRow): string {
-  if (isNote(r)) return 'bookmark'
+  if (isNote(r)) return 'notebook'
   if (r.tool === 'create_reminder') return 'alarm-clock'
-  if (r.tool === 'start_job' || r.tool === 'schedule_job') return 'binoculars'
+  if (r.tool === 'start_job' || r.tool === 'schedule_job') return 'lookup'
   if (r.tool === 'copy_to_clipboard') return 'copy-alt'
   if (r.tool === 'open_url') return 'globe'
   return r.tool.startsWith('step:') ? 'list-check' : 'check-circle'

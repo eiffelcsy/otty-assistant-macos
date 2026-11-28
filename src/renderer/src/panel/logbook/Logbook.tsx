@@ -65,6 +65,11 @@ function Entry({ entry, selected, terms, onOpen, onAction }: { entry: LogEntry; 
       </button>
       {entry.undone ? (
         <span className="log-entry__done">Undone</span>
+      ) : entry.action?.kind === 'undo' ? (
+        // D-85: Undo shows on hover or focus, as an icon; anything that needs you keeps its word.
+        <button className="icon-btn icon-btn--sm log-entry__undo" title={entry.action.label} onClick={() => onAction(entry.action!)}>
+          <Icon name="undo" />
+        </button>
       ) : entry.action ? (
         <button className="log-entry__action" onClick={() => onAction(entry.action!)}>
           {entry.action.label}

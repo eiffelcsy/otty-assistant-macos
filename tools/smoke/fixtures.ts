@@ -120,6 +120,8 @@ export class Otty {
     await this.control((c) => c.clickTray('Open chat'))
     const panel = await this.view('panel')
     await expect(panel.locator('body')).toBeVisible()
+    // Until its settings arrive the panel is an empty `.panel` and ignores ⌘1–⌘6, ⌘N and ⌘F (step 161 lost a key so).
+    await expect(panel.locator('#root > :not(.panel:empty)').first()).toBeAttached()
     return panel
   }
 

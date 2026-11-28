@@ -13,7 +13,7 @@ describe('suggestionsFor', () => {
 
   it('leaves out what can’t work: no web with a model on this Mac, no memory with learning off', () => {
     expect(suggestionsFor(null, false, false)).toEqual([])
-    expect(suggestionsFor('Safari', false, true).map((s) => s.icon)).toEqual(['text', 'alarm-clock', 'binoculars'])
+    expect(suggestionsFor('Safari', false, true).map((s) => s.icon)).toEqual(['text', 'alarm-clock', 'lookup'])
   })
   it('puts a goal Otty knows first, and drops Remember once Otty knows something', () => {
     const known = [{ text: 'Is learning Spanish', kind: 'goal', status: 'active' }]
@@ -24,7 +24,7 @@ describe('suggestionsFor', () => {
 
   it('ignores paused memories and everything known while learning is off', () => {
     const paused = [{ text: 'Is learning Spanish', kind: 'goal', status: 'paused' }]
-    expect(suggestionsFor(null, true, true, paused).map((s) => s.icon)).toEqual(['alarm-clock', 'binoculars', 'bookmark'])
-    expect(suggestionsFor(null, false, true, [{ ...paused[0], status: 'active' }]).map((s) => s.icon)).toEqual(['alarm-clock', 'binoculars'])
+    expect(suggestionsFor(null, true, true, paused).map((s) => s.icon)).toEqual(['alarm-clock', 'lookup', 'notebook'])
+    expect(suggestionsFor(null, false, true, [{ ...paused[0], status: 'active' }]).map((s) => s.icon)).toEqual(['alarm-clock', 'lookup'])
   })
 })

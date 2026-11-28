@@ -70,7 +70,7 @@ test('a noted fact shows with Undo and Edit, is used in a new chat, and Undo tak
   await expect(line).toHaveCount(1)
   await expect(line).toContainText('Noted: Is learning Spanish')
   await expect(line.getByRole('button', { name: 'Undo' })).toBeVisible()
-  await expect(line.getByRole('button', { name: 'Edit' })).toBeVisible()
+  await expect(line.getByRole('button', { name: 'Edit in the Notebook' })).toBeVisible()
   await expect(panel.locator('.confirm-card'), 'no card: the Noted line is the control').toHaveCount(0)
 
   await newChat(panel)
@@ -146,7 +146,7 @@ test('someone else’s email isn’t noted, and forget shows Forgotten with an U
   const forgotten = lastAnswer(panel).locator('.memory-line')
   await expect(forgotten).toContainText('Forgot: Is learning Spanish')
   await expect(forgotten.getByRole('button', { name: 'Undo' })).toBeVisible()
-  await expect(forgotten.getByRole('button', { name: 'Edit' })).toHaveCount(0)
+  await expect(forgotten.getByRole('button', { name: 'Edit in the Notebook' })).toHaveCount(0)
   await openNotebook(otty, panel)
   await expect(memoryRows(panel)).toHaveCount(0)
   await otty.go(panel, 'Chat')

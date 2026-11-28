@@ -85,6 +85,7 @@ describe('one setting at a time (D-61)', () => {
     learn: [null],
     keepChats: ['7d', 30, null],
     homeLanguage: ['fr', 'zh', 0],
+    languageSwitch: ['yes', 1, 0, undefined],
     askHotkey: ['', 'Alt+Space; rm -rf ~', 'x'.repeat(61), 42],
     snapHotkey: ['Alt Shift Space', null],
     screenHotkey: ['Command+Alt+⌘'],
@@ -97,7 +98,8 @@ describe('one setting at a time (D-61)', () => {
       [{ id: 'a', name: 'Flashcards', icon: 'https://x', prompt: 'p', when: 'any' }],
       [{ id: 'a', name: 'Flashcards', icon: 'star', prompt: 'p', when: 'email' }],
       Array.from({ length: 13 }, (_, i) => ({ id: `t${i}`, name: 'n', icon: 'star', prompt: 'p', when: 'any' }))
-    ]
+    ],
+    homeWidgets: [null, 'calendar', ['needs'], ['calendar', 'calendar'], [{ id: 'feature:x' }]]
   }
   const GOOD: Record<keyof typeof SETTABLE, unknown> = {
     showBubble: false,
@@ -109,12 +111,14 @@ describe('one setting at a time (D-61)', () => {
     learn: true,
     keepChats: '30d',
     homeLanguage: null,
+    languageSwitch: true,
     askHotkey: 'Alt+Shift+Space',
     snapHotkey: 'Command+4',
     screenHotkey: 'Control+F5',
     monthlyCap: { unit: 'questions', limit: 300 },
     capNoticed: '2026-11',
-    myTiles: [{ id: 'a', name: 'Make flashcards', icon: 'layers', prompt: 'Turn this into flashcards.', when: 'text' }]
+    myTiles: [{ id: 'a', name: 'Make flashcards', icon: 'layers', prompt: 'Turn this into flashcards.', when: 'text' }],
+    homeWidgets: ['calendar', 'tiles']
   }
 
   it.each(Object.keys(SETTABLE) as (keyof typeof SETTABLE)[])('%s refuses what isn’t one, and takes what is', (key) => {

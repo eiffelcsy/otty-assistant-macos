@@ -352,7 +352,7 @@ function TileCard({ code }: { code: string }) {
 }
 
 const CONNECT_NAMES: Record<Exclude<ConnectionKind, 'mcp'>, string> = { apple: 'Apple Calendar', google: 'Google Calendar', canvas: 'Canvas', notion: 'Notion' }
-const CONNECT_GLYPH: Record<ConnectionKind, string> = { apple: 'calendar', google: 'calendar-clock', canvas: 'graduation-cap', notion: 'notebook', mcp: 'puzzle-alt' }
+const CONNECT_GLYPH: Record<ConnectionKind, string> = { apple: 'brand-apple', google: 'brand-google', canvas: 'brand-canvas', notion: 'brand-notion', mcp: 'puzzle-alt' }
 
 /** A ```connection block (D-54): a form to connect, filled from the draft. Keys are typed here, never shown again. */
 function ConnectCard({ code }: { code: string }) {

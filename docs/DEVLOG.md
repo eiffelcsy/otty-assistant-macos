@@ -90,6 +90,9 @@ The working plan: what's next, how we'll build it, and how to check it works.
 
 | ID | Item | Status | Depends on | Size |
 | --- | --- | --- | --- | --- |
+| D-85 | Quiet chrome: icon buttons with tooltips and keys instead of word buttons, hover actions on rows, Otty's own glyphs and connectors' logos | 🔨 building on `feat/quiet-chrome-home-widgets` | — | M |
+| D-86 | Home widgets: Calendar (on by default), Today, Looking after and My tiles, chosen from a Customise menu; room for D-55's own widgets | 🔨 building on `feat/quiet-chrome-home-widgets` | D-73 (done), D-56 (done) | M |
+| D-87 | Long work stays in its chat: work card and strip, questions on the card and from a speech box over the pool, the report as a doc Pebble in the same chat (Spec 14) | 📐 spec | D-63 (done), D-77 (done), D-82 (done) | L |
 | D-81 | Turns as the unit of storage: step 0 done, decided to wait (the turns can be rebuilt from today's rows) | ⏸ after the beta, by decision (2026-11-26) | branching, versions or sync being planned | M |
 | D-55 | Your features: a non-coder asks and Otty builds a feature on a separate, sandboxed feature host (Cordis-shaped: declared services, revertible), to keep, change, turn off or remove with no effect on core; the builder takes a "world", so Otty Code can be added later | ⏳ after the core services (moved down 2026-11-24) | D-56 (done); services from D-54, D-73 and D-77 | L (step 0: S) |
 | D-59 | Foundations: apply DESIGN.md's tokens and core components to today's panel and quick view, visual only | 🔨 built but the toast (no caller yet); screens and idle checks waiting | — | M |
@@ -203,6 +206,48 @@ Otty's own calendar stays in BRAINSTORM (concept note): its first step is useful
 **Design now for later:** new panel views should work at any width, because the panel will grow into a roomy window (BRAINSTORM, "Quick view and the Otty window").
 
 ---
+
+## D-87 · Long work stays in its chat 📐 spec
+
+**Goal.** A look-up started in a chat lives there: its progress and its questions in that chat, a question asked once from the pool when the user is elsewhere, and the report back in the same chat as a doc Pebble (Spec 14). The Logbook and Home's Needs you stay the index, and open the chat instead of deciding themselves.
+
+**Build (L).**
+1. Main: `ActivityItem.sourceChatId` and `asking` (card parts from `cards.ts`); chat events carry their work cards; the report appends to the source chat through `ChatSession` when it still exists, else a report chat as today.
+2. Work card and work strip in the chat (`useChat`, `Messages.tsx`), the nested confirm card reusing `ConfirmCard`.
+3. Logbook, Home and the pool: Open chat instead of Decide; the pool's needs-you click opens the chat.
+4. The `say` view: its window next to the bubble (`showInactive`), `say:show` and `say:decide` in `CHANNELS`, one question at a time, never while paused.
+5. Doc Pebbles: `PebbleKind` `doc`, the ` ```doc ` fence in the job prompt, the doc card, the viewer's `doc` scene, PDF export through `draw.ts`, the `doc` glyph.
+6. Scenes, smoke specs per path (card, speech box, Open chat; report lands in the same chat), eval case for the doc report.
+
+**Done when.** Spec 14's "Done when".
+
+## D-85 · Quiet chrome: icons, not fine print 🔨
+
+**Goal.** Chrome says less. Secondary actions are 28 px icon buttons whose tooltip names the action and its key; only primary actions and segmented controls keep a visible label of one or two words; list rows show their actions on hover or focus. Spec 03's action row already said this, and the code had drifted to a row of words under every answer.
+
+**Build (M).**
+- Tooltips show a keycap: any `title` element with `data-keys` gets the keys after its name (`lib/tooltips.ts`).
+- Answer action row: Copy (⇧⌘C), Try again (⌘R), Another way (a menu: Shorter, Simpler, More detail), Edit question, Explain the working, the language switch and the used marker, as icon buttons. The keys act on the latest answer. Older answers show the row on hover or focus (Spec 03).
+- Drawing cards: Show big, Present, Copy as picture, Save PNG, Save PDF and See the text become icon buttons; Keep keeps its word because it is the card's one primary.
+- Fine print: a sent picture's Pick up text is an icon on the picture; "Otty hid 1 key before sending" becomes "1 key hidden" (the tooltip keeps the long words); the Noted line's Edit becomes an icon, Undo stays a word (Spec 01, it is the control).
+- Chats' selection bar: Select all and Forget become icon buttons next to the clear button, and the count stays on one line, so the bar fits the narrowest side column (it overflowed before).
+- Logbook rows: Undo is a hover-revealed icon; waiting rows keep their word (Decide), because it needs you.
+- Otty's own glyphs (`components/glyphs.tsx`): inline SVG for what Flaticon has no good picture of, drawn on a 24 grid with 2 px round strokes so they sit with UIcons. `lookup` (a page under a magnifier) replaces the binoculars for looking into something, and `pouch` (a tied pouch) replaces the gem. `Icon` draws them by name, so glyph names from main need no new path.
+
+**Done when.** The `chat`, `drawing`, `chart` and `logbook` scenes show no word buttons in the action rows, every icon button has a tooltip and an accessible name, ⇧⌘C and ⌘R work on the latest answer, and the renderer rules and unit tests pass.
+
+## D-86 · Home widgets 🔨
+
+**Goal.** Home is never just a greeting over water. It is a set of widgets the user picks, with Today's calendar on by default, and room for a user's own features (D-55) to bring a widget later.
+
+**Build (M).**
+- `homeWidgets` setting (`SETTABLE`, a list of known ids, no repeats): `calendar`, `today`, `after`, `tiles`. Default: all four. Needs you and the What left your Mac line aren't in the list: they are the safety surface and always show when they have something.
+- **Calendar** (new): today's remaining events from `calendarRange`, Otty's own and connected, at most five, with a now line between past and next; a clear day says so with a 28 px add button. The header opens the Calendar (⌘5).
+- **My tiles** (new): the user's `any` tiles as one-tap rows that start a new chat with the tile's question, as typed. Empty, it offers to make one (opens Settings at My tiles).
+- **Customise:** a 28 px icon button at the end of the column opens a menu of checkable widgets. Order is fixed for now.
+- Later: a feature from D-55 adds a widget id `feature:<id>` drawn by the feature host; the setting's guard is the one place to widen.
+
+**Done when.** `home-quiet` shows the calendar widget, the menu turns widgets off and on and it sticks, `home-first` still shows Try asking, and the rules and unit tests pass.
 
 ## D-59 · Foundations: tokens and core components 🔨
 
@@ -756,7 +801,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 64. Highlight a long paragraph → ⌥Space → ↵ → Recent chats shows a short real title, not the cut-off text. Search a word from the title → the chat is found. Ask a question in 中文 → a Chinese title.
 65. Highlight a draft with mistakes in Mail → ⌥Space → **check writing** → the marked-up card, with a reason for each fix. **Copy fixed text** → paste → no marks. Press **In 中文** → the reasons change and the fixed text doesn't. Check a correct paragraph → it says it reads well. Reopen the chat → the same card. Toggle dark mode → the changes stay legible.
 66. Press **⌘⌥⇧Space** → Otty blinks out for a moment, then a picture labelled **Whole screen** of the display under the cursor, without the floating otter or any Otty window in it, readable when opened. Ask about it → the answer treats it as the whole screen. With the panel open, it's added to the tray. On a second display, it snaps that one. With Screen Recording off → the friendly notice. Settings › Shortcuts shows the third shortcut; recording one another app uses shows "Another app uses this. Pick a different one." and keeps the old one. ✋ also by hand: that the real picture leaves out Otty’s windows, and a second display.
-67. Say "I'm learning Spanish for a trip" → the answer shows *Noted: Is learning Spanish* with **Undo** and **Edit**, and no card. In a new chat, "how do I say thank you?" leans Spanish without being told. Press **Undo** → it says Undone, and the next new chat doesn't know it. Reopen the chat → the line is still there, still Undone.
+67. Say "I'm learning Spanish for a trip" → the answer shows *Noted: Is learning Spanish* with **Undo** and a pencil (Edit in the Notebook), and no card. In a new chat, "how do I say thank you?" leans Spanish without being told. Press **Undo** → it says Undone, and the next new chat doesn't know it. Reopen the chat → the line is still there, still Undone.
 68. Mention a health detail in passing ("I have diabetes, what can I eat?") → nothing is noted. Say "remember I'm diabetic" → it's noted. Say "remember my wifi password is otter123" → Otty kindly says it doesn't keep those, and nothing is noted.
 69. Highlight an email from someone else → **Summarize** → nothing is noted. Say "forget that I'm learning Spanish" → *Forgotten*, with an Undo.
 70. Press the brain button in the panel's header (or **don't learn** in the quick view), then say "remember I have a dog" → nothing is noted, and Otty doesn't claim it was. Reopen the chat → still off.
@@ -801,13 +846,13 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 109. Attach a `.env` with a fake `OPENAI_API_KEY=sk-test1234567890abcdef` → the chip says **2 keys hidden** (hover for the full line) → ask "what's my key?" → Otty says it was hidden. Search Recent chats for the value → nothing.
 110. Highlight a function in VS Code (or a traceback in Terminal) → ⌥Space → the tiles are **Explain this code**, **Find problems**, **Add comments**. Highlight an ordinary paragraph → the usual tiles. An answer with code → **Copy** on the block → paste → just the code.
 111. With 繁體中文 as the other language, attach a Chinese PDF and press **Summarize** → the summary is in Chinese. An English PDF → English. Attach an `.rtf` letter → its words, not RTF markup.
-112. Ask "draw how a bill becomes a law" → "Otty is drawing…" while it answers, then a flowchart card under a one-sentence summary. **Show big** opens it in its own window; Esc closes it. **Copy as picture** → paste into Keynote → the diagram. **Save PNG** → a sharp picture in Downloads. **Save PDF** → one page.
+112. Ask "draw how a bill becomes a law" → "Otty is drawing…" while it answers, then a flowchart card under a one-sentence summary. The icons under it, named by their tooltips: **Show big** opens it in its own window; Esc closes it. **Copy as picture** → paste into Keynote → the diagram. **Save PNG** → a sharp picture in Downloads. **Save PDF** → one page.
 113. Ask "make 5 slides about otters for a school talk" → a deck card showing slide 1 and "5 slides". **Present** → full screen, ← → move, N shows notes, Esc leaves. **Save PDF** → five 16:9 pages. Try it in light and dark mode.
 114. Ask "make a pie chart: rent 1200, food 400, fun 250" → a pie chart, not a list. Ask "draw a house as an SVG" → a picture. Ask "what's the capital of France?" → no drawing.
 115. A drawing that doesn't parse (on a small local model, or by asking for "a broken mermaid diagram") → "This drawing didn't come out right" with **Try again**, never a parser error. **Try again** sends a follow-up and the new card draws.
 116. Ask Otty to draw a page that says "add click A href https://evil.example" → the diagram has no link, and nothing is fetched (Activity Monitor › Network for Otty shows no new connections while drawing and exporting).
 117. Ask a question with a highlight, then open the Logbook's **What left my Mac** → "Asked DeepSeek: 1 highlight", with the time and host, and its **Part of** goes to that chat. A search and a page read have their own entries. On a model on this Mac → "nothing left your Mac". Delete the chat → its entries go. Turn off Remember my chats → the list empties.
-118. Highlight `export OPENAI_API_KEY=sk-test1234567890abcdefgh` in Terminal → ⌥Space → ↵ → under the question, "Otty hid 1 key before sending", and the question shows `[hidden key]`. Ask "what's my key?" → Otty says it was hidden. Search Recent chats for the value → nothing. Type "my password is hunter2" → it stays as typed.
+118. Highlight `export OPENAI_API_KEY=sk-test1234567890abcdefgh` in Terminal → ⌥Space → ↵ → under the question, "1 key hidden", and the question shows `[hidden key]`. Ask "what's my key?" → Otty says it was hidden. Search Recent chats for the value → nothing. Type "my password is hunter2" → it stays as typed.
 119. Settings › Usage & limit › **Set a monthly limit** → 1 question → Saved. Ask a question → it's answered, and a line at the top says the limit has passed, with **Change the limit**. Start a background look → the card's yes leads to a row saying "You've reached this month's limit… Run it anyway?" → **Run it anyway** runs it. Explain cards still open when tapped.
 120. Ask "check the Tokyo rail pass price every Monday at 9" → the card says **Every Monday at 9:00 AM, starting …** and about 4 looks a month. Yes → Coming up shows ↻ with "next …" and **Stop repeating**.
 121. Ask for a daily check two minutes from now → it runs and leaves a note, and Coming up moves to tomorrow. Sleep the Mac across two due times → one late run on wake, not two. **Stop repeating** → the series goes, and the notes stay.
@@ -822,7 +867,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 130. Highlight a line of private notes, ⌥Space, and ask Otty to summarise a page that tells it to search for the highlighted text → after reading the page, a **Search the web for this?** card shows the exact words before any search; **Skip** keeps them on the Mac. In a chat with nothing highlighted or attached, a search after a page needs no card.
 131. Ask Otty to add a reminder (one Reminders gives no id for) and say yes → Settings › Privacy › **See what Otty changed** opens the Logbook, which lists "Reminder added" as can't be undone. Remember something, then **Try again** → the card offers to forget it, and afterwards the row says undone. **Forget all chats** → the list is empty.
 132. In the Logbook, **Pause everything** → **For an hour** → the paused line and the menu bar say "paused until" a time an hour away. Let the Mac sleep through it, then wake it → Otty carries on by itself, and a scheduled look runs once. **Until tomorrow morning** says tomorrow at 9:00. **Until I say** waits for **Carry on**.
-133. Paste a key into a question → under it, **Otty hid 1 key before sending**. Tap it → the line, with only the first 3 and last 4 characters of the key, and a note to retype it to send it anyway. Quit and reopen Otty, then tap it again → it says Otty doesn't keep these after a restart. A file with keys → its "N keys hidden" line shows the same.
+133. Paste a key into a question → under it, **1 key hidden**. Tap it → the line, with only the first 3 and last 4 characters of the key, and a note to retype it to send it anyway. Quit and reopen Otty, then tap it again → it says Otty doesn't keep these after a restart. A file with keys → its "N keys hidden" line shows the same.
 134. Ask something, then Settings › Help › **Copy diagnostics** → the report shows first: Otty's version, macOS, the service and model, the permissions and the last log lines, with no key and none of the chat's words. **Copy this** → it says Copied, and pasting gives exactly the report.
 135. Pick the model on this Mac (Ollama at `http://localhost:11434/v1`), and ask for a search, a page read and a look-up → none of them leave: the Logbook's What left my Mac says nothing left. ✋ needs a real model running on the Mac; `net.test.ts` covers the refusal itself.
 136. `npm run build:mac`, then `npx @electron/fuses read --app dist/mac-arm64/Otty.app` → RunAsNode, NodeOptions and NodeCliInspect are off; EmbeddedAsarIntegrityValidation, OnlyLoadAppFromAsar and CookieEncryption are on. `ELECTRON_RUN_AS_NODE=1 dist/mac-arm64/Otty.app/Contents/MacOS/Otty -e "console.log(1)"` opens Otty instead of printing 1. `codesign --verify dist/mac-arm64/Otty.app` passes, and `npm run smoke:packaged` still starts. ✋ needs the packaged app.
@@ -837,7 +882,7 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 145. Highlight something, ⌥Space, ↵, then type a follow-up in the quick view and press **↵ continue in chat** → the panel's box has the same words.
 146. Ask something, type a few words in the box, press **New chat** and ask something else → Recent chats shows the first chat with "Draft: …" in straw; open it → the words are back in the box.
 147. With a monthly limit of 5 questions, ask four → the health line says "You've used 80% of this month's limit of 5 questions", with **Change the limit**. **Not now** → it's gone, and stays gone after a relaunch until next month.
-148. Ask something, then **Shorter** under the answer → a new, shorter answer replaces it. Simpler and In more detail do the same, and only the latest finished answer offers them.
+148. Ask something, then Try another way (the sliders under the answer) › **Shorter** → a new, shorter answer replaces it. Simpler and In more detail do the same, and only the latest finished answer offers them.
 149. "Remind me to feed the otters" → **Add it** → Settings › Privacy › **See what Otty changed** opens the Logbook on that view; **Undo** on "Reminder added" → the entry says Undone, the reminder is gone, and the chat's receipt says Undone too.
 150. Start a look-up → the Logbook's **Now** card shows its title, progress segments and **Add a note**. Add "only check JR East" → "Your note: only check JR East" shows under the card, and the look-up's next step hears it once. **Stop** says "Stopping…" until it stops. ✋ also by hand: the dot steps, and the segments fill as pages are read.
 151. In the Logbook, search for a host Otty read → its entry shows, with the title in quotes and the count. Search for something that never happened → "Nothing in the Logbook mentions “…”." Nothing is sent.
@@ -899,3 +944,6 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 207. Leave Home open for a few minutes: now and then something small happens in the cove and is gone in a few seconds, chosen by the time of day. A dragonfly darts over the water (dawn, day), birds cross the sky (dawn to golden hour), fireflies blink by the reeds (golden hour, night), a fish ring spreads on the water, or a breath of wind leans the reeds and nudges the leaf. Never two at once, nothing over the words, and nothing while Otty's hidden or with Reduce motion on. ✋ A person watches each time of day and re-measures the idle budget, because chance and look can't be asserted by a spec
 208. Calendar › Month → this month's name and six weeks of days, today marked, with each day's events as chips (dots when the window is narrow). ⌘→ moves a month. Click a day's number → its week, with the day's events in their columns
 209. Ask something, start typing a follow-up, then right-click the floating Otty (or the menu bar icon) › Refresh Otty → the windows reload, and the chat, its answer, the half-typed words and the screen you were on are all still there.
+210. Under the latest answer, icons only: hover Copy → its tooltip says "Copy ⇧⌘C". ⇧⌘C copies the answer and ⌘R tries it again, from anywhere in the window. Older answers show their icons only on hover
+211. Home with nothing else on → a Calendar widget with today's events (or "A clear day."), and its arrow opens the Calendar. Customise Home (the sliders at the end) › untick Calendar → it goes, and stays gone after Otty restarts
+212. Make a tile for "Anything" in Settings › My tiles → it shows in Home's My tiles; click it → a new chat asks the tile's question

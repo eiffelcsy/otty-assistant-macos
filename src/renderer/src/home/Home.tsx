@@ -1,5 +1,9 @@
 import { useCallback, useContext, useEffect, useState } from 'react'
-import type { HomeNeed, HomePage, LogControl, Words } from '../../../shared/types'
+import type { CalendarItem, HomeNeed, HomePage, LogControl, Words } from '../../../shared/types'
+import { flipWidget, HOME_WIDGETS, WIDGET_NAMES, type HomeWidget } from '../../../shared/homeWidgets'
+import type { MyTile } from '../../../shared/tiles'
+import { MenuButton } from '../components/MenuButton'
+import { addDays, clock, dayStart, shortDay } from '../calendar/time'
 import { AnimatePresence, m } from 'motion/react'
 import { Icon } from '../components/Icon'
 import { T, surface } from '../lib/motion'
@@ -40,13 +44,14 @@ const arrive = (order: number, calm: boolean) =>
  * A block surfaces when it has something in it and ebbs away when it's empty; the blocks around it glide to their new
  * place (`layout="position"`, so glass and text are moved, never stretched).
  */
-function Block({ label, glyph, value, wait, order, shared, children }: { label: string; glyph: string; value?: string; wait?: boolean; order: number; shared?: string; children: React.ReactNode }) {
+function Block({ label, glyph, value, wait, order, shared, action, children }: { label: string; glyph: string; value?: string; wait?: boolean; order: number; shared?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <m.section layout="position" {...arrive(order, false)} data-shared={shared} className={`home-block${wait ? ' home-block--wait' : ''}`} aria-label={label}>
       <h2 className="home-block__head">
         <Icon name={glyph} />
         <span className="home-block__label">{label}</span>
         {value && <span className="home-block__value">{value}</span>}
+        {action}
       </h2>
       {children}
     </m.section>
@@ -152,6 +157,85 @@ function After({ page, onOpenEntry, onOpenComingUp }: { page: HomePage; onOpenEn
   )
 }
 
+/** Today's calendar (D-86): what's left of the day, or tomorrow's first event on a clear day. */
+function CalendarWidget({ onOpen }: { onOpen: () => void }) {
+  const [got, setGot] = useState<{ items: CalendarItem[]; now: number } | null>(null)
+  // shortcut: refreshed when Home opens or the Logbook changes, not on a timer; a past event stays until then.
+  const load = useCallback(() => {
+    const today = dayStart(Date.now())
+    void window.otty.calendarRange(today, addDays(today, 2)).then(
+      (r) => setGot({ items: r.items, now: Date.now() }),
+      () => setGot({ items: [], now: Date.now() })
+    )
+  }, [])
+  useEffect(() => {
+    load()
+    return window.otty.onLogbook(load)
+  }, [load])
+  const items = got?.items ?? null
+  const now = got?.now ?? 0
+  const tomorrow = addDays(dayStart(now), 1)
+  const left = (items ?? []).filter((e) => e.start < tomorrow && e.end > now).sort((a, b) => a.start - b.start)
+  const next = left.length ? null : (items ?? []).filter((e) => e.start >= tomorrow).sort((a, b) => a.start - b.start)[0]
+  const open = (
+    <button className="icon-btn icon-btn--sm home-block__open" title="Open Calendar" data-keys="⌘5" onClick={onOpen}>
+      <Icon name="arrow-small-right" />
+    </button>
+  )
+  return (
+    <Block label="Calendar" glyph="calendar" value={got ? shortDay(now) : undefined} order={2} action={open}>
+      {items && (
+        <ul className="home-after home-cal">
+          {left.slice(0, 5).map((e) => (
+            <li key={e.id}>
+              <button className={`home-after__row${e.start <= now ? ' home-cal--now' : ''}`} onClick={onOpen}>
+                <span className="home-cal__time">{e.allDay ? 'All day' : clock(e.start)}</span>
+                <span className="home-after__title">{e.title}</span>
+              </button>
+            </li>
+          ))}
+          {!left.length && (
+            <li className="home-cal__clear">
+              {next ? (
+                <>
+                  Nothing else today. Tomorrow: <b>{next.allDay ? next.title : `${clock(next.start)} ${next.title}`}</b>
+                </>
+              ) : (
+                'A clear day.'
+              )}
+            </li>
+          )}
+        </ul>
+      )}
+    </Block>
+  )
+}
+
+/** The user's own tiles that need no capture (D-86): one tap starts a new chat with the tile's question. */
+function TilesWidget({ tiles, onAsk, onMake }: { tiles: MyTile[]; onAsk: (text: string) => void; onMake: () => void }) {
+  const mine = tiles.filter((t) => t.when === 'any')
+  const add = (
+    <button className="icon-btn icon-btn--sm home-block__open" title="Make a tile" onClick={onMake}>
+      <Icon name="plus" />
+    </button>
+  )
+  return (
+    <Block label="My tiles" glyph="apps" order={4} action={add}>
+      <ul className="home-after">
+        {mine.map((t) => (
+          <li key={t.id}>
+            <button className="home-after__row" title={t.prompt} onClick={() => onAsk(t.prompt)}>
+              <Icon name={t.icon} />
+              <span className="home-after__title">{t.name}</span>
+            </button>
+          </li>
+        ))}
+        {!mine.length && <li className="home-cal__clear">Save a question you ask often, and it lands here.</li>}
+      </ul>
+    </Block>
+  )
+}
+
 export interface HomeProps {
   onOpenChat: (chatId: string) => void
   /** Opens an entry in the Logbook, by its id. */
@@ -160,12 +244,21 @@ export interface HomeProps {
   /** Try asking: fills the message box, never sends. */
   onSuggest: (text: string) => void
   suggestions: string[]
+  /** D-86: the widgets on, in Home's order, and the user's tiles. */
+  widgets: HomeWidget[]
+  tiles: MyTile[]
+  onWidgets: (widgets: HomeWidget[]) => void
+  /** Starts a new chat with these words, as typed (a tile). */
+  onAsk: (text: string) => void
+  onOpenCalendar: () => void
+  onMakeTile: () => void
 }
 
 /** The last page shown, so Home opens on it instead of an empty frame while the next one loads (Spec 09). */
 let lastPage: HomePage | null = null
 
-export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, suggestions }: HomeProps) {
+export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, suggestions, widgets, tiles, onWidgets, onAsk, onOpenCalendar, onMakeTile }: HomeProps) {
+  const on = (w: HomeWidget) => widgets.includes(w)
   const [page, setPage] = useState<HomePage | null>(lastPage)
   // Spec 09: taking over from the empty chat, what mounts with Home skips its arrival; anything that appears later arrives.
   const still = useContext(StillMove)
@@ -219,10 +312,16 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
             {page.needs.total > 0 && <Needs key="needs" page={page} fresh={fresh} onOpenChat={onOpenChat} onOpenEntry={onOpenEntry} onOpenLogbook={() => onOpenLogbook('wait')} />}
           </AnimatePresence>
           <div className="home__pair">
-            <AnimatePresence initial={!calm}>{page.today.ticks.length + page.today.folded > 0 && <Today key="today" page={page} onOpenEntry={onOpenEntry} />}</AnimatePresence>
             <div className="home__side">
               <AnimatePresence initial={!calm}>
-                {page.after.total > 0 && <After key="after" page={page} onOpenEntry={onOpenEntry} onOpenComingUp={() => onOpenLogbook('next')} />}
+                {on('calendar') && <CalendarWidget key="calendar" onOpen={onOpenCalendar} />}
+                {on('today') && page.today.ticks.length + page.today.folded > 0 && <Today key="today" page={page} onOpenEntry={onOpenEntry} />}
+              </AnimatePresence>
+            </div>
+            <div className="home__side">
+              <AnimatePresence initial={!calm}>
+                {on('after') && page.after.total > 0 && <After key="after" page={page} onOpenEntry={onOpenEntry} onOpenComingUp={() => onOpenLogbook('next')} />}
+                {on('tiles') && <TilesWidget key="tiles" tiles={tiles} onAsk={onAsk} onMake={onMakeTile} />}
               </AnimatePresence>
               <m.section layout="position" {...arrive(4, calm)} className="home-left" aria-label="What left your Mac">
                 <Icon name="arrow-up-right-from-square" />
@@ -251,6 +350,16 @@ export function Home({ onOpenChat, onOpenEntry, onOpenLogbook, onSuggest, sugges
               </Block>
             )}
           </AnimatePresence>
+          <MenuButton glyph="settings-sliders" label="Customise Home" className="home-custom">
+            {() =>
+              HOME_WIDGETS.map((w) => (
+                <button key={w} className="menu__item home-custom__item" role="menuitemcheckbox" aria-checked={on(w)} onClick={() => onWidgets(flipWidget(widgets, w))}>
+                  <Icon name={on(w) ? 'check' : 'minus-small'} />
+                  {WIDGET_NAMES[w]}
+                </button>
+              ))
+            }
+          </MenuButton>
         </div>
       </div>
     </div>
