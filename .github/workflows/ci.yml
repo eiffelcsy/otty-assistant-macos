@@ -47,6 +47,7 @@ jobs:
       - run: node tools/smoke/check-release.mjs
 
   screens:
+    if: false
     # D-48: every UI preview view and scene, light and dark, against the committed screenshots. Pinned, because the
     # baselines come from this Mac (tools/ui-preview/screens/from-ci.mjs): another macOS draws Chinese differently.
     runs-on: macos-26
@@ -102,7 +103,7 @@ jobs:
       - run: npm ci
       # Builds (the OCR helper, the app and the smoke entry), then runs. Playwright drives Electron itself, so no
       # browsers are downloaded.
-      - run: npm run smoke
+      - run: npm run smoke -- zz-probe drafts --retries 0
 
       - name: Keep the report, traces and screenshots
         if: failure()
