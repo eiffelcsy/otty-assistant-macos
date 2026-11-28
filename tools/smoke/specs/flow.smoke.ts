@@ -49,7 +49,7 @@ test('to the Logbook from the cove: the header stays hidden until the sheet rise
   // Judged by when each sample was taken, not by how many: a slow Mac samples less often.
   const early = seen.filter((s) => s.t < 150)
   expect(early.length).toBeGreaterThan(0)
-  expect(early.every((s) => s.o < 0.2)).toBe(true)
+  expect(early.every((s) => s.o < 0.2), JSON.stringify(seen.slice(0, 15))).toBe(true)
   await expect.poll(() => panel.evaluate(() => Number(getComputedStyle(document.querySelector('.frame__main > .panel__header')!).opacity))).toBe(1)
   await expect(panel.locator('.logbook')).toBeVisible()
 })
@@ -68,10 +68,11 @@ test('Home to the empty chat: nothing fades, Otty stays, and the chat list opens
     }
     const out: { t: number; body: number; otty: number; words: number; box: number; fresh: number; cardMoved: boolean; list: number }[] = []
     ;[...document.querySelectorAll<HTMLButtonElement>('.nav-btn')].find((b) => b.getAttribute('aria-label') === 'Chats')!.click()
+    // As in step 178: the clock starts at the first frame after the click, when the glide does.
+    await new Promise((r) => requestAnimationFrame(r))
     const start = performance.now()
     const end = performance.now() + 900
     while (performance.now() < end) {
-      await new Promise((r) => setTimeout(r, 16))
       const card = shown('[data-shared="try"]')
       out.push({
         t: performance.now() - start,
@@ -83,6 +84,7 @@ test('Home to the empty chat: nothing fades, Otty stays, and the chat list opens
         cardMoved: Boolean(card && getComputedStyle(card).transform !== 'none' && getComputedStyle(card).transform !== 'matrix(1, 0, 0, 1, 0, 0)'),
         list: parseFloat(frame.style.getPropertyValue('--list-now')) || 0
       })
+      await new Promise((r) => setTimeout(r, 16))
     }
     return out
   })
@@ -91,7 +93,7 @@ test('Home to the empty chat: nothing fades, Otty stays, and the chat list opens
   // The greeting and the box ride over without fading; the card glides from Home's place; only the new words surface.
   expect(Math.min(...seen.map((s) => s.words))).toBe(1)
   expect(Math.min(...seen.map((s) => s.box))).toBe(1)
-  expect(seen.filter((s) => s.t < 200).some((s) => s.cardMoved)).toBe(true)
+  expect(seen.filter((s) => s.t < 200).some((s) => s.cardMoved), JSON.stringify(seen.slice(0, 15))).toBe(true)
   expect(seen[0].fresh).toBeLessThan(1)
   expect(seen.some((s) => s.list > 0 && s.list < 248)).toBe(true)
   // Where it lands, however long the machine takes to get there.

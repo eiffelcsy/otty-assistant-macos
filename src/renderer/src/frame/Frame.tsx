@@ -149,7 +149,11 @@ function useScreenMove(place: Place, pushed: boolean, cove: FrameProps['cove']) 
       const el = scope.current
       const head = el.parentElement?.querySelector<HTMLElement>(':scope > .panel__header')
       const parts = head ? [el, head] : [el]
-      for (const part of parts) animate(part, { opacity: 0 }, { duration: 0 })
+      // Set directly as well: Motion's zero-length step lands on its own next frame, which can come after the paint.
+      for (const part of parts) {
+        part.style.opacity = '0'
+        animate(part, { opacity: 0 }, { duration: 0 })
+      }
       // Up: the screen rides the last three quarters of the tilt. Down: the cove lands first, with the stand-in Otty,
       // then Home's words surface, and Home's own Otty takes over once the world is still (styles.css, data-landing).
       const down = cove === 'full'
