@@ -13,3 +13,7 @@ tools/smoke/report/
 coverage/
 tools/ui-preview/screens/results/
 tools/otty-art/tries/
+
+# Build-time secrets (the Google client, D-54); never committed
+.env
+.env.*

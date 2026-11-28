@@ -15,8 +15,13 @@ extraResources:
     to: otty-calendar
 mac:
   category: public.app-category.productivity
+  # Every file named by its arch, so tools/release/feed.mjs can point at the zips.
+  artifactName: Otty-${version}-${arch}.${ext}
   target:
     - target: dmg
+      arch: [arm64, x64]
+    # D-87: the updater (Squirrel.Mac) installs from the zip.
+    - target: zip
       arch: [arm64, x64]
   # Ad-hoc signed until there's a Developer ID (LAUNCH_READINESS 5.2). Not null: flipping the fuses (D-49) edits the
   # binary, and an arm64 Mac kills an app whose signature no longer matches, so it must be signed after them.
@@ -24,6 +29,9 @@ mac:
   # Ad-hoc code has no Team ID, so the hardened runtime's library validation refuses Electron's own framework. Turn it
   # back on with the Developer ID (LAUNCH_READINESS 5.3); never add disable-library-validation instead.
   hardenedRuntime: false
+  # D-87: release builds are then signed again with Otty's own certificate (build/afterSign.cjs), so every version has
+  # the same identity: Squirrel.Mac only installs an update signed like the running app, and macOS keeps the
+  # permissions it granted. Local builds without the certificate stay ad-hoc.
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
@@ -33,6 +41,7 @@ mac:
     NSRemindersUsageDescription: Otty reads your reminders when you ask what's due. It never changes them.
     NSRemindersFullAccessUsageDescription: Otty reads your reminders when you ask what's due. It never changes them.
     NSAppleEventsUsageDescription: Otty uses this to copy the text you highlight, to see which app or web page you're asking about, and to add reminders when you ask.
+afterSign: build/afterSign.cjs
 dmg:
   title: Otty
 # D-49: Otty holds Accessibility, Screen Recording and Automation, so its binary must not run as anything else.

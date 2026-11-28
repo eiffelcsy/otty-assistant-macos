@@ -222,7 +222,7 @@ Language users: **bilingual / multilingual people who work in English** and some
 | "What Otty sent" transparency view per message (context, app note) | M | S | shipped with D-31, per turn in Activity |
 | Say where web lookups really go: with another provider, or when DeepSeek's search fails, queries go to Wikipedia and DuckDuckGo, but Settings → Privacy only mentions DeepSeek | M | S | partly shipped: D-31 names Wikipedia and DuckDuckGo; Settings › Privacy → D-79 |
 | Sign and notarize (Developer ID) so permissions survive updates | H | M | considering, needed before sharing builds |
-| Auto-update (electron-updater) | M | M | idea |
+| Auto-update (Squirrel.Mac through Electron's own `autoUpdater`, self-signed until a Developer ID) | M | M | shipped (D-88) |
 | Usage / cost meter for the user's own key (now also counting web searches and page reads, billed per call; per-day `counters` are in the schema) | L | S | shipped (counts and tokens; money needs a price table, see below) |
 | An Otty test harness: drive the real overlay and windows in Electron with real input, as a repeatable `npm` script rather than one-off scripts | M | M | shipped (D-47) |
 | One fake world for both test tools: `ui-preview` scenes fed by D-47's scripted model and pages instead of a hand-written mock `window.otty`, so the two can't drift | H | M | idea, from D-47; after D-67, which found the mock's drift was half of why the 2026-11-19 bugs got through |
