@@ -23,6 +23,7 @@ The working plan: what's next, how we'll build it, and how to check it works.
 │ captureRoute   where a capture goes: tray or window    │
 │ controls.ts    menu bar, hotkeys, applying settings    │
 │ notify.ts      chat events, otter face, notifications  │
+│ update.ts      self-update from GitHub (Squirrel.Mac)  │
 │ windows.ts     bubble · quick view · panel · pickup    │
 │ capture.ts     selection (⌘C trick), snip, frontmost   │
 │ llm.ts         ChatSession: turns, background work     │
@@ -947,3 +948,4 @@ Run on a Mac before every release. Keep it current: each shipped item adds its c
 210. Under the latest answer, icons only: hover Copy → its tooltip says "Copy ⇧⌘C". ⇧⌘C copies the answer and ⌘R tries it again, from anywhere in the window. Older answers show their icons only on hover
 211. Home with nothing else on → a Calendar widget with today's events (or "A clear day."), and its arrow opens the Calendar. Customise Home (the sliders at the end) › untick Calendar → it goes, and stays gone after Otty restarts
 212. Make a tile for "Anything" in Settings › My tiles → it shows in Home's My tiles; click it → a new chat asks the tile's question
+213. ✋ Updates (D-88), on a Mac with an installed release: put an older signed release in /Applications, open it, and wait a minute → a notification says a new Otty is ready, and the menu bar menu shows **Restart to update Otty**. Click it → Otty reopens as the new version, and Accessibility and Screen Recording are still on. **Check for updates…** on the newest version says you have it. With a local model it says Otty isn't looking. A person must check it because it needs a real signed release on GitHub, and smoke runs the unpackaged build, where updates are off

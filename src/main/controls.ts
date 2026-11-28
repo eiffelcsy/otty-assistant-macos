@@ -7,6 +7,7 @@ import { askAboutSelection, openChat, snapWholeScreen, snipScreen } from './capt
 import { activityChanged, chat, forgetAllChats, jobs, tidyOldChats } from './core'
 import { tellSettings } from './notify'
 import { trayIcon } from './trayIcon'
+import { startUpdates, updateItems } from './update'
 import { setAppMenu } from './roomy'
 import { expandPanel, getBubble, getPanel, getQuick, openSettings, shrinkPanel } from './windows'
 
@@ -147,6 +148,7 @@ export function menuTemplate(): Item[] {
     },
     { label: 'Settings…', click: () => openSettings() },
     { type: 'separator' },
+    ...updateItems(),
     { label: 'Refresh Otty', toolTip: 'Reloads Otty if something looks stuck. Your chats and settings stay.', click: refreshOtty },
     { label: 'Quit Otty', role: 'quit' }
   ]
@@ -164,6 +166,7 @@ export function appMenuTemplate(): Item[] {
       label: 'Otty',
       submenu: [
         { role: 'about', label: 'About Otty' },
+        ...updateItems(),
         { type: 'separator' },
         { label: 'Settings…', ...shown('Cmd+,'), click: () => frame('settings') },
         { type: 'separator' },
@@ -248,6 +251,7 @@ export function createTray(): void {
   tray.setToolTip(pausedWords())
   refreshTray()
   checkPause()
+  startUpdates(refreshTray)
 }
 
 export function applySettings(u: SettingsUpdate) {

@@ -2,6 +2,11 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
+## Unreleased
+
+- **Otty updates itself (D-88).** An installed Otty checks GitHub for a newer version a minute after it starts and every six hours, downloads it quietly, says so in a notification, and installs it the next time Otty quits. **Restart to update Otty** in the menu bar (and the Otty menu) does it now; **Check for updates…** asks right away. With a local model (nothing may leave the Mac) it never checks. Updates install only when they're signed with Otty's own certificate, the same one as the copy running, which also keeps macOS's permissions across updates. Still not notarized: the first install still needs **Open Anyway**.
+- For development: smoke runs on three CI runners at once and screens on two (from about 28 and 14 minutes to about 10 and 8), docs-only PRs skip both, and `dmg.yml` no longer repeats typecheck and unit tests. A `v*` tag now signs, builds the update zips and feeds, and **publishes** the release (a tag with a dash is a prerelease).
+
 ## 0.6.2 — Quiet chrome, Home widgets and a livelier pool (2026-11-27)
 
 - **Quieter buttons (D-85).** Under an answer, Copy (⇧⌘C), Try again (⌘R), Edit question and the rest are small icons whose tooltips name them and their keys. Shorter, Simpler and In more detail live in **Try another way** (the sliders). Drawing cards, the Noted line, a sent picture's Pick up text and the Logbook's Undo follow suit, and Otty has its own icons where Flaticon had none (the Notebook, the Pouch, the Logbook, looking into something).

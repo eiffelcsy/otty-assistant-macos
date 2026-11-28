@@ -1,8 +1,10 @@
 name: dmg
 
-# An unsigned Otty.dmg (Apple Silicon + Intel) that testers can download without a dev setup.
+# Otty.dmg and the update zips (Apple Silicon + Intel) that testers can download without a dev setup.
 # - Actions tab → dmg → Run workflow: build any branch (once this file is on main).
-# - Push a tag like v0.4.0: build it and attach the .dmg to a draft GitHub Release.
+# - Push a tag like v0.7.0 on main: build it, sign it with Otty's own certificate, and publish a GitHub Release with
+#   the update feeds, so installed copies update themselves (D-87). A tag with a dash (v0.7.0-beta.1) is a
+#   prerelease, which the feed (releases/latest) skips.
 # - A PR that changes packaging builds it too, so a broken .dmg shows up before merging.
 on:
   workflow_dispatch:
@@ -18,6 +20,8 @@ on:
       - tools/otty-ocr/**
       - tools/otty-calendar/**
       - tools/smoke/packaged.mjs
+      - tools/release/**
+      - src/main/update.ts
 
 concurrency:
   group: dmg-${{ github.ref }}
@@ -53,12 +57,37 @@ jobs:
       # Typecheck and unit tests are ci.yml's; a tag comes from main, which passed them.
       - run: npm ci
 
-      # Unsigned until signing and notarization land (BRAINSTORM, "Trust"): don't let electron-builder
-      # go looking for a certificate in the runner's keychain.
-      - name: Build the .dmg
+      # D-87: a tag is signed with "Otty Self-Signed" (build/afterSign.cjs), in a keychain of its own that lives only
+      # for this run. Every release must use the same certificate, or installed copies refuse the update. A tag never
+      # ships without it; other builds stay ad-hoc.
+      - name: Unlock Otty's certificate
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          P12: ${{ secrets.OTTY_SIGN_P12 }}
+          PASSWORD: ${{ secrets.OTTY_SIGN_PASSWORD }}
+        run: |
+          if [ -z "$P12" ]; then echo "::error::The OTTY_SIGN_P12 secret is missing, so this release can't be signed."; exit 1; fi
+          keychain="$RUNNER_TEMP/otty-sign.keychain-db"
+          pass=$(openssl rand -hex 16)
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/otty.p12"
+          security create-keychain -p "$pass" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$pass" "$keychain"
+          security import "$RUNNER_TEMP/otty.p12" -k "$keychain" -P "$PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$pass" "$keychain" > /dev/null
+          rm "$RUNNER_TEMP/otty.p12"
+          echo "OTTY_SIGN_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+
+      # Not notarized until there's a Developer ID (LAUNCH_READINESS 5): don't let electron-builder go looking for
+      # one in the runner's keychain.
+      - name: Build the .dmg and the update zips
         run: npm run build:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # D-54: without these the build says Google sign-in isn't set up. A desktop client's secret isn't secret
+          # from the app's users, but it stays out of git.
+          MAIN_VITE_GOOGLE_CLIENT_ID: ${{ secrets.MAIN_VITE_GOOGLE_CLIENT_ID }}
+          MAIN_VITE_GOOGLE_CLIENT_SECRET: ${{ secrets.MAIN_VITE_GOOGLE_CLIENT_SECRET }}
 
       # D-47 step 3: the packaged app starts, with a fresh home and a mock keychain (LAUNCH_READINESS 7.8).
       - name: Check the packaged app starts
@@ -67,12 +96,19 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: Otty-dmg-${{ github.sha }}
-          path: dist/*.dmg
+          path: |
+            dist/*.dmg
+            dist/*.zip
           if-no-files-found: error
           retention-days: 14
 
-      - name: Draft a release for the tag
+      # Published, not a draft: the updater only sees published releases. A bad release is fixed by a newer one; deleting
+      # it only stops new copies getting it (whether Squirrel would go back a version isn't tested).
+      - name: Publish the release for the tag
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/*.dmg --draft --generate-notes --title "Otty ${GITHUB_REF_NAME#v}"
+        run: |
+          node tools/release/feed.mjs "$GITHUB_REF_NAME"
+          pre=$([[ "$GITHUB_REF_NAME" == *-* ]] && echo --prerelease || true)
+          gh release create "$GITHUB_REF_NAME" dist/*.dmg dist/*.zip dist/update-*.json $pre --generate-notes --title "Otty ${GITHUB_REF_NAME#v}"
