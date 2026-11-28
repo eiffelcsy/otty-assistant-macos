@@ -40,28 +40,27 @@ test('to the Logbook from the cove: the header stays hidden until the sheet rise
   await panel.keyboard.press('Meta+1')
   await expect(panel.locator('.frame__main--full')).toBeVisible()
   await expect.poll(header).toBe(1)
-  // Sampled in the page every 16 ms while the camera tilts: what the eye sees, frame by frame.
+  // Sampled in the page every 16 ms while the camera tilts: what the eye sees, frame by frame, timed from the click,
+  // which is when the tilt's clock starts.
   const seen = await panel.evaluate(async () => {
-    const out: { t: number; o: number; logbook: boolean }[] = []
+    const opacity = (sel: string) => Number(getComputedStyle(document.querySelector(sel)!).opacity)
+    const out: { t: number; head: number; sheet: number }[] = []
     const clicked = performance.now()
     ;[...document.querySelectorAll<HTMLButtonElement>('.nav-btn')].find((b) => b.getAttribute('aria-label')?.startsWith('Logbook'))!.click()
-    // The clock starts at the first frame after the click, when the tilt's transition does: on a slow Mac the click's
-    // render can hold the page past 150 ms, and a clock started at the click would count that as the tilt's time.
-    await new Promise((r) => requestAnimationFrame(r))
-    const start = performance.now()
-    out.push({ t: -1, o: start - clicked, logbook: false }) // the click's first frame, in ms (t -1 marks it)
-    const end = performance.now() + 1400
-    while (performance.now() < end) {
-      out.push({ t: performance.now() - start, o: Number(getComputedStyle(document.querySelector('.frame__main > .panel__header')!).opacity), logbook: Boolean(document.querySelector('.logbook')) })
-      await new Promise((r) => setTimeout(r, 16))
+    while (performance.now() < clicked + 1400) {
+      await new Promise((r) => requestAnimationFrame(r))
+      out.push({ t: performance.now() - clicked, head: opacity('.frame__main > .panel__header'), sheet: opacity('.frame__main > .frame__body') })
     }
     return out
   })
-  // The sheet starts rising a quarter into the 900 ms tilt: until then (the first ~160 ms) the header isn't seen.
-  // Judged by when each sample was taken, not by how many: a slow Mac samples less often.
-  const early = seen.filter((s) => s.t >= 0 && s.t < 150)
-  expect(early.length).toBeGreaterThan(0)
-  expect(early.every((s) => s.o < 0.2), JSON.stringify({ page: await panel.evaluate(() => ({ visible: document.visibilityState, focus: document.hasFocus() })), seen: seen.slice(0, 15) })).toBe(true)
+  const dump = JSON.stringify(seen.slice(0, 15))
+  // The header rides on the sheet, never ahead of it, in every frame however slow the Mac (Spec 09, Part 1).
+  expect(seen.every((s) => s.head <= s.sheet + 0.02), dump).toBe(true)
+  // The sheet starts rising a quarter into the 900 ms tilt, so in the first ~160 ms the header isn't seen. CI's Mac can
+  // take longer than that to draw the click's first frame, and then there's no early frame to judge.
+  const early = seen.filter((s) => s.t < 150)
+  if (early.length) expect(early.every((s) => s.head < 0.2), dump).toBe(true)
+  else test.info().annotations.push({ type: 'slow', description: `first frame ${Math.round(seen[0].t)} ms after the click` })
   await expect.poll(header).toBe(1)
   await expect(panel.locator('.logbook')).toBeVisible()
 })
