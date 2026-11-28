@@ -34,11 +34,14 @@ test('to the Logbook from the cove: the header stays hidden until the sheet rise
   const seen = await panel.evaluate(async () => {
     const out: { t: number; o: number }[] = []
     ;[...document.querySelectorAll<HTMLButtonElement>('.nav-btn')].find((b) => b.getAttribute('aria-label')?.startsWith('Logbook'))!.click()
+    // The clock starts at the first frame after the click, when the tilt's transition does: on a slow Mac the click's
+    // render can hold the page past 150 ms, and a clock started at the click would count that as the tilt's time.
+    await new Promise((r) => requestAnimationFrame(r))
     const start = performance.now()
     const end = performance.now() + 1400
     while (performance.now() < end) {
-      await new Promise((r) => setTimeout(r, 16))
       out.push({ t: performance.now() - start, o: Number(getComputedStyle(document.querySelector('.frame__main > .panel__header')!).opacity) })
+      await new Promise((r) => setTimeout(r, 16))
     }
     return out
   })
