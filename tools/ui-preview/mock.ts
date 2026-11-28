@@ -29,7 +29,7 @@ import { home } from '../../src/main/home'
 import type { Job } from '../../src/main/jobs/types'
 import type { ActionRow } from '../../src/main/ledger'
 
-// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-feedback|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|pouch|pouch-list|pouch-empty|pouch-card|pouch-search|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
+// ?view=panel|quick|pickup|viewer  ?scene=chat|empty|compose|tray|settings|provider|page|proofread|memory|memories|math|code|drawing|chart|cap|steps|logbook|logbook-wait|logbook-next|logbook-sent|logbook-changed|logbook-noted|logbook-empty|logbook-running|logbook-paused|logbook-entry|logbook-search|logbook-none|typography|paused|frame-menu|frame-pushed|frame-rail|frame-medium|frame-wide|frame-min|home|home-quiet|home-first|home-running|home-paused|history|find|settings-you|settings-tiles|settings-keys|settings-privacy|settings-usage|settings-conn|settings-help|settings-feedback|settings-find|settings-retention|settings-broken|settings-recording|connections|connections-add|connections-mcp|connections-off|connect-card|calendar|calendar-list|calendar-empty|calendar-edit|calendar-note|calendar-loading|calendar-loading-list|pouch|pouch-list|pouch-empty|pouch-card|pouch-search|confirm-read|confirm-open|confirm-search|confirm-reminder|confirm-event|confirm-unusual|receipts|rewind|noted|thinking|stopped|failed-key|failed-long|near (pickup: reading|nowords|failed; viewer: picture|slides)  ?home=none  &w=&h= (D-64, the window's size)  &state=roomy (D-65)  &time=dawn|day|golden|night (D-74, the cove's painting)
 //   ?view=bubble&scene=pool|pool-working|pool-waiting|pool-answer|pool-paused|pool-night (Spec 13, the pool)
 
 const q = new URLSearchParams(location.search)
@@ -71,6 +71,8 @@ const FRAME_SIZES: Record<string, [number, number]> = {
   'frame-min': [360, 420],
   calendar: [900, 720],
   'calendar-list': [420, 720],
+  'calendar-loading': [900, 720],
+  'calendar-loading-list': [420, 720],
   'calendar-empty': [900, 720],
   'calendar-edit': [900, 720],
   'calendar-note': [900, 720],
@@ -759,8 +761,10 @@ const api: OttyApi = {
   seenActivity: noop,
   logbook: async (v, search) => logbook(logSources(), v, search),
   logbookEntry: async (id) => entryDetails(logSources(), id),
-  // D-73: the Calendar, in memory. `calendar-empty` has nothing in the week; `calendar-note` has a connection that couldn't be read.
+  // D-73: the Calendar, in memory. `calendar-empty` has nothing in the week; `calendar-note` has a connection that couldn't be read;
+  // `calendar-loading` (and `-list`) is still reading one, so the skeleton stays (D-89).
   calendarRange: async (from, to) => {
+    if (scene.startsWith('calendar-loading')) return new Promise<never>(() => {})
     if (scene === 'calendar-empty') return { items: [] }
     const items = calStore.filter((i) => i.start < to && i.end > from).map((i) => structuredClone(i))
     return scene === 'calendar-note' ? { items, note: GOOGLE_NOTE } : { items }

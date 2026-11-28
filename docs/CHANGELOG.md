@@ -2,6 +2,10 @@
 
 What has shipped, newest first. The plan for what's next is in [DEVLOG.md](DEVLOG.md).
 
+## Unreleased
+
+- **The calendar shows when it's still reading (D-89).** While a connected calendar (Apple, Google or your own) hasn't answered, the Calendar says "Reading your calendars…" and shows placeholders: a tinted column per day in the week, rows in the list, a chip per day in the month. They step twice and then hold still. It no longer says "Nothing this week" before it knows, and a quick or cached read never flickers. Everything still appears together once every calendar has answered.
+
 ## 0.6.2 — Quiet chrome, Home widgets and a livelier pool (2026-11-27)
 
 - **Quieter buttons (D-85).** Under an answer, Copy (⇧⌘C), Try again (⌘R), Edit question and the rest are small icons whose tooltips name them and their keys. Shorter, Simpler and In more detail live in **Try another way** (the sliders). Drawing cards, the Noted line, a sent picture's Pick up text and the Logbook's Undo follow suit, and Otty has its own icons where Flaticon had none (the Notebook, the Pouch, the Logbook, looking into something).

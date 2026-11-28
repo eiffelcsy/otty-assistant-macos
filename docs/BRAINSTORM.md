@@ -503,6 +503,9 @@ Long-term, and all of it behind the trust ceiling. The direction is in [AUTONOMY
 | Acting in your name: sending, booking and paying inside limits you set | M | L | not a goal for now; only if the trust work proves it |
 | **Otty's own calendar**: a calendar that lives in Otty, so it can add, move and tidy events with a real undo (its own data, so nothing is lost if it's wrong). Later shareable, multi-person, and the place Otties meet. See the [concept note](#ottys-own-calendar-shared-and-multi-person) | H | L | step 1 shipped (D-73: local, connected calendars beside it, `plan_event` with undo); sharing needs the hosted service and sign-in |
 | Calendar: move an event by dragging between days in the list band, and resize an event by its bottom edge in the week | M | S | idea, after D-73 |
+| Calendar placeholders while connected calendars are read: a skeleton and "Reading your calendars…" instead of an empty week | M | S | shipped (D-89) |
+| Calendar in two stages: Otty's own events at once, each connected calendar as it answers, with the skeleton only for the ones still reading (the views already take `waiting` apart from `items`) | M | S | idea, after D-89 |
+| Calendar reads ahead: after a week loads, quietly read the weeks before and after into the 2-minute cache, so ⌘← and ⌘→ rarely wait | M | S | idea, after D-89; counts as a connected read in What left your Mac |
 | Calendar: "Otty, tidy my week" proposes several moves at once on one card, each with its own undo | H | M | idea, after D-73; needs a multi-change card |
 | Calendar: copy a connected event into Otty's calendar to plan around it, keeping a link back to the original | M | S | idea |
 | Otties that talk to each other: yours finds a meeting time with a colleague's | M | L | idea, the first O2O kind ([O2O](#o2o-otty-to-otty-built-on-a2a)); the last step of [Otty's own calendar](#ottys-own-calendar-shared-and-multi-person) |

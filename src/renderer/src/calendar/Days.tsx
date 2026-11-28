@@ -8,10 +8,12 @@ interface Props {
   start: number
   items: CalendarItem[]
   today: number
+  /** D-89: still reading; each day shows placeholder rows instead of "Nothing planned". */
+  waiting: boolean
   onOpen: (item: CalendarItem) => void
 }
 
-export function Days({ start, items, today, onOpen }: Props) {
+export function Days({ start, items, today, waiting, onOpen }: Props) {
   return (
     <div className="cal-scroll cal-list">
       {Array.from({ length: 7 }, (_, j) => {
@@ -22,7 +24,13 @@ export function Days({ start, items, today, onOpen }: Props) {
         return (
           <section key={day} className="cal-day" aria-label={label}>
             <h3 className="cal-day__label">{label}</h3>
-            {here.length === 0 ? (
+            {here.length === 0 && waiting ? (
+              <div className="cal-day__rows" aria-hidden="true">
+                {Array.from({ length: j % 3 === 0 ? 2 : 1 }, (_, k) => (
+                  <span key={k} className="cal-skel cal-skel--row" />
+                ))}
+              </div>
+            ) : here.length === 0 ? (
               <div className="cal-day__none">Nothing planned</div>
             ) : (
               <ul className="cal-day__rows">

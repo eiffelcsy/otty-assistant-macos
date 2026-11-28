@@ -115,12 +115,14 @@ interface Props {
   today: number
   /** Whether the first read has come back; the grid opens scrolled once it has. */
   loaded: boolean
+  /** D-89: still reading; each day's column is tinted, with no made-up blocks at made-up times. */
+  waiting: boolean
   onOpen: (item: CalendarItem) => void
   onNew: (draft: { start: number; end: number }) => void
   onMove: (item: CalendarItem, start: number, end: number) => void
 }
 
-export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMove }: Props) {
+export function Week({ start, items, pending, today, loaded, waiting, onOpen, onNew, onMove }: Props) {
   const days = Array.from({ length: 8 }, (_, j) => addDays(start, j))
   const todayIdx = days.slice(0, 7).indexOf(today)
   const [, tick] = useState(0)
@@ -333,6 +335,7 @@ export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMo
                     </button>
                   )
                 })}
+              {waiting && <div className="cal-skel cal-skel--col" aria-hidden="true" />}
               {ghost && ghostDay === j && (
                 <div className="cal-ghost" style={blockStyle(minutesOf(ghost.start), (ghost.end - ghost.start) / 60_000)} aria-hidden="true" />
               )}

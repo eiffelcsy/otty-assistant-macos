@@ -85,7 +85,8 @@ function calendarHelper(args: string[]): Promise<{ stdout: string; stderr: strin
   if (verb === 'reminders') return ok(JSON.stringify({ reminders: cal.reminders }))
   if (verb === 'events') {
     const shown = cal.events.filter((e) => e.start < to && e.end > from)
-    return ok(JSON.stringify({ events: shown }))
+    const answer = () => ok(JSON.stringify({ events: shown }))
+    return cal.delayMs ? new Promise((r) => setTimeout(r, cal.delayMs)).then(answer) : answer()
   }
   return Promise.reject(new Error(`unknown helper command: ${verb}`))
 }

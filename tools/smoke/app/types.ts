@@ -18,6 +18,8 @@ export interface SmokeCalendar {
   allowed: boolean
   events: { title: string; start: string; end: string; allDay: boolean; location?: string; calendar: string }[]
   reminders: { title: string; due?: string; list: string }[]
+  /** How long the helper takes to answer `events`, for a slow calendar (D-89). */
+  delayMs?: number
 }
 
 /** What the fake Mac reports. Specs change it with `control.mac(...)`. */
