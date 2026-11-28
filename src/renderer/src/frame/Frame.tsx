@@ -134,7 +134,8 @@ function useScreenMove(place: Place, pushed: boolean, cove: FrameProps['cove']) 
     }
     for (const el of shown(scope.current, '[data-fresh]')) animate(el, { opacity: [0, 1] }, { duration: T.quick, ease: glide })
   }, [still, place, animate, scope])
-  useEffect(() => {
+  // A layout effect, so the screen and header are hidden before the first frame paints: after it, a slow Mac flashed them.
+  useLayoutEffect(() => {
     const before = was.current
     was.current = { place, pushed, cove }
     const tilt = (before.cove === 'full') !== (cove === 'full')

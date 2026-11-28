@@ -48,7 +48,8 @@ child.kill('SIGTERM')
 // from dist/) would keep the check waiting forever, so it gets SIGKILL once a few seconds pass without an exit.
 for (let i = 0; i < 20 && child.exitCode === null && child.signalCode === null; i++) await wait(250)
 if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
-rmSync(home, { recursive: true, force: true })
+// Helper processes can still be writing into the profile just after the kill (ENOTEMPTY), so retry.
+rmSync(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
 
 const problems = []
 if (!ok) problems.push(exited ? `it exited during startup (${JSON.stringify(exited)})` : `it didn't open its database within ${START_TIMEOUT / 1000}s`)
