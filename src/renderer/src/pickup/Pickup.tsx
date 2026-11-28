@@ -36,6 +36,7 @@ export function Pickup() {
   /** Undefined while reading, null if it failed. */
   const [lines, setLines] = useState<OcrLine[] | null | undefined>(undefined)
   const [copied, setCopied] = useState(false)
+  const copiedTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const layer = useRef<HTMLDivElement>(null)
   const rows = useMemo(() => rowsOf(lines ?? []), [lines])
 
@@ -48,7 +49,9 @@ export function Pickup() {
     if (!text) return
     void window.otty.copyText(text)
     setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    // Each copy gets its full 1.5 s: an earlier ⌘C's timer would otherwise end this one's "Copied" early.
+    clearTimeout(copiedTimer.current)
+    copiedTimer.current = setTimeout(() => setCopied(false), 1500)
   }
   const copyAll = () => copy(rowsText(rows.map((row) => row.map((l) => l.text))))
 
