@@ -32,7 +32,7 @@ test('to the Logbook from the cove: the header stays hidden until the sheet rise
   await expect(panel.locator('.frame__main--full')).toBeVisible()
   // Sampled in the page every 16 ms while the camera tilts: what the eye sees, frame by frame.
   const seen = await panel.evaluate(async () => {
-    const out: { t: number; o: number }[] = []
+    const out: { t: number; o: number; logbook: boolean }[] = []
     ;[...document.querySelectorAll<HTMLButtonElement>('.nav-btn')].find((b) => b.getAttribute('aria-label')?.startsWith('Logbook'))!.click()
     // The clock starts at the first frame after the click, when the tilt's transition does: on a slow Mac the click's
     // render can hold the page past 150 ms, and a clock started at the click would count that as the tilt's time.
@@ -40,7 +40,7 @@ test('to the Logbook from the cove: the header stays hidden until the sheet rise
     const start = performance.now()
     const end = performance.now() + 1400
     while (performance.now() < end) {
-      out.push({ t: performance.now() - start, o: Number(getComputedStyle(document.querySelector('.frame__main > .panel__header')!).opacity) })
+      out.push({ t: performance.now() - start, o: Number(getComputedStyle(document.querySelector('.frame__main > .panel__header')!).opacity), logbook: Boolean(document.querySelector('.logbook')) })
       await new Promise((r) => setTimeout(r, 16))
     }
     return out
@@ -49,7 +49,7 @@ test('to the Logbook from the cove: the header stays hidden until the sheet rise
   // Judged by when each sample was taken, not by how many: a slow Mac samples less often.
   const early = seen.filter((s) => s.t < 150)
   expect(early.length).toBeGreaterThan(0)
-  expect(early.every((s) => s.o < 0.2), JSON.stringify(seen.slice(0, 15))).toBe(true)
+  expect(early.every((s) => s.o < 0.2), JSON.stringify({ reduce: await panel.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), seen: seen.slice(0, 15) })).toBe(true)
   await expect.poll(() => panel.evaluate(() => Number(getComputedStyle(document.querySelector('.frame__main > .panel__header')!).opacity))).toBe(1)
   await expect(panel.locator('.logbook')).toBeVisible()
 })
@@ -93,8 +93,8 @@ test('Home to the empty chat: nothing fades, Otty stays, and the chat list opens
   // The greeting and the box ride over without fading; the card glides from Home's place; only the new words surface.
   expect(Math.min(...seen.map((s) => s.words))).toBe(1)
   expect(Math.min(...seen.map((s) => s.box))).toBe(1)
-  expect(seen.filter((s) => s.t < 200).some((s) => s.cardMoved), JSON.stringify(seen.slice(0, 15))).toBe(true)
-  expect(seen[0].fresh).toBeLessThan(1)
+  expect(seen.filter((s) => s.t < 200).some((s) => s.cardMoved), JSON.stringify({ reduce: await panel.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), seen: seen.slice(0, 15) })).toBe(true)
+  expect(seen[0].fresh, JSON.stringify(seen.slice(0, 15))).toBeLessThan(1)
   expect(seen.some((s) => s.list > 0 && s.list < 248)).toBe(true)
   // Where it lands, however long the machine takes to get there.
   await expect
