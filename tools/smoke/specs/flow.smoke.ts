@@ -8,6 +8,9 @@ async function size(otty: Otty, panel: Page, width: number, height = 760): Promi
   await otty.app.evaluate(({ BrowserWindow }, [w, h]) => {
     const win = BrowserWindow.getAllWindows().find((b) => b.webContents.getURL().includes('view=panel'))
     win!.setSize(w, h)
+    // These steps sample motion frame by frame; on CI's unattended Mac the background-only app's panel counts as in the
+    // background, and Chromium throttles its frames, so animations froze and jumped (steps 178, 179).
+    win!.webContents.setBackgroundThrottling(false)
   }, [width, height])
   await expect.poll(() => panel.evaluate(() => window.innerWidth)).toBe(width)
   // The window is wide before React has drawn the nav for it; specs that click `.nav-btn` in page code need it there.
@@ -49,7 +52,7 @@ test('to the Logbook from the cove: the header stays hidden until the sheet rise
   // Judged by when each sample was taken, not by how many: a slow Mac samples less often.
   const early = seen.filter((s) => s.t < 150)
   expect(early.length).toBeGreaterThan(0)
-  expect(early.every((s) => s.o < 0.2), JSON.stringify({ reduce: await panel.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), seen: seen.slice(0, 15) })).toBe(true)
+  expect(early.every((s) => s.o < 0.2), JSON.stringify({ page: await panel.evaluate(() => ({ visible: document.visibilityState, focus: document.hasFocus() })), seen: seen.slice(0, 15) })).toBe(true)
   await expect.poll(() => panel.evaluate(() => Number(getComputedStyle(document.querySelector('.frame__main > .panel__header')!).opacity))).toBe(1)
   await expect(panel.locator('.logbook')).toBeVisible()
 })
@@ -93,7 +96,7 @@ test('Home to the empty chat: nothing fades, Otty stays, and the chat list opens
   // The greeting and the box ride over without fading; the card glides from Home's place; only the new words surface.
   expect(Math.min(...seen.map((s) => s.words))).toBe(1)
   expect(Math.min(...seen.map((s) => s.box))).toBe(1)
-  expect(seen.filter((s) => s.t < 200).some((s) => s.cardMoved), JSON.stringify({ reduce: await panel.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), seen: seen.slice(0, 15) })).toBe(true)
+  expect(seen.filter((s) => s.t < 200).some((s) => s.cardMoved), JSON.stringify({ page: await panel.evaluate(() => ({ visible: document.visibilityState, focus: document.hasFocus() })), seen: seen.slice(0, 15) })).toBe(true)
   expect(seen[0].fresh, JSON.stringify(seen.slice(0, 15))).toBeLessThan(1)
   expect(seen.some((s) => s.list > 0 && s.list < 248)).toBe(true)
   // Where it lands, however long the machine takes to get there.
