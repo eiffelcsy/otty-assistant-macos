@@ -124,6 +124,8 @@ export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMo
   const days = Array.from({ length: 8 }, (_, j) => addDays(start, j))
   const todayIdx = days.slice(0, 7).indexOf(today)
   const [, tick] = useState(0)
+  // oxlint-disable-next-line react/purity -- the minute tick below re-renders to move the now line
+  const nowTop = (minutesOf(Date.now()) / 60) * HOUR
   const [live, setLive] = useState<Live | null>(null)
   const liveRef = useRef<Live | null>(null)
   const drag = useRef<Drag | null>(null)
@@ -337,7 +339,7 @@ export function Week({ start, items, pending, today, loaded, onOpen, onNew, onMo
                 <div className="cal-ghost" style={blockStyle(minutesOf(ghost.start), (ghost.end - ghost.start) / 60_000)} aria-hidden="true" />
               )}
               {j === todayIdx && (
-                <div className="cal-now" style={{ top: (minutesOf(Date.now()) / 60) * HOUR }} aria-hidden="true">
+                <div className="cal-now" style={{ top: nowTop }} aria-hidden="true">
                   <span className="cal-now__dot" />
                 </div>
               )}

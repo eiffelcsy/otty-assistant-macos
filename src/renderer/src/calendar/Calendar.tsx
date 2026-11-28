@@ -41,6 +41,7 @@ export function Calendar({ band }: { band: Band }) {
   const [mode, setMode] = useState<Mode>('week')
   const [month, setMonth] = useState(() => monthOf(Date.now()))
   const monthly = mode === 'month'
+  // oxlint-disable-next-line react/purity -- read on every render on purpose, so today moves on past midnight
   const today = dayStart(Date.now())
   // The month shows six weeks from the Monday on or before its 1st; "today in view" means in the month itself.
   const from = monthly ? mondayOf(month) : start
