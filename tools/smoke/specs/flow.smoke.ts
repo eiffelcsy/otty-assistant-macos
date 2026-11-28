@@ -10,6 +10,8 @@ async function size(otty: Otty, panel: Page, width: number, height = 760): Promi
     win!.setSize(w, h)
   }, [width, height])
   await expect.poll(() => panel.evaluate(() => window.innerWidth)).toBe(width)
+  // The window is wide before React has drawn the nav for it; specs that click `.nav-btn` in page code need it there.
+  if (width >= 640) await expect(panel.locator('.frame__nav')).toBeVisible()
 }
 
 /** Drags from the middle of `target` by `dx`, in steps, optionally keeping the button down. */
