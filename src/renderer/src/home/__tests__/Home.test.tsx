@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // D-66: Home shows only the blocks with something in them, in main's words, and deciding sends the Logbook's id.
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { CalendarItem, CalendarRange, HomePage } from '../../../../shared/types'
 import { Home } from '../Home'
 
@@ -87,6 +87,10 @@ describe('Home (Spec 06)', () => {
     const event = (title: string, start: number, mins = 60): CalendarItem => ({ id: title, title, start, end: start + mins * 60_000, allDay: false, source: 'Otty', readOnly: false })
 
     it('Calendar lists what’s left of today and opens the Calendar', async () => {
+      // At noon, so "an hour from now" is still today whenever the test runs.
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date().setHours(12, 0, 0, 0))
+      onTestFinished(() => void vi.useRealTimers())
       const now = Date.now()
       otty.calendarRange.mockResolvedValueOnce({ items: [event('Done earlier', now - 3 * 3600_000), event('Dentist', now + 3600_000)] })
       const onOpenCalendar = vi.fn()
