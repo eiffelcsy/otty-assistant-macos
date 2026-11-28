@@ -74,6 +74,14 @@ test('Home to the empty chat: nothing fades, Otty stays, and the chat list opens
   await panel.keyboard.press('Meta+1')
   await expect(panel.getByRole('main', { name: 'Home' })).toBeVisible()
   await expect.poll(() => panel.evaluate(() => parseFloat(document.querySelector<HTMLElement>('.frame')!.style.getPropertyValue('--list-now')) || 0)).toBe(0)
+  // And Home's own words have finished surfacing, or the move below starts with them part-way (CI's slow Mac).
+  await expect
+    .poll(() =>
+      panel.evaluate(() =>
+        Math.min(1, ...[...document.querySelectorAll<HTMLElement>('[data-shared], [data-fresh]')].filter((e) => e.getClientRects().length).map((e) => Number(getComputedStyle(e).opacity)))
+      )
+    )
+    .toBe(1)
   const seen = await panel.evaluate(async () => {
     const frame = document.querySelector<HTMLElement>('.frame')!
     const shown = (sel: string) => [...document.querySelectorAll<HTMLElement>(sel)].find((e) => e.getClientRects().length)
