@@ -4,17 +4,17 @@
 import { execFileSync } from 'node:child_process'
 import { copyFileSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 const gh = (...args) => execFileSync('gh', args, { encoding: 'utf8' }).trim()
 const branch = execFileSync('git', ['branch', '--show-current'], { encoding: 'utf8' }).trim()
 const run = gh('run', 'list', '--branch', branch, '--workflow', 'ci', '--limit', '1', '--json', 'databaseId', '-q', '.[0].databaseId')
 const dir = mkdtempSync(join(tmpdir(), 'screens-'))
-gh('run', 'download', run, '-n', 'screens-diff', '-D', dir)
+// One artifact per shard (screens-diff-1, -2, …).
+gh('run', 'download', run, '-p', 'screens-diff*', '-D', dir)
 const baseline = new URL('./baseline/', import.meta.url).pathname
-for (const sub of readdirSync(dir)) {
-  for (const f of readdirSync(join(dir, sub)).filter((n) => n.endsWith('-actual.png'))) {
-    copyFileSync(join(dir, sub, f), join(baseline, f.replace('-actual', '')))
-    console.log('updated', f.replace('-actual', ''))
-  }
+for (const path of readdirSync(dir, { recursive: true }).filter((n) => n.endsWith('-actual.png'))) {
+  const name = basename(path).replace('-actual', '')
+  copyFileSync(join(dir, path), join(baseline, name))
+  console.log('updated', name)
 }
